@@ -5,6 +5,53 @@
   node_bundler = "nft"
   included_files = ["public/**"]
 
+# Static assets — serve directly from CDN, bypass Lambda
+[[redirects]]
+  from = "/logo.png"
+  to = "/logo.png"
+  status = 200
+
+[[redirects]]
+  from = "/logo.webp"
+  to = "/logo.webp"
+  status = 200
+
+[[redirects]]
+  from = "/logo.ico"
+  to = "/logo.ico"
+  status = 200
+
+[[redirects]]
+  from = "/favicon.ico"
+  to = "/favicon.ico"
+  status = 200
+
+[[redirects]]
+  from = "/site.webmanifest"
+  to = "/site.webmanifest"
+  status = 200
+
+[[redirects]]
+  from = "/robots.txt"
+  to = "/robots.txt"
+  status = 200
+
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/sitemap.xml"
+  status = 200
+
+[[redirects]]
+  from = "/ads.txt"
+  to = "/ads.txt"
+  status = 200
+
+[[redirects]]
+  from = "/BingSiteAuth.xml"
+  to = "/BingSiteAuth.xml"
+  status = 200
+
+# All other traffic → serverless function
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/api/:splat"

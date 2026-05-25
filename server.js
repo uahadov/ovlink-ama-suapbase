@@ -475,9 +475,20 @@ if (isProdRuntime && (!Number.isInteger(trustProxyHops) || trustProxyHops <= 0))
   console.error('[startup] TRUST_PROXY_HOPS must be set to a positive integer in production.');
   process.exit(1);
 }
-app.set('trust proxy', process.env.NODE_ENV === 'production'
-  ? trustProxyHops
-  : false);
+
+// FORCE_SECURE_COOKIE=1 forces the session cookie Secure flag.
+// On Netlify (or similar proxy environments), the Lambda-to-proxy
+// connection is HTTP but the client-facing connection is HTTPS.
+// Without trusting the proxy, req.secure may be false, so 'auto'
+// would omit Secure.  Setting FORCE_SECURE_COOKIE=1 overrides.
+const forceSecureCookie = ['1', 'true', 'yes', 'on'].includes(
+  (process.env.FORCE_SECURE_COOKIE || '').toString().trim().toLowerCase()
+);
+
+// If TRUST_PROXY_HOPS is set (regardless of NODE_ENV), trust the proxy.
+// Otherwise only trust in production when NODE_ENV is set.
+const useTrustProxy = Number.isInteger(trustProxyHops) && trustProxyHops > 0;
+app.set('trust proxy', useTrustProxy ? trustProxyHops : false);
 
 // Enforce HTTPS in production for all requests
 app.use((req, res, next) => {
@@ -3251,18 +3262,18 @@ function sendNewDeviceLoginEmailForUser(userId, details = {}) {
 // Middleware
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '100kb', parameterLimit: 100 }));
+const sessionCookieSecure = forceSecureCookie || (isProd ? true : 'auto');
 const sessionOptions = {
   secret: process.env.SESSION_SECRET,
-  resave: false, // Stale session overwrite riskini azaltır
-  saveUninitialized: false, // CSRF secret session'a yazılınca zaten kaydedilir
-  rolling: true, // Her istekte cookie süresini uzat
-  proxy: isProd,
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  proxy: useTrustProxy,
   cookie: {
     httpOnly: true,
-    // Production'da her zaman Secure, geliştirmede otomatik.
-    secure: isProd ? true : 'auto',
-    sameSite: 'lax', // 'strict' yerine 'lax' daha uyumlu
-    maxAge: 24 * 60 * 60 * 1000 // 24 saat
+    secure: sessionCookieSecure,
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000
   }
 };
 
@@ -3902,6 +3913,10 @@ app.get('/notifications', (req, res) => {
 });
 app.get('/forgot-password', (req, res) => res.render('forgot-password', { csrfToken: res.locals._csrf }));
 app.get('/reset-password', (req, res) => res.render('reset-password', { csrfToken: res.locals._csrf, token: req.query.token || '' }));
+
+app.get('/logo.png', (req, res) => res.sendFile(path.join(publicDir, 'logo.png')));
+app.get('/logo.webp', (req, res) => res.sendFile(path.join(publicDir, 'logo.webp')));
+app.get('/logo.ico', (req, res) => res.sendFile(path.join(publicDir, 'logo.ico')));
 
 app.use(express.static(publicDir, isProd ? {
   maxAge: '365d',
@@ -5232,9 +5247,11 @@ app.post('/api/logout', handleLogout);
 
 
 // Oturum Bilgisi (GET /api/me)
+// Returns 200 with { user: null } for unauthenticated visitors
+// so browser devtools are not polluted with 401 noise.
 app.get('/api/me', (req, res) => {
   if (!req.session.userId) {
-    return res.status(401).json({ user: null });
+    return res.json({ user: null });
   }
 
   db.get(
