@@ -3284,7 +3284,7 @@ app.use(session(sessionOptions));
 app.use((req, res, next) => {
   const reqPath = (req.path || '').toLowerCase();
   const isStaticLike = /\.(css|js|png|jpg|jpeg|webp|svg|ico|woff2?|ttf|map|txt|xml|webmanifest)$/.test(reqPath);
-  const skipStaticPath = reqPath === '/robots.txt' || reqPath === '/sitemap.xml' || reqPath === '/favicon.ico' || reqPath === '/site.webmanifest';
+  const skipStaticPath = reqPath === '/robots.txt' || reqPath === '/sitemap.xml' || reqPath === '/favicon.ico';
   if ((req.method === 'GET' || req.method === 'HEAD') && (isStaticLike || skipStaticPath)) return next();
 
   if (!req.session || !req.session.userId) return next();
@@ -3403,7 +3403,7 @@ function hasApiKeyAuthHeader(req) {
 
 app.use((req, res, next) => {
   const isStaticLike = /\.(css|js|png|jpg|jpeg|webp|svg|ico|woff2?|ttf|map|txt|xml|webmanifest)$/i.test(req.path);
-  const skipStaticPath = req.path === '/robots.txt' || req.path === '/sitemap.xml' || req.path === '/favicon.ico' || req.path === '/site.webmanifest';
+  const skipStaticPath = req.path === '/robots.txt' || req.path === '/sitemap.xml' || req.path === '/favicon.ico';
   if (req.method === 'GET' && (isStaticLike || skipStaticPath)) return next();
   // Consent gate POST is protected by signed ready_at/ready_sig fields and should
   // not hard-fail if a browser rotates/blocks session cookies unexpectedly.
@@ -3917,6 +3917,31 @@ app.get('/reset-password', (req, res) => res.render('reset-password', { csrfToke
 app.get('/logo.png', (req, res) => res.sendFile(path.join(publicDir, 'logo.png')));
 app.get('/logo.webp', (req, res) => res.sendFile(path.join(publicDir, 'logo.webp')));
 app.get('/logo.ico', (req, res) => res.sendFile(path.join(publicDir, 'logo.ico')));
+
+app.get('/site.webmanifest', (req, res) => {
+  res.set('Content-Type', 'application/manifest+json');
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json({
+    name: 'Ovlink',
+    short_name: 'Ovlink',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#ffffff',
+    theme_color: '#5b5bd6',
+    icons: [
+      {
+        src: '/logo.png',
+        sizes: '512x512',
+        type: 'image/png',
+      },
+      {
+        src: '/logo.ico',
+        sizes: '48x48',
+        type: 'image/x-icon',
+      },
+    ],
+  });
+});
 
 app.use(express.static(publicDir, isProd ? {
   maxAge: '365d',

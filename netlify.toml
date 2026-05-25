@@ -1,5 +1,6 @@
 [build]
   functions = "netlify/functions"
+  publish = "public"
 
 [functions]
   node_bundler = "nft"
@@ -7,28 +8,8 @@
 
 # Static assets — serve directly from CDN, bypass Lambda
 [[redirects]]
-  from = "/logo.png"
-  to = "/logo.png"
-  status = 200
-
-[[redirects]]
-  from = "/logo.webp"
-  to = "/logo.webp"
-  status = 200
-
-[[redirects]]
-  from = "/logo.ico"
-  to = "/logo.ico"
-  status = 200
-
-[[redirects]]
   from = "/favicon.ico"
   to = "/favicon.ico"
-  status = 200
-
-[[redirects]]
-  from = "/site.webmanifest"
-  to = "/site.webmanifest"
   status = 200
 
 [[redirects]]
@@ -49,6 +30,26 @@
 [[redirects]]
   from = "/BingSiteAuth.xml"
   to = "/BingSiteAuth.xml"
+  status = 200
+
+[[redirects]]
+  from = "/logo.png"
+  to = "/logo.png"
+  status = 200
+
+[[redirects]]
+  from = "/logo.webp"
+  to = "/logo.webp"
+  status = 200
+
+[[redirects]]
+  from = "/logo-dark.png"
+  to = "/logo-dark.png"
+  status = 200
+
+[[redirects]]
+  from = "/logo-dark.webp"
+  to = "/logo-dark.webp"
   status = 200
 
 # All other traffic → serverless function
