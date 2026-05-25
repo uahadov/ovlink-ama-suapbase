@@ -33,7 +33,9 @@
   <% } %>
 </head>
 
-<body class="home-page">
+<body class="home-page animated-gradient-bg">
+
+  <div class="particles-container" id="particlesContainer"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
@@ -113,7 +115,7 @@
         </div>
 
         <!-- Tema Butonu Navbar dışında -->
-        <button class="theme-toggle home-theme-btn" aria-label="Temayı Değiştir">
+        <button class="theme-toggle home-theme-btn theme-toggle-animated" aria-label="Temayı Değiştir">
           <i class="fa-solid fa-sun"></i>
         </button>
       </div>
@@ -127,17 +129,17 @@
       <div class="container">
         <div class="row justify-content-center">
           <div class="col-lg-8 text-center">
-            <div class="badge hero-chip rounded-pill px-3 py-2 mb-4 shadow-sm fw-semibold">
+            <div class="badge hero-chip hero-badge rounded-pill px-3 py-2 mb-4 shadow-sm fw-semibold">
               <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
             </div>
             <h1 class="hero-title mb-4">
-              <span class="hero-title-accent" data-i18n="hero_title_line2">Linklərinizi</span>
-              <span data-i18n="hero_title_line1">Qısaldın və İdarə Edin</span>
+              <span class="hero-title-word hero-title-accent" data-i18n="hero_title_line2">Linklərinizi</span>
+              <span class="hero-title-word" data-i18n="hero_title_line1">Qısaldın və İdarə Edin</span>
             </h1>
             <p class="hero-subtitle mb-5 px-lg-5" data-i18n="hero_subtitle">
               Smarter links, better results. Sign up for free and track your statistics with our advanced analytics dashboard.
             </p>
-            <div class="glass-card home-form-card shadow-lg text-start mx-auto">
+            <div class="glass-card home-form-card shadow-lg text-start mx-auto hero-form">
               <form id="shortenForm">
                 <div class="input-group input-group-lg mb-4 shadow-sm">
                   <span class="input-group-text bg-white border-end-0 text-primary">
@@ -212,7 +214,7 @@
                 <div id="shortenFeedback" class="alert d-none py-2 mb-3 small fw-bold text-center rounded-pill"
                   role="alert"></div>
 
-                <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill py-3 fw-bold shadow-lg home-primary-btn">
+                <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill py-3 fw-bold shadow-lg home-primary-btn btn-animated btn-glow">
                   <span data-i18n="shorten_btn">Shorten & Create QR</span><i class="fa-solid fa-qrcode ms-2"></i>
                 </button>
               </form>
@@ -245,7 +247,7 @@
       <div class="container">
         <div class="row g-4 justify-content-center">
           <div class="col-lg-6">
-            <div id="qrSection" class="glass-card tool-card shadow-sm p-4 border-0 h-100">
+            <div id="qrSection" class="glass-card tool-card shadow-sm p-4 border-0 h-100 reveal-left">
               <div class="tool-card-icon tool-card-icon--cyan mb-3"><i class="fa-solid fa-qrcode"></i></div>
               <h3 class="fw-bold mb-4" data-i18n="qr_customize">Customize QR Code</h3>
               <form id="qrForm" class="d-flex flex-column gap-3">
@@ -287,7 +289,7 @@
           </div>
 
           <div class="col-lg-6">
-            <div id="reportSection" class="glass-card tool-card shadow-sm p-4 border-0 h-100">
+            <div id="reportSection" class="glass-card tool-card shadow-sm p-4 border-0 h-100 reveal-right">
               <div class="tool-card-icon tool-card-icon--rose mb-3"><i class="fa-solid fa-flag"></i></div>
               <h3 class="fw-bold mb-4" data-i18n="report_title">Report Link</h3>
               <form id="reportForm" class="d-flex flex-column gap-3">
@@ -335,28 +337,28 @@
     </div>
     <div class="row g-4">
       <div class="col-md-6 col-xl-3">
-        <article class="mini-feature-card h-100">
+        <article class="mini-feature-card h-100 feature-card-stagger card-hover">
           <div class="mini-feature-icon mini-feature-icon--indigo"><i class="fa-solid fa-bolt"></i></div>
           <h5 class="fw-bold mb-2" data-i18n="home_mini_feature_1_title">Instant Shortening</h5>
           <p class="mb-0" data-i18n="home_mini_feature_1_text">Paste your URL and get a short code instantly.</p>
         </article>
       </div>
       <div class="col-md-6 col-xl-3">
-        <article class="mini-feature-card h-100">
+        <article class="mini-feature-card h-100 feature-card-stagger card-hover">
           <div class="mini-feature-icon mini-feature-icon--emerald"><i class="fa-solid fa-chart-column"></i></div>
           <h5 class="fw-bold mb-2" data-i18n="home_mini_feature_2_title">Privacy-First Analytics</h5>
           <p class="mb-0" data-i18n="home_mini_feature_2_text">Only essential stats are collected for insights.</p>
         </article>
       </div>
       <div class="col-md-6 col-xl-3">
-        <article class="mini-feature-card h-100">
+        <article class="mini-feature-card h-100 feature-card-stagger card-hover">
           <div class="mini-feature-icon mini-feature-icon--blue"><i class="fa-solid fa-shield-halved"></i></div>
           <h5 class="fw-bold mb-2" data-i18n="home_mini_feature_3_title">Safety Built-in</h5>
           <p class="mb-0" data-i18n="home_mini_feature_3_text">Moderation and reports help keep links safe.</p>
         </article>
       </div>
       <div class="col-md-6 col-xl-3">
-        <article class="mini-feature-card h-100">
+        <article class="mini-feature-card h-100 feature-card-stagger card-hover">
           <div class="mini-feature-icon mini-feature-icon--violet"><i class="fa-solid fa-mobile-screen-button"></i></div>
           <h5 class="fw-bold mb-2" data-i18n="home_mini_feature_4_title">Great UX</h5>
           <p class="mb-0" data-i18n="home_mini_feature_4_text">Fast and mobile-friendly experience on every page.</p>

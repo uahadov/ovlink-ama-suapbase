@@ -649,3 +649,96 @@ document.addEventListener("click", async (e) => {
     }
   });
 })();
+
+(function initAnimations() {
+  const revealElements = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale, .stagger-children');
+  
+  if (revealElements.length && 'IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+        }
+      });
+    }, {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    });
+    
+    revealElements.forEach(el => observer.observe(el));
+  }
+  
+  const particlesContainer = document.getElementById('particlesContainer') || document.querySelector('.particles-container');
+  if (particlesContainer && !document.querySelector('.particle')) {
+    const particleCount = window.innerWidth < 768 ? 15 : 30;
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
+      particle.style.animationDelay = (Math.random() * 10) + 's';
+      particlesContainer.appendChild(particle);
+    }
+  }
+  
+  document.querySelectorAll('.btn-animated, .btn-glow').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      const ripple = document.createElement('span');
+      ripple.className = 'btn-ripple';
+      const rect = this.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      ripple.style.width = ripple.style.height = size + 'px';
+      ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+      ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+      this.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 600);
+    });
+  });
+  
+  document.querySelectorAll('form').forEach(form => {
+    form.addEventListener('submit', function() {
+      const submitBtn = this.querySelector('button[type="submit"]');
+      if (submitBtn && !submitBtn.classList.contains('btn-loading')) {
+        submitBtn.classList.add('btn-loading');
+        setTimeout(() => submitBtn.classList.remove('btn-loading'), 3000);
+      }
+    });
+  });
+  
+  const counterElements = document.querySelectorAll('[data-counter]');
+  const counterObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const target = parseInt(entry.target.dataset.counter, 10);
+        let current = 0;
+        const increment = target / 50;
+        const timer = setInterval(() => {
+          current += increment;
+          if (current >= target) {
+            entry.target.textContent = target;
+            clearInterval(timer);
+          } else {
+            entry.target.textContent = Math.floor(current);
+          }
+        }, 30);
+        counterObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  
+  counterElements.forEach(el => counterObserver.observe(el));
+  
+  const animatedInputs = document.querySelectorAll('.form-control-animated');
+  animatedInputs.forEach(input => {
+    input.addEventListener('focus', () => input.style.transform = 'scale(1.02)');
+    input.addEventListener('blur', () => input.style.transform = 'scale(1)');
+  });
+  
+  const copyButtons = document.querySelectorAll('[id="copyShortBtn"]');
+  copyButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      this.classList.add('copy-success');
+      setTimeout(() => this.classList.remove('copy-success'), 400);
+    });
+  });
+})();
