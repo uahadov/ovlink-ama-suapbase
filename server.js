@@ -3340,11 +3340,7 @@ const csrfImpl = {
     }
 
     const SALT_LEN = 10;
-    const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let salt = '';
-    for (let i = 0; i < SALT_LEN; i++) {
-      salt += CHARS[Math.floor(Math.random() * CHARS.length)];
-    }
+    const salt = crypto.randomBytes(SALT_LEN).toString('base64url');
 
     const hash = crypto.createHash('sha256').update(salt + secret).digest('base64url');
     const token = salt + hash;
@@ -4629,6 +4625,17 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
     FOREIGN KEY(user_id) REFERENCES users(id)
   )`);
 
+  const allTablesForRls = [
+    'users', 'urls', 'reports', 'clicks', 'site_settings', 'admin_users', 
+    'blocked_domains', 'admin_audit_log', 'admin_auth_audit', 'guest_limits',
+    'custom_domains', 'user_sessions', 'api_keys', 'webhooks', 'webhook_deliveries',
+    'subscription_audit', 'security_events', 'api_idempotency_keys', 'api_usage_logs',
+    'notifications', 'password_resets'
+  ];
+  allTablesForRls.forEach(t => {
+    db.run(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`, () => {});
+  });
+
   db.run('CREATE INDEX IF NOT EXISTS idx_password_resets_user_id ON password_resets(user_id)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token_hash)', () => {});
   db.run(
@@ -4703,6 +4710,7 @@ app.use('/admin', createAdminRouter(db, {
 // 6 haneli doğrulama kodu oluşturulur, e-posta gönderilir ve
 // kayıt öncesinde email, session'a "tempEmail" olarak kaydedilir.
 app.post('/api/register',
+  authLimiter,
   [
     body('email')
       .isEmail().withMessage('Düzgün bir e-poçt ünvanı daxil edin.')
@@ -6708,7 +6716,9 @@ app.post('/api/user/settings', (req, res) => {
 });
 
 // Şifre değiştirme (POST /api/user/password)
-app.post('/api/user/password', (req, res) => {
+app.post('/api/user/password',
+  authLimiter,
+  (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: 'Giriş gerekli.' });
   }
@@ -7858,7 +7868,9 @@ app.post('/api/user/delete', (req, res) => {
 });
 
 // KULLANICI TOPLU LINK SİLME (POST /api/user/delete-bulk)
-app.post('/api/user/delete-bulk', (req, res) => {
+app.post('/api/user/delete-bulk',
+  shortenLimiter,
+  (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: 'Giriş yapmalısınız.' });
   }
@@ -7875,6 +7887,13 @@ app.post('/api/user/delete-bulk', (req, res) => {
   if (!valid.length) {
     return res.status(400).json({
       error: pickLang(uiLang, 'Silmək üçün link seçin.', 'Silmek için link seçin.', 'Select a link to delete.')
+    });
+  }
+
+  const MAX_DELETE_SHORTS = 100;
+  if (valid.length > MAX_DELETE_SHORTS) {
+    return res.status(400).json({
+      error: pickLang(uiLang, `Bir dəfəyə maksimum ${MAX_DELETE_SHORTS} link silinə bilər.`, `Bir seferde en fazla ${MAX_DELETE_SHORTS} link silinebilir.`, `Maximum ${MAX_DELETE_SHORTS} links can be deleted at once.`)
     });
   }
 
@@ -8169,7 +8188,9 @@ app.get('/api/user/export', (req, res) => {
 });
 
 // KULLANICI TOPLU LINK IMPORT (POST /api/user/import)
-app.post('/api/user/import', (req, res) => {
+app.post('/api/user/import',
+  shortenLimiter,
+  (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -8190,6 +8211,13 @@ app.post('/api/user/import', (req, res) => {
   if (!urls.length) {
     return res.status(400).json({
       error: pickLang(uiLang, 'Etibarlı URL tapılmadı.', 'Geçerli URL bulunamadı.', 'No valid URL found.')
+    });
+  }
+
+  const MAX_IMPORT_ROWS = 1000;
+  if (urls.length > MAX_IMPORT_ROWS) {
+    return res.status(400).json({
+      error: pickLang(uiLang, `Bir dəfəyə maksimum ${MAX_IMPORT_ROWS} URL idxal edilə bilər.`, `Bir seferde en fazla ${MAX_IMPORT_ROWS} URL içe aktarılabilir.`, `Maximum ${MAX_IMPORT_ROWS} URLs can be imported at once.`)
     });
   }
 
