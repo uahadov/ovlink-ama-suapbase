@@ -3,6 +3,7 @@
 
 [functions]
   node_bundler = "nft"
+  included_files = ["public/**"]
 
 [[redirects]]
   from = "/*"
