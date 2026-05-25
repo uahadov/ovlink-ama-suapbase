@@ -19,6 +19,7 @@ const ExcelJS = require('exceljs');
 const tsscmp = require('tsscmp');
 const lusca = require('lusca');
 const { body, validationResult } = require('express-validator');
+const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('./utils/crypto.js');
 require('dotenv').config();
 const isProdRuntime = process.env.NODE_ENV === 'production';
 
@@ -1287,7 +1288,7 @@ function buildCustomDomainPayload(row) {
     routing_ok: row.routing_ok == 1,
     verification: {
       txt_host: txtHost,
-      txt_value: row.verification_token,
+      txt_value: decryptAES256GCM(row.verification_token),
       cname_target: getCustomDomainTargetHost(),
     }
   };
@@ -4287,6 +4288,7 @@ db.serialize(() => {
   // 2FA migration: no-op if columns already exist
   db.run('ALTER TABLE admin_users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0', () => {});
   db.run('ALTER TABLE admin_users ADD COLUMN totp_secret TEXT', () => {});
+  db.run('ALTER TABLE admin_users ADD COLUMN email_hash TEXT', () => {});
 
   db.run(`CREATE TABLE IF NOT EXISTS blocked_domains (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -4504,6 +4506,7 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
 
   // Columns for user moderation
   db.run('ALTER TABLE users ADD COLUMN created_at TEXT', () => {});
+  db.run('ALTER TABLE users ADD COLUMN email_hash TEXT', () => {});
   db.run('ALTER TABLE users ADD COLUMN last_login_at TEXT', () => {});
   db.run('ALTER TABLE users ADD COLUMN banned INTEGER DEFAULT 0', () => {});
   db.run('ALTER TABLE users ADD COLUMN ban_until TEXT', () => {});
@@ -4746,7 +4749,8 @@ app.post('/api/register',
       return res.status(400).json({ error: pickLang(uiLang, 'Bu e-poçt ünvanı müvəqqəti (fake) görünür. Zəhmət olmasa real e-poçt ünvanı daxil edin.', 'Bu e-posta adresi geçici görünüyor. Lütfen gerçek bir e-posta adresi girin.', 'This email address appears to be temporary. Please enter a real email address.') });
     }
 
-    const verificationCode = generateVerificationCode();
+    const rawVerificationCode = generateVerificationCode();
+    const verificationCode = encryptAES256GCM(rawVerificationCode);
     const verificationExpiresAt = buildVerificationExpiryIso(15);
     const initialLang = uiLang;
 
@@ -4755,10 +4759,10 @@ app.post('/api/register',
         return res.status(500).json({ error: pickLang(uiLang, 'Hesab yaradıla bilmədi.', 'Hesap oluşturulamadı.', 'Account could not be created.') });
       }
 
-      db.run('INSERT INTO users (email, password, verification_code, verification_expires_at, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)', [email, hashed, verificationCode, verificationExpiresAt, 'local', new Date().toISOString(), initialLang, 'light'], function (err) {
+      db.run('INSERT INTO users (email, email_hash, password, verification_code, verification_expires_at, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)', [encryptAES256GCM(email), blindIndex(email), hashed, verificationCode, verificationExpiresAt, 'local', new Date().toISOString(), initialLang, 'light'], function (err) {
         if (err) return res.status(500).json({ error: pickLang(uiLang, 'Bu e-poçt artıq istifadə edilib.', 'Bu e-posta zaten kullanılıyor.', 'This email is already in use.') });
 
-        sendVerificationEmail(email, verificationCode, uiLang)
+        sendVerificationEmail(email, rawVerificationCode, uiLang)
           .then(() => {
             req.session.tempEmail = email;
             res.json({ message: pickLang(uiLang, `${email} ünvanına təsdiqləmə kodu göndərildi. Zəhmət olmasa təsdiqləmə panelindən istifadə edin.`, `${email} adresine doğrulama kodu gönderildi. Lütfen doğrulama panelini kullanın.`, `A verification code has been sent to ${email}. Please complete verification.`) });
@@ -4793,10 +4797,10 @@ app.post('/api/verify-email',
     const email = (req.body.email || '').toString().trim().toLowerCase();
     const verificationCode = (req.body.verificationCode || '').toString().trim();
 
-    db.get('SELECT * FROM users WHERE email = ?', [email], (err, user) => {
+    db.get('SELECT * FROM users WHERE email_hash = ?', [blindIndex(email)], (err, user) => {
       if (err || !user) return res.status(404).json({ error: pickLang(uiLang, 'İstifadəçi tapılmadı.', 'Kullanıcı bulunamadı.', 'User not found.') });
 
-      const storedCode = (user.verification_code || '').toString();
+      const storedCode = decryptAES256GCM((user.verification_code || '').toString());
       const verificationExpiresMs = Date.parse((user.verification_expires_at || '').toString());
       if (!Number.isFinite(verificationExpiresMs) || verificationExpiresMs <= Date.now()) {
         return res.status(400).json({
@@ -4822,7 +4826,7 @@ app.post('/api/verify-email',
         return req.session.regenerate((regenErr) => {
           if (regenErr) return res.status(500).json({ error: pickLang(uiLang, 'Oturum açıla bilmədi.', 'Oturum açılamadı.', 'Session could not be created.') });
           req.session.userId = user.id;
-          req.session.username = user.email;
+          req.session.username = decryptAES256GCM(user.email);
           return upsertUserSessionRecord(req, user.id, { loginMethod: 'verify_email' }, () => {
             return req.session.save((saveErr) => {
               if (saveErr) return res.status(500).json({ error: pickLang(uiLang, 'Oturum açıla bilmədi.', 'Oturum açılamadı.', 'Session could not be created.') });
@@ -4866,7 +4870,7 @@ app.post('/api/login',
     }
     const uiLang = normalizeLang(req.body && req.body.lang, 'az');
     const { email, password } = req.body;
-    db.get('SELECT * FROM users WHERE email = ?', [email], (err, user) => {
+    db.get('SELECT * FROM users WHERE email_hash = ?', [blindIndex(email)], (err, user) => {
       const wrongMsg = pickLang(uiLang, 'E-poçt və ya şifrə yanlışdır.', 'E-posta veya şifre yanlış.', 'Email or password is incorrect.');
       const emailHint = (email || '').toString().trim().slice(0, 128);
 
@@ -4917,7 +4921,7 @@ app.post('/api/login',
             return res.status(500).json({ error: pickLang(uiLang, 'Oturum açıla bilmədi.', 'Oturum açılamadı.', 'Session could not be created.') });
           }
           req.session.userId = user.id;
-          req.session.username = email;
+          req.session.username = email; // email is plain text from req.body
           db.run('UPDATE users SET last_login_at = ? WHERE id = ?', [new Date().toISOString(), user.id], () => {});
           return upsertUserSessionRecord(req, user.id, { loginMethod: 'password' }, () => {
             return req.session.save((saveErr) => {
@@ -5077,7 +5081,7 @@ app.get('/auth/google/callback', authLimiter, async (req, res) => {
             return res.redirect('/login?error=google_failed');
           }
           req.session.userId = user.id;
-          req.session.username = user.email;
+          req.session.username = decryptAES256GCM(user.email);
           db.run('UPDATE users SET last_login_at = ? WHERE id = ?', [new Date().toISOString(), user.id], () => {});
           return upsertUserSessionRecord(req, user.id, { loginMethod: 'google' }, () => {
             return req.session.save((saveErr) => {
@@ -5092,7 +5096,7 @@ app.get('/auth/google/callback', authLimiter, async (req, res) => {
         });
       }
 
-      db.get('SELECT * FROM users WHERE email = ?', [email], (err2, existing) => {
+      db.get('SELECT * FROM users WHERE email_hash = ?', [blindIndex(email)], (err2, existing) => {
         if (err2) {
           logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'email_lookup_failed' });
           return res.redirect('/login?error=google_failed');
@@ -5120,7 +5124,7 @@ app.get('/auth/google/callback', authLimiter, async (req, res) => {
 
           return db.run(
             'UPDATE users SET google_id = ?, email_verified = 1 WHERE id = ?',
-            [googleId, existing.id],
+            [encryptAES256GCM(googleId), existing.id],
             (updateErr) => {
               if (updateErr) {
                 logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'google_attach_failed', user_id: existing.id });
@@ -5132,7 +5136,7 @@ app.get('/auth/google/callback', authLimiter, async (req, res) => {
                   return res.redirect('/login?error=google_failed');
                 }
                 req.session.userId = existing.id;
-                req.session.username = existing.email;
+                req.session.username = decryptAES256GCM(existing.email);
                 db.run('UPDATE users SET last_login_at = ? WHERE id = ?', [new Date().toISOString(), existing.id], () => {});
                 return upsertUserSessionRecord(req, existing.id, { loginMethod: 'google' }, () => {
                   return req.session.save((saveErr) => {
@@ -5152,8 +5156,8 @@ app.get('/auth/google/callback', authLimiter, async (req, res) => {
         const createdAt = new Date().toISOString();
         const initialLang = fallbackLang;
         db.run(
-          'INSERT INTO users (email, password, email_verified, google_id, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled) VALUES (?, ?, 1, ?, ?, ?, ?, ?, 1, 1, 1)',
-          [email, null, googleId, 'google', createdAt, initialLang, 'light'],
+          'INSERT INTO users (email, email_hash, password, email_verified, google_id, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, 1, 1, 1)',
+          [encryptAES256GCM(email), blindIndex(email), null, encryptAES256GCM(googleId), 'google', createdAt, initialLang, 'light'],
           function (err3) {
             if (err3) {
               logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'user_create_failed' });
@@ -5166,7 +5170,7 @@ app.get('/auth/google/callback', authLimiter, async (req, res) => {
                 return res.redirect('/login?error=google_failed');
               }
               req.session.userId = newUserId;
-              req.session.username = email;
+              req.session.username = email; // email is plain text from req.body
               db.run('UPDATE users SET last_login_at = ? WHERE id = ?', [new Date().toISOString(), newUserId], () => {});
               return upsertUserSessionRecord(req, newUserId, { loginMethod: 'google' }, () => {
                 return req.session.save((saveErr) => {
@@ -6595,7 +6599,7 @@ app.post('/api/domains/verify', (req, res) => {
 
       (async () => {
         try {
-          const result = await verifyCustomDomainDns(row.domain, row.verification_token);
+          const result = await verifyCustomDomainDns(row.domain, decryptAES256GCM(row.verification_token));
           const now = new Date().toISOString();
           const status = !result.ownershipVerified
             ? 'pending_verification'
@@ -6788,7 +6792,7 @@ app.post('/api/forgot-password',
 
     const email = (req.body && req.body.email ? req.body.email.toString().trim().toLowerCase() : '');
 
-    db.get('SELECT id FROM users WHERE email = ?', [email], (err, user) => {
+    db.get('SELECT id FROM users WHERE email_hash = ?', [blindIndex(email)], (err, user) => {
       const successMsg = pickLang(uiLang, 'E-poçt mövcuddursa sıfırlama linki göndərildi.', 'E-posta mevcutsa sıfırlama bağlantısı gönderildi.', 'If the email exists, a reset link has been sent.');
 
       if (err || !user) {

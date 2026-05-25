@@ -1,4 +1,5 @@
 const express = require('express');
+const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('../utils/crypto.js');
 const bcrypt = require('bcrypt');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -551,7 +552,9 @@ module.exports = function createAdminRouter(db, options = {}) {
     }
 
     try {
-      const user = await get('SELECT * FROM admin_users WHERE email = ?', [email]);
+      const user = await get('SELECT * FROM admin_users WHERE email_hash = ?', [blindIndex(email)]);
+      if (user) user.email = decryptAES256GCM(user.email);
+      if (user) user.totp_secret = decryptAES256GCM(user.totp_secret);
       const genericErr = 'Invalid login credentials.';
 
       if (!user) {
@@ -633,6 +636,8 @@ module.exports = function createAdminRouter(db, options = {}) {
 
     try {
       const user = await get('SELECT id, email, role, totp_enabled, totp_secret FROM admin_users WHERE id = ?', [req.session.pendingAdminUserId]);
+      if (user) user.email = decryptAES256GCM(user.email);
+      if (user) user.totp_secret = decryptAES256GCM(user.totp_secret);
       if (!user || Number(user.totp_enabled) !== 1 || !user.totp_secret) {
         await audit(req, 'ADMIN_2FA_VERIFY_FAILURE', 'admin_user', String(req.session.pendingAdminUserId || ''), { reason: 'setup_missing' });
         return res.status(401).render('admin/2fa', { error: '2FA setup was not found.', next: nextUrl });
@@ -1133,6 +1138,7 @@ module.exports = function createAdminRouter(db, options = {}) {
       [...params, pageSize, offset],
     );
 
+    users.forEach(u => u.email = decryptAES256GCM(u.email));
     return res.render('admin/site-users', {
       active: 'site-users',
       q: qRaw,
@@ -1415,7 +1421,7 @@ module.exports = function createAdminRouter(db, options = {}) {
     const hash = await bcrypt.hash(password, 12);
 
     try {
-      await run('INSERT INTO admin_users (email, password_hash, role, created_at) VALUES (?, ?, ?, ?)', [email, hash, role, nowIso()]);
+      await run('INSERT INTO admin_users (email, email_hash, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)', [email, hash, role, nowIso()]);
       await audit(req, 'CREATE_ADMIN_USER', 'admin_user', email, { role });
     } catch {
       const rows = await all('SELECT id, email, role, created_at, last_login_at FROM admin_users ORDER BY datetime(created_at) DESC');
@@ -1583,7 +1589,7 @@ module.exports = function createAdminRouter(db, options = {}) {
         });
       }
 
-      await run('UPDATE admin_users SET totp_enabled = 1, totp_secret = ? WHERE id = ?', [secret, req.session.adminUserId]);
+      await run('UPDATE admin_users SET totp_enabled = 1, totp_secret = ? WHERE id = ?', [encryptAES256GCM(secret), req.session.adminUserId]);
       await audit(req, 'ADMIN_2FA_ENABLED', 'admin_user', String(req.session.adminUserId), {});
       delete req.session.pendingTotpSecret;
       return res.redirect('/admin/2fa/setup?ok=1');
