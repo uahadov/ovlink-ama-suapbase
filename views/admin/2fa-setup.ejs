@@ -1,0 +1,50 @@
+<%- include('partials/layout-top', {
+  title: 'Admin · 2FA Setup',
+  heading: 'Admin 2FA',
+  subtitle: 'Enable two-factor authentication for this admin account',
+  active: '2fa',
+  admin,
+  csrfToken,
+  topRightHtml: null,
+}) %>
+
+<div class="card">
+  <% if (typeof error === 'string' && error) { %>
+    <div class="alert alert--error"><%= error %></div>
+    <div class="spacer"></div>
+  <% } %>
+
+  <% if (typeof success === 'string' && success) { %>
+    <div class="alert alert--ok"><%= success %></div>
+    <div class="spacer"></div>
+  <% } %>
+
+  <% if (enabled) { %>
+    <p>2FA is already enabled for this admin account.</p>
+  <% } else { %>
+    <p>Scan the QR code with an authenticator app (Google Authenticator, Authy, or similar).</p>
+
+    <% if (qrDataUrl) { %>
+      <div class="spacer"></div>
+      <img src="<%= qrDataUrl %>" alt="2FA QR" style="width:220px;height:220px;border-radius:10px;border:1px solid #ddd;" />
+    <% } %>
+
+    <% if (secret) { %>
+      <div class="spacer"></div>
+      <p>If needed, add this secret key manually:</p>
+      <div class="kbd"><%= secret %></div>
+    <% } %>
+
+    <div class="spacer"></div>
+    <form class="form" method="POST" action="/admin/2fa/setup">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <div class="field">
+        <label for="token">6-digit code</label>
+        <input class="input" id="token" name="token" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required />
+      </div>
+      <button class="btn" type="submit">Enable 2FA</button>
+    </form>
+  <% } %>
+</div>
+
+<%- include('partials/layout-bottom') %>

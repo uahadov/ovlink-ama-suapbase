@@ -1,0 +1,162 @@
+[
+  {
+    "id": "TB001",
+    "title": "Public policy routes respond successfully",
+    "description": "Verify core public backend-rendered routes are reachable.",
+    "category": "Backend Routing",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /privacy"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify HTTP status is 200"
+      },
+      {
+        "type": "action",
+        "description": "Send GET request to /terms"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify HTTP status is 200"
+      },
+      {
+        "type": "action",
+        "description": "Send GET request to /cookie-policy"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify HTTP status is 200"
+      }
+    ]
+  },
+  {
+    "id": "TB002",
+    "title": "Unknown route returns non-success",
+    "description": "Verify backend does not return success for a non-existent route.",
+    "category": "Backend Routing",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /this-route-does-not-exist"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify HTTP status is non-2xx (404/301/302/4xx acceptable)"
+      }
+    ]
+  },
+  {
+    "id": "TB003",
+    "title": "Admin entrypoint is gated",
+    "description": "Verify unauthenticated /admin does not expose authenticated admin dashboard directly.",
+    "category": "Authentication",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /admin without authentication"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response is either redirect to /admin/login or login/unauthorized page content, not authenticated admin data"
+      }
+    ]
+  },
+  {
+    "id": "TB004",
+    "title": "Domain API rejects anonymous caller",
+    "description": "Verify session-protected domain API is not available anonymously.",
+    "category": "Authentication",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /api/domains without authentication"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response is unauthorized/forbidden/redirect or explicit auth-required error"
+      }
+    ]
+  },
+  {
+    "id": "TB005",
+    "title": "Shorten API validates empty payload",
+    "description": "Verify /api/shorten does not accept empty payload.",
+    "category": "Validation",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/shorten with empty body"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response is validation/CSRF error and not success"
+      }
+    ]
+  },
+  {
+    "id": "TB006",
+    "title": "Forgot password endpoint protected/validated",
+    "description": "Verify forgot-password endpoint rejects bad unauthenticated post without required valid form context.",
+    "category": "Validation",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/forgot-password with invalid email payload"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response is non-2xx (validation or CSRF protection)"
+      }
+    ]
+  },
+  {
+    "id": "TB007",
+    "title": "Security headers present on backend responses",
+    "description": "Verify key security headers are returned by backend middleware in local HTTP mode.",
+    "category": "Security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify X-Content-Type-Options header is present"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify Referrer-Policy header is present"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify Content-Security-Policy header is present"
+      }
+    ]
+  },
+  {
+    "id": "TB008",
+    "title": "Session cookie flags on login page",
+    "description": "Verify backend sets session cookie attributes as configured.",
+    "category": "Security",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /login"
+      },
+      {
+        "type": "assertion",
+        "description": "If Set-Cookie exists, verify HttpOnly and SameSite attributes are present"
+      }
+    ]
+  }
+]

@@ -1,0 +1,89 @@
+<%- include('partials/layout-top', {
+  title: 'Admin · Settings',
+  heading: 'Settings',
+  subtitle: 'Maintenance and announcement controls',
+  active: 'settings',
+  admin,
+  csrfToken,
+  topRightHtml: null,
+}) %>
+
+<% if (saved) { %>
+  <div class="alert alert--ok">Settings saved.</div>
+  <div class="spacer"></div>
+<% } %>
+
+<% if (error) { %>
+  <div class="alert alert--error"><%= error %></div>
+  <div class="spacer"></div>
+<% } %>
+
+<form method="POST" action="/admin/settings" class="form">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+  <div class="grid">
+    <div class="card">
+      <h3 class="section-title">Maintenance Mode</h3>
+      <p>When enabled, the public site is unavailable to users. Existing admin sessions can still sign in.</p>
+
+      <div class="field">
+        <label for="maintenance_enabled">Status</label>
+        <select id="maintenance_enabled" name="maintenance_enabled">
+          <option value="0" <%= settings.maintenance_enabled === '1' ? '' : 'selected' %>>Off</option>
+          <option value="1" <%= settings.maintenance_enabled === '1' ? 'selected' : '' %>>On</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="maintenance_message_az">Message (AZ)</label>
+        <textarea id="maintenance_message_az" name="maintenance_message_az" placeholder="Maintenance message in Azerbaijani"><%= settings.maintenance_message_az || '' %></textarea>
+      </div>
+
+      <div class="field">
+        <label for="maintenance_message_tr">Message (TR)</label>
+        <textarea id="maintenance_message_tr" name="maintenance_message_tr" placeholder="Maintenance message in Turkish"><%= settings.maintenance_message_tr || '' %></textarea>
+      </div>
+
+      <div class="field">
+        <label for="maintenance_message_en">Message (EN)</label>
+        <textarea id="maintenance_message_en" name="maintenance_message_en" placeholder="Maintenance message in English"><%= settings.maintenance_message_en || '' %></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">Announcement Banner</h3>
+      <p>When enabled, a banner appears at the top of public pages.</p>
+
+      <div class="field">
+        <label for="announcement_enabled">Status</label>
+        <select id="announcement_enabled" name="announcement_enabled">
+          <option value="0" <%= settings.announcement_enabled === '1' ? '' : 'selected' %>>Off</option>
+          <option value="1" <%= settings.announcement_enabled === '1' ? 'selected' : '' %>>On</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="announcement_text_az">Announcement text (AZ)</label>
+        <textarea id="announcement_text_az" name="announcement_text_az" placeholder="Announcement in Azerbaijani"><%= settings.announcement_text_az || '' %></textarea>
+      </div>
+
+      <div class="field">
+        <label for="announcement_text_tr">Announcement text (TR)</label>
+        <textarea id="announcement_text_tr" name="announcement_text_tr" placeholder="Announcement in Turkish"><%= settings.announcement_text_tr || '' %></textarea>
+      </div>
+
+      <div class="field">
+        <label for="announcement_text_en">Announcement text (EN)</label>
+        <textarea id="announcement_text_en" name="announcement_text_en" placeholder="Announcement in English"><%= settings.announcement_text_en || '' %></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="row">
+    <button class="btn" type="submit">Save settings</button>
+  </div>
+</form>
+
+<%- include('partials/layout-bottom') %>

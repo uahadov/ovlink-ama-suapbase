@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <link rel="icon" href="/logo.ico" />
+  <title>Link Statistikası</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+  <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+</head>
+
+<body class="home-page app-page stats-page">
+
+  <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
+    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <div class="container">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
+      </div>
+    </div>
+  <% } %>
+
+  <nav class="navbar navbar-expand-lg navbar-light home-navbar shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+        <img src="/logo.webp" alt="Ovlink" class="home-brand-logo" />
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#legacyStatsNavbarContent"
+        aria-controls="legacyStatsNavbarContent" aria-expanded="false" aria-label="Menu toggle">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="legacyStatsNavbarContent">
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          <li class="nav-item" id="navAuthGuestLogin">
+            <a class="nav-link" href="/login"><i class="fa-solid fa-right-to-bracket"></i> <span data-i18n="nav_login">Giriş</span></a>
+          </li>
+          <li class="nav-item" id="navAuthGuestReg">
+            <a class="nav-link" href="/register"><i class="fa-solid fa-user-plus"></i> <span data-i18n="nav_register">Qeydiyyat</span></a>
+          </li>
+          <li class="nav-item dropdown nav-user-dropdown d-none" id="navAuthUser">
+            <a class="nav-link dropdown-toggle position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fa-solid fa-user-circle me-1"></i>
+              <span id="navUserEmail" data-i18n="nav_my_account">Hesabım</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="/dashboard"><i class="fa-solid fa-chart-line me-2"></i><span data-i18n="dashboard_stats_link">Statistika</span></a></li>
+              <li><a class="dropdown-item" href="/account"><i class="fa-solid fa-user-gear me-2"></i><span data-i18n="profile_settings_title">Profil Parametrləri</span></a></li>
+              <li><hr class="dropdown-divider" /></li>
+              <li><a id="navLogoutBtn" class="dropdown-item" href="#"><i class="fa-solid fa-right-from-bracket me-2"></i><span data-i18n="nav_logout">Çıxış</span></a></li>
+            </ul>
+          </li>
+        </ul>
+
+        <div class="dropdown ms-2 me-2">
+          <button id="langToggleBtn" class="btn btn-sm fw-bold dropdown-toggle lang-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false">AZ</button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><button class="dropdown-item lang-option" data-lang="az" type="button">AZ</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="tr" type="button">TR</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="en" type="button">EN</button></li>
+          </ul>
+        </div>
+
+        <button class="theme-toggle home-theme-btn" aria-label="Temayı Değiştir">
+          <i class="fa-solid fa-sun"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="app-main">
+    <div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="m-0">Statistika</h1>
+      <a class="btn btn-outline-secondary btn-sm" href="/dashboard">Geri</a>
+    </div>
+
+    <div class="card p-3 mb-3">
+      <div class="row g-2">
+        <div class="col-md-6">
+          <div class="small text-muted">Qısaldılmış</div>
+          <div class="fw-bold" id="shortText">-</div>
+        </div>
+        <div class="col-md-6">
+          <div class="small text-muted">Orijinal</div>
+          <div class="text-break" id="origText">-</div>
+        </div>
+      </div>
+      <hr />
+      <div class="d-flex gap-2 flex-wrap">
+        <span class="badge text-bg-primary" id="totalClicks">Ümumi: 0</span>
+        <span class="badge text-bg-secondary" id="createdAt">Yaradılma: -</span>
+      </div>
+      <div class="alert alert-warning mt-3 mb-0 d-none" id="statsHint">
+        Bu səhifənin işləməsi üçün backend-də <code>GET /api/stats/:short</code> endpoint-i olmalıdır.
+      </div>
+      <div class="alert alert-danger mt-3 mb-0 d-none" id="statsMessage"></div>
+    </div>
+
+    <div class="card p-3 mb-3">
+      <h5 class="mb-3">Gündəlik kliklər</h5>
+      <canvas id="clickChart" height="120"></canvas>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="card p-3">
+          <h5 class="mb-3">Ən çox yönləndirən mənbələr</h5>
+          <ul class="list-group" id="refList"></ul>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card p-3">
+          <h5 class="mb-3">Ölkə bölgüsü</h5>
+          <ul class="list-group" id="countryList"></ul>
+        </div>
+      </div>
+    </div>
+    </div>
+  </main>
+
+  <script nonce="<%= nonce %>">
+    const qs = new URLSearchParams(location.search);
+    const short = qs.get("short");
+
+    function liRow(label, value) {
+      const li = document.createElement("li");
+      li.className = "list-group-item d-flex justify-content-between align-items-center";
+
+      const left = document.createElement("span");
+      left.className = "text-truncate";
+      left.textContent = String(label ?? "");
+
+      const right = document.createElement("span");
+      right.className = "badge text-bg-dark";
+      right.textContent = String(value ?? "");
+
+      li.appendChild(left);
+      li.appendChild(right);
+      return li;
+    }
+
+    async function load() {
+      const hintEl = document.getElementById("statsHint");
+      const messageEl = document.getElementById("statsMessage");
+      const showError = (msg) => {
+        if (!messageEl) return;
+        messageEl.textContent = msg;
+        messageEl.classList.remove("d-none");
+      };
+      if (messageEl) messageEl.classList.add("d-none");
+      if (!short) {
+        showError("short parametri yoxdur.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/stats/${encodeURIComponent(short)}`, { credentials: "include" });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || data.error) {
+          showError(data.error || "Statistika alına bilmədi.");
+          return;
+        }
+
+        if (hintEl) hintEl.classList.add("d-none");
+
+        const shortFull = `${location.protocol}//${location.host}/${data.short || short}`;
+        document.getElementById("shortText").innerText = shortFull;
+        document.getElementById("origText").innerText = data.original || "-";
+        document.getElementById("totalClicks").innerText = `Ümumi: ${data.clicks_total ?? 0}`;
+        document.getElementById("createdAt").innerText = `Yaradılma: ${data.created_at ? new Date(data.created_at).toLocaleString() : "-"}`;
+
+        const points = Array.isArray(data.clicks_by_day) ? data.clicks_by_day : [];
+        const labels = points.map((p) => p.date);
+        const values = points.map((p) => p.count);
+
+        new Chart(document.getElementById("clickChart"), {
+          type: "line",
+          data: { labels, datasets: [{ label: "Klik", data: values, tension: 0.25 }] },
+          options: { responsive: true, plugins: { legend: { display: true } } },
+        });
+
+        const refList = document.getElementById("refList");
+        refList.innerHTML = "";
+        (data.top_referrers || []).slice(0, 8).forEach((x) => refList.appendChild(liRow(x.ref || "unknown", x.count || 0)));
+        if (!refList.children.length) refList.appendChild(liRow("Məlumat yoxdur", "-"));
+
+        const cList = document.getElementById("countryList");
+        cList.innerHTML = "";
+        (data.top_countries || []).slice(0, 8).forEach((x) => cList.appendChild(liRow(x.country || "unknown", x.count || 0)));
+        if (!cList.children.length) cList.appendChild(liRow("Məlumat yoxdur", "-"));
+      } catch (err) {
+        showError("Bağlantı xətası: " + err.message);
+      }
+    }
+
+    load();
+  </script>
+  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title data-i18n="error_banned_title">Hesab bloklanıb</title>
+  <link rel="icon" href="/logo.ico" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+</head>
+
+<body class="bg-light d-flex flex-column min-vh-100">
+
+  <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
+    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <div class="container">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
+      </div>
+    </div>
+  <% } %>
+
+  <main class="flex-grow-1 d-flex align-items-center justify-content-center py-5">
+    <div class="container text-center">
+      <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+          <div class="card border-0 shadow-lg p-5 rounded-5" style="background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px);">
+            <div class="mb-4">
+              <i class="fa-solid fa-user-slash fa-4x text-danger mb-3"></i>
+              <h2 class="fw-bold" data-i18n="error_banned_title">Hesab bloklanıb</h2>
+              <p class="text-muted mb-0" data-i18n="error_banned_msg">Bu hesab təhlükəsizlik səbəbi ilə məhdudlaşdırılıb.</p>
+            </div>
+
+            <% if (typeof until === 'string' && until.trim()) { %>
+              <div class="alert alert-info text-start mb-3">
+                <strong data-i18n="error_banned_until">Bitmə tarixi</strong>: 
+                <span class="js-ban-until" data-iso="<%= untilIso || '' %>"><%= until %></span>
+                <% if (typeof remaining === 'string' && remaining.trim()) { %>
+                  <div class="small text-muted mt-2">
+                    <strong data-i18n="error_banned_remaining">Qalıb</strong>: 
+                    <span class="js-ban-remaining" data-iso="<%= untilIso || '' %>"><%= remaining %></span>
+                  </div>
+                <% } %>
+              </div>
+            <% } %>
+
+            <% if (typeof reason === 'string' && reason.trim()) { %>
+              <div class="alert alert-warning text-start mb-0">
+                <strong data-i18n="error_banned_reason">Səbəb</strong>: <%= reason %>
+              </div>
+            <% } %>
+
+            <p class="text-muted mt-3 mb-0">
+              <span data-i18n="error_banned_support">Dəstək üçün:</span>
+              <a href="mailto:support@ovlink.sbs">support@ovlink.sbs</a>
+            </p>
+
+            <a href="/" class="btn btn-primary rounded-pill px-4 mt-4">
+              <i class="fa-solid fa-house me-2"></i> <span data-i18n="nav_home">Ana Səhifə</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <%- include('partials/public-footer', { footerClass: 'site-footer mt-auto' }) %>
+
+  <script src="/lang.js?v=<%= assetVersion %>"></script>
+  <script src="/script.js?v=<%= assetVersion %>"></script>
+</body>
+
+</html>
+

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Login</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="/logo.ico" />
+    <link rel="stylesheet" href="/admin/admin.css" />
+  </head>
+  <body class="admin-login-page">
+    <header class="admin-login-nav">
+      <div class="container admin-login-nav__inner">
+        <a class="admin-login-brand" href="/" aria-label="Ovlink home">
+          <img src="/logo.webp" alt="Ovlink" />
+        </a>
+        <a class="btn btn--secondary" href="/">Back to site</a>
+      </div>
+    </header>
+
+    <main class="admin-login-main">
+      <section class="container admin-login-hero">
+        <div class="admin-login-chip">Ovlink - Admin Console</div>
+        <h1 class="admin-login-title">Admin Login</h1>
+        <p class="admin-login-subtitle">Moderation and platform controls</p>
+
+        <div class="login-card admin-login-card">
+          <div class="login-head admin-login-head">
+            <div class="brand__logo admin-login-logo-wrap" aria-hidden="true">
+              <img src="/logo.webp" alt="" class="admin-login-logo" />
+            </div>
+          </div>
+
+          <% if (typeof error === 'string' && error) { %>
+            <div class="alert alert--error"><%= error %></div>
+            <div class="spacer"></div>
+          <% } %>
+
+          <form class="form" method="POST" action="/admin/login">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <input type="hidden" name="next" value="<%= next || '' %>" />
+
+            <div class="field">
+              <label for="email">EMAIL</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">@</span>
+                <input class="input" id="email" name="email" type="email" autocomplete="username" autofocus required />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="password">PASSWORD</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">*</span>
+                <input class="input" id="password" name="password" type="password" autocomplete="current-password" required />
+              </div>
+            </div>
+
+            <button class="btn btn--block" type="submit">Sign in</button>
+            <a class="btn btn--secondary btn--block" href="/">Back to site</a>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <script src="/admin/admin.js" defer></script>
+  </body>
+</html>

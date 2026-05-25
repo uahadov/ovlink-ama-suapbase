@@ -1,0 +1,177 @@
+<%- include('partials/layout-top', {
+  title: active === 'links' ? 'Admin · Link Detail' : 'Admin · Report Detail',
+  heading: active === 'links' ? 'Link Detail' : 'Report Detail',
+  subtitle: active === 'links' ? 'Link details and moderation actions' : 'Reported link review and moderation actions',
+  active: active || 'reports',
+  admin,
+  csrfToken,
+  topRightHtml: null,
+}) %>
+
+<% const returnTo = (active === 'links') ? '/admin/links' : '/admin/reports'; %>
+
+<div class="grid">
+  <div class="card">
+    <div class="row">
+      <span class="badge">Short</span>
+      <span class="kbd"><%= url.short %></span>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="row">
+      <span class="badge">Destination</span>
+      <span class="cell-url"><%= url.original %></span>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="row">
+      <span class="badge">Owner</span>
+      <span><%= url.owner_email || '-' %></span>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="row">
+      <span class="badge">Created</span>
+      <span><%= url.created_at ? new Date(url.created_at).toLocaleString() : '-' %></span>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="row">
+      <span class="badge">Clicks</span>
+      <span class="pill"><%= url.clicks_count || 0 %></span>
+
+      <span class="badge">Open reports</span>
+      <span class="pill pill--warn"><%= url.reports || 0 %></span>
+
+      <% if (url.disabled) { %>
+        <span class="pill pill--danger">Disabled</span>
+      <% } else if (url.dangerous) { %>
+        <span class="pill pill--warn">Dangerous</span>
+      <% } else { %>
+        <span class="pill pill--ok">Active</span>
+      <% } %>
+
+      <% if (url.link_password && url.link_password.trim()) { %>
+        <span class="pill">Password</span>
+      <% } %>
+    </div>
+
+    <% if (url.disabled_reason) { %>
+      <div class="spacer"></div>
+      <div class="alert">Disable reason: <%= url.disabled_reason %></div>
+    <% } %>
+
+    <% if (url.link_password && url.link_password.trim()) { %>
+      <div class="spacer"></div>
+      <div class="row">
+        <span class="badge">Link password</span>
+        <span id="linkPassword" class="kbd" data-secret-value="<%= url.link_password %>">••••••</span>
+        <button type="button" class="btn btn--ghost" data-secret-toggle="linkPassword">Show</button>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <% if ((url.reports || 0) > 0 || url.dangerous) { %>
+        <form method="POST" action="/admin/links/<%= encodeURIComponent(url.short) %>/mark-safe">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <input type="hidden" name="returnTo" value="<%= returnTo %>" />
+          <button class="btn btn--secondary" type="submit" data-confirm="Reports will be resolved and this link will be marked as safe. Continue?">Resolve (Mark Safe)</button>
+        </form>
+      <% } %>
+
+      <% if (url.disabled) { %>
+        <form method="POST" action="/admin/links/<%= encodeURIComponent(url.short) %>/enable">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <input type="hidden" name="returnTo" value="<%= returnTo %>" />
+          <button class="btn" type="submit">Enable</button>
+        </form>
+      <% } %>
+
+      <% if (admin && admin.role === 'admin') { %>
+        <form method="POST" action="/admin/links/<%= encodeURIComponent(url.short) %>/delete">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <input type="hidden" name="returnTo" value="<%= returnTo %>" />
+          <button class="btn btn--danger" type="submit" data-confirm="This link will be deleted permanently. Continue?">Delete</button>
+        </form>
+      <% } %>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="grid">
+      <div class="card">
+        <form class="form" method="POST" action="/admin/links/<%= encodeURIComponent(url.short) %>/disable">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <input type="hidden" name="returnTo" value="<%= returnTo %>" />
+          <div class="field">
+            <label for="reason">Disable reason</label>
+            <textarea id="reason" name="reason" placeholder="Short explanation..."></textarea>
+          </div>
+          <button class="btn" type="submit" data-confirm="This link will be disabled. Continue?">Disable</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <form class="form" method="POST" action="/admin/domains/block">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <div class="field">
+            <label for="domain">Block domain</label>
+            <input class="input" id="domain" name="domain" value="<%= domain %>" />
+          </div>
+          <div class="field">
+            <label for="note">Note</label>
+            <input class="input" id="note" name="note" placeholder="(optional)" />
+          </div>
+          <button class="btn" type="submit" data-confirm="This domain will be added to the blocklist. Continue?">Block</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="spacer"></div>
+
+<div class="card">
+  <h2>Reports</h2>
+  <div class="spacer"></div>
+  <% if (!reports || reports.length === 0) { %>
+    <div class="alert">There are no reports for this link.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Created</th>
+            <th>Reason</th>
+            <th>Reporter</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% reports.forEach((r) => { %>
+            <tr>
+              <td><%= r.created_at ? new Date(r.created_at).toLocaleString() : '-' %></td>
+              <td><%= r.reason || '-' %></td>
+              <td><%= r.reporter_email || '' %></td>
+              <td>
+                <% if (r.resolved_at) { %>
+                  <span class="pill">Resolved</span>
+                <% } else { %>
+                  <span class="pill pill--warn">Open</span>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/layout-bottom') %>

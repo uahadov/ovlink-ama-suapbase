@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title data-i18n="unauth_page_title">İcazəsiz giriş</title>
+  <link rel="icon" href="/logo.ico" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+  <script nonce="<%= nonce %>">
+    (function () {
+      try {
+        var isDark = localStorage.getItem('theme') === 'dark';
+        if (isDark) {
+          document.documentElement.classList.add('dark-mode');
+          document.addEventListener('DOMContentLoaded', function () {
+            document.body.classList.add('dark-mode');
+          });
+        }
+      } catch {}
+    })();
+  </script>
+</head>
+<body class="bg-light page-shell">
+  <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
+    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <div class="container">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
+      </div>
+    </div>
+  <% } %>
+
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
+    <div class="container">
+      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+        <img src="/logo.webp" alt="Ovlink Logo" width="40" height="40" class="me-2 logo-img">
+      </a>
+
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <div class="dropdown">
+          <button id="langToggleBtn" class="btn btn-outline-light btn-sm fw-bold dropdown-toggle" style="border-radius: 20px;" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            AZ
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><button class="dropdown-item lang-option" data-lang="az" type="button">AZ</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="tr" type="button">TR</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="en" type="button">EN</button></li>
+          </ul>
+        </div>
+
+        <button id="themeToggleBtn" type="button" class="theme-toggle position-static ms-2" style="transform: none; border: 1px solid white;" aria-label="Temanı dəyiş">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-5 flex-grow-1 d-flex align-items-center justify-content-center">
+    <div class="col-12 col-md-10 col-lg-7">
+      <div class="card border-0 shadow-lg rounded-5 p-4 p-md-5 text-center">
+        <div class="mb-3">
+          <i class="fa-solid fa-lock fa-3x text-warning"></i>
+        </div>
+        <h1 class="fw-bold mb-2" data-i18n="unauth_title">İcazəsiz giriş</h1>
+        <p class="text-muted mb-1" data-i18n="unauth_stats_msg">Bu statistika səhifəsini görüntüləmək üçün icazəniz yoxdur.</p>
+        <% if (shortCode) { %>
+          <p class="small text-muted mb-4"><code><%= shortCode %></code></p>
+        <% } else { %>
+          <div class="mb-4"></div>
+        <% } %>
+
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+          <a href="/dashboard" class="btn btn-primary rounded-pill px-4">
+            <i class="fa-solid fa-chart-line me-2"></i>
+            <span data-i18n="unauth_back_dashboard">Dashboard-a qayıt</span>
+          </a>
+          <a href="/" class="btn btn-outline-secondary rounded-pill px-4">
+            <i class="fa-solid fa-house me-2"></i>
+            <span data-i18n="unauth_back_home">Ana Səhifə</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <%- include('partials/public-footer', { footerClass: 'site-footer mt-auto' }) %>
+
+  <script src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      const root = document.documentElement;
+      const body = document.body;
+
+      function applyTheme(theme) {
+        const isDark = theme === 'dark';
+        root.classList.toggle('dark-mode', isDark);
+        body.classList.toggle('dark-mode', isDark);
+        try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch {}
+      }
+
+      const stored = (function () { try { return localStorage.getItem('theme'); } catch { return null; } })();
+      applyTheme(stored === 'dark' ? 'dark' : 'light');
+
+      const themeBtn = document.getElementById('themeToggleBtn');
+      const themeIcon = themeBtn ? themeBtn.querySelector('i') : null;
+
+      function syncThemeIcon() {
+        if (!themeIcon) return;
+        const isDark = root.classList.contains('dark-mode');
+        themeIcon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+      }
+
+      syncThemeIcon();
+
+      if (themeBtn) {
+        themeBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          const isDark = root.classList.contains('dark-mode');
+          applyTheme(isDark ? 'light' : 'dark');
+          syncThemeIcon();
+        });
+      }
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+</body>
+</html>
+

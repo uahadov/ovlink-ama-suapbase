@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="<%= (seo && seo.lang) ? seo.lang : 'en' %>">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+  <link rel="icon" href="/logo.ico" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+  <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
+  <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
+  <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
+  <link rel="alternate" hreflang="en" href="<%= (seo && seo.hreflangEn) ? seo.hreflangEn : '' %>" />
+  <link rel="alternate" hreflang="az" href="<%= (seo && seo.hreflangAz) ? seo.hreflangAz : '' %>" />
+  <link rel="alternate" hreflang="tr" href="<%= (seo && seo.hreflangTr) ? seo.hreflangTr : '' %>" />
+  <link rel="alternate" hreflang="x-default" href="<%= (seo && seo.hreflangXDefault) ? seo.hreflangXDefault : '' %>" />
+  <meta property="og:title" content="<%= (seo && seo.ogTitle) ? seo.ogTitle : '' %>" />
+  <meta property="og:description" content="<%= (seo && seo.ogDescription) ? seo.ogDescription : '' %>" />
+  <meta property="og:url" content="<%= (seo && seo.ogUrl) ? seo.ogUrl : '' %>" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="<%= (seo && seo.twitterTitle) ? seo.twitterTitle : '' %>" />
+  <meta name="twitter:description" content="<%= (seo && seo.twitterDescription) ? seo.twitterDescription : '' %>" />
+  <% if (seo && seo.jsonLd) { %>
+  <script nonce="<%= nonce %>" type="application/ld+json"><%- seo.jsonLd %></script>
+  <% } %>
+</head>
+
+<body class="home-page policy-page">
+
+  <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
+    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <div class="container">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
+      </div>
+    </div>
+  <% } %>
+
+  <nav class="navbar navbar-expand-lg navbar-light home-navbar shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+        <img src="/logo.webp" alt="Ovlink" class="home-brand-logo" />
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#policyNavbarContent"
+        aria-controls="policyNavbarContent" aria-expanded="false" aria-label="Menu toggle">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="policyNavbarContent">
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          <li class="nav-item" id="navAuthGuestLogin">
+            <a class="nav-link" href="/login"><i class="fa-solid fa-right-to-bracket"></i> <span data-i18n="nav_login">Giriş</span></a>
+          </li>
+          <li class="nav-item" id="navAuthGuestReg">
+            <a class="nav-link" href="/register"><i class="fa-solid fa-user-plus"></i> <span data-i18n="nav_register">Qeydiyyat</span></a>
+          </li>
+          <li class="nav-item dropdown nav-user-dropdown d-none" id="navAuthUser">
+            <a class="nav-link dropdown-toggle position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fa-solid fa-user-circle me-1"></i>
+              <span id="navUserEmail" data-i18n="nav_my_account">Hesabım</span>
+              <span id="navNotifBadge" class="notif-badge d-none">0</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="/dashboard"><i class="fa-solid fa-chart-line me-2"></i><span data-i18n="dashboard_stats_link">Statistika</span></a></li>
+              <li><a class="dropdown-item" href="/account"><i class="fa-solid fa-user-gear me-2"></i><span data-i18n="profile_settings_title">Profil Parametrləri</span></a></li>
+              <li>
+                <a class="dropdown-item d-flex align-items-center justify-content-between" href="/notifications">
+                  <span><i class="fa-solid fa-bell me-2"></i><span data-i18n="notif_center_title">Bildiriş Mərkəzi</span></span>
+                  <span id="navNotifBadgeMenu" class="notif-menu-badge d-none">0</span>
+                </a>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li><a id="navLogoutBtn" class="dropdown-item" href="#"><i class="fa-solid fa-right-from-bracket me-2"></i><span data-i18n="nav_logout">Çıxış</span></a></li>
+            </ul>
+          </li>
+        </ul>
+
+        <div class="dropdown ms-2 me-2">
+          <button id="langToggleBtn" class="btn btn-sm fw-bold dropdown-toggle lang-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false">AZ</button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><button class="dropdown-item lang-option" data-lang="az" type="button">AZ</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="tr" type="button">TR</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="en" type="button">EN</button></li>
+          </ul>
+        </div>
+
+        <button class="theme-toggle home-theme-btn" aria-label="Temayı Değiştir">
+          <i class="fa-solid fa-sun"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="policy-main">
+    <section class="container">
+      <div class="policy-shell">
+        <div class="policy-head">
+          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
+            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+          </div>
+          <h1 class="policy-title" data-i18n="privacy_title">Məxfilik Siyasəti</h1>
+        </div>
+
+        <div class="policy-list">
+          <article class="policy-card">
+            <h3 class="fw-bold"><i class="fa-solid fa-database me-2"></i><span data-i18n="privacy_data_collection_title">Topladığımız məlumatlar</span></h3>
+            <p data-i18n="privacy_data_collection_text">Ovlink istifadə edilərkən emal olunan məlumatlar: hesab məlumatları (e-poçt, şifrə hash-i, auth provider, hesab/giriş vaxtları), link məlumatları (hədəf URL, qısa kod, alias, bitmə tarixi, klik limiti, seçilmiş domen, link şifrəsinin hash-i), klik statistikası (klik vaxtı, brauzer, əməliyyat sistemi, ölkə), təhlükəsizlik/sessiya qeydləri (session token, user-agent, cihaz etiketi, country, device fingerprint, IP hash) və şikayət/moderasiya məlumatları.</p>
+          </article>
+
+          <article class="policy-card">
+            <h3 class="fw-bold"><i class="fa-solid fa-user-shield me-2"></i><span data-i18n="privacy_account_title">Hesab məlumatları</span></h3>
+            <p data-i18n="privacy_account_text">Şifrələr açıq mətn kimi saxlanılmır; yalnız hash dəyəri saxlanılır. E-poçt təsdiqi, şifrə bərpası tokenləri və sessiya idarəetməsi hesab təhlükəsizliyi üçün istifadə olunur.</p>
+          </article>
+
+          <article class="policy-card">
+            <h3 class="fw-bold"><i class="fa-solid fa-chart-line me-2"></i><span data-i18n="privacy_analytics_title">Statistika və təhlükəsizlik</span></h3>
+            <p data-i18n="privacy_analytics_text">Məlumatlar xidmət funksionallığı, statistikaların göstərilməsi, sui-istifadənin azaldılması və təhlükəsizlik üçün emal olunur. Redirect consent rejimində istifadəçi 'essential' seçərsə minimal klik qeydi, 'analytics' seçərsə brauzer/OS/ölkə statistikası saxlanılır. İstifadəçi davam etməzsə yönləndirmə və klik qeydiyyatı baş vermir.</p>
+          </article>
+
+          <article class="policy-card">
+            <h3 class="fw-bold"><i class="fa-solid fa-network-wired me-2"></i><span data-i18n="privacy_ip_handling_title">IP məlumatlarının idarəsi</span></h3>
+            <p data-i18n="privacy_ip_handling_text">Sorğu zamanı IP məlumatı geolokasiya və təhlükəsizlik yoxlamaları üçün emal oluna bilər. Yeni cihaz bildiriş e-poçtlarında tam IP göstərilmir və cihaz sessiyalarında tam IP əvəzinə IP hash saxlanılır. Klik cədvəlində legacy tam IP/şəhər sahələri scrub edilib və aktiv analitika kimi istifadə edilmir.</p>
+          </article>
+
+          <article class="policy-card">
+            <h3 class="fw-bold"><i class="fa-solid fa-flag me-2"></i><span data-i18n="privacy_moderation_title">Şikayətlər və moderasiya</span></h3>
+            <p data-i18n="privacy_moderation_text">İstifadəçilər linkləri şikayət edə bilər. Təhlükəsizlik məqsədi ilə linklər deaktiv edilə, domenlər bloklana və hesablar məhdudlaşdırıla bilər.</p>
+          </article>
+
+          <article class="policy-card">
+            <h3 class="fw-bold"><i class="fa-solid fa-cookie-bite me-2"></i><span data-i18n="privacy_cookies_title">Kukilər</span></h3>
+            <p data-i18n="privacy_cookies_text">Sayt connect.sid (sessiya), ovlink_redirect_consent (redirect razılığı) və lang_default (dil seçimi) cookie-lərindən istifadə edir. localStorage-da tema, dil və cookie banner razılığı (cookieConsent) saxlanıla bilər. Reklam aktiv olduqda reklam iframe-lərində üçüncü tərəf cookie və oxşar identifikator texnologiyaları işləyə bilər.</p>
+          </article>
+
+          <article class="policy-card">
+            <h3 class="fw-bold"><i class="fa-solid fa-handshake me-2"></i><span data-i18n="privacy_third_party_title">Üçüncü tərəflər</span></h3>
+            <p data-i18n="privacy_third_party_text">Xidmət Resend (e-poçt), Google OAuth (aktivdirsə), CDN kitabxanaları və reklam vendorları (effectivegatecpm.com, highperformanceformat.com və infrastruktur tərəfdaşları) kimi üçüncü tərəflərdən istifadə edir. Bu tərəflər öz siyasətlərinə uyğun olaraq məlumat emal edə bilər.</p>
+          </article>
+
+          <article class="policy-card">
+            <h3 class="fw-bold"><i class="fa-solid fa-shield-virus me-2"></i><span data-i18n="privacy_disclaimer_title">Təhlükəsizlik bildirişi</span></h3>
+            <p data-i18n="privacy_disclaimer_text">Təhlükəsizlik tədbirləri görürük, lakin internet mühitində tam təhlükəsizlik zəmanəti yoxdur.</p>
+          </article>
+
+          <article class="policy-card">
+            <h3 class="fw-bold"><i class="fa-solid fa-clock-rotate-left me-2"></i><span data-i18n="privacy_retention_title">Saxlama müddəti</span></h3>
+            <p data-i18n="privacy_retention_text">Məlumatlar xidmətin işləməsi, təhlükəsizlik, hüquqi öhdəliklər və mübahisələrin həlli üçün zəruri olduğu müddətdə saxlanılır.</p>
+          </article>
+        </div>
+
+        <div class="policy-back">
+          <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+
+  <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+</body>
+
+</html>
+
+
+

@@ -1,0 +1,67 @@
+<%- include('partials/layout-top', {
+  title: 'Admin · Audit',
+  heading: 'Audit Log',
+  subtitle: 'Detailed admin activity trail',
+  active: 'audit',
+  admin,
+  csrfToken,
+  topRightHtml: null,
+}) %>
+
+<div class="card">
+  <% if (!rows || rows.length === 0) { %>
+    <div class="alert">No audit entries yet.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Admin</th>
+            <th>Action</th>
+            <th>Target</th>
+            <th>IP</th>
+            <th>Country</th>
+            <th>Route</th>
+            <th>Method</th>
+            <th>User Agent</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach((r) => { %>
+            <% const meta = (() => { try { return JSON.parse(r.metadata_json || '{}'); } catch { return {}; } })(); %>
+            <tr>
+              <td><%= r.created_at ? new Date(r.created_at).toLocaleString() : '-' %></td>
+              <td><%= r.admin_email || '' %></td>
+              <td><span class="kbd"><%= r.action %></span></td>
+              <td><%= r.target_type %>: <span class="kbd"><%= r.target_id %></span></td>
+              <td><%= r.ip || '-' %></td>
+              <td><%= meta.country || r.country_display || '-' %></td>
+              <td><div class="cell-url"><%= meta.path || '-' %></div></td>
+              <td><%= meta.method || '-' %></td>
+              <td><div class="cell-url"><%= r.user_agent || '-' %></div></td>
+              <td><pre class="log-json"><%= JSON.stringify(meta, null, 2) %></pre></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spacer"></div>
+
+    <% const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize)); %>
+    <div class="row" aria-label="pagination">
+      <span class="badge">Total: <%= total %></span>
+      <span class="badge">Page: <%= page %> / <%= totalPages %></span>
+      <% if (page > 1) { %>
+        <a class="btn btn--ghost" href="/admin/audit?page=<%= page - 1 %>">Previous</a>
+      <% } %>
+      <% if (page < totalPages) { %>
+        <a class="btn btn--ghost" href="/admin/audit?page=<%= page + 1 %>">Next</a>
+      <% } %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/layout-bottom') %>

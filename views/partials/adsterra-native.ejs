@@ -1,0 +1,19 @@
+<%
+  const shouldShowNativeAd =
+    Boolean(allowAds) ||
+    (typeof showNativeInlineAd !== 'undefined' && Boolean(showNativeInlineAd));
+%>
+<% if (shouldShowNativeAd) { %>
+  <section class="container my-4 adsterra-slot" data-ad-slot="native">
+    <div class="policy-card app-card shadow-sm border-0 p-3 text-center">
+      <iframe
+        class="adsterra-frame adsterra-frame-native"
+        data-ad-slot="native"
+        src="/ads/native-frame"
+        title="Sponsored content"
+        loading="lazy"
+        referrerpolicy="no-referrer"
+        sandbox="<%= adFrameSandbox || 'allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation' %>"></iframe>
+    </div>
+  </section>
+<% } %>

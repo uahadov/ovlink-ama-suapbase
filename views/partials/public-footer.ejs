@@ -1,0 +1,45 @@
+<footer class="<%= typeof footerClass === 'string' ? footerClass : 'site-footer' %>">
+  <div class="container text-center">
+    <p class="mb-1" data-i18n="footer_text">© 2026 · Developed & Powered by <span class="fw-bold">Ulvi Ahadov</span></p>
+    <a href="/privacy" class="text-muted small text-decoration-none hover-primary" data-i18n="privacy_policy">Məxfilik Siyasəti</a>
+    <span class="mx-2 text-muted small">·</span>
+    <a href="/terms" class="text-muted small text-decoration-none hover-primary" data-i18n="terms_policy">İstifadə Şərtləri</a>
+    <span class="mx-2 text-muted small">·</span>
+    <a href="/cookie-policy" class="text-muted small text-decoration-none hover-primary" data-i18n="cookie_policy">Cookie Policy</a>
+    <span class="mx-2 text-muted small">·</span>
+    <a href="/about" class="text-muted small text-decoration-none hover-primary" data-i18n="about_policy">About</a>
+    <span class="mx-2 text-muted small">·</span>
+    <a href="/how-it-works" class="text-muted small text-decoration-none hover-primary" data-i18n="how_it_works_link">Necə işləyir?</a>
+    <span class="mx-2 text-muted small">·</span>
+    <a href="/why-ovlink" class="text-muted small text-decoration-none hover-primary" data-i18n="why_ovlink_link">Niyə Ovlink?</a>
+    <span class="mx-2 text-muted small">·</span>
+    <a href="/contact" class="text-muted small text-decoration-none hover-primary" data-i18n="contact_policy">Əlaqə</a>
+    <span class="mx-2 text-muted small">·</span>
+    <a href="/faq" class="text-muted small text-decoration-none hover-primary" data-i18n="faq_link">FAQ</a>
+    <span class="mx-2 text-muted small">·</span>
+    <a href="/help" class="text-muted small text-decoration-none hover-primary" data-i18n="help_link">Help</a>
+    <span class="mx-2 text-muted small">·</span>
+    <a href="/docs" class="text-muted small text-decoration-none hover-primary" data-i18n="docs_link">Docs</a>
+    <span class="mx-2 text-muted small">·</span>
+    <a href="/pricing" class="text-muted small text-decoration-none hover-primary" data-i18n="pricing_link">Pro Pricing</a>
+    <span class="mx-2 text-muted small">·</span>
+    <a href="/api-guide" class="text-muted small text-decoration-none hover-primary" data-i18n="api_guide_link">API Guide</a>
+    <span class="mx-2 text-muted small">·</span>
+    <a href="/abuse-safety" class="text-muted small text-decoration-none hover-primary" data-i18n="abuse_safety_link">Abuse &amp; Safety</a>
+    <span class="mx-2 text-muted small">·</span>
+    <a href="/updates" class="text-muted small text-decoration-none hover-primary" data-i18n="updates_link">Updates</a>
+  </div>
+</footer>
+<div id="floatingPricingBanner" class="floating-pricing-banner d-none">
+  <button type="button" class="floating-pricing-banner-close" data-floating-pricing-close aria-label="Close pricing banner">&times;</button>
+  <a class="floating-pricing-banner-link" href="/pricing" aria-label="Open Ovlink Pro pricing">
+    <img class="floating-pricing-banner-image" src="/logo.webp" alt="Ovlink Pro" loading="lazy" decoding="async" />
+    <div class="floating-pricing-banner-body">
+      <span class="floating-pricing-banner-badge" data-i18n="floating_pricing_badge">PRO</span>
+      <strong class="floating-pricing-banner-title" data-i18n="floating_pricing_title">Unlock Premium features</strong>
+      <small class="floating-pricing-banner-text" data-i18n="floating_pricing_text">$2/mo · API + Webhooks</small>
+    </div>
+    <span class="floating-pricing-banner-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+  </a>
+</div>
+<%- include('cookie-banner') %>

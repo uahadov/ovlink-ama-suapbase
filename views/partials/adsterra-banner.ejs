@@ -1,0 +1,24 @@
+<% if (allowAds && (typeof enableBannerAds === 'undefined' || enableBannerAds)) { %>
+  <section class="adsterra-slot adsterra-slot-banner-top" data-ad-slot="banner">
+    <div class="policy-card app-card shadow-sm border-0 p-2 text-center adsterra-banner-wrap adsterra-banner-desktop">
+      <iframe
+        class="adsterra-frame adsterra-frame-banner-desktop"
+        data-ad-slot="banner"
+        src="/ads/banner-frame?device=desktop"
+        title="Sponsored banner desktop"
+        loading="lazy"
+        referrerpolicy="no-referrer"
+        sandbox="<%= adFrameSandbox || 'allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation' %>"></iframe>
+    </div>
+    <div class="policy-card app-card shadow-sm border-0 p-2 text-center adsterra-banner-wrap adsterra-banner-mobile">
+      <iframe
+        class="adsterra-frame adsterra-frame-banner-mobile"
+        data-ad-slot="banner"
+        src="/ads/banner-frame?device=mobile"
+        title="Sponsored banner mobile"
+        loading="lazy"
+        referrerpolicy="no-referrer"
+        sandbox="<%= adFrameSandbox || 'allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation' %>"></iframe>
+    </div>
+  </section>
+<% } %>

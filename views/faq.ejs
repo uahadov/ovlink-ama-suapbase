@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="<%= (seo && seo.lang) ? seo.lang : 'en' %>">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+  <link rel="icon" href="/logo.ico" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+  <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
+  <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
+  <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
+  <link rel="alternate" hreflang="en" href="<%= (seo && seo.hreflangEn) ? seo.hreflangEn : '' %>" />
+  <link rel="alternate" hreflang="az" href="<%= (seo && seo.hreflangAz) ? seo.hreflangAz : '' %>" />
+  <link rel="alternate" hreflang="tr" href="<%= (seo && seo.hreflangTr) ? seo.hreflangTr : '' %>" />
+  <link rel="alternate" hreflang="x-default" href="<%= (seo && seo.hreflangXDefault) ? seo.hreflangXDefault : '' %>" />
+  <meta property="og:title" content="<%= (seo && seo.ogTitle) ? seo.ogTitle : '' %>" />
+  <meta property="og:description" content="<%= (seo && seo.ogDescription) ? seo.ogDescription : '' %>" />
+  <meta property="og:url" content="<%= (seo && seo.ogUrl) ? seo.ogUrl : '' %>" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="<%= (seo && seo.twitterTitle) ? seo.twitterTitle : '' %>" />
+  <meta name="twitter:description" content="<%= (seo && seo.twitterDescription) ? seo.twitterDescription : '' %>" />
+  <% if (seo && seo.jsonLd) { %>
+  <script nonce="<%= nonce %>" type="application/ld+json"><%- seo.jsonLd %></script>
+  <% } %>
+</head>
+
+<body class="home-page policy-page">
+
+  <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
+    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <div class="container">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
+      </div>
+    </div>
+  <% } %>
+
+  <nav class="navbar navbar-expand-lg navbar-light home-navbar shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+        <img src="/logo.webp" alt="Ovlink" class="home-brand-logo" />
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicPageNavbarContent"
+        aria-controls="publicPageNavbarContent" aria-expanded="false" aria-label="Menu toggle">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="publicPageNavbarContent">
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          <li class="nav-item" id="navAuthGuestLogin">
+            <a class="nav-link" href="/login"><i class="fa-solid fa-right-to-bracket"></i> <span data-i18n="nav_login">Giriş</span></a>
+          </li>
+          <li class="nav-item" id="navAuthGuestReg">
+            <a class="nav-link" href="/register"><i class="fa-solid fa-user-plus"></i> <span data-i18n="nav_register">Qeydiyyat</span></a>
+          </li>
+          <li class="nav-item dropdown nav-user-dropdown d-none" id="navAuthUser">
+            <a class="nav-link dropdown-toggle position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fa-solid fa-user-circle me-1"></i>
+              <span id="navUserEmail" data-i18n="nav_my_account">Hesabım</span>
+              <span id="navNotifBadge" class="notif-badge d-none">0</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="/dashboard"><i class="fa-solid fa-chart-line me-2"></i><span data-i18n="dashboard_stats_link">Statistika</span></a></li>
+              <li><a class="dropdown-item" href="/account"><i class="fa-solid fa-user-gear me-2"></i><span data-i18n="profile_settings_title">Profil Parametrləri</span></a></li>
+              <li>
+                <a class="dropdown-item d-flex align-items-center justify-content-between" href="/notifications">
+                  <span><i class="fa-solid fa-bell me-2"></i><span data-i18n="notif_center_title">Bildiriş Mərkəzi</span></span>
+                  <span id="navNotifBadgeMenu" class="notif-menu-badge d-none">0</span>
+                </a>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li><a id="navLogoutBtn" class="dropdown-item" href="#"><i class="fa-solid fa-right-from-bracket me-2"></i><span data-i18n="nav_logout">Çıxış</span></a></li>
+            </ul>
+          </li>
+        </ul>
+
+        <div class="dropdown ms-2 me-2">
+          <button id="langToggleBtn" class="btn btn-sm fw-bold dropdown-toggle lang-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false">AZ</button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><button class="dropdown-item lang-option" data-lang="az" type="button">AZ</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="tr" type="button">TR</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="en" type="button">EN</button></li>
+          </ul>
+        </div>
+
+        <button class="theme-toggle home-theme-btn" aria-label="Temayı Değiştir">
+          <i class="fa-solid fa-sun"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="policy-main">
+    <section class="container">
+      <div class="policy-shell">
+        <div class="policy-head">
+          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
+            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+          </div>
+          <h1 class="policy-title" data-i18n="faq_page_title">FAQ</h1>
+        </div>
+
+        <div class="policy-list">
+          <article class="policy-card">
+            <p data-i18n="faq_page_intro">Ovlink ilə bağlı ən çox verilən suallar və qısa cavablar.</p>
+          </article>
+
+          <article class="policy-card faq-list-card">
+            <details class="faq-item"><summary data-i18n="faq_q1">Ovlink nədir?</summary><p data-i18n="faq_a1">Ovlink qısa link yaratmaq, paylaşmaq və idarə etmək üçün URL qısaltma xidmətidir.</p></details>
+            <details class="faq-item"><summary data-i18n="faq_q2">Ovlink pulsuzdurmu?</summary><p data-i18n="faq_a2">Əsas qısaltma funksiyaları standart istifadə üçün mövcuddur. Fair-use və xidmət şərtləri tətbiq olunur.</p></details>
+            <details class="faq-item"><summary data-i18n="faq_q3">Qısaldılmış link nədir?</summary><p data-i18n="faq_a3">Qısaldılmış link uzun URL-i daha qısa formaya salan və eyni ünvana yönləndirən linkdir.</p></details>
+            <details class="faq-item"><summary data-i18n="faq_q4">Qısa linki necə yaradıram?</summary><p data-i18n="faq_a4">Ana səhifədə hədəf URL daxil edib istəyə bağlı parametrlərlə link yarada bilərsiniz.</p></details>
+            <details class="faq-item"><summary data-i18n="faq_q5">Xüsusi ad (alias) seçə bilərəm?</summary><p data-i18n="faq_a5">Bəli, boşdursa linkiniz üçün xüsusi ad təyin edə bilərsiniz.</p></details>
+            <details class="faq-item"><summary data-i18n="faq_q6">Linkə şifrə qoya bilərəm?</summary><p data-i18n="faq_a6">Bəli. Şifrəli linklərdə ziyarətçi yönləndirmədən əvvəl təsdiq etməlidir.</p></details>
+            <details class="faq-item"><summary data-i18n="faq_q7">Bitmə tarixi və klik limiti var?</summary><p data-i18n="faq_a7">Bəli. Link yaradarkən bitmə tarixi və maksimum klik limiti təyin edilə bilər.</p></details>
+            <details class="faq-item"><summary data-i18n="faq_q8">Kimsə qısa linkə klik edəndə nə olur?</summary><p data-i18n="faq_a8">Ziyarətçi əvvəlcə siyasət və təhlükəsizlik yoxlamalarından keçir, sonra icazə varsa yönləndirilir.</p></details>
+            <details class="faq-item"><summary data-i18n="faq_q9">Zərərli linklər silinə bilərmi?</summary><p data-i18n="faq_a9">Bəli. Şikayət olunan linklər yoxlanıla və təhlükəsizlik səbəbi ilə məhdudlaşdırıla/deaktiv edilə bilər.</p></details>
+            <details class="faq-item"><summary data-i18n="faq_q10">Hansı məlumatlar emal olunur?</summary><p data-i18n="faq_a10">Xidmətin işləməsi üçün hesab/link məlumatları və texniki metadata emal oluna bilər.</p></details>
+            <details class="faq-item"><summary data-i18n="faq_q11">Cookie istifadə olunurmu?</summary><p data-i18n="faq_a11">Bəli. Essential cookie-lər sessiya və təhlükəsizlik üçün istifadə olunur.</p></details>
+            <details class="faq-item"><summary data-i18n="faq_q12">Link açılmırsa səbəb nə ola bilər?</summary><p data-i18n="faq_a12">Bitmə vaxtı, klik limiti, moderasiya, hədəf sayt problemi və ya siyasət məhdudiyyəti ola bilər.</p></details>
+            <details class="faq-item"><summary data-i18n="faq_q13">Şikayəti necə göndərim?</summary><p data-i18n="faq_a13">Saytdakı report axınından istifadə edib link və səbəbi qeyd edə bilərsiniz.</p></details>
+            <details class="faq-item"><summary data-i18n="faq_q14">Dəstək ilə necə əlaqə saxlayım?</summary><p data-i18n="faq_a14">/contact səhifəsində göstərilən dəstək kanallarından istifadə edin.</p></details>
+          </article>
+        </div>
+
+        <div class="policy-back">
+          <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+
+  <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+</body>
+
+</html>
+
+
+

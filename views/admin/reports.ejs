@@ -1,0 +1,89 @@
+<%- include('partials/layout-top', {
+  title: 'Admin · Reports',
+  heading: 'Reports',
+  subtitle: 'Reported short links',
+  active: 'reports',
+  admin,
+  csrfToken,
+  topRightHtml: null,
+}) %>
+
+<div class="card">
+  <form class="row" method="GET" action="/admin/reports">
+    <div class="field field--grow">
+      <label for="q">Search (short / URL)</label>
+      <input class="input" id="q" name="q" value="<%= q %>" placeholder="abc123 or https://..." />
+    </div>
+    <div class="field">
+      <label>&nbsp;</label>
+      <button class="btn" type="submit">Apply</button>
+    </div>
+  </form>
+</div>
+
+<div class="spacer"></div>
+
+<div class="card">
+  <% if (!rows || rows.length === 0) { %>
+    <div class="alert">No reported links yet.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Short</th>
+            <th>Destination</th>
+            <th>Reports</th>
+            <th>Status</th>
+            <th>Last Report</th>
+            <th>Password</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach((r) => { %>
+            <tr>
+              <td><span class="kbd"><%= r.short %></span></td>
+              <td><div class="cell-url"><%= r.original %></div></td>
+              <td><span class="pill pill--warn"><%= r.reports || 0 %></span></td>
+              <td>
+                <% if (r.disabled) { %>
+                  <span class="pill pill--danger">Disabled</span>
+                <% } else if (r.dangerous) { %>
+                  <span class="pill pill--warn">Dangerous</span>
+                <% } else { %>
+                  <span class="pill pill--ok">Active</span>
+                <% } %>
+              </td>
+              <td><%= r.last_report_at ? new Date(r.last_report_at).toLocaleString() : '-' %></td>
+              <td class="u-nowrap">
+                <% if (r.has_password) { %>
+                  <span class="pill">Password</span>
+                <% } else { %>
+                  <span class="badge">-</span>
+                <% } %>
+              </td>
+              <td><a class="btn btn--secondary" href="/admin/reports/<%= encodeURIComponent(r.short) %>">Details</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spacer"></div>
+
+    <% const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize)); %>
+    <div class="row" aria-label="pagination">
+      <span class="badge">Total: <%= total %></span>
+      <span class="badge">Page: <%= page %> / <%= totalPages %></span>
+      <% if (page > 1) { %>
+        <a class="btn btn--ghost" href="/admin/reports?<%= q ? ('q=' + encodeURIComponent(q) + '&') : '' %>page=<%= page - 1 %>">Previous</a>
+      <% } %>
+      <% if (page < totalPages) { %>
+        <a class="btn btn--ghost" href="/admin/reports?<%= q ? ('q=' + encodeURIComponent(q) + '&') : '' %>page=<%= page + 1 %>">Next</a>
+      <% } %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/layout-bottom') %>

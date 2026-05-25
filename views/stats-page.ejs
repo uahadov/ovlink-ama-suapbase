@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<%= csrfToken %>" />
+  <title data-i18n="stats_title">Statistics</title>
+  <link rel="icon" href="/logo.ico" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+  <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="home-page app-page stats-page">
+
+  <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
+    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <div class="container">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
+      </div>
+    </div>
+  <% } %>
+
+  <nav class="navbar navbar-expand-lg navbar-light home-navbar shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+        <img src="/logo.webp" alt="Ovlink" class="home-brand-logo" />
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#statsNavbarContent"
+        aria-controls="statsNavbarContent" aria-expanded="false" aria-label="Menu toggle">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="statsNavbarContent">
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          <li class="nav-item" id="navAuthGuestLogin">
+            <a class="nav-link" href="/login"><i class="fa-solid fa-right-to-bracket"></i> <span data-i18n="nav_login">Giriş</span></a>
+          </li>
+          <li class="nav-item" id="navAuthGuestReg">
+            <a class="nav-link" href="/register"><i class="fa-solid fa-user-plus"></i> <span data-i18n="nav_register">Qeydiyyat</span></a>
+          </li>
+          <li class="nav-item dropdown nav-user-dropdown d-none" id="navAuthUser">
+            <a class="nav-link dropdown-toggle position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fa-solid fa-user-circle me-1"></i>
+              <span id="navUserEmail" data-i18n="nav_my_account">Hesabım</span>
+              <span id="navNotifBadge" class="notif-badge d-none">0</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="/dashboard"><i class="fa-solid fa-chart-line me-2"></i><span data-i18n="dashboard_stats_link">Statistika</span></a></li>
+              <li><a class="dropdown-item" href="/account"><i class="fa-solid fa-user-gear me-2"></i><span data-i18n="profile_settings_title">Profil Parametrləri</span></a></li>
+              <li>
+                <a class="dropdown-item d-flex align-items-center justify-content-between" href="/notifications">
+                  <span><i class="fa-solid fa-bell me-2"></i><span data-i18n="notif_center_title">Bildiriş Mərkəzi</span></span>
+                  <span id="navNotifBadgeMenu" class="notif-menu-badge d-none">0</span>
+                </a>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li><a id="navLogoutBtn" class="dropdown-item" href="#"><i class="fa-solid fa-right-from-bracket me-2"></i><span data-i18n="nav_logout">Çıxış</span></a></li>
+            </ul>
+          </li>
+        </ul>
+
+        <div class="dropdown ms-2 me-2">
+          <button id="langToggleBtn" class="btn btn-sm fw-bold dropdown-toggle lang-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false">AZ</button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><button class="dropdown-item lang-option" data-lang="az" type="button">AZ</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="tr" type="button">TR</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="en" type="button">EN</button></li>
+          </ul>
+        </div>
+
+        <button class="theme-toggle home-theme-btn" aria-label="Temayı Değiştir">
+          <i class="fa-solid fa-sun"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="app-main">
+    <section class="container">
+      <div class="app-shell">
+        <div class="policy-head">
+          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
+            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+          </div>
+          <h1 class="policy-title"><span data-i18n="stats_title">Statistikalar</span>: <span class="text-primary"><%= shortCode %></span></h1>
+          <p class="hero-subtitle" data-i18n="dashboard_search_placeholder">Qısa / Orijinal link</p>
+        </div>
+
+        <div class="policy-card app-card stats-summary-card">
+          <a href="/dashboard" class="btn home-outline-btn rounded-pill">
+            <i class="fa-solid fa-arrow-left me-2"></i><span data-i18n="stats_back_btn">Dashboard-a qayıt</span>
+          </a>
+          <div class="stats-total-wrap">
+            <small class="text-muted d-block" data-i18n="stats_total_clicks">Ümumi Klik Sayı</small>
+            <h4 class="fw-bold text-primary mb-0" id="totalClicksDisplay">0</h4>
+          </div>
+        </div>
+
+        <div class="row g-3 stats-grid">
+          <div class="col-lg-6">
+            <div class="policy-card app-card stats-chart-card">
+              <h5 data-i18n="stats_browser_dist">Brauzer paylanması</h5>
+              <div class="chart-container"><canvas id="browserChart"></canvas></div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="policy-card app-card stats-chart-card">
+              <h5 data-i18n="stats_os_dist">Əməliyyat sistemi</h5>
+              <div class="chart-container"><canvas id="osChart"></canvas></div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="policy-card app-card stats-chart-card">
+              <h5 data-i18n="stats_country_dist">Ölkə paylanması</h5>
+              <div class="chart-container"><canvas id="countryChart"></canvas></div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="policy-card app-card stats-chart-card">
+              <h5 data-i18n="stats_clicks_over_time">Zaman üzrə kliklər</h5>
+              <div class="chart-container"><canvas id="timeChart"></canvas></div>
+              <div id="timeChartMeta" class="stats-time-meta"></div>
+              <p class="stats-time-note text-muted mb-0" data-i18n="stats_time_note">Saatlıq qrafik brauzerinizin yerli vaxtına əsaslanır.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+
+  <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+
+  <script nonce="<%= nonce %>">
+    const shortCode = <%- JSON.stringify(shortCode) %>;
+    const essentialMarker = <%- JSON.stringify(consentMarker) %>;
+
+    const chartState = {
+      data: null,
+      browser: null,
+      os: null,
+      country: null,
+      time: null
+    };
+
+    function t(key) {
+      const lang = typeof currentLang === 'string' ? currentLang : 'az';
+      if (typeof translations !== 'undefined' && translations[lang] && translations[lang][key]) {
+        return translations[lang][key];
+      }
+      return key;
+    }
+
+    function chartPalette() {
+      const isDark = document.body.classList.contains('dark-mode');
+      return {
+        textColor: isDark ? '#cbd5e1' : '#334155',
+        gridColor: isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(15, 23, 42, 0.08)'
+      };
+    }
+
+    function destroyCharts() {
+      ['browser', 'os', 'country', 'time'].forEach((key) => {
+        if (chartState[key]) {
+          chartState[key].destroy();
+          chartState[key] = null;
+        }
+      });
+    }
+
+    function mapBucketLabel(value) {
+      return value === essentialMarker ? t('stats_private_bucket') : value;
+    }
+
+    function formatTimeLabel(isoValue) {
+      const d = new Date(isoValue);
+      if (!Number.isFinite(d.getTime())) return isoValue;
+      return new Intl.DateTimeFormat(document.documentElement.lang || 'en', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).format(d);
+    }
+
+    function formatShortDateLabel(isoValue) {
+      const d = new Date(isoValue);
+      if (!Number.isFinite(d.getTime())) return isoValue;
+      return new Intl.DateTimeFormat(document.documentElement.lang || 'en', {
+        month: '2-digit',
+        day: '2-digit'
+      }).format(d);
+    }
+
+    function buildTimeSeries(valuesMap) {
+      const entries = Object.entries(valuesMap || {})
+        .map(([isoValue, count]) => {
+          const date = new Date(isoValue);
+          const time = date.getTime();
+          return Number.isFinite(time) ? { isoValue, date, time, count: Number(count) || 0 } : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.time - b.time);
+
+      if (!entries.length) {
+        return { labels: [], values: [], granularity: 'hourly', firstIso: '', lastIso: '' };
+      }
+
+      const useDaily = entries.length > 36;
+      if (!useDaily) {
+        return {
+          labels: entries.map((entry) => formatTimeLabel(entry.isoValue)),
+          values: entries.map((entry) => entry.count),
+          granularity: 'hourly',
+          firstIso: entries[0].isoValue,
+          lastIso: entries[entries.length - 1].isoValue
+        };
+      }
+
+      const daily = new Map();
+      entries.forEach((entry) => {
+        const dayKey = entry.isoValue.slice(0, 10);
+        const old = daily.get(dayKey) || { count: 0, isoValue: entry.isoValue };
+        old.count += entry.count;
+        daily.set(dayKey, old);
+      });
+
+      const dayEntries = Array.from(daily.entries()).map(([dayKey, value]) => ({
+        dayKey,
+        count: value.count,
+        isoValue: value.isoValue
+      }));
+
+      return {
+        labels: dayEntries.map((entry) => formatShortDateLabel(entry.isoValue)),
+        values: dayEntries.map((entry) => entry.count),
+        granularity: 'daily',
+        firstIso: entries[0].isoValue,
+        lastIso: entries[entries.length - 1].isoValue
+      };
+    }
+
+    function renderTimeMeta(series, totalClicks) {
+      const meta = document.getElementById('timeChartMeta');
+      if (!meta) return;
+      if (!series || !Array.isArray(series.values) || !series.values.length) {
+        meta.textContent = '';
+        return;
+      }
+
+      const firstLabel = formatTimeLabel(series.firstIso);
+      const lastLabel = formatTimeLabel(series.lastIso);
+      const granularityLabel = series.granularity === 'daily'
+        ? t('stats_time_granularity_daily')
+        : t('stats_time_granularity_hourly');
+
+      meta.innerHTML = '';
+      const granularityChip = document.createElement('span');
+      granularityChip.className = 'stats-time-chip';
+      granularityChip.textContent = granularityLabel;
+      const periodChip = document.createElement('span');
+      periodChip.className = 'stats-time-chip';
+      periodChip.textContent = `${firstLabel} - ${lastLabel}`;
+      const totalChip = document.createElement('span');
+      totalChip.className = 'stats-time-chip';
+      totalChip.textContent = `${t('stats_total_clicks')}: ${totalClicks}`;
+      meta.appendChild(granularityChip);
+      meta.appendChild(periodChip);
+      meta.appendChild(totalChip);
+    }
+
+    function createChart(canvasId, type, label, valuesMap) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return null;
+
+      const palette = chartPalette();
+      const labels = Object.keys(valuesMap || {});
+      const values = Object.values(valuesMap || {});
+
+      const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: palette.textColor }
+          }
+        }
+      };
+
+      if (type === 'bar') {
+        options.scales = {
+          y: {
+            beginAtZero: true,
+            ticks: { precision: 0, color: palette.textColor },
+            grid: { color: palette.gridColor }
+          },
+          x: {
+            ticks: { color: palette.textColor },
+            grid: { color: palette.gridColor }
+          }
+        };
+      }
+
+      return new Chart(canvas.getContext('2d'), {
+        type,
+        data: {
+          labels,
+          datasets: [{
+            label,
+            data: values,
+            backgroundColor: ['#6366f1', '#22d3ee', '#34d399', '#f59e0b', '#f43f5e', '#8b5cf6', '#3b82f6']
+          }]
+        },
+        options
+      });
+    }
+
+    function createTimeChart(valuesMap, totalClicks) {
+      const canvas = document.getElementById('timeChart');
+      if (!canvas) return null;
+
+      const palette = chartPalette();
+      const series = buildTimeSeries(valuesMap || {});
+      const labels = series.labels;
+      const values = series.values;
+      renderTimeMeta(series, totalClicks || 0);
+      if (!labels.length) return null;
+
+      return new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: t('th_clicks'),
+            data: values,
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79, 70, 229, 0.3)',
+            borderWidth: 2,
+            borderRadius: 8,
+            maxBarThickness: 30,
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (context) => `${t('th_clicks')}: ${context.parsed.y}`
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0, color: palette.textColor },
+              grid: { color: palette.gridColor }
+            },
+            x: {
+              ticks: { maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 10, color: palette.textColor },
+              grid: { color: palette.gridColor }
+            }
+          }
+        }
+      });
+    }
+
+    function renderCharts() {
+      if (!chartState.data) return;
+      destroyCharts();
+
+      document.getElementById('totalClicksDisplay').textContent = String(chartState.data.total_clicks || 0);
+      chartState.browser = createChart('browserChart', 'doughnut', t('stats_browser_dist'), Object.fromEntries(
+        Object.entries(chartState.data.browsers || {}).map(([k, v]) => [mapBucketLabel(k), v])
+      ));
+      chartState.os = createChart('osChart', 'pie', t('stats_os_dist'), Object.fromEntries(
+        Object.entries(chartState.data.os || {}).map(([k, v]) => [mapBucketLabel(k), v])
+      ));
+      chartState.country = createChart('countryChart', 'bar', t('stats_country_dist'), Object.fromEntries(
+        Object.entries(chartState.data.countries || {}).map(([k, v]) => [mapBucketLabel(k), v])
+      ));
+      chartState.time = createTimeChart(chartState.data.clicks_over_time || {}, chartState.data.total_clicks || 0);
+    }
+
+    fetch('/api/stats/' + encodeURIComponent(shortCode), { credentials: 'include' })
+      .then((res) => {
+        if (!res.ok) throw new Error('stats_fetch_failed');
+        return res.json();
+      })
+      .then((data) => {
+        chartState.data = data || {};
+        renderCharts();
+      })
+      .catch(() => {
+        document.getElementById('totalClicksDisplay').textContent = '0';
+      });
+
+    window.addEventListener('ovlink:languageChanged', renderCharts);
+    window.addEventListener('ovlink:themeChanged', renderCharts);
+  </script>
+</body>
+
+</html>
+

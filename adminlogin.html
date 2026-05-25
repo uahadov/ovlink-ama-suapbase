@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Login</title>
+    <link rel="stylesheet" href="/admin/admin.css" />
+  </head>
+  <body>
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-head">
+          <div class="brand__logo" aria-hidden="true"></div>
+          <div>
+            <h1>Admin Login</h1>
+            <p>Ovlink moderation paneli</p>
+          </div>
+        </div>
+
+        
+
+        <form class="form" method="POST" action="/admin/login">
+          <input type="hidden" name="_csrf" value="4mLwrqFSimp6KMCjmu0/Uk7IxNBjjQqIhKTPk=" />
+          <input type="hidden" name="next" value="" />
+
+          <div class="field">
+            <label for="email">E-posta</label>
+            <input class="input" id="email" name="email" type="email" autocomplete="username" autofocus required />
+          </div>
+
+          <div class="field">
+            <label for="password">Şifre</label>
+            <input class="input" id="password" name="password" type="password" autocomplete="current-password" required />
+          </div>
+
+          <button class="btn" type="submit">Giriş</button>
+          <a class="btn btn--secondary" href="/">Siteye Dön</a>
+        </form>
+
+        <div class="spacer"></div>
+        <div class="alert">
+          <div><strong>İpucu:</strong> İlk admin hesabı yoksa, ortam değişkenleri ile oluşturun:</div>
+          <div class="spacer"></div>
+          <div class="kbd">ADMIN_EMAIL</div>
+          <div class="kbd">ADMIN_PASSWORD</div>
+        </div>
+      </div>
+    </div>
+    <script src="/admin/admin.js" defer></script>
+  </body>
+</html>

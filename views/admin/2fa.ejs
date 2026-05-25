@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin 2FA</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="/logo.ico" />
+    <link rel="stylesheet" href="/admin/admin.css" />
+  </head>
+  <body class="admin-login-page">
+    <header class="admin-login-nav">
+      <div class="container admin-login-nav__inner">
+        <a class="admin-login-brand" href="/" aria-label="Ovlink home">
+          <img src="/logo.png" alt="Ovlink" />
+        </a>
+        <a class="btn btn--secondary" href="/admin/login">Back to login</a>
+      </div>
+    </header>
+
+    <main class="admin-login-main">
+      <section class="container admin-login-hero">
+        <div class="admin-login-chip">Ovlink - Admin Security</div>
+        <h1 class="admin-login-title">Two-Factor Verification</h1>
+        <p class="admin-login-subtitle">Enter the 6-digit code from your authenticator app.</p>
+
+        <div class="login-card admin-login-card">
+          <div class="login-head admin-login-head">
+            <div class="brand__logo admin-login-logo-wrap" aria-hidden="true">
+              <img src="/logo.png" alt="" class="admin-login-logo" />
+            </div>
+          </div>
+
+          <% if (typeof error === 'string' && error) { %>
+            <div class="alert alert--error"><%= error %></div>
+            <div class="spacer"></div>
+          <% } %>
+
+          <form class="form" method="POST" action="/admin/2fa/verify">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+            <div class="field">
+              <label for="token">2FA CODE</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">#</span>
+                <input class="input" id="token" name="token" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" autofocus required />
+              </div>
+            </div>
+
+            <button class="btn btn--block" type="submit">Verify</button>
+            <a class="btn btn--secondary btn--block" href="/admin/login">Back to login</a>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <script src="/admin/admin.js" defer></script>
+  </body>
+</html>

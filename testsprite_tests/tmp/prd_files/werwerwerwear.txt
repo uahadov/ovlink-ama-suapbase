@@ -1,0 +1,345 @@
+PRD — Ovlink (URL Shortener Platform)
+
+Version: v1.0
+Date: 2026-03-02
+Source analysis: C:\Users\exlorin\Desktop\öldü mence
+Technology stack: Node.js + Express + EJS + SQLite + session-based authentication
+
+1) Product Overview
+
+Ovlink is a link management platform designed to help users convert long URLs into short links, manage those links, track click analytics, and reduce abuse through security and moderation workflows.
+
+2) Problem Statement and Value Proposition
+
+Problem: Long links are inefficient to share, hard to manage, and often unclear from a security standpoint.
+Solution: Short-link generation + optional password/limits/expiration + reporting + moderation + user dashboard.
+Value: Fast link creation, controllable distribution, measurable performance, and a security-first experience.
+
+3) Objectives
+
+H1: Reduce short-link creation time to under 10 seconds.
+
+H2: Maintain a redirect success rate of ≥ 99%.
+
+H3: Make abuse reports visible and manageable through moderation.
+
+H4: Provide consistent UX with multi-language support (AZ/TR/EN) and theming.
+
+H5: Maintain advertising/policy compliance via public policy & trust pages.
+
+4) Success Metrics (KPIs)
+
+Link creation success rate
+
+Daily active users who create links
+
+Redirect success rate (ratio of successful 2xx/3xx flows)
+
+Resolution time for reported links
+
+Custom domain verification success rate
+
+Average number of active links managed per user
+
+Auth conversion funnel: register → verify → first link
+
+5) Persona Set
+
+Content creator
+
+Small business / social media manager
+
+Moderator / Admin
+
+Link visitor (unauthenticated end user)
+
+6) Scope
+In Scope
+
+Short-link generation (custom alias, password, expiration, max_clicks, custom domain)
+
+Redirect consent screen
+
+Password-protected link verification flow
+
+Dashboard (search/filter/sort, edit, metadata, import/export)
+
+Analytics view (browser, OS, country, clicks over time)
+
+Account management (theme/language/notifications/password/sessions)
+
+Notification center
+
+Admin panel (reports, links, users, domain blocks, settings, audit logs, 2FA)
+
+Public trust/legal content (privacy, terms, cookie, about, help, docs, abuse-safety, updates)
+
+Out of Scope
+
+Native mobile app
+
+Multiple database support (currently SQLite)
+
+Real-time WebSocket analytics
+
+Team/workspace multi-tenant model
+
+7) Core User Flows
+Link Creator Flow
+
+Enters a URL on the homepage
+
+Selects optional settings
+
+Receives the short link
+
+Generates/downloads QR code
+
+Manages links via the dashboard
+
+Visitor Redirect Flow
+
+Opens /:short
+
+Sees a consent screen
+
+Selects YES and proceeds after a countdown
+
+If password-protected, verifies via /proceed/:short
+
+If valid, redirects to the destination URL
+
+Moderation Flow
+
+User submits a report
+
+Admin reviews reports
+
+Admin marks as safe / disables / deletes the link
+
+If needed, takes action at domain/user level
+
+Custom Domain Flow
+
+User adds a domain
+
+Completes DNS verification (TXT + CNAME/A/AAAA)
+
+Once verified, the user can select that domain when creating links
+
+8) Functional Requirements (FR)
+ID	Area	Requirement	Priority	Acceptance Criteria
+FR-01	Link Create	The system must convert a URL into a short link	P0	Returns a short link for a valid URL
+FR-02	Alias	Custom alias must be supported	P0	Conflicting aliases are rejected
+FR-03	Password	Per-link password protection must be available	P0	Access without password must not redirect
+FR-04	Expiration	Link expiration must be supported	P1	Expired links return a 410 behavior
+FR-05	Max Clicks	Click limit must be supported	P1	Access is blocked when limit is reached
+FR-06	Guest Limit	Unauthenticated creation must have a daily limit	P1	Returns a meaningful error when exceeded
+FR-07	Consent Gate	A consent screen must appear before redirect	P0	NO must not redirect; YES proceeds
+FR-08	Consent Timer	Continue button must unlock after countdown	P1	Cannot continue before 2 seconds
+FR-09	QR	QR code must be generated for short links	P1	Returns a QR data URL for a valid short link
+FR-10	Report	Short links must be reportable	P0	Same user cannot submit duplicate reports
+FR-11	Dashboard	Users must be able to list their links	P0	Only owner’s links are visible
+FR-12	Link Edit	Destination URL must be editable	P1	Updates to blocked domains are prevented
+FR-13	Folder/Tags	Link metadata management must exist	P2	Folder/tag create and list works
+FR-14	Import/Export	Bulk import/export must exist	P2	CSV/XLSX export and row import works
+FR-15	Stats	Per-link analytics page must exist	P1	Non-owner access is blocked
+FR-16	User Settings	Language/theme/notification settings must exist	P1	Settings API persists updates
+FR-17	Session Mgmt	Active sessions listing + revoke must exist	P1	Session revoke API works
+FR-18	Notifications	Notification center must exist	P1	List/mark read/delete works
+FR-19	Auth	Register/login/verify/reset must exist	P0	Full auth cycle works end-to-end
+FR-20	Google Auth	Login via OIDC must exist	P1	Session created after callback
+FR-21	Custom Domain	Add/verify/delete domain must exist	P1	Status updates based on DNS verification
+FR-22	Admin RBAC	Admin/moderator roles must be separated	P0	Endpoint access restricted by role
+FR-23	Admin 2FA	Admin TOTP 2FA must be supported	P1	Setup/verify flow works
+FR-24	Site Settings	Maintenance/announcement management must exist	P2	Settings impact visible on public pages
+FR-25	Public Pages	Policy & trust pages must be accessible	P0	All open via footer/nav
+9) Business Rules
+
+Unauthenticated users are subject to a daily link creation limit.
+
+Short code format is restricted: A–Z, a–z, 0–9, _ -, max length 50.
+
+Reserved route names cannot be used as aliases.
+
+Disabled or policy-violating links must not redirect.
+
+If consent is denied, the redirect flow must stop.
+
+Redirect tracking must only be recorded if the redirect actually occurs.
+
+A custom domain can only be used by the domain-owning user.
+
+10) Data Model (Summary)
+
+users: identity, auth provider, preferences, ban fields
+
+urls: short/original, owner, password, report count, domain, metadata
+
+clicks: click metrics per link
+
+reports: report records
+
+custom_domains: ownership and DNS verification status
+
+user_sessions: active sessions and fingerprint
+
+notifications: user notifications
+
+password_resets: reset token lifecycle
+
+admin_users, admin_audit_log, admin_auth_audit, blocked_domains, site_settings, guest_limits
+
+11) API Surface (Summary)
+
+Auth/API:
+
+/api/register, /api/verify-email, /api/login, /api/logout, /auth/google/*
+
+Link/API:
+
+/api/shorten, /api/qrcode, /:short, /proceed/:short, /verify/:short
+
+User/API:
+
+/api/me, /api/user/*, /api/notifications*
+
+Domain/API:
+
+/api/domains, /api/domains/add, /api/domains/verify, /api/domains/delete
+
+Stats/API:
+
+/api/stats/:short, UI: /stats-page/:short
+
+Report/API:
+
+/api/report
+
+Admin/API + UI:
+
+/admin/*
+
+12) Non-Functional Requirements
+Security
+
+Session secret is mandatory
+
+CSP/Helmet/hardening enabled
+
+CSRF protection enabled on state-changing routes
+
+Rate limiting enabled on auth/shorten/report/admin GET layers
+
+Performance
+
+Gzip compression
+
+Static assets on public pages with cache control
+
+Compliance
+
+Multi-language support (az, tr, en)
+
+Light/dark theme
+
+SEO
+
+SEO meta + sitemap/robots for public policy/content pages
+
+Reliability
+
+DB startup migrations are idempotent
+
+Fail-safe error responses
+
+13) Security and Privacy Requirements
+
+Do not send full IP addresses openly to users via email.
+
+Redirect consent flow must be tamper-resistant using signed + timestamped validation.
+
+Host header and proxy chain must be interpreted securely.
+
+Disable caching on sensitive routes.
+
+Policy text must not contradict collected data.
+
+Abuse policy and Terms must be consistent and mutually supportive.
+
+14) UX / Design Requirements
+
+Public pages must remain consistent with a shared theme language.
+
+Login/register/forgot/reset/proceed/error pages must follow a single design system.
+
+CTAs must be explicit: “Create short link”, “Send to QR”, “Report”.
+
+Dashboard actions must be visible and easily accessible.
+
+Mobile-first responsive behavior must remain intact.
+
+15) Versioning and Release Plan
+Phase 1 (Stabilization)
+
+Close critical bugs in redirect + stats + dashboard
+
+Validate session listing and revoke flow
+
+Phase 2 (Product Quality)
+
+Refine dashboard UX
+
+Improve consistency of stats charts
+
+Clarify the notification experience
+
+Phase 3 (Growth)
+
+Discipline around public updates/changelog
+
+Continuous updates to trust/content pages
+
+Optimize conversion and retention metrics
+
+16) Risks
+
+server.js has grown too large as a single file; high maintenance cost.
+
+Mixed approach in routing and views (render + string HTML) creates technical debt.
+
+Limited test coverage (primarily test/security-helpers.test.js).
+
+SQLite may hit scaling limits under high concurrent traffic.
+
+GeoIP-based country estimation may not always be accurate.
+
+17) Definition of Done (DoD)
+
+Critical user flows must work without interruption:
+
+register → verify → login → shorten → redirect
+
+Password-protected link flow
+
+report → admin moderation
+
+custom domain add → verify → active use
+
+Additionally:
+
+Public policy/trust pages must be accessible from the footer.
+
+Language + theme switching must be consistent across all primary pages.
+
+Security controls must be active.
+
+Tests must pass cleanly: npm test.
+
+18) Assumptions
+
+Monetization (AdSense) policy text is not dynamically generated based on on/off status; it is managed at the content level.
+
+The product is designed as a single-tenant B2C service.
+
+Short-term priority: speed + security + UX stability; mid-term priority: scalability.

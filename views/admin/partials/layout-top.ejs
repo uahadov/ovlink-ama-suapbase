@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= title %></title>
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="/logo.ico" />
+    <link rel="stylesheet" href="/admin/admin.css" />
+    <meta name="csrf-token" content="<%= csrfToken %>" />
+  </head>
+  <body class="admin-page">
+    <div class="admin-shell">
+      <aside class="sidebar">
+        <div class="sidebar__brand">
+          <div class="brand">
+            <img class="brand__logo-img" src="/logo.png" alt="Ovlink" />
+            <div>
+              <div class="brand__title">Ovlink Admin</div>
+              <div class="sidebar__meta"><%= admin && admin.email ? admin.email : '' %> · <%= admin && admin.role ? admin.role : '' %></div>
+            </div>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <a href="/admin/reports" class="<%= active === 'reports' ? 'active' : '' %>">
+            <span>Reports</span>
+            <span class="badge">Moderation</span>
+          </a>
+          <a href="/admin/links" class="<%= active === 'links' ? 'active' : '' %>">
+            <span>Links</span>
+            <span class="badge">All</span>
+          </a>
+          <a href="/admin/domains" class="<%= active === 'domains' ? 'active' : '' %>">
+            <span>Domains</span>
+            <span class="badge">Blocklist</span>
+          </a>
+          <a href="/admin/site-users" class="<%= active === 'site-users' ? 'active' : '' %>">
+            <span>Users</span>
+            <span class="badge">App</span>
+          </a>
+          <% if (admin && admin.role === 'admin') { %>
+            <a href="/admin/users" class="<%= active === 'users' ? 'active' : '' %>">
+              <span>Admin Users</span>
+              <span class="badge">RBAC</span>
+            </a>
+            <a href="/admin/settings" class="<%= active === 'settings' ? 'active' : '' %>">
+              <span>Settings</span>
+              <span class="badge">Site</span>
+            </a>
+            <a href="/admin/2fa/setup" class="<%= active === '2fa' ? 'active' : '' %>">
+              <span>Admin 2FA</span>
+              <span class="badge">Security</span>
+            </a>
+            <a href="/admin/auth-logs" class="<%= active === 'auth-logs' ? 'active' : '' %>">
+              <span>Admin Auth Logs</span>
+              <span class="badge">Security</span>
+            </a>
+          <% } %>
+          <a href="/admin/audit" class="<%= active === 'audit' ? 'active' : '' %>">
+            <span>Audit Log</span>
+            <span class="badge">Trail</span>
+          </a>
+
+          <div class="spacer"></div>
+
+          <a href="/" class="<%= active === 'home' ? 'active' : '' %>">
+            <span>Website</span>
+            <span class="badge">Back</span>
+          </a>
+
+          <form method="POST" action="/admin/logout" class="nav__logout">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <button class="btn btn--ghost btn--block" type="submit">Logout</button>
+          </form>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="hgroup">
+            <h1><%= heading %></h1>
+            <p><%= subtitle %></p>
+          </div>
+          <div class="row">
+            <button id="adminThemeToggle" type="button" class="btn btn--ghost" aria-label="Toggle theme">
+              <span id="adminThemeToggleText">Dark mode</span>
+            </button>
+            <% if (topRightHtml) { %>
+              <%- topRightHtml %>
+            <% } %>
+          </div>
+        </header>
+        <div class="content">
+
+
+
+
+

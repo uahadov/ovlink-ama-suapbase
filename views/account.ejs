@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title data-i18n="account_title">Profil Parametrləri</title>
+  <link rel="icon" href="/logo.ico" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+</head>
+
+<body class="home-page app-page">
+
+  <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
+    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <div class="container">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
+      </div>
+    </div>
+  <% } %>
+
+  <nav class="navbar navbar-expand-lg navbar-light home-navbar shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+        <img src="/logo.webp" alt="Ovlink" class="home-brand-logo" />
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#appPageNavbarContent"
+        aria-controls="appPageNavbarContent" aria-expanded="false" aria-label="Menu toggle">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="appPageNavbarContent">
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          <li class="nav-item" id="navAuthGuestLogin">
+            <a class="nav-link" href="/login"><i class="fa-solid fa-right-to-bracket"></i> <span data-i18n="nav_login">Giriş</span></a>
+          </li>
+          <li class="nav-item" id="navAuthGuestReg">
+            <a class="nav-link" href="/register"><i class="fa-solid fa-user-plus"></i> <span data-i18n="nav_register">Qeydiyyat</span></a>
+          </li>
+          <li class="nav-item dropdown nav-user-dropdown d-none" id="navAuthUser">
+            <a class="nav-link dropdown-toggle position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fa-solid fa-user-circle me-1"></i>
+              <span id="navUserEmail" data-i18n="nav_my_account">Hesabım</span>
+              <span id="navNotifBadge" class="notif-badge d-none">0</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="/dashboard"><i class="fa-solid fa-chart-line me-2"></i><span data-i18n="dashboard_stats_link">Statistika</span></a></li>
+              <li><a class="dropdown-item" href="/account"><i class="fa-solid fa-user-gear me-2"></i><span data-i18n="profile_settings_title">Profil Parametrləri</span></a></li>
+              <li>
+                <a class="dropdown-item d-flex align-items-center justify-content-between" href="/notifications">
+                  <span><i class="fa-solid fa-bell me-2"></i><span data-i18n="notif_center_title">Bildiriş Mərkəzi</span></span>
+                  <span id="navNotifBadgeMenu" class="notif-menu-badge d-none">0</span>
+                </a>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li><a id="navLogoutBtn" class="dropdown-item" href="#"><i class="fa-solid fa-right-from-bracket me-2"></i><span data-i18n="nav_logout">Çıxış</span></a></li>
+            </ul>
+          </li>
+        </ul>
+
+        <div class="dropdown ms-2 me-2">
+          <button id="langToggleBtn" class="btn btn-sm fw-bold dropdown-toggle lang-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false">AZ</button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><button class="dropdown-item lang-option" data-lang="az" type="button">AZ</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="tr" type="button">TR</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="en" type="button">EN</button></li>
+          </ul>
+        </div>
+
+        <button class="theme-toggle home-theme-btn" aria-label="Temayı Değiştir">
+          <i class="fa-solid fa-sun"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+
+  <main class="app-main">
+    <section class="container">
+      <div class="app-shell">
+        <div class="policy-head">
+          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
+            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+          </div>
+          <h1 class="policy-title" data-i18n="account_title">Profil Parametrləri</h1>
+          <p class="hero-subtitle" data-i18n="account_subtitle">Hesab parametrlərinizi idarə edin</p>
+        </div>
+
+        <div class="policy-card app-card" id="profileSettingsSection">
+          <h5 class="mb-3 fw-bold"><i class="fa-solid fa-user-gear me-2"></i><span data-i18n="profile_settings_title">Profil Parametrləri</span></h5>
+          <form id="profileSettingsForm" class="d-grid gap-3">
+            <div>
+              <label class="form-label" data-i18n="profile_email">E-poçt</label>
+              <input id="profileEmail" type="email" class="form-control" disabled>
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label" data-i18n="profile_lang">Dil</label>
+                <select id="profileLang" class="form-select">
+                  <option value="az" data-i18n="lang_az">AZ</option>
+                  <option value="tr" data-i18n="lang_tr">TR</option>
+                  <option value="en" data-i18n="lang_en">EN</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label" data-i18n="profile_theme">Tema</label>
+                <select id="profileTheme" class="form-select">
+                  <option value="light" data-i18n="theme_light">Açıq</option>
+                  <option value="dark" data-i18n="theme_dark">Qaranlıq</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="form-label" data-i18n="profile_notify_title">Bildiriş Seçimləri</label>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="notifyReport">
+                <label class="form-check-label" for="notifyReport" data-i18n="notif_report">Linkiniz şikayət edildi</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="notifyLimit">
+                <label class="form-check-label" for="notifyLimit" data-i18n="notif_limit">Klik limiti doldu</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="notifyDisabled">
+                <label class="form-check-label" for="notifyDisabled" data-i18n="notif_disabled">Link deaktiv edildi</label>
+              </div>
+            </div>
+
+            <button class="btn btn-primary rounded-pill" type="submit" data-i18n="profile_save">Yadda saxla</button>
+            <div id="profileSettingsMsg" class="small"></div>
+          </form>
+
+          <hr class="my-4">
+
+          <section id="customDomainSection" class="custom-domain-section">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+              <div>
+                <h6 class="fw-bold mb-1"><i class="fa-solid fa-globe me-2"></i><span data-i18n="custom_domain_title">Xüsusi Domenlər</span></h6>
+                <p class="text-muted small mb-0" data-i18n="custom_domain_subtitle">Öz domeninizlə qısa link yaradın və tam nəzarət edin.</p>
+              </div>
+              <span id="customDomainTargetBadge" class="badge text-bg-light border">CNAME target: -</span>
+            </div>
+
+            <form id="customDomainForm" class="row g-2 align-items-end">
+              <div class="col-12 col-md-8">
+                <label for="customDomainInput" class="form-label small fw-bold" data-i18n="custom_domain_input_label">Domen və ya subdomen</label>
+                <input id="customDomainInput" type="text" class="form-control" placeholder="go.example.com" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="col-12 col-md-4 d-grid">
+                <button id="customDomainAddBtn" class="btn btn-outline-primary rounded-pill" type="submit" data-i18n="custom_domain_add_btn">Domen Əlavə Et</button>
+              </div>
+            </form>
+
+            <div class="alert alert-info mt-3 mb-0 small" role="alert">
+              <strong class="d-block mb-2" data-i18n="custom_domain_dns_title">DNS addımları:</strong>
+              <p class="mb-2" data-i18n="custom_domain_dns_help_intro">Domeni əlavə etdikdən sonra aşağıdakı qeydləri DNS panelinizə daxil edin:</p>
+              <ol class="custom-domain-help-list mb-2">
+                <li data-i18n="custom_domain_dns_step_1">TXT qeydini tam şəkildə əlavə edin və dəyəri olduğu kimi saxlayın.</li>
+                <li data-i18n="custom_domain_dns_step_2">Subdomen üçün CNAME qeydini ovlink.sbs ünvanına yönləndirin (və ya DNS provayderiniz CNAME dəstəkləmirsə A/AAAA istifadə edin).</li>
+                <li data-i18n="custom_domain_dns_step_3">Qeydlər yayıldıqdan sonra burada “Yoxla” düyməsinə basın.</li>
+                <li data-i18n="custom_domain_dns_step_4">Cloudflare və bənzər xidmət istifadə edirsinizsə, doğrulama bitənə qədər qeyd “DNS only” rejimində olmalıdır.</li>
+                <li data-i18n="custom_domain_dns_step_5">Yoxlama uğurlu olduqdan sonra domeni qısa link yaradarkən domen siyahısından seçə bilərsiniz.</li>
+              </ol>
+              <p class="mb-0 text-muted" data-i18n="custom_domain_dns_note">Qeyd: DNS yenilənməsi provayderdən asılı olaraq adətən bir neçə dəqiqə, bəzən isə 24 saata qədər çəkə bilər.</p>
+            </div>
+
+            <div id="customDomainMsg" class="small mt-3"></div>
+            <div id="customDomainList" class="d-grid gap-3 mt-3"></div>
+          </section>
+
+          <hr class="my-4">
+
+          <section id="proPanelSection" class="pro-panel-section">
+            <div class="pro-head d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+              <div class="pro-head-text">
+                <h6 class="fw-bold mb-1 pro-head-title"><i class="fa-solid fa-crown me-2"></i><span data-i18n="pro_panel_title">Pro Paneli</span></h6>
+                <p class="text-muted small mb-2" data-i18n="pro_panel_subtitle">Pro planınızla API açarları ve webhook axınlarını idarə edin.</p>
+                <a href="/api-guide" class="btn btn-sm btn-outline-secondary rounded-pill" data-i18n="pro_panel_guide_btn">API necə istifadə olunur?</a>
+              </div>
+              <span id="proPlanBadge" class="badge text-bg-light border" data-i18n="pro_badge_free">Free Plan</span>
+            </div>
+
+            <div id="proPlanMeta" class="small text-muted mb-2"></div>
+            <div id="proPanelMsg" class="small"></div>
+            <div class="pro-quick-guide mb-3">
+              <span class="pro-quick-item" data-i18n="pro_quick_step_1">1) API açarı yarat</span>
+              <span class="pro-quick-item" data-i18n="pro_quick_step_2">2) Webhook URL əlavə et</span>
+              <span class="pro-quick-item" data-i18n="pro_quick_step_3">3) Test et və keç</span>
+            </div>
+
+            <div id="proLockedNotice" class="alert alert-warning mt-3 mb-0" role="alert">
+              <strong data-i18n="pro_locked_title">Pro tələb olunur.</strong>
+              <span class="d-block mt-1" data-i18n="pro_locked_text">Bu bölmədə API açarı və webhook idarəetməsi yalnız aktiv Pro plan üçün açıqdır.</span>
+            </div>
+
+            <div id="proFeatureWrap" class="d-none mt-3">
+              <div class="row g-3">
+                <div class="col-12 col-lg-6">
+                  <div class="pro-surface border rounded-4 p-3 h-100">
+                    <h6 class="fw-bold mb-2"><i class="fa-solid fa-key me-2"></i><span data-i18n="pro_api_keys_title">API Açarları</span></h6>
+                    <p class="text-muted small mb-3" data-i18n="pro_api_keys_subtitle">Aktiv limit: maksimum 2 açar. Açar dəyəri yalnız yaradılarkən göstərilir.</p>
+
+                    <form id="proApiKeyForm" class="row g-2 align-items-end mb-3">
+                      <div class="col-12 col-md-8">
+                        <label for="proApiKeyName" class="form-label small fw-bold" data-i18n="pro_api_key_name_label">Açar adı</label>
+                        <input id="proApiKeyName" type="text" class="form-control" maxlength="60" data-i18n="pro_api_key_name_placeholder" placeholder="Production key">
+                      </div>
+                      <div class="col-12 col-md-4 d-grid">
+                        <button id="proApiKeyCreateBtn" class="btn btn-outline-primary rounded-pill" type="submit" data-i18n="pro_api_key_create_btn">Açar yarat</button>
+                      </div>
+                    </form>
+
+                    <div id="proApiKeyReveal" class="alert alert-info small d-none mb-3"></div>
+                    <div id="proApiKeyList" class="d-grid gap-2"></div>
+                  </div>
+                </div>
+
+                <div class="col-12 col-lg-6">
+                  <div class="pro-surface border rounded-4 p-3 h-100">
+                    <h6 class="fw-bold mb-2"><i class="fa-solid fa-link me-2"></i><span data-i18n="pro_webhooks_title">Webhooklar</span></h6>
+                    <p class="text-muted small mb-3" data-i18n="pro_webhooks_subtitle">Retry siyasəti: 5 cəhd, exponential backoff.</p>
+                    <p class="small text-success mb-3">
+                      <i class="fa-brands fa-discord me-1"></i>
+                      <span data-i18n="pro_webhooks_discord_hint">Discord Incoming Webhook linkləri avtomatik uyğun formatda göndərilir.</span>
+                    </p>
+                    <div class="alert alert-warning small py-2 mb-3">
+                      <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                      <span data-i18n="pro_webhook_security_warning">Tanımadığınız webhook endpointlərini əlavə etməyin. Qarşı tərəf bağlantı zamanı mənbə IP-ni loglaya bilər.</span>
+                    </div>
+
+                    <form id="proWebhookForm" class="row g-2 align-items-end mb-3">
+                      <div class="col-12">
+                        <label for="proWebhookUrl" class="form-label small fw-bold" data-i18n="pro_webhook_url_label">Webhook URL</label>
+                        <input id="proWebhookUrl" type="url" class="form-control" placeholder="https://example.com/webhooks/ovlink">
+                      </div>
+                      <div class="col-12">
+                        <label for="proWebhookEvents" class="form-label small fw-bold" data-i18n="pro_webhook_events_label">Eventlər (vergüllə)</label>
+                        <div id="proWebhookEventPicker" class="pro-event-picker mb-2">
+                          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-webhook-event-option="link.created">link.created</button>
+                          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-webhook-event-option="link.updated">link.updated</button>
+                          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-webhook-event-option="link.deleted">link.deleted</button>
+                          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-webhook-event-option="webhook.test">webhook.test</button>
+                          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-webhook-event-option="*">*</button>
+                        </div>
+                        <input id="proWebhookEvents" type="text" class="form-control" data-i18n="pro_webhook_events_placeholder" placeholder="link.created, webhook.test" readonly>
+                        <p class="small text-muted mb-0 mt-1" data-i18n="pro_webhook_events_help">Eventləri butonlardan seçin. * seçilərsə bütün eventlər göndərilir.</p>
+                      </div>
+                      <div class="col-12">
+                        <details class="pro-advanced-box">
+                          <summary data-i18n="pro_webhook_advanced_toggle">Gelişmiş mesaj ayarları</summary>
+                          <div class="mt-2">
+                            <div class="row g-2 mb-2">
+                              <div class="col-12 col-md-6">
+                                <label for="proWebhookLocale" class="form-label small fw-bold" data-i18n="pro_webhook_locale_label">Mesaj dili</label>
+                                <select id="proWebhookLocale" class="form-select">
+                                  <option value="auto" data-i18n="pro_webhook_locale_auto">Auto (profil dili)</option>
+                                  <option value="az" data-i18n="pro_webhook_locale_az">Azerbaijani</option>
+                                  <option value="tr" data-i18n="pro_webhook_locale_tr">Turkish</option>
+                                  <option value="en" data-i18n="pro_webhook_locale_en">English</option>
+                                </select>
+                              </div>
+                              <div class="col-12 col-md-6">
+                                <label for="proWebhookTemplate" class="form-label small fw-bold" data-i18n="pro_webhook_template_label">Öz mesaj şablonu (opsional)</label>
+                                <input id="proWebhookTemplate" type="text" class="form-control" maxlength="240" data-i18n="pro_webhook_template_placeholder" placeholder="Yeni link: {short_url}">
+                              </div>
+                            </div>
+                            <p class="small text-muted mb-1" data-i18n="pro_webhook_template_picker_label">Dəyişən əlavə et (kliklə):</p>
+                            <div id="proWebhookTemplateTokenPicker" class="pro-event-picker mb-2">
+                              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-template-token="{event}">{event}</button>
+                              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-template-token="{short_url}">{short_url}</button>
+                              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-template-token="{original_url}">{original_url}</button>
+                              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-template-token="{domain}">{domain}</button>
+                              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-template-token="{attempt}">{attempt}</button>
+                              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-template-token="{sent_at}">{sent_at}</button>
+                            </div>
+                            <p class="small text-muted mb-0" data-i18n="pro_webhook_template_help">Dəyişənlər: {event}, {short_url}, {original_url}, {domain}, {attempt}, {sent_at}</p>
+                          </div>
+                        </details>
+                      </div>
+                      <div class="col-12 d-grid">
+                        <button id="proWebhookCreateBtn" class="btn btn-outline-primary rounded-pill" type="submit" data-i18n="pro_webhook_create_btn">Webhook əlavə et</button>
+                      </div>
+                    </form>
+
+                    <div id="proWebhookSecretReveal" class="alert alert-info small d-none mb-3"></div>
+                    <div id="proWebhookList" class="d-grid gap-2"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pro-surface border rounded-4 p-3 mt-3">
+                <h6 class="fw-bold mb-2"><i class="fa-solid fa-gauge-high me-2"></i><span data-i18n="pro_api_usage_title">API Rate Limit Dashboard</span></h6>
+                <p class="text-muted small mb-3" data-i18n="pro_api_usage_subtitle">Cari pəncərə istifadəsi, qalan kota və son 24 saatlıq xəta bölünməsi.</p>
+
+                <div class="row g-2">
+                  <div class="col-12 col-md-6">
+                    <div class="pro-item-card border rounded-3 p-2 h-100">
+                      <small class="text-muted d-block mb-1" data-i18n="pro_api_usage_read_window">Read pəncərəsi</small>
+                      <strong id="proApiUsageReadWindow">0 / 0</strong>
+                      <div class="small text-muted" id="proApiUsageReadRemaining">Qalan: 0</div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="pro-item-card border rounded-3 p-2 h-100">
+                      <small class="text-muted d-block mb-1" data-i18n="pro_api_usage_write_window">Write pəncərəsi</small>
+                      <strong id="proApiUsageWriteWindow">0 / 0</strong>
+                      <div class="small text-muted" id="proApiUsageWriteRemaining">Qalan: 0</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pro-item-card border rounded-3 p-2 mt-2">
+                  <small class="text-muted d-block mb-1" data-i18n="pro_api_usage_24h_summary">Son 24 saat</small>
+                  <strong id="proApiUsageLast24h">0</strong>
+                  <div class="small text-muted" id="proApiUsageLast24hErrors">Xəta: 0</div>
+                </div>
+
+                <div class="mt-2">
+                  <small class="text-muted d-block mb-1" data-i18n="pro_api_usage_error_types">Xəta tipləri</small>
+                  <div id="proApiUsageErrorTypes" class="d-flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="mt-2">
+                  <small class="text-muted d-block mb-1" data-i18n="pro_api_usage_status_codes">HTTP status bölünməsi</small>
+                  <div id="proApiUsageStatusCodes" class="d-flex flex-wrap gap-2"></div>
+                </div>
+              </div>
+
+              <div class="pro-surface border rounded-4 p-3 mt-3">
+                <details class="pro-advanced-box">
+                  <summary><i class="fa-solid fa-truck-fast me-2"></i><span data-i18n="pro_deliveries_title">Son webhook çatdırılmaları</span></summary>
+                  <div id="proDeliveryList" class="d-grid gap-2 mt-2"></div>
+                </details>
+              </div>
+            </div>
+          </section>
+
+          <hr class="my-4">
+
+          <section id="activeSessionsSection" class="active-sessions-section">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+              <div>
+                <h6 class="fw-bold mb-1"><i class="fa-solid fa-shield-halved me-2"></i><span data-i18n="profile_sessions_title">Aktiv Sessiyalar</span></h6>
+                <p class="text-muted small mb-0" data-i18n="profile_sessions_subtitle">Hesabınıza daxil olan cihazları burada idarə edə bilərsiniz.</p>
+              </div>
+              <button id="revokeOtherSessionsBtn" type="button" class="btn btn-outline-danger btn-sm rounded-pill" data-i18n="profile_sessions_revoke_others">Digər sessiyaları bağla</button>
+            </div>
+            <div id="activeSessionsMsg" class="small"></div>
+            <div id="activeSessionsList" class="d-grid gap-2 mt-2"></div>
+          </section>
+
+          <hr class="my-4">
+
+          <h6 class="fw-bold mb-3"><i class="fa-solid fa-key me-2"></i><span id="passwordSectionTitle" data-i18n="profile_password_title">Şifrə Dəyişdir</span></h6>
+          <form id="passwordChangeForm" class="d-grid gap-2">
+            <div id="currentPasswordGroup"><input type="password" id="currentPassword" class="form-control" data-i18n="profile_current_password" placeholder="Cari şifrə"></div>
+            <input type="password" id="newPassword" class="form-control" data-i18n="profile_new_password" placeholder="Yeni şifrə">
+            <input type="password" id="newPasswordConfirm" class="form-control" data-i18n="profile_new_password_confirm" placeholder="Yeni şifrə (təkrar)">
+            <button id="passwordActionBtn" class="btn btn-outline-primary rounded-pill" type="submit" data-i18n="profile_password_save">Şifrəni yenilə</button>
+            <a href="/forgot-password" class="text-decoration-none small" data-i18n="forgot_password_link">Şifrəni unutmusunuz?</a>
+            <div id="passwordChangeMsg" class="small"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal fade" id="proSecretModal" tabindex="-1" aria-labelledby="proSecretModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="proSecretModalTitle" data-i18n="pro_secret_modal_title_api_key">API açarı yaradıldı</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="proSecretModalDesc" class="small text-muted mb-3" data-i18n="pro_secret_modal_desc_api_key">Bu açar yalnız bir dəfə göstərilir. Təhlükəsiz yerdə saxlayın.</p>
+          <div class="input-group mb-2">
+            <input id="proSecretValue" type="password" class="form-control font-monospace" autocomplete="off" spellcheck="false" readonly>
+            <button id="proSecretToggleBtn" class="btn btn-outline-secondary" type="button" aria-label="Toggle visibility">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button id="proSecretCopyBtn" class="btn btn-primary" type="button" data-i18n="pro_secret_copy_btn">Kopyala</button>
+          </div>
+          <div id="proSecretCopyMsg" class="small mb-2"></div>
+          <p id="proSecretModalHint" class="small text-muted mb-0" data-i18n="pro_secret_modal_hint">Təhlükəsizlik səbəbi ilə bu dəyər sonradan yenidən göstərilmir.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+
+  <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+</body>
+
+</html>
+

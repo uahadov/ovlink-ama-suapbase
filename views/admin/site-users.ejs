@@ -1,0 +1,146 @@
+<%- include('partials/layout-top', {
+  title: 'Admin · Users',
+  heading: 'Users',
+  subtitle: 'Application user accounts',
+  active: 'site-users',
+  admin,
+  csrfToken,
+  topRightHtml: null,
+}) %>
+
+<div class="card">
+  <form class="row" method="GET" action="/admin/site-users">
+    <div class="field field--grow">
+      <label for="q">Search (email)</label>
+      <input class="input" id="q" name="q" value="<%= q || '' %>" placeholder="user@example.com" />
+    </div>
+
+    <div class="field">
+      <label for="status">Status</label>
+      <select class="input" id="status" name="status">
+        <option value="" <%= !status ? 'selected' : '' %>>All</option>
+        <option value="active" <%= status === 'active' ? 'selected' : '' %>>Active</option>
+        <option value="banned" <%= status === 'banned' ? 'selected' : '' %>>Banned</option>
+        <option value="unverified" <%= status === 'unverified' ? 'selected' : '' %>>Unverified</option>
+        <option value="pro" <%= status === 'pro' ? 'selected' : '' %>>Pro Active</option>
+        <option value="free" <%= status === 'free' ? 'selected' : '' %>>Free/Inactive Pro</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="sort">Sort</label>
+      <select class="input" id="sort" name="sort">
+        <option value="recent" <%= (sort === 'recent' || !sort) ? 'selected' : '' %>>Recent</option>
+        <option value="links" <%= sort === 'links' ? 'selected' : '' %>>Most links</option>
+        <option value="reports" <%= sort === 'reports' ? 'selected' : '' %>>Most reports</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>&nbsp;</label>
+      <button class="btn" type="submit">Filter</button>
+    </div>
+  </form>
+</div>
+
+<div class="spacer"></div>
+
+<div class="card">
+  <% if (!rows || rows.length === 0) { %>
+    <div class="alert">No users found.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Verified</th>
+            <th>Plan</th>
+            <th>Links</th>
+            <th>Open Reports</th>
+            <th>Dangerous</th>
+            <th>Last Link</th>
+            <th>Last Login</th>
+            <th>Ban</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach((u) => { %>
+            <tr>
+              <td>
+                <a href="/admin/site-users/<%= u.id %>"><%= u.email %></a>
+                <div class="badge u-ml-1">id: <%= u.id %></div>
+              </td>
+              <td>
+                <% if (u.email_verified == 1) { %>
+                  <span class="pill pill--ok">Verified</span>
+                <% } else { %>
+                  <span class="pill pill--warn">Unverified</span>
+                <% } %>
+              </td>
+              <td>
+                <% const planTier = (u.plan_tier || 'free').toLowerCase(); %>
+                <% const planStatus = (u.plan_status || 'active').toLowerCase(); %>
+                <% const expiresMs = u.pro_expires_at ? Date.parse(u.pro_expires_at) : NaN; %>
+                <% const proLive = planTier === 'pro' && planStatus === 'active' && !Number.isNaN(expiresMs) && expiresMs > Date.now(); %>
+                <% if (proLive) { %>
+                  <span class="pill pill--ok">Pro</span>
+                  <div class="badge u-mt-1">until: <%= u.pro_expires_at %></div>
+                <% } else if (planTier === 'pro' && planStatus === 'paused') { %>
+                  <span class="pill pill--warn">Pro Paused</span>
+                <% } else if (planTier === 'pro') { %>
+                  <span class="pill pill--warn">Pro Expired</span>
+                <% } else { %>
+                  <span class="pill">Free</span>
+                <% } %>
+              </td>
+              <td><span class="pill"><%= u.link_count || 0 %></span></td>
+              <td><span class="pill pill--warn"><%= u.open_reports || 0 %></span></td>
+              <td>
+                <% if ((u.dangerous_links || 0) > 0) { %>
+                  <span class="pill pill--warn"><%= u.dangerous_links %></span>
+                <% } else { %>
+                  <span class="badge">0</span>
+                <% } %>
+              </td>
+              <td><%= u.last_link_at ? new Date(u.last_link_at).toLocaleString() : '-' %></td>
+              <td><%= u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '-' %></td>
+              <td>
+                <% if (u.ban_active == 1) { %>
+                  <span class="pill pill--danger">Banned</span>
+                  <% if (u.ban_until) { %>
+                    <div class="badge u-mt-1">until: <%= u.ban_until %></div>
+                  <% } %>
+                <% } else { %>
+                  <span class="pill pill--ok">OK</span>
+                <% } %>
+              </td>
+              <td>
+                <a class="btn btn--secondary" href="/admin/site-users/<%= u.id %>">Details</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spacer"></div>
+
+    <% const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize)); %>
+    <div class="row" aria-label="pagination">
+      <span class="badge">Total: <%= total %></span>
+      <span class="badge">Page: <%= page %> / <%= totalPages %></span>
+      <% const qs = (k, v) => (v ? (encodeURIComponent(k) + '=' + encodeURIComponent(v) + '&') : ''); %>
+      <% const base = '/admin/site-users?' + qs('q', q) + qs('status', status) + qs('sort', sort); %>
+      <% if (page > 1) { %>
+        <a class="btn btn--ghost" href="<%= base %>page=<%= page - 1 %>">Previous</a>
+      <% } %>
+      <% if (page < totalPages) { %>
+        <a class="btn btn--ghost" href="<%= base %>page=<%= page + 1 %>">Next</a>
+      <% } %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/layout-bottom') %>

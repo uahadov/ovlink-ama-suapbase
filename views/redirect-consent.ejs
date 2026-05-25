@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title data-i18n="consent_gate_title">Redirect consent</title>
+  <link rel="icon" href="/logo.ico" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+</head>
+<body class="bg-light page-shell consent-page">
+  <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
+    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <div class="container">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
+      </div>
+    </div>
+  <% } %>
+
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
+    <div class="container">
+      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+        <img src="/logo.webp" alt="Ovlink Logo" width="40" height="40" class="me-2 logo-img">
+      </a>
+
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <div class="dropdown">
+          <button id="langToggleBtn" class="btn btn-outline-light btn-sm fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 20px;">
+            AZ
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><button class="dropdown-item lang-option" data-lang="az" type="button">AZ</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="tr" type="button">TR</button></li>
+            <li><button class="dropdown-item lang-option" data-lang="en" type="button">EN</button></li>
+          </ul>
+        </div>
+
+        <button id="themeToggleBtn" type="button" class="theme-toggle position-static ms-2" style="transform: none; border: 1px solid white;" aria-label="Temanı dəyiş">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-5 flex-grow-1 d-flex align-items-center justify-content-center">
+    <div class="col-12 col-md-10 col-lg-8">
+      <div class="card border-0 shadow-lg rounded-5 p-4 p-md-5 consent-shell">
+        <div class="text-center mb-4">
+          <div class="consent-icon-wrap mb-3">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+
+          <% if (consentView === 'declined') { %>
+            <h1 class="fw-bold mb-2" data-i18n="consent_gate_declined_title">Consent required</h1>
+            <p class="text-muted mb-0" data-i18n="consent_gate_declined_msg">You cannot continue because you did not accept the required policies.</p>
+          <% } else { %>
+            <h1 class="fw-bold mb-2" data-i18n="consent_gate_title">Redirect consent</h1>
+            <p class="text-muted mb-0" data-i18n="consent_gate_subtitle">Please review and choose before continuing.</p>
+          <% } %>
+
+          <p class="small text-muted mt-3 mb-0">
+            <span data-i18n="consent_gate_target">Target domain:</span>
+            <strong class="ms-1"><%= targetHost %></strong>
+          </p>
+        </div>
+
+        <div class="consent-legal mb-4">
+          <span data-i18n="consent_gate_legal_prefix">By continuing, you accept our</span>
+          <a href="/privacy" class="text-decoration-none" data-i18n="privacy_policy">Privacy Policy</a>,
+          <a href="/cookie-policy" class="text-decoration-none" data-i18n="cookie_policy">Cookie Policy</a>
+          <span data-i18n="consent_gate_legal_and">and</span>
+          <a href="/terms" class="text-decoration-none" data-i18n="terms_policy">Terms of Service</a>.
+        </div>
+
+        <% if (consentView === 'declined') { %>
+          <div class="alert alert-warning mb-4" data-i18n="consent_gate_declined_msg">You cannot continue because you did not accept the required policies.</div>
+          <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <a href="/consent/redirect/<%= encodeURIComponent(shortCode) %>?next=<%= encodeURIComponent(nextAction) %>" class="btn btn-primary rounded-pill px-4">
+              <i class="fa-solid fa-arrow-left me-2"></i>
+              <span data-i18n="consent_gate_go_back">Go Back</span>
+            </a>
+            <a href="/" class="btn btn-outline-secondary rounded-pill px-4">
+              <i class="fa-solid fa-house me-2"></i>
+              <span data-i18n="nav_home">Ana Səhifə</span>
+            </a>
+          </div>
+        <% } else { %>
+          <% if (tooEarly) { %>
+            <div class="alert alert-info mb-3" data-i18n="consent_gate_wait_error">Please wait for the countdown before continuing.</div>
+          <% } %>
+          <div class="consent-countdown text-center mb-3" id="countdownText" data-i18n="consent_gate_continue_in">Continue in {s}s</div>
+          <div class="consent-actions d-flex flex-wrap gap-2 justify-content-center">
+            <form method="POST" action="/consent/redirect/<%= encodeURIComponent(shortCode) %>">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+              <input type="hidden" name="next" value="<%= nextAction %>" />
+              <input type="hidden" name="ready_at" value="<%= countdownReadyAt %>" />
+              <input type="hidden" name="ready_sig" value="<%= countdownReadySig %>" />
+              <button type="submit" id="consentContinueBtn" name="decision" value="continue" class="btn btn-primary rounded-pill px-4" disabled>
+                <i class="fa-solid fa-check me-2"></i>
+                <span data-i18n="consent_gate_yes">YES (Continue)</span>
+              </button>
+            </form>
+
+            <form method="POST" action="/consent/redirect/<%= encodeURIComponent(shortCode) %>">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+              <input type="hidden" name="next" value="<%= nextAction %>" />
+              <button type="submit" name="decision" value="no" class="btn btn-outline-secondary rounded-pill px-4">
+                <i class="fa-solid fa-xmark me-2"></i>
+                <span data-i18n="consent_gate_no">NO (Decline)</span>
+              </button>
+            </form>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </main>
+
+  <%- include('partials/public-footer', { footerClass: 'site-footer mt-auto' }) %>
+
+  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      const root = document.documentElement;
+      const body = document.body;
+      const themeBtn = document.getElementById('themeToggleBtn');
+      const icon = themeBtn ? themeBtn.querySelector('i') : null;
+      const continueBtn = document.getElementById('consentContinueBtn');
+      const countdownText = document.getElementById('countdownText');
+
+      function syncThemeIcon() {
+        if (!icon) return;
+        const isDark = root.classList.contains('dark-mode') || body.classList.contains('dark-mode');
+        icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+      }
+
+      function tr(key, fallback) {
+        try {
+          return (translations[currentLang] && translations[currentLang][key]) || fallback;
+        } catch {
+          return fallback;
+        }
+      }
+
+      syncThemeIcon();
+      if (themeBtn) {
+        themeBtn.addEventListener('click', function () {
+          setTimeout(syncThemeIcon, 0);
+        });
+      }
+
+      if (continueBtn && countdownText) {
+        const countdownMsRaw = Number.parseInt('<%= countdownDurationMs %>', 10);
+        const countdownMs = Number.isFinite(countdownMsRaw) && countdownMsRaw > 0 ? countdownMsRaw : 1000;
+        const deadline = Date.now() + countdownMs;
+
+        const renderReady = () => {
+          continueBtn.disabled = false;
+          countdownText.textContent = tr('consent_gate_continue_ready', 'You can continue now.');
+        };
+
+        const renderCountdown = () => {
+          const remainingMs = Math.max(0, deadline - Date.now());
+          const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
+
+          if (remainingSec <= 0) {
+            renderReady();
+            return;
+          }
+
+          const template = tr('consent_gate_continue_in', 'Continue in {s}s');
+          countdownText.textContent = template.replace('{s}', String(remainingSec));
+        };
+
+        renderCountdown();
+
+        const timer = setInterval(() => {
+          const remainingMs = deadline - Date.now();
+          if (remainingMs <= 0) {
+            clearInterval(timer);
+            renderReady();
+            return;
+          }
+          renderCountdown();
+        }, 250);
+      }
+    })();
+  </script>
+</body>
+</html>
+

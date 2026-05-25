@@ -1,0 +1,115 @@
+<%- include('partials/layout-top', {
+  title: 'Admin · Links',
+  heading: 'Links',
+  subtitle: 'All short links',
+  active: 'links',
+  admin,
+  csrfToken,
+  topRightHtml: null,
+}) %>
+
+<div class="card">
+  <form class="row" method="GET" action="/admin/links">
+    <div class="field field--grow">
+      <label for="q">Search (short / URL / user)</label>
+      <input class="input" id="q" name="q" value="<%= q || '' %>" placeholder="abc123 or https://..." />
+    </div>
+
+    <div class="field">
+      <label for="status">Filter</label>
+      <select class="input" id="status" name="status">
+        <option value="" <%= !status ? 'selected' : '' %>>All</option>
+        <option value="reported" <%= status === 'reported' ? 'selected' : '' %>>Reported</option>
+        <option value="dangerous" <%= status === 'dangerous' ? 'selected' : '' %>>Dangerous</option>
+        <option value="disabled" <%= status === 'disabled' ? 'selected' : '' %>>Disabled</option>
+        <option value="password" <%= status === 'password' ? 'selected' : '' %>>Password protected</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="sort">Sort</label>
+      <select class="input" id="sort" name="sort">
+        <option value="" <%= !sort ? 'selected' : '' %>>Newest</option>
+        <option value="clicks" <%= sort === 'clicks' ? 'selected' : '' %>>Clicks</option>
+        <option value="reports" <%= sort === 'reports' ? 'selected' : '' %>>Reports</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>&nbsp;</label>
+      <button class="btn" type="submit">Apply</button>
+    </div>
+  </form>
+</div>
+
+<div class="spacer"></div>
+
+<div class="card">
+  <% if (!rows || rows.length === 0) { %>
+    <div class="alert">No results found.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Short</th>
+            <th>Destination</th>
+            <th>User</th>
+            <th>Created</th>
+            <th>Clicks</th>
+            <th>Reports</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach((r) => { %>
+            <tr>
+              <td><span class="kbd"><%= r.short %></span></td>
+              <td><div class="cell-url"><%= r.original %></div></td>
+              <td><%= r.owner_email || '-' %></td>
+              <td><%= r.created_at ? new Date(r.created_at).toLocaleString() : '-' %></td>
+              <td><span class="pill"><%= r.clicks_count || 0 %></span></td>
+              <td><span class="pill pill--warn"><%= r.reports || 0 %></span></td>
+              <td>
+                <% if (r.disabled) { %>
+                  <span class="pill pill--danger">Disabled</span>
+                <% } else if (r.dangerous) { %>
+                  <span class="pill pill--warn">Dangerous</span>
+                <% } else { %>
+                  <span class="pill pill--ok">Active</span>
+                <% } %>
+                <% if (r.has_password) { %>
+                  <span class="pill">Password</span>
+                <% } %>
+              </td>
+              <td><a class="btn btn--secondary" href="/admin/links/<%= encodeURIComponent(r.short) %>">Details</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spacer"></div>
+
+    <% const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize)); %>
+    <% const qParams = [
+      q ? ('q=' + encodeURIComponent(q)) : null,
+      status ? ('status=' + encodeURIComponent(status)) : null,
+      sort ? ('sort=' + encodeURIComponent(sort)) : null,
+    ].filter(Boolean).join('&'); %>
+
+    <div class="row" aria-label="pagination">
+      <span class="badge">Total: <%= total %></span>
+      <span class="badge">Page: <%= page %> / <%= totalPages %></span>
+      <% if (page > 1) { %>
+        <a class="btn btn--ghost" href="/admin/links?<%= qParams ? (qParams + '&') : '' %>page=<%= page - 1 %>">Previous</a>
+      <% } %>
+      <% if (page < totalPages) { %>
+        <a class="btn btn--ghost" href="/admin/links?<%= qParams ? (qParams + '&') : '' %>page=<%= page + 1 %>">Next</a>
+      <% } %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/layout-bottom') %>

@@ -1,0 +1,13 @@
+<%- include('partials/layout-top', {
+  title: 'Admin · Forbidden',
+  heading: 'Forbidden',
+  subtitle: 'You do not have permission to access this page.',
+  active: 'home',
+  admin,
+  csrfToken,
+  topRightHtml: null,
+}) %>
+
+<div class="alert alert--error">403 · Access denied</div>
+
+<%- include('partials/layout-bottom') %>

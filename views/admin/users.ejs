@@ -1,0 +1,77 @@
+<%- include('partials/layout-top', {
+  title: 'Admin · Users',
+  heading: 'Admin Users',
+  subtitle: 'Admin and moderator accounts',
+  active: 'users',
+  admin,
+  csrfToken,
+  topRightHtml: null,
+}) %>
+
+<% if (typeof error === 'string' && error) { %>
+  <div class="alert alert--error"><%= error %></div>
+  <div class="spacer"></div>
+<% } %>
+
+<div class="grid">
+  <div class="card">
+    <h2>Create User</h2>
+    <div class="spacer"></div>
+    <form class="form" method="POST" action="/admin/users/create">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input class="input" id="email" name="email" type="email" required />
+      </div>
+
+      <div class="field">
+        <label for="password">Password (min 10)</label>
+        <input class="input" id="password" name="password" type="password" required />
+      </div>
+
+      <div class="field">
+        <label for="role">Role</label>
+        <select id="role" name="role">
+          <option value="admin">admin</option>
+          <option value="moderator">moderator</option>
+        </select>
+      </div>
+
+      <button class="btn" type="submit">Create</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Existing Users</h2>
+    <div class="spacer"></div>
+    <% if (!rows || rows.length === 0) { %>
+      <div class="alert">No admin users found.</div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Created</th>
+              <th>Last Login</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% rows.forEach((u) => { %>
+              <tr>
+                <td><%= u.email %></td>
+                <td><span class="badge"><%= u.role %></span></td>
+                <td><%= u.created_at ? new Date(u.created_at).toLocaleString() : '-' %></td>
+                <td><%= u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '-' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('partials/layout-bottom') %>

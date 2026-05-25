@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title data-i18n="maintenance_title">Texniki xidmət</title>
+  <link rel="icon" href="/logo.ico" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+</head>
+
+<body class="bg-light d-flex flex-column min-vh-100 maintenance-page">
+  <div class="container py-3">
+    <div class="maintenance-controls">
+      <div class="dropdown">
+        <button id="langToggleBtn" class="auth-lang maintenance-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          AZ
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><button class="dropdown-item lang-option" data-lang="az" type="button">AZ</button></li>
+          <li><button class="dropdown-item lang-option" data-lang="tr" type="button">TR</button></li>
+          <li><button class="dropdown-item lang-option" data-lang="en" type="button">EN</button></li>
+        </ul>
+      </div>
+      <button id="themeToggleBtn" type="button" class="theme-toggle maintenance-btn" aria-label="Tema">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+    </div>
+  </div>
+
+  <main class="flex-grow-1 d-flex align-items-center justify-content-center py-5">
+    <div class="container text-center">
+      <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+          <div class="card border-0 shadow-lg p-5 rounded-5 maintenance-card">
+            <div class="mb-4">
+              <i class="fa-solid fa-screwdriver-wrench fa-4x text-warning mb-3"></i>
+              <h2 class="fw-bold" data-i18n="maintenance_title">Texniki xidmət</h2>
+              <p class="text-muted mb-0" data-i18n="maintenance_msg">Sayt müvəqqəti olaraq yenilənir. Tezliklə geri qayıdacağıq.</p>
+            </div>
+
+            <div class="alert alert-info text-start mb-0">
+              <strong data-i18n="maintenance_info">Məlumat</strong>:
+              <span id="maintenanceMessage" data-az="<%= maintenanceMessageAz || '' %>" data-tr="<%= maintenanceMessageTr || '' %>" data-en="<%= maintenanceMessageEn || '' %>"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <%- include('partials/public-footer', { footerClass: 'site-footer mt-auto' }) %>
+
+  <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+  <script src="/lang.js?v=<%= assetVersion %>"></script>
+  <script src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    window.addEventListener('DOMContentLoaded', () => {
+      if (typeof applyLanguage === 'function') {
+        applyLanguage();
+      }
+      const msgEl = document.getElementById('maintenanceMessage');
+      if (msgEl) {
+        const az = msgEl.getAttribute('data-az') || '';
+        const tr = msgEl.getAttribute('data-tr') || '';
+        const en = msgEl.getAttribute('data-en') || '';
+        const lang = (typeof currentLang === 'string') ? currentLang : 'az';
+        const text = (lang === 'tr' ? (tr || az || en) : (lang === 'en' ? (en || az || tr) : (az || tr || en)));
+        const fallback = (lang === 'tr' ? 'Bakım çalışması devam ediyor.' : (lang === 'en' ? 'Maintenance is in progress.' : 'Texniki xidmət davam edir.'));
+        msgEl.textContent = text || fallback;
+      }
+    });
+  </script>
+</body>
+
+</html>
+
+
+

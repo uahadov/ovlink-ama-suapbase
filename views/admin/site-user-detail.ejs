@@ -1,0 +1,375 @@
+<%- include('partials/layout-top', {
+  title: 'Admin · User',
+  heading: (user && user.email) ? user.email : 'User',
+  subtitle: 'Account details and moderation actions',
+  active: 'site-users',
+  admin,
+  csrfToken,
+  topRightHtml: '<a class="btn btn--ghost" href="/admin/site-users">Back</a>',
+}) %>
+
+<div class="grid">
+  <div class="card">
+    <div class="row row--spread">
+      <div>
+        <div class="badge">User ID: <%= user.id %></div>
+        <div class="spacer"></div>
+        <% if (user.email_verified == 1) { %>
+          <span class="pill pill--ok">Verified</span>
+        <% } else { %>
+          <span class="pill pill--warn">Unverified</span>
+        <% } %>
+        <% if (banActive) { %>
+          <span class="pill pill--danger pill--ml">Banned</span>
+        <% } %>
+        <% const planTier = (user.plan_tier || 'free').toLowerCase(); %>
+        <% const planStatus = (user.plan_status || 'active').toLowerCase(); %>
+        <% const expiresMs = user.pro_expires_at ? Date.parse(user.pro_expires_at) : NaN; %>
+        <% const proExpired = planTier === 'pro' && (Number.isNaN(expiresMs) || expiresMs <= Date.now()); %>
+        <% if (planActive) { %>
+          <span class="pill pill--ok pill--ml">Pro Active</span>
+        <% } else if (planTier === 'pro' && planStatus === 'paused') { %>
+          <span class="pill pill--warn pill--ml">Pro Paused</span>
+        <% } else if (proExpired) { %>
+          <span class="pill pill--warn pill--ml">Pro Expired</span>
+        <% } else { %>
+          <span class="pill pill--ml">Free</span>
+        <% } %>
+      </div>
+      <div class="badge">Created: <%= user.created_at ? new Date(user.created_at).toLocaleString() : '-' %></div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="grid">
+      <div class="card card--muted">
+        <div class="badge">Links</div>
+        <div class="metric"><%= summary.link_count || 0 %></div>
+      </div>
+      <div class="card card--muted">
+        <div class="badge">Total Clicks</div>
+        <div class="metric"><%= summary.total_clicks || 0 %></div>
+      </div>
+      <div class="card card--warn">
+        <div class="badge">Open Reports</div>
+        <div class="metric"><%= summary.open_reports || 0 %></div>
+      </div>
+      <div class="card card--warn">
+        <div class="badge">Dangerous Links</div>
+        <div class="metric"><%= summary.dangerous_links || 0 %></div>
+      </div>
+      <div class="card card--muted">
+        <div class="badge">API Keys (active/total)</div>
+        <div class="metric"><%= apiKeyStats && Number.isFinite(apiKeyStats.active) ? apiKeyStats.active : 0 %> / <%= apiKeyStats && Number.isFinite(apiKeyStats.total) ? apiKeyStats.total : 0 %></div>
+      </div>
+      <div class="card card--muted">
+        <div class="badge">Webhooks (active/total)</div>
+        <div class="metric"><%= webhookStats && Number.isFinite(webhookStats.active) ? webhookStats.active : 0 %> / <%= webhookStats && Number.isFinite(webhookStats.total) ? webhookStats.total : 0 %></div>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="row">
+      <span class="badge">Last Login: <%= user.last_login_at ? new Date(user.last_login_at).toLocaleString() : '-' %></span>
+      <span class="badge">Plan: <%= (user.plan_tier || 'free') %> · <%= (user.plan_status || 'active') %></span>
+      <% if (user.pro_expires_at) { %>
+        <span class="badge">Pro Expires: <%= user.pro_expires_at %></span>
+      <% } %>
+      <% if (banActive && user.ban_until) { %>
+        <span class="badge">Ban Until: <%= user.ban_until %></span>
+      <% } %>
+    </div>
+
+    <% if (banActive && user.ban_reason) { %>
+      <div class="spacer"></div>
+      <div class="alert alert--warn"><strong>Ban Reason:</strong> <%= user.ban_reason %></div>
+    <% } %>
+  </div>
+
+  <div class="card">
+    <h3 class="section-title">Moderation</h3>
+
+    <% if (admin && admin.role === 'admin') { %>
+      <% if (banActive) { %>
+        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/unban">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <button class="btn" type="submit" data-confirm="Unban this user now?">Unban</button>
+        </form>
+      <% } else { %>
+        <div class="grid">
+          <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/ban">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <input type="hidden" name="mode" value="temp" />
+
+            <div class="field">
+              <label for="days">Temporary ban (days)</label>
+              <input class="input" id="days" name="days" type="number" min="1" max="365" value="7" />
+            </div>
+
+            <div class="field">
+              <label for="reasonT">Reason</label>
+              <textarea class="input" id="reasonT" name="reason" rows="3" placeholder="spam / abuse"></textarea>
+            </div>
+
+            <button class="btn" type="submit" data-confirm="Apply temporary ban?">Temp Ban</button>
+          </form>
+
+          <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/ban">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <input type="hidden" name="mode" value="perm" />
+
+            <div class="field">
+              <label for="reasonP">Permanent ban reason</label>
+              <textarea class="input" id="reasonP" name="reason" rows="3" placeholder="severe abuse"></textarea>
+            </div>
+
+            <button class="btn btn--danger" type="submit" data-confirm="Apply permanent ban?">Permanent Ban</button>
+          </form>
+        </div>
+      <% } %>
+    <% } else { %>
+      <div class="alert">Only admins can apply ban/unban actions.</div>
+    <% } %>
+  </div>
+
+  <div class="card">
+    <h3 class="section-title">Subscription & Pro Controls</h3>
+
+    <% if (admin && admin.role === 'admin') { %>
+      <div class="alert">
+        Current: <strong><%= user.plan_tier || 'free' %></strong> · <strong><%= user.plan_status || 'active' %></strong>
+        <% if (user.pro_expires_at) { %>
+          · Expires: <strong><%= user.pro_expires_at %></strong>
+        <% } %>
+      </div>
+
+      <div class="grid">
+        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/subscription">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <input type="hidden" name="action" value="activate" />
+
+          <div class="field">
+            <label for="activateDurationValue">Activate Pro duration</label>
+            <input class="input" id="activateDurationValue" name="duration_value" type="number" min="1" max="525600" value="30" />
+          </div>
+          <div class="field">
+            <label for="activateDurationUnit">Duration unit</label>
+            <select class="input" id="activateDurationUnit" name="duration_unit">
+              <option value="minute">Minute</option>
+              <option value="hour">Hour</option>
+              <option value="day" selected>Day</option>
+              <option value="month">Month</option>
+              <option value="year">Year</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="activateReason">Reason (optional)</label>
+            <textarea class="input" id="activateReason" name="reason" rows="2" placeholder="manual upgrade"></textarea>
+          </div>
+          <button class="btn btn--secondary" type="submit" data-confirm="Activate Pro for this user?">Activate Pro</button>
+        </form>
+
+        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/subscription">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <input type="hidden" name="action" value="extend" />
+
+          <div class="field">
+            <label for="extendDurationValue">Extend Pro by</label>
+            <input class="input" id="extendDurationValue" name="duration_value" type="number" min="1" max="525600" value="30" />
+          </div>
+          <div class="field">
+            <label for="extendDurationUnit">Duration unit</label>
+            <select class="input" id="extendDurationUnit" name="duration_unit">
+              <option value="minute">Minute</option>
+              <option value="hour">Hour</option>
+              <option value="day" selected>Day</option>
+              <option value="month">Month</option>
+              <option value="year">Year</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="extendReason">Reason (optional)</label>
+            <textarea class="input" id="extendReason" name="reason" rows="2" placeholder="renewal"></textarea>
+          </div>
+          <button class="btn" type="submit" data-confirm="Extend this user's Pro access?">Extend Pro</button>
+        </form>
+      </div>
+
+      <div class="spacer"></div>
+
+      <div class="grid">
+        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/subscription">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <input type="hidden" name="action" value="pause" />
+          <div class="field">
+            <label for="pauseReason">Pause reason (optional)</label>
+            <textarea class="input" id="pauseReason" name="reason" rows="2" placeholder="temporary hold"></textarea>
+          </div>
+          <button class="btn btn--ghost" type="submit" data-confirm="Pause this Pro subscription?">Pause Pro</button>
+        </form>
+
+        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/subscription">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <input type="hidden" name="action" value="resume" />
+          <div class="field">
+            <label for="resumeReason">Resume reason (optional)</label>
+            <textarea class="input" id="resumeReason" name="reason" rows="2" placeholder="resume access"></textarea>
+          </div>
+          <button class="btn btn--secondary" type="submit" data-confirm="Resume this Pro subscription?">Resume Pro</button>
+        </form>
+
+        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/subscription">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <input type="hidden" name="action" value="downgrade" />
+          <div class="field">
+            <label for="downgradeReason">Downgrade reason (optional)</label>
+            <textarea class="input" id="downgradeReason" name="reason" rows="2" placeholder="policy or request"></textarea>
+          </div>
+          <button class="btn btn--danger" type="submit" data-confirm="Downgrade user to Free and revoke Pro access now?">Downgrade to Free</button>
+        </form>
+      </div>
+
+      <div class="spacer"></div>
+
+      <div class="row">
+        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/api-keys/revoke-all">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <button class="btn btn--ghost" type="submit" data-confirm="Revoke all active API keys for this user?">Revoke All API Keys</button>
+        </form>
+
+        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/webhooks/deactivate-all">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <button class="btn btn--ghost" type="submit" data-confirm="Disable all active webhooks for this user?">Disable All Webhooks</button>
+        </form>
+      </div>
+    <% } else { %>
+      <div class="alert">Only admins can modify subscriptions and Pro controls.</div>
+    <% } %>
+  </div>
+</div>
+
+<div class="spacer"></div>
+
+<div class="card">
+  <h3 class="section-title">User Links</h3>
+
+  <% if (!links || links.length === 0) { %>
+    <div class="alert">This user has no links.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Short</th>
+            <th>Target</th>
+            <th>Clicks</th>
+            <th>Reports</th>
+            <th>Status</th>
+            <th>Password</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% links.forEach((l) => { %>
+            <tr>
+              <td><span class="kbd"><%= l.short %></span></td>
+              <td><div class="cell-url"><%= l.original %></div></td>
+              <td><span class="pill"><%= l.clicks_count || 0 %></span></td>
+              <td><span class="pill pill--warn"><%= l.reports || 0 %></span></td>
+              <td>
+                <% if (l.disabled) { %>
+                  <span class="pill pill--danger">Disabled</span>
+                <% } else if (l.dangerous) { %>
+                  <span class="pill pill--warn">Dangerous</span>
+                <% } else { %>
+                  <span class="pill pill--ok">Active</span>
+                <% } %>
+              </td>
+              <td class="u-nowrap">
+                <% if (l.has_password) { %>
+                  <% const sid = 'linkpass-' + l.id; %>
+                  <span id="<%= sid %>" class="kbd" data-secret-value="<%= l.link_password %>" data-secret-revealed="0">••••••</span>
+                  <button class="btn btn--ghost" data-secret-toggle="<%= sid %>">Show</button>
+                <% } else { %>
+                  <span class="badge">-</span>
+                <% } %>
+              </td>
+              <td>
+                <a class="btn btn--secondary" href="/admin/links/<%= encodeURIComponent(l.short) %>">Details</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spacer"></div>
+
+    <% const totalPages = Math.max(1, Math.ceil((totalLinks || 0) / pageSize)); %>
+    <div class="row" aria-label="pagination">
+      <span class="badge">Total: <%= totalLinks %></span>
+      <span class="badge">Page: <%= page %> / <%= totalPages %></span>
+      <% if (page > 1) { %>
+        <a class="btn btn--ghost" href="/admin/site-users/<%= user.id %>?page=<%= page - 1 %>">Previous</a>
+      <% } %>
+      <% if (page < totalPages) { %>
+        <a class="btn btn--ghost" href="/admin/site-users/<%= user.id %>?page=<%= page + 1 %>">Next</a>
+      <% } %>
+    </div>
+  <% } %>
+</div>
+
+<div class="spacer"></div>
+
+<div class="card">
+  <h3 class="section-title">Recent Webhook Deliveries</h3>
+  <% if (!recentDeliveries || recentDeliveries.length === 0) { %>
+    <div class="alert">No webhook deliveries for this user yet.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Webhook</th>
+            <th>Event</th>
+            <th>Status</th>
+            <th>Attempt</th>
+            <th>HTTP</th>
+            <th>Created</th>
+            <th>Next Retry</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% recentDeliveries.forEach((d) => { %>
+            <tr>
+              <td><span class="kbd"><%= d.id %></span></td>
+              <td><%= d.webhook_id || '-' %></td>
+              <td><%= d.event_type || '-' %></td>
+              <td>
+                <% if (d.status === 'delivered') { %>
+                  <span class="pill pill--ok">Delivered</span>
+                <% } else if (d.status === 'failed') { %>
+                  <span class="pill pill--danger">Failed</span>
+                <% } else if (d.status === 'retry_scheduled') { %>
+                  <span class="pill pill--warn">Retry</span>
+                <% } else if (d.status === 'cancelled') { %>
+                  <span class="pill">Cancelled</span>
+                <% } else { %>
+                  <span class="pill"><%= d.status || 'queued' %></span>
+                <% } %>
+              </td>
+              <td><%= d.attempt || 0 %></td>
+              <td><%= d.http_status || '-' %></td>
+              <td><%= d.created_at ? new Date(d.created_at).toLocaleString() : '-' %></td>
+              <td><%= d.next_retry_at ? new Date(d.next_retry_at).toLocaleString() : '-' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/layout-bottom') %>

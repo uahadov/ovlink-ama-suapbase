@@ -1,0 +1,14 @@
+<% if (allowAds && (typeof enableSocialAds === 'undefined' || enableSocialAds)) { %>
+  <section class="adsterra-slot adsterra-slot-social-top" data-ad-slot="social" aria-label="Sponsored links">
+    <div class="adsterra-social-shell policy-card app-card shadow-sm border-0 p-2 text-center">
+      <iframe
+        class="adsterra-frame adsterra-frame-social"
+        data-ad-slot="social"
+        src="/ads/social-frame"
+        title="Sponsored links"
+        loading="lazy"
+        referrerpolicy="no-referrer"
+        sandbox="<%= adFrameSandbox || 'allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation' %>"></iframe>
+    </div>
+  </section>
+<% } %>

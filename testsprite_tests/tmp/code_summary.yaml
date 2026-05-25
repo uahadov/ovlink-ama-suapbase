@@ -1,0 +1,310 @@
+version: "2"
+type: backend
+tech_stack:
+  - Node.js
+  - Express
+  - SQLite3
+  - EJS
+  - bcrypt
+  - express-session
+  - express-rate-limit
+  - helmet
+  - lusca (CSRF)
+  - openid-client (Google OIDC)
+  - resend (email)
+  - qrcode
+  - shortid
+  - geoip-lite
+  - compression
+  - xlsx
+routes:
+  - path: /
+    file: server.js
+    auth_required: false
+    description: Homepage - URL shortener landing page
+  - path: /login
+    file: views/login.ejs
+    auth_required: false
+    description: User login page
+  - path: /register
+    file: views/register.ejs
+    auth_required: false
+    description: User registration page
+  - path: /dashboard
+    file: views/dashboard.ejs
+    auth_required: true
+    description: User dashboard showing shortened URLs
+  - path: /stats
+    file: views/stats.ejs
+    auth_required: true
+    description: URL click statistics page
+  - path: /account
+    file: views/account.ejs
+    auth_required: true
+    description: User account settings page
+  - path: /notifications
+    file: views/notifications.ejs
+    auth_required: true
+    description: User notifications page
+  - path: /forgot-password
+    file: views/forgot-password.ejs
+    auth_required: false
+    description: Password reset request page
+  - path: /reset-password
+    file: views/reset-password.ejs
+    auth_required: false
+    description: Password reset form page
+  - path: /about
+    file: views/about.ejs
+    auth_required: false
+    description: About page
+  - path: /contact
+    file: views/contact.ejs
+    auth_required: false
+    description: Contact page
+  - path: /privacy
+    file: views/privacy.ejs
+    auth_required: false
+    description: Privacy policy page
+  - path: /terms
+    file: views/terms.ejs
+    auth_required: false
+    description: Terms of service page
+  - path: /cookie-policy
+    file: views/cookie-policy.ejs
+    auth_required: false
+    description: Cookie policy page
+  - path: /faq
+    file: views/faq.ejs
+    auth_required: false
+    description: FAQ page
+  - path: /help
+    file: views/help.ejs
+    auth_required: false
+    description: Help page
+  - path: /docs
+    file: views/docs.ejs
+    auth_required: false
+    description: API documentation page
+  - path: /how-it-works
+    file: views/how-it-works.ejs
+    auth_required: false
+    description: How it works page
+  - path: /why-ovlink
+    file: views/why-ovlink.ejs
+    auth_required: false
+    description: Why OvLink page
+  - path: /abuse-safety
+    file: views/abuse-safety.ejs
+    auth_required: false
+    description: Abuse and safety policy page
+  - path: /updates
+    file: views/updates.ejs
+    auth_required: false
+    description: Updates/changelog page
+  - path: /admin
+    file: routes/admin.js
+    auth_required: true
+    description: Admin panel root
+  - path: /admin/login
+    file: routes/admin.js
+    auth_required: false
+    description: Admin login page
+  - path: /api/auth/register
+    file: routes/auth.js
+    auth_required: false
+    description: User registration API
+  - path: /api/auth/verify-email
+    file: routes/auth.js
+    auth_required: false
+    description: Email verification API
+  - path: /api/auth/login
+    file: routes/auth.js
+    auth_required: false
+    description: User login API
+  - path: /api/auth/logout
+    file: routes/auth.js
+    auth_required: true
+    description: User logout API
+  - path: /:shortCode
+    file: server.js
+    auth_required: false
+    description: Short URL redirect handler
+features:
+  - name: User Registration
+    description: Register new users with email and password, sends verification code via email
+    files:
+      - routes/auth.js
+      - views/register.ejs
+    entry_route: /register
+    user_interactions:
+      - Fill email input field
+      - Fill password input field
+      - Click Register button
+      - Receive verification code email
+    api_calls:
+      - method: POST
+        endpoint: /api/auth/register
+    auth_required: false
+  - name: Email Verification
+    description: Verify user email address with a 6-digit code
+    files:
+      - routes/auth.js
+    entry_route: /register
+    user_interactions:
+      - Enter verification code
+      - Click verify button
+    api_calls:
+      - method: POST
+        endpoint: /api/auth/verify-email
+    auth_required: false
+  - name: User Login
+    description: Login with email and password credentials
+    files:
+      - routes/auth.js
+      - views/login.ejs
+    entry_route: /login
+    user_interactions:
+      - Fill email input field
+      - Fill password input field
+      - Click Login button
+    api_calls:
+      - method: POST
+        endpoint: /api/auth/login
+    auth_required: false
+  - name: Google OAuth Login
+    description: Sign in using Google OpenID Connect
+    files:
+      - server.js
+    entry_route: /auth/google
+    user_interactions:
+      - Click Google login button
+      - Authenticate with Google
+    api_calls:
+      - method: GET
+        endpoint: /auth/google
+      - method: GET
+        endpoint: /auth/google/callback
+    auth_required: false
+  - name: URL Shortening
+    description: Create shortened URLs with optional custom short codes, expiration, password protection, and tags
+    files:
+      - server.js
+      - views/index.ejs
+      - views/dashboard.ejs
+    entry_route: /
+    user_interactions:
+      - Paste long URL into input
+      - Optionally set custom short code
+      - Optionally set expiration date
+      - Optionally set password protection
+      - Click shorten button
+      - Copy shortened URL
+    api_calls:
+      - method: POST
+        endpoint: /api/shorten
+    auth_required: false
+  - name: URL Click Analytics
+    description: View click statistics for shortened URLs including browser, OS, country, and time data
+    files:
+      - server.js
+      - views/stats.ejs
+      - views/stats-page.ejs
+    entry_route: /stats
+    user_interactions:
+      - View click count charts
+      - View browser and OS breakdown
+      - View country breakdown
+      - Filter by date range
+    api_calls:
+      - method: GET
+        endpoint: /api/stats/:short
+    auth_required: true
+  - name: Admin Panel
+    description: Admin dashboard with user management, link management, reports, domain blocking, site settings, and 2FA
+    files:
+      - routes/admin.js
+      - views/admin/
+    entry_route: /admin
+    user_interactions:
+      - Login with admin credentials
+      - Manage users (ban/unban)
+      - Manage links (enable/disable/delete/mark-safe)
+      - View reports
+      - Block/unblock domains
+      - Update site settings
+      - Setup 2FA
+    api_calls:
+      - method: POST
+        endpoint: /admin/login
+      - method: GET
+        endpoint: /admin/links
+      - method: GET
+        endpoint: /admin/site-users
+      - method: GET
+        endpoint: /admin/reports
+      - method: GET
+        endpoint: /admin/domains
+      - method: GET
+        endpoint: /admin/settings
+    auth_required: true
+  - name: Custom Domains
+    description: Users can add custom domains for their short links with DNS verification
+    files:
+      - server.js
+    entry_route: /account
+    user_interactions:
+      - Add custom domain
+      - Verify DNS records
+      - Check verification status
+    api_calls:
+      - method: POST
+        endpoint: /api/custom-domains
+      - method: GET
+        endpoint: /api/custom-domains
+    auth_required: true
+  - name: Password Reset
+    description: Forgot password flow with email verification
+    files:
+      - server.js
+      - views/forgot-password.ejs
+      - views/reset-password.ejs
+    entry_route: /forgot-password
+    user_interactions:
+      - Enter email address
+      - Click send reset link
+      - Enter new password
+      - Confirm new password
+    api_calls:
+      - method: POST
+        endpoint: /api/forgot-password
+      - method: POST
+        endpoint: /api/reset-password
+    auth_required: false
+  - name: QR Code Generation
+    description: Generate QR codes for shortened URLs
+    files:
+      - server.js
+    entry_route: /dashboard
+    user_interactions:
+      - Click QR code button on a URL
+      - Download or view QR code
+    api_calls:
+      - method: GET
+        endpoint: /api/qr/:short
+    auth_required: false
+  - name: Redirect Consent
+    description: Cookie consent and redirect consent page for link clicks with essential/analytics modes
+    files:
+      - server.js
+      - views/redirect-consent.ejs
+      - views/proceed.ejs
+    entry_route: /:shortCode
+    user_interactions:
+      - Choose consent mode (essential or analytics)
+      - Click proceed
+    api_calls:
+      - method: POST
+        endpoint: /api/redirect-consent
+    auth_required: false
+known_limitations: []

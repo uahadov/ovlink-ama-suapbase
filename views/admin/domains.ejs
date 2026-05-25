@@ -1,0 +1,73 @@
+<%- include('partials/layout-top', {
+  title: 'Admin · Domains',
+  heading: 'Domains',
+  subtitle: 'Blocked domain list',
+  active: 'domains',
+  admin,
+  csrfToken,
+  topRightHtml: null,
+}) %>
+
+<% if (typeof error === 'string' && error) { %>
+  <div class="alert alert--error"><%= error %></div>
+  <div class="spacer"></div>
+<% } %>
+
+<div class="grid">
+  <div class="card">
+    <h2>Block Domain</h2>
+    <div class="spacer"></div>
+    <form class="form" method="POST" action="/admin/domains/block">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <div class="field">
+        <label for="domain">Domain</label>
+        <input class="input" id="domain" name="domain" placeholder="example.com" required />
+      </div>
+      <div class="field">
+        <label for="note">Note</label>
+        <input class="input" id="note" name="note" placeholder="(optional)" />
+      </div>
+      <button class="btn" type="submit">Add</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Blocked Domains</h2>
+    <div class="spacer"></div>
+    <% if (!rows || rows.length === 0) { %>
+      <div class="alert">Blocklist is empty.</div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Domain</th>
+              <th>Created</th>
+              <th>By</th>
+              <th>Note</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% rows.forEach((r) => { %>
+              <tr>
+                <td><span class="kbd"><%= r.domain %></span></td>
+                <td><%= r.created_at ? new Date(r.created_at).toLocaleString() : '-' %></td>
+                <td><%= r.created_by_email || '' %></td>
+                <td><%= r.note || '' %></td>
+                <td>
+                  <form method="POST" action="/admin/domains/<%= r.id %>/unblock">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                    <button class="btn btn--ghost" type="submit" data-confirm="This domain will be removed from blocklist. Continue?">Unblock</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('partials/layout-bottom') %>
