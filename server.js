@@ -2445,7 +2445,7 @@ function ensureApiUsageLogsSchema(force = false) {
       db.run(API_USAGE_LOGS_CREATE_TABLE_SQL, () => {});
       API_USAGE_LOGS_INDEX_SQL.forEach((sql) => db.run(sql, () => {}));
       db.get(
-        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'api_usage_logs' LIMIT 1",
+        "SELECT table_name AS name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'api_usage_logs' LIMIT 1",
         (err, row) => {
           const ready = !err && !!(row && row.name);
           apiUsageLogsSchemaReady = ready;
@@ -3440,7 +3440,10 @@ app.use((req, res, next) => {
   try {
     const token = req.csrfToken();
     if (!res.locals._csrf) res.locals._csrf = token;
-    return next();
+    req.session.save((err) => {
+      if (err) console.error('[inline csrf] session save error:', err);
+      next();
+    });
   } catch {
     const msg = 'Session refreshed. Please try again.';
     const hasMsg = typeof req.query?.msg === 'string' && req.query.msg.length > 0;
@@ -3470,8 +3473,17 @@ app.use((req, res, next) => {
 app.get('/api/csrf', (req, res) => {
   try {
     const token = typeof req.csrfToken === 'function' ? req.csrfToken() : '';
-    return res.json({ csrfToken: token || '' });
-  } catch {
+    if (!token) return res.json({ csrfToken: '' });
+    // saveUninitialized:false means guest sessions are not auto-saved.
+    // We must explicitly save here so the CSRF secret persists across requests.
+    req.session.save((err) => {
+      if (err) {
+        console.error('[csrf] session save error:', err);
+      }
+      return res.json({ csrfToken: token });
+    });
+  } catch (err) {
+    console.error('[csrf] token error:', err);
     return res.status(500).json({ csrfToken: '' });
   }
 });
