@@ -486,9 +486,9 @@ const forceSecureCookie = ['1', 'true', 'yes', 'on'].includes(
 );
 
 // If TRUST_PROXY_HOPS is set (regardless of NODE_ENV), trust the proxy.
-// Otherwise only trust in production when NODE_ENV is set.
-const useTrustProxy = Number.isInteger(trustProxyHops) && trustProxyHops > 0;
-app.set('trust proxy', useTrustProxy ? trustProxyHops : false);
+// Otherwise, trust the proxy in production by default (very common for Vercel/Render/Heroku/etc. deployments).
+const useTrustProxy = (Number.isInteger(trustProxyHops) && trustProxyHops > 0) || isProdRuntime;
+app.set('trust proxy', Number.isInteger(trustProxyHops) && trustProxyHops > 0 ? trustProxyHops : (isProdRuntime ? true : false));
 
 // Enforce HTTPS in production for all requests
 app.use((req, res, next) => {
@@ -3266,7 +3266,7 @@ const sessionCookieSecure = forceSecureCookie || (isProd ? true : 'auto');
 const sessionOptions = {
   secret: process.env.SESSION_SECRET,
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true,
   rolling: true,
   proxy: useTrustProxy,
   cookie: {
@@ -3281,106 +3281,18 @@ const sessionOptions = {
 sessionOptions.store = sessionStore;
 app.use(session(sessionOptions));
 
+// Dynamically override cookie secure flag to support local HTTP testing while keeping production secure
 app.use((req, res, next) => {
-  const reqPath = (req.path || '').toLowerCase();
-  const isStaticLike = /\.(css|js|png|jpg|jpeg|webp|svg|ico|woff2?|ttf|map|txt|xml|webmanifest)$/.test(reqPath);
-  const skipStaticPath = reqPath === '/robots.txt' || reqPath === '/sitemap.xml' || reqPath === '/favicon.ico';
-  if ((req.method === 'GET' || req.method === 'HEAD') && (isStaticLike || skipStaticPath)) return next();
-
-  if (!req.session || !req.session.userId) return next();
-
-  const sessionToken = getOrCreateUserSessionToken(req);
-  if (!sessionToken) return next();
-
-  db.get(
-    'SELECT id, is_revoked FROM user_sessions WHERE user_id = ? AND session_token = ? LIMIT 1',
-    [req.session.userId, sessionToken],
-    (err, row) => {
-      if (err) {
-        const msg = (err.message || '').toLowerCase();
-        if (msg.includes('no such table')) return next();
-        return next();
-      }
-
-      if (row && row.is_revoked == 1) {
-        const fail = () => {
-          const accept = (req.get('accept') || '').toLowerCase();
-          const wantsJson = req.path.startsWith('/api/') || (accept.includes('application/json') && !accept.includes('text/html'));
-          if (wantsJson) return res.status(401).json({ error: 'Session expired. Please sign in again.' });
-          return res.redirect('/login');
-        };
-        try {
-          return req.session.destroy(() => fail());
-        } catch {
-          return fail();
-        }
-      }
-
-      const now = Date.now();
-      const lastTouched = Number(req.session.userSessionTouchedAt || 0);
-      const shouldTouch = !lastTouched || (now - lastTouched) >= USER_SESSION_TOUCH_MS;
-
-      if (!row) {
-        return upsertUserSessionRecord(req, req.session.userId, { loginMethod: 'session_restore', sendAlert: false }, () => {
-          req.session.userSessionTouchedAt = now;
-          return next();
-        });
-      }
-
-      if (!shouldTouch) return next();
-
-      db.run('UPDATE user_sessions SET last_seen_at = ? WHERE id = ?', [new Date(now).toISOString(), row.id], () => {
-        req.session.userSessionTouchedAt = now;
-        return next();
-      });
+  if (req.session && req.session.cookie) {
+    const hostHeader = (req.get('host') || '').toLowerCase();
+    const isLocalhost = hostHeader.includes('localhost') || hostHeader.includes('127.0.0.1') || hostHeader.includes('[::1]');
+    if (isLocalhost) {
+      req.session.cookie.secure = false;
+    } else {
+      req.session.cookie.secure = forceSecureCookie || req.secure || isProd;
     }
-  );
-});
-
-const csrfImpl = {
-  create(req, secretKey) {
-    const session = req.session;
-    if (session === undefined) {
-      throw new Error('lusca requires req.session to be available in order to maintain state');
-    }
-
-    let secret = session[secretKey];
-    if (!secret) {
-      // Use URL-safe base64 to avoid + / = issues in form posts.
-      secret = crypto.randomBytes(16).toString('base64url');
-      session[secretKey] = secret;
-    }
-
-    const SALT_LEN = 10;
-    const salt = crypto.randomBytes(SALT_LEN).toString('base64url');
-
-    const hash = crypto.createHash('sha256').update(salt + secret).digest('base64url');
-    const token = salt + hash;
-
-    return {
-      secret,
-      token,
-      validate(req2, tokenCandidate) {
-        try {
-          if (typeof tokenCandidate !== 'string') return false;
-          const sess = req2.session;
-          if (!sess) return false;
-          const s = (sess[secretKey] || '').toString();
-          if (!s) return false;
-          const salt2 = tokenCandidate.slice(0, SALT_LEN);
-          const expected = salt2 + crypto.createHash('sha256').update(salt2 + s).digest('base64url');
-          return tsscmp(tokenCandidate, expected);
-        } catch {
-          return false;
-        }
-      }
-    };
   }
-};
-
-const csrfProtection = lusca.csrf({
-  header: 'x-csrf-token',
-  impl: csrfImpl
+  next();
 });
 
 function requiresInlineCsrfRoute(pathname) {
@@ -3401,27 +3313,40 @@ function hasApiKeyAuthHeader(req) {
   return /^Bearer\s+\S+/i.test(auth);
 }
 
+// CSRF implementation using HMAC-SHA256(SESSION_SECRET, sessionID)
+// Does NOT depend on session data persistence - only needs the session ID.
+const csrfImpl = {
+  create(req, secretKey) {
+    const sid = req.sessionID || '';
+    const secret = crypto.createHmac('sha256', process.env.SESSION_SECRET)
+      .update(sid)
+      .digest('base64url');
+    const token = secret;
+    return { secret, token, validate(req2, tokenCandidate) {
+      try {
+        if (typeof tokenCandidate !== 'string') return false;
+        const sid2 = req2.sessionID || '';
+        const expected = crypto.createHmac('sha256', process.env.SESSION_SECRET)
+          .update(sid2)
+          .digest('base64url');
+        return tsscmp(tokenCandidate, expected);
+      } catch { return false; }
+    }};
+  }
+};
+
+const csrfProtection = lusca.csrf({
+  header: 'x-csrf-token',
+  impl: csrfImpl
+});
+
 app.use((req, res, next) => {
   const isStaticLike = /\.(css|js|png|jpg|jpeg|webp|svg|ico|woff2?|ttf|map|txt|xml|webmanifest)$/i.test(req.path);
   const skipStaticPath = req.path === '/robots.txt' || req.path === '/sitemap.xml' || req.path === '/favicon.ico';
   if (req.method === 'GET' && (isStaticLike || skipStaticPath)) return next();
-  // Consent gate POST is protected by signed ready_at/ready_sig fields and should
-  // not hard-fail if a browser rotates/blocks session cookies unexpectedly.
   if (req.path.startsWith('/consent/redirect/')) return next();
   const hasApiKeyHeader = hasApiKeyAuthHeader(req);
-  // API key authenticated machine-to-machine endpoints do not rely on browser cookies.
-  // Keeping CSRF here can break CLI/server integrations without improving protection.
   if (hasApiKeyHeader) return next();
-
-  const isSafeMethod = req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS';
-  if (isSafeMethod) {
-    const accept = (req.get('accept') || '').toLowerCase();
-    const wantsHtml = accept.includes('text/html');
-    const needsTokenRoute = req.path === '/api/csrf';
-    const needsInlineRoute = requiresInlineCsrfRoute(req.path);
-    if (!wantsHtml && !needsTokenRoute && !needsInlineRoute) return next();
-  }
-
   return csrfProtection(req, res, next);
 });
 
