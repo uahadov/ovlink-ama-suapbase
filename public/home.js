@@ -205,6 +205,7 @@ async function postJsonWithCsrf(url, body) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Accept": "application/json",
         "x-csrf-token": getCsrfToken() || "",
       },
       credentials: "include",
@@ -670,13 +671,14 @@ document.addEventListener("click", async (e) => {
   
   const particlesContainer = document.getElementById('particlesContainer') || document.querySelector('.particles-container');
   if (particlesContainer && !document.querySelector('.particle')) {
-    const particleCount = window.innerWidth < 768 ? 15 : 30;
+    const particleCount = window.innerWidth < 768 ? 10 : 20;
     for (let i = 0; i < particleCount; i++) {
       const particle = document.createElement('div');
       particle.className = 'particle';
       particle.style.left = Math.random() * 100 + '%';
-      particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
-      particle.style.animationDelay = (Math.random() * 10) + 's';
+      particle.style.animationDuration = (Math.random() * 12 + 20) + 's';
+      particle.style.animationDelay = (Math.random() * 15) + 's';
+      particle.style.willChange = 'transform';
       particlesContainer.appendChild(particle);
     }
   }
@@ -740,5 +742,35 @@ document.addEventListener("click", async (e) => {
       this.classList.add('copy-success');
       setTimeout(() => this.classList.remove('copy-success'), 400);
     });
+  });
+
+  document.querySelectorAll('.btn-magnetic').forEach(btn => {
+    btn.addEventListener('mousemove', function(e) {
+      const rect = this.getBoundingClientRect();
+      const x = e.clientX - rect.left - rect.width / 2;
+      const y = e.clientY - rect.top - rect.height / 2;
+      this.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
+    });
+    btn.addEventListener('mouseleave', function() {
+      this.style.transform = '';
+    });
+  });
+
+  document.querySelectorAll('.btn-stagger').forEach((btn, i) => {
+    btn.style.opacity = '0';
+    btn.style.transform = 'translateY(12px)';
+    btn.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+          }, i * 80);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    observer.observe(btn);
   });
 })();

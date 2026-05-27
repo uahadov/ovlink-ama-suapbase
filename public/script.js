@@ -60,6 +60,7 @@ async function postJsonWithCsrf(url, body) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Accept": "application/json",
         "x-csrf-token": getCsrfToken(),
       },
       credentials: "include",
