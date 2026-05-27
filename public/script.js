@@ -3529,3 +3529,136 @@ document.addEventListener("click", async (e) => {
     }
   });
 })();
+
+/* ========================
+   Animations (from home.js)
+   ======================== */
+(function initAnimations() {
+  const revealElements = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale, .stagger-children');
+  
+  const activateReveal = (el) => el.classList.add('active');
+  
+  if (revealElements.length && 'IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          activateReveal(entry.target);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    
+    revealElements.forEach(el => {
+      if (el.getBoundingClientRect().top < window.innerHeight) {
+        activateReveal(el);
+      } else {
+        observer.observe(el);
+      }
+    });
+  } else {
+    revealElements.forEach(activateReveal);
+  }
+
+  const particlesContainer = document.getElementById('particlesContainer') || document.querySelector('.particles-container');
+  if (particlesContainer && !document.querySelector('.particle')) {
+    const particleCount = window.innerWidth < 768 ? 10 : 20;
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.animationDuration = (Math.random() * 12 + 20) + 's';
+      particle.style.animationDelay = (Math.random() * 15) + 's';
+      particle.style.willChange = 'transform';
+      particlesContainer.appendChild(particle);
+    }
+  }
+
+  document.querySelectorAll('.btn-animated, .btn-glow').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      const ripple = document.createElement('span');
+      ripple.className = 'btn-ripple';
+      const rect = this.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      ripple.style.width = ripple.style.height = size + 'px';
+      ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+      ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+      this.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 600);
+    });
+  });
+
+  document.querySelectorAll('form').forEach(form => {
+    form.addEventListener('submit', function() {
+      const submitBtn = this.querySelector('button[type="submit"]');
+      if (submitBtn && !submitBtn.classList.contains('btn-loading')) {
+        submitBtn.classList.add('btn-loading');
+        setTimeout(() => submitBtn.classList.remove('btn-loading'), 3000);
+      }
+    });
+  });
+
+  const counterElements = document.querySelectorAll('[data-counter]');
+  if (counterElements.length && 'IntersectionObserver' in window) {
+    const counterObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const target = parseInt(entry.target.dataset.counter, 10);
+          let current = 0;
+          const increment = target / 50;
+          const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+              entry.target.textContent = target;
+              clearInterval(timer);
+            } else {
+              entry.target.textContent = Math.floor(current);
+            }
+          }, 30);
+          counterObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.5 });
+    counterElements.forEach(el => counterObserver.observe(el));
+  }
+
+  const animatedInputs = document.querySelectorAll('.form-control-animated');
+  animatedInputs.forEach(input => {
+    input.addEventListener('focus', () => input.style.transform = 'scale(1.02)');
+    input.addEventListener('blur', () => input.style.transform = 'scale(1)');
+  });
+
+  document.querySelectorAll('.btn-magnetic').forEach(btn => {
+    btn.addEventListener('mousemove', function(e) {
+      const rect = this.getBoundingClientRect();
+      const x = e.clientX - rect.left - rect.width / 2;
+      const y = e.clientY - rect.top - rect.height / 2;
+      this.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
+    });
+    btn.addEventListener('mouseleave', function() {
+      this.style.transform = '';
+    });
+  });
+
+  document.querySelectorAll('.btn-stagger').forEach((btn, i) => {
+    btn.style.opacity = '0';
+    btn.style.transform = 'translateY(12px)';
+    btn.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            setTimeout(() => {
+              entry.target.style.opacity = '1';
+              entry.target.style.transform = 'translateY(0)';
+            }, i * 80);
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1 });
+      observer.observe(btn);
+    } else {
+      btn.style.opacity = '1';
+      btn.style.transform = '';
+    }
+  });
+})();

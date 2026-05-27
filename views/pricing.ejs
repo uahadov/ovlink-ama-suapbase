@@ -24,7 +24,7 @@
   <link rel="alternate" hreflang="x-default" href="<%= (seo && seo.hreflangXDefault) ? seo.hreflangXDefault : '' %>" />
 </head>
 
-<body class="home-page policy-page pricing-page">
+<body class="home-page policy-page pricing-page animated-gradient-bg">
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
@@ -34,6 +34,8 @@
       </div>
     </div>
   <% } %>
+
+  <div id="particlesContainer" class="particles-container"></div>
 
   <nav class="navbar navbar-expand-lg navbar-light home-navbar shadow-sm">
     <div class="container">
@@ -82,7 +84,7 @@
           </ul>
         </div>
 
-        <button class="theme-toggle home-theme-btn" aria-label="Temayı Değiştir">
+        <button class="theme-toggle home-theme-btn theme-toggle-animated" aria-label="Temayı Değiştir">
           <i class="fa-solid fa-sun"></i>
         </button>
       </div>
@@ -92,7 +94,7 @@
   <main class="policy-main">
     <section class="container">
       <div class="policy-shell">
-        <div class="policy-head">
+        <div class="policy-head reveal">
           <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
             <i class="fa-solid fa-crown me-1"></i><span data-i18n="pricing_badge">Ovlink Pro</span>
           </div>
@@ -101,7 +103,7 @@
         </div>
 
         <div class="pricing-grid">
-          <article class="policy-card pricing-card">
+          <article class="policy-card pricing-card card-hover reveal" style="transition-delay: 0.1s">
             <div class="pricing-plan-label" data-i18n="pricing_free_title">Free</div>
             <div class="pricing-price" data-i18n="pricing_free_price">$0 / ay</div>
             <ul class="pricing-feature-list">
@@ -111,7 +113,7 @@
             </ul>
           </article>
 
-          <article class="policy-card pricing-card pricing-card-pro">
+          <article class="policy-card pricing-card pricing-card-pro card-hover reveal" style="transition-delay: 0.3s">
             <div class="pricing-plan-label" data-i18n="pricing_pro_title">Pro</div>
             <div class="pricing-price" data-i18n="pricing_pro_price">$2 / ay</div>
             <ul class="pricing-feature-list">
@@ -122,8 +124,8 @@
             </ul>
             <p class="small text-muted mb-3" data-i18n="pricing_manual_notice">Ödəniş sistemi bu mərhələdə aktiv deyil; aktivasiya dəstək üzərindən manual edilir.</p>
             <div class="d-grid gap-2">
-              <a id="pricingBuyBtn" href="https://t.me/exlorin" class="btn btn-primary rounded-pill" data-i18n="pricing_buy_btn">Satın al</a>
-              <a id="pricingContactFallback" href="https://t.me/exlorin" class="btn btn-outline-secondary rounded-pill" data-i18n="pricing_contact_fallback">Telegram profilinə keç</a>
+              <a id="pricingBuyBtn" href="https://t.me/exlorin" class="btn btn-primary rounded-pill btn-animated btn-glow btn-shimmer" data-i18n="pricing_buy_btn">Satın al</a>
+              <a id="pricingContactFallback" href="https://t.me/exlorin" class="btn btn-outline-secondary rounded-pill btn-animated" data-i18n="pricing_contact_fallback">Telegram profilinə keç</a>
             </div>
             <div id="pricingBuyHint" class="small text-muted mt-2 d-none" data-i18n="pricing_buy_hint">
                 Telegram açılmasa, aşağıdakı düymə ilə profilə keçin.

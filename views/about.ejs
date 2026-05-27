@@ -34,7 +34,7 @@
   <% } %>
 </head>
 
-<body class="home-page policy-page">
+<body class="home-page policy-page animated-gradient-bg">
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
@@ -44,6 +44,8 @@
       </div>
     </div>
   <% } %>
+
+  <div id="particlesContainer" class="particles-container"></div>
 
   <nav class="navbar navbar-expand-lg navbar-light home-navbar shadow-sm">
     <div class="container">
@@ -92,7 +94,7 @@
           </ul>
         </div>
 
-        <button class="theme-toggle home-theme-btn" aria-label="Temayı Değiştir">
+        <button class="theme-toggle home-theme-btn theme-toggle-animated" aria-label="Temayı Değiştir">
           <i class="fa-solid fa-sun"></i>
         </button>
       </div>

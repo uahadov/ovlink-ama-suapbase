@@ -510,6 +510,7 @@ module.exports = function createAdminRouter(db, options = {}) {
   router.get('/', (req, res) => {
     if (req.session && req.session.adminUserId) return res.redirect('/admin/links');
     return res.render('admin/login', {
+      csrfToken: res.locals._csrf,
       error: (req.query.msg || '').toString() || null,
       next: '/admin/links',
     });
@@ -519,6 +520,7 @@ module.exports = function createAdminRouter(db, options = {}) {
     if (req.session && req.session.adminUserId) return res.redirect('/admin/links');
     const nextUrl = safeAdminReturn(req.query.next) || '/admin/links';
     return res.render('admin/login', {
+      csrfToken: res.locals._csrf,
       error: (req.query.msg || '').toString() || null,
       next: nextUrl,
     });
@@ -598,6 +600,7 @@ module.exports = function createAdminRouter(db, options = {}) {
       // Prevent session fixation
       req.session.regenerate((err) => {
         if (err) {
+          console.error('[admin] session regenerate error:', err);
           void audit(req, 'ADMIN_LOGIN_FAILURE', 'admin_user', email || 'unknown', { reason: 'session_regeneration_failed' });
           return res.status(500).render('admin/login', { error: 'Session error.', next: nextUrl });
         }
@@ -609,13 +612,23 @@ module.exports = function createAdminRouter(db, options = {}) {
           req.session.pendingAdminRole = user.role;
           req.session.pendingAdminNext = safeAdminReturn(nextUrl) || '/admin/links';
           void audit(req, 'ADMIN_2FA_CHALLENGE_REQUIRED', 'admin_user', String(user.id), { email: user.email });
-          return req.session.save(() => res.redirect('/admin/2fa'));
+          return req.session.save((saveErr) => {
+            if (saveErr) console.error('[admin] 2fa session save error:', saveErr);
+            res.redirect('/admin/2fa');
+          });
         }
 
         req.session.adminUserId = user.id;
         req.session.adminEmail = user.email;
         req.session.adminRole = user.role;
-        return req.session.save(() => res.redirect(nextUrl));
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('[admin] login session save error:', saveErr);
+            void audit(req, 'ADMIN_LOGIN_FAILURE', 'admin_user', email || 'unknown', { reason: 'session_save_failed' });
+            return res.status(500).render('admin/login', { error: 'Session error.', next: nextUrl });
+          }
+          res.redirect(nextUrl);
+        });
       });
     } catch (e) {
       console.error('[admin] login error:', e);
@@ -846,7 +859,7 @@ module.exports = function createAdminRouter(db, options = {}) {
         "CASE WHEN u.link_password IS NOT NULL AND u.link_password != '' THEN 1 ELSE 0 END AS has_password, " +
         '(SELECT MAX(created_at) FROM reports r WHERE r.short = u.short AND r.resolved_at IS NULL) AS last_report_at ' +
       'FROM urls u ' + whereSql + ' ' +
-      'ORDER BY u.reports DESC, datetime(last_report_at) DESC ' +
+      'ORDER BY u.reports DESC, last_report_at DESC NULLS LAST ' +
       'LIMIT ? OFFSET ?',
       [...params, pageSize, offset],
     );
@@ -1138,7 +1151,7 @@ module.exports = function createAdminRouter(db, options = {}) {
       [...params, pageSize, offset],
     );
 
-    users.forEach(u => u.email = decryptAES256GCM(u.email));
+    rows.forEach(u => u.email = decryptAES256GCM(u.email));
     return res.render('admin/site-users', {
       active: 'site-users',
       q: qRaw,

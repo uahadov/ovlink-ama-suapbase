@@ -3262,7 +3262,7 @@ function sendNewDeviceLoginEmailForUser(userId, details = {}) {
 // Middleware
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '100kb', parameterLimit: 100 }));
-const sessionCookieSecure = forceSecureCookie || (isProd ? true : 'auto');
+const sessionCookieSecure = forceSecureCookie ? true : 'auto';
 const sessionOptions = {
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -3291,6 +3291,29 @@ app.use((req, res, next) => {
     } else {
       req.session.cookie.secure = forceSecureCookie || req.secure || isProd;
     }
+  }
+  next();
+});
+
+// Patch req.session.regenerate so the cookie secure flag survives regeneration.
+// Without this, regenerate creates a new session with the default cookie config
+// (secure: true) which breaks localhost HTTP testing.
+app.use((req, res, next) => {
+  if (req.session && req.session.regenerate) {
+    const orig = req.session.regenerate.bind(req.session);
+    req.session.regenerate = function(cb) {
+      orig(function(err) {
+        if (err) return cb(err);
+        const hostHeader = (req.get('host') || '').toLowerCase();
+        const isLocalhost = hostHeader.includes('localhost') || hostHeader.includes('127.0.0.1') || hostHeader.includes('[::1]');
+        if (isLocalhost) {
+          req.session.cookie.secure = false;
+        } else {
+          req.session.cookie.secure = forceSecureCookie || req.secure || isProd;
+        }
+        cb();
+      });
+    };
   }
   next();
 });
@@ -4645,14 +4668,28 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
     }
     bcrypt.hash(password, 12, (hashErr, hash) => {
       if (hashErr) return;
+      const encryptedEmail = encryptAES256GCM(email);
+      const emailHash = blindIndex(email);
       db.run(
-        'INSERT INTO admin_users (email, password_hash, role, created_at) VALUES (?, ?, ?, ?)',
-        [email, hash, 'admin', new Date().toISOString()],
+        'INSERT INTO admin_users (email, email_hash, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)',
+        [encryptedEmail, emailHash, hash, 'admin', new Date().toISOString()],
         () => {
         }
       );
     });
   });
+});
+
+db.all('SELECT id, email_hash, email FROM admin_users', (err, rows) => {
+  if (err) return;
+  for (const row of rows) {
+    if (!row.email_hash && row.email) {
+      const plainEmail = row.email.includes(':') ? decryptAES256GCM(row.email) : row.email;
+      const newHash = blindIndex(plainEmail);
+      const encrypted = row.email.includes(':') ? row.email : encryptAES256GCM(row.email);
+      db.run('UPDATE admin_users SET email = ?, email_hash = ? WHERE id = ?', [encrypted, newHash, row.id]);
+    }
+  }
 });
 
 ensureUserSessionsSchema(() => {});
@@ -4774,7 +4811,7 @@ app.post('/api/verify-email',
     const email = (req.body.email || '').toString().trim().toLowerCase();
     const verificationCode = (req.body.verificationCode || '').toString().trim();
 
-    db.get('SELECT * FROM users WHERE email_hash = ?', [blindIndex(email)], (err, user) => {
+    db.get('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(email)], (err, user) => {
       if (err || !user) return res.status(404).json({ error: pickLang(uiLang, 'İstifadəçi tapılmadı.', 'Kullanıcı bulunamadı.', 'User not found.') });
 
       const storedCode = decryptAES256GCM((user.verification_code || '').toString());
@@ -4794,7 +4831,7 @@ app.post('/api/verify-email',
         return res.status(400).json({ error: pickLang(uiLang, 'Təsdiqləmə kodu yanlışdır.', 'Doğrulama kodu yanlış.', 'Verification code is incorrect.') });
       }
 
-      db.run('UPDATE users SET email_verified = 1, verification_code = NULL, verification_expires_at = NULL WHERE email = ?', [email], (updateErr) => {
+      db.run('UPDATE users SET email_verified = 1, verification_code = NULL, verification_expires_at = NULL WHERE email_hash = ?', [blindIndex(email)], (updateErr) => {
         if (updateErr) {
           return res.status(500).json({ error: pickLang(uiLang, 'Təsdiqləmə tamamlanmadı.', 'Doğrulama tamamlanamadı.', 'Verification could not be completed.') });
         }
@@ -4847,7 +4884,7 @@ app.post('/api/login',
     }
     const uiLang = normalizeLang(req.body && req.body.lang, 'az');
     const { email, password } = req.body;
-    db.get('SELECT * FROM users WHERE email_hash = ?', [blindIndex(email)], (err, user) => {
+    db.get('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(email)], (err, user) => {
       const wrongMsg = pickLang(uiLang, 'E-poçt və ya şifrə yanlışdır.', 'E-posta veya şifre yanlış.', 'Email or password is incorrect.');
       const emailHint = (email || '').toString().trim().slice(0, 128);
 
@@ -5073,7 +5110,7 @@ app.get('/auth/google/callback', authLimiter, async (req, res) => {
         });
       }
 
-      db.get('SELECT * FROM users WHERE email_hash = ?', [blindIndex(email)], (err2, existing) => {
+      db.get('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(email)], (err2, existing) => {
         if (err2) {
           logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'email_lookup_failed' });
           return res.redirect('/login?error=google_failed');

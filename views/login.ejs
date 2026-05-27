@@ -18,7 +18,7 @@
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
 </head>
 
-<body class="home-page auth-policy-page">
+<body class="home-page auth-policy-page animated-gradient-bg">
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
@@ -28,6 +28,8 @@
       </div>
     </div>
   <% } %>
+
+  <div id="particlesContainer" class="particles-container"></div>
 
   <nav class="navbar navbar-expand-lg navbar-light home-navbar shadow-sm">
     <div class="container">
@@ -76,7 +78,7 @@
           </ul>
         </div>
 
-        <button class="theme-toggle home-theme-btn" aria-label="Temayı Değiştir">
+        <button class="theme-toggle home-theme-btn theme-toggle-animated" aria-label="Temayı Değiştir">
           <i class="fa-solid fa-sun"></i>
         </button>
       </div>
@@ -86,7 +88,7 @@
     <main class="auth-main-shell">
     <section id="hero" class="d-flex align-items-center auth-hero">
       <div class="container">
-        <div class="text-center auth-hero-head">
+        <div class="text-center auth-hero-head reveal">
           <div class="badge hero-chip rounded-pill px-3 py-2 mb-4 shadow-sm fw-semibold">
             <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
           </div>
@@ -94,7 +96,7 @@
           <p class="hero-subtitle auth-display-subtitle" data-i18n="login_subtitle">Hesabınıza daxil olun</p>
         </div>
 
-        <div class="glass-card home-form-card auth-home-card">
+        <div class="glass-card home-form-card auth-home-card reveal" style="transition-delay: 0.2s">
           <div class="auth-head-icon" aria-hidden="true">
             <i class="fa-solid fa-user-lock"></i>
           </div>
@@ -104,7 +106,7 @@
               <label for="email" class="form-label" data-i18n="login_email">E-poçt Ünvanı</label>
               <div class="input-group auth-input shadow-sm">
                 <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
-                <input type="email" class="form-control" id="email" required placeholder="numune@email.com" data-i18n="login_email_placeholder">
+                <input type="email" class="form-control form-control-animated" id="email" required placeholder="numune@email.com" data-i18n="login_email_placeholder">
               </div>
             </div>
 
@@ -112,7 +114,7 @@
               <label for="password" class="form-label" data-i18n="login_pass">Şifrə</label>
               <div class="input-group auth-input shadow-sm">
                 <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                <input type="password" class="form-control" id="password" required placeholder="******">
+                <input type="password" class="form-control form-control-animated" id="password" required placeholder="******">
               </div>
             </div>
 
@@ -120,7 +122,7 @@
               <a href="/forgot-password" class="text-decoration-none small fw-semibold" data-i18n="forgot_password_link">Şifrəni unutmusunuz?</a>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill py-3 fw-bold shadow-lg home-primary-btn auth-submit-btn btn-animated btn-magnetic btn-stagger">
+            <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill py-3 fw-bold shadow-lg home-primary-btn auth-submit-btn btn-animated btn-glow btn-shimmer btn-magnetic btn-stagger">
               <span data-i18n="login_btn">Giriş</span> <i class="fa-solid fa-arrow-right ms-2"></i>
             </button>
           </form>
@@ -133,13 +135,13 @@
 
           <p id="loginMessage" class="text-center small mt-3 mb-0 auth-message"></p>
 
-          <p class="auth-links mb-0">
+          <p class="auth-links mb-0 reveal" style="transition-delay: 0.4s">
             <span data-i18n="no_account">Hesabınız yoxdur?</span>
             <a href="/register" data-i18n="register_link">Qeydiyyatdan keçin</a>
           </p>
 
           <div class="policy-back">
-            <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
+            <a href="/" class="btn home-outline-btn rounded-pill btn-animated" data-i18n="nav_home">Ana Səhifə</a>
           </div>
         </div>
       </div>

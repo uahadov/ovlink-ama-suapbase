@@ -654,11 +654,14 @@ document.addEventListener("click", async (e) => {
 (function initAnimations() {
   const revealElements = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale, .stagger-children');
   
+  const activateReveal = (el) => el.classList.add('active');
+  
   if (revealElements.length && 'IntersectionObserver' in window) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          entry.target.classList.add('active');
+          activateReveal(entry.target);
+          observer.unobserve(entry.target);
         }
       });
     }, {
@@ -666,7 +669,15 @@ document.addEventListener("click", async (e) => {
       rootMargin: '0px 0px -50px 0px'
     });
     
-    revealElements.forEach(el => observer.observe(el));
+    revealElements.forEach(el => {
+      if (el.getBoundingClientRect().top < window.innerHeight) {
+        activateReveal(el);
+      } else {
+        observer.observe(el);
+      }
+    });
+  } else {
+    revealElements.forEach(activateReveal);
   }
   
   const particlesContainer = document.getElementById('particlesContainer') || document.querySelector('.particles-container');
