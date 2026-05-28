@@ -272,7 +272,7 @@ textarea:focus {
 /* Page Footer Refinement */
 .site-footer {
   background: var(--dark-bg);
-  padding: 4rem 0;
+  padding: 2.5rem 0;
   color: white;
   margin-top: 0;
   border: none;
@@ -750,14 +750,13 @@ body.dark-mode,
 
 /* Site Footer */
 .site-footer {
-  padding: 25px 0;
+  padding: 16px 0;
   text-align: center;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 500;
   color: #4b5563;
-  /* Darker gray for contrast on light bg */
   border-top: 1px solid rgba(0, 0, 0, 0.1);
-  margin-top: 50px;
+  margin-top: 30px;
   background-color: var(--light-bg);
   transition: all 0.3s ease;
 }
@@ -768,7 +767,7 @@ body.dark-mode,
   /* Brighter for dark mode contrast */
   border-top: none !important;
   margin-top: 0 !important;
-  padding-top: 50px;
+  padding-top: 30px;
 }
 
 .site-footer a {
@@ -1695,7 +1694,7 @@ body.dark-mode,
   background: #ffffff;
   color: #64748b;
   border-top: 1px solid #e5e7eb;
-  padding: 20px 0;
+  padding: 12px 0;
 }
 
 .home-page .site-footer .fw-bold {
@@ -1715,28 +1714,28 @@ body.dark-mode,
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 2rem 3rem;
-  margin-bottom: 1.5rem;
+  gap: 1rem 2rem;
+  margin-bottom: 0.8rem;
 }
 
 .site-footer .footer-link-group {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.25rem;
   min-width: 100px;
 }
 
 .site-footer .footer-group-label {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   opacity: 0.5;
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.1rem;
 }
 
 .site-footer .footer-link-group a {
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   opacity: 0.75;
   transition: opacity 0.2s ease;
 }
@@ -1747,7 +1746,7 @@ body.dark-mode,
 
 .site-footer .footer-copy {
   text-align: center;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   opacity: 0.55;
   margin: 0;
 }
