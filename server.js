@@ -25,7 +25,7 @@ const isProdRuntime = process.env.NODE_ENV === 'production';
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL || process.env.SUPABASE_DB_URL,
-  ssl: (process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || '').includes('localhost') ? false : { rejectUnauthorized: true }
+  ssl: (process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || '').includes('localhost') ? false : { rejectUnauthorized: false }
 });
 
 const db = {
@@ -8933,6 +8933,7 @@ app.get('*', (req, res) => {
 // API hata yakalayıcı (özellikle CSRF ve JSON bekleyen istekler için)
 app.use((err, req, res, next) => {
   if (!err) return next();
+  if (res.headersSent) return next(err);
   console.error('[error-handler]', err && (err.stack || err.message || err));
   const isApi = req.path.startsWith('/api/');
   const accept = (req.get('accept') || '').toLowerCase();
