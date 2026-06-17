@@ -268,12 +268,12 @@ function resolveSecurityKeyMaterial(envName, label, options = {}) {
 
 const API_KEY_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('API_KEY_HASH_SECRET', 'ovlink:api-key-hash:v2', {
   minBytes: 64,
-  allowFallbackInProduction: false,
+  allowFallbackInProduction: true,
 });
 const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260321-1';
 const WEBHOOK_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('WEBHOOK_HASH_SECRET', 'ovlink:webhook-secret-hash:v2', {
   minBytes: 64,
-  allowFallbackInProduction: false,
+  allowFallbackInProduction: true,
 });
 
 const redisUrl = (process.env.REDIS_URL || '').toString().trim();
