@@ -8933,6 +8933,7 @@ app.get('*', (req, res) => {
 // API hata yakalayıcı (özellikle CSRF ve JSON bekleyen istekler için)
 app.use((err, req, res, next) => {
   if (!err) return next();
+  console.error('[error-handler]', err && (err.stack || err.message || err));
   const isApi = req.path.startsWith('/api/');
   const accept = (req.get('accept') || '').toLowerCase();
   const wantsJson =
