@@ -8,14 +8,13 @@ const session = require('express-session');
 const { RedisStore: SessionRedisStore } = require('connect-redis');
 const nodemailer = require('nodemailer');
 const QRCode = require('qrcode');
-const shortid = require('shortid');
 const bcrypt = require('bcrypt');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { RedisStore: RateLimitRedisStore } = require('rate-limit-redis');
 const { createClient } = require('redis');
 const crypto = require('crypto');
-const ExcelJS = require('exceljs');
+
 const tsscmp = require('tsscmp');
 const lusca = require('lusca');
 const { body, validationResult } = require('express-validator');
@@ -1385,10 +1384,10 @@ function isReservedShortAlias(raw) {
 
 function generateSafeShortCode(maxAttempts = 20) {
   for (let i = 0; i < maxAttempts; i += 1) {
-    const candidate = shortid.generate();
+    const candidate = crypto.randomBytes(6).toString('base64url');
     if (!isReservedShortAlias(candidate)) return candidate;
   }
-  return shortid.generate();
+  return crypto.randomBytes(6).toString('base64url');
 }
 
 function normalizeShortCode(raw) {
@@ -8421,15 +8420,10 @@ app.post('/api/user/link/meta', (req, res) => {
   );
 });
 
-// KULLANICI LINK EXPORT (GET /api/user/export?format=csv|xlsx)
+// KULLANICI LINK EXPORT (GET /api/user/export?format=csv)
 app.get('/api/user/export', (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const format = ((req.query && req.query.format) || 'csv').toString().toLowerCase();
-  if (format !== 'csv' && format !== 'xlsx') {
-    return res.status(400).json({ error: 'Invalid format.' });
   }
 
   db.all(
@@ -8476,34 +8470,6 @@ app.get('/api/user/export', (req, res) => {
       const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
       const baseFile = `ovlink-links-${stamp}`;
 
-      if (format === 'csv') {
-        const columns = [
-          'short_code',
-          'short_url',
-          'original_url',
-          'folder',
-          'tags',
-          'reports',
-          'total_clicks',
-          'max_clicks',
-          'expires_at',
-          'has_password',
-          'custom_domain',
-          'created_at',
-        ];
-
-        const lines = [columns.map(escapeCsvCell).join(',')];
-        exportRows.forEach((row) => {
-          lines.push(columns.map((col) => escapeCsvCell(row[col])).join(','));
-        });
-
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="${baseFile}.csv"`);
-        return res.send(lines.join('\n'));
-      }
-
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Links');
       const columns = [
         'short_code',
         'short_url',
@@ -8518,19 +8484,15 @@ app.get('/api/user/export', (req, res) => {
         'custom_domain',
         'created_at',
       ];
-      worksheet.columns = columns.map((col) => ({ header: col, key: col, width: 20 }));
-      for (const row of exportRows) {
-        worksheet.addRow(row);
-      }
-      return workbook.xlsx.writeBuffer()
-        .then((buffer) => {
-          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-          res.setHeader('Content-Disposition', `attachment; filename="${baseFile}.xlsx"`);
-          return res.send(Buffer.from(buffer));
-        })
-        .catch(() => {
-          return res.status(500).json({ error: 'Export failed.' });
-        });
+
+      const lines = [columns.map(escapeCsvCell).join(',')];
+      exportRows.forEach((row) => {
+        lines.push(columns.map((col) => escapeCsvCell(row[col])).join(','));
+      });
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${baseFile}.csv"`);
+      return res.send(lines.join('\n'));
     }
   );
 });
@@ -8811,7 +8773,6 @@ ${announcementHtml}
                 <h5 class="mb-0 fw-bold"><i class="fa-solid fa-list me-2"></i><span data-i18n="dashboard_my_links">Linklərim</span></h5>
                 <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
                   <a href="/api/user/export?format=csv" class="btn btn-outline-secondary btn-sm rounded-pill" data-i18n="dashboard_export_csv">CSV export</a>
-                  <a href="/api/user/export?format=xlsx" class="btn btn-outline-secondary btn-sm rounded-pill" data-i18n="dashboard_export_xlsx">XLSX export</a>
                   <button id="bulkImportBtn" type="button" class="btn btn-outline-secondary btn-sm rounded-pill" data-i18n="dashboard_import_btn">Toplu import</button>
                   <button id="bulkDeleteBtn" type="button" class="btn btn-outline-danger btn-sm rounded-pill" data-i18n="bulk_delete_btn">Seçilənləri sil</button>
                   <a href="/" class="btn btn-primary btn-sm rounded-pill"><i class="fa-solid fa-plus"></i> <span data-i18n="dashboard_new_add">Yeni Əlavə Et</span></a>

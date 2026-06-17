@@ -16,14 +16,12 @@
     "debug": "node --inspect server.js"
   },
   "dependencies": {
-    "@types/lusca": "^1.7.5",
     "bcrypt": "^6.0.0",
     "compression": "^1.8.1",
     "connect-pg-simple": "^10.0.0",
     "connect-redis": "^9.0.0",
     "dotenv": "^16.4.7",
     "ejs": "^4.0.1",
-    "exceljs": "^4.4.0",
     "express": "^4.22.1",
     "express-rate-limit": "^8.2.2",
     "express-session": "^1.18.2",
@@ -31,26 +29,19 @@
     "geoip-lite": "^1.4.10",
     "helmet": "^8.1.0",
     "lusca": "^1.7.0",
-    "node-fetch": "^3.3.2",
     "nodemailer": "^9.0.1",
     "openid-client": "^5.6.5",
     "pg": "^8.21.0",
-    "qr-image": "^3.2.0",
     "qrcode": "^1.5.4",
     "rate-limit-redis": "^4.2.2",
     "redis": "^5.8.3",
+    "resend": "^6.13.0",
     "serverless-http": "^4.0.0",
-    "shortid": "^2.2.16",
     "speakeasy": "^2.0.0",
-    "sqlite3": "^6.0.1",
     "tsscmp": "^1.0.6"
   },
   "devDependencies": {
-    "@flydotio/dockerfile": "^0.7.10"
-  },
-  "overrides": {
-    "qs": "^6.14.2",
-    "lodash": "^4.17.22",
-    "yauzl": "^3.2.1"
+    "@flydotio/dockerfile": "^0.7.10",
+    "sqlite3": "^6.0.1"
   }
 }

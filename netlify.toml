@@ -42,15 +42,7 @@
   to = "/logo.webp"
   status = 200
 
-[[redirects]]
-  from = "/logo-dark.png"
-  to = "/logo-dark.png"
-  status = 200
 
-[[redirects]]
-  from = "/logo-dark.webp"
-  to = "/logo-dark.webp"
-  status = 200
 
 # All other traffic → serverless function
 [[redirects]]
