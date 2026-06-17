@@ -6,7 +6,7 @@ const dnsNative = require('dns');
 const dns = dnsNative.promises;
 const session = require('express-session');
 const { RedisStore: SessionRedisStore } = require('connect-redis');
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 const QRCode = require('qrcode');
 const shortid = require('shortid');
 const bcrypt = require('bcrypt');
@@ -3139,16 +3139,26 @@ app.use((req, res, next) => {
 // Geçici e-posta sağlayıcıları (fake adresleri engellemek için)
 const tempEmailDomains = ['mailinator.com', 'tempmail.com', '10minutemail.com'];
 
-// Resend API client - with validation
-if (!process.env.RESEND_API_KEY) {
-  console.error('[startup] RESEND_API_KEY is required for email functionality. Email features will not work.');
-  console.error('[startup] Please add RESEND_API_KEY to your .env file.');
-  if (isProdRuntime) {
-    console.error('[startup] Cannot start in production without RESEND_API_KEY.');
-    process.exit(1);
-  }
+// SMTP email transporter (Spaceship Mail)
+const emailTransporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'mail.spaceship.com',
+  port: Number(process.env.SMTP_PORT) || 465,
+  secure: true,
+  auth: {
+    user: process.env.SMTP_USER || 'verify@ovlink.sbs',
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+function sendMail({ to, subject, html, text }) {
+  return emailTransporter.sendMail({
+    from: process.env.FROM_EMAIL || 'Ovlink <verify@ovlink.sbs>',
+    to,
+    subject,
+    html,
+    text,
+  });
 }
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 
 function sendVerificationEmail(to, code, lang = 'az') {
@@ -3243,8 +3253,7 @@ function sendVerificationEmail(to, code, lang = 'az') {
     </html>
   `;
 
-  return resend.emails.send({
-    from: process.env.FROM_EMAIL || 'Ovlink <onboarding@resend.dev>',
+  return sendMail({
     to,
     subject,
     text: `${t.instruction}\n\n${t.codeLabel}: ${code}\n\n${t.warning}`,
@@ -3281,8 +3290,7 @@ function sendPasswordResetEmail(to, resetUrl, lang = 'az') {
     </html>
   `;
 
-  return resend.emails.send({
-    from: process.env.FROM_EMAIL || 'Ovlink <onboarding@resend.dev>',
+  return sendMail({
     to,
     subject,
     text: `${body} ${resetUrl}`,
@@ -3291,7 +3299,7 @@ function sendPasswordResetEmail(to, resetUrl, lang = 'az') {
 }
 
 function sendNewDeviceLoginEmail(to, details = {}, lang = 'en') {
-  if (!process.env.RESEND_API_KEY) return Promise.resolve(null);
+  if (!process.env.SMTP_PASS) return Promise.resolve(null);
 
   const uiLang = normalizeLang(lang, 'en');
   const safeTo = (to || '').toString().trim();
@@ -3399,8 +3407,7 @@ function sendNewDeviceLoginEmail(to, details = {}, lang = 'en') {
     `${pickLang(uiLang, 'Dəstək ilə əlaqə', 'Destek ile iletişim', 'Contact support')}: ${contactUrl}`,
   ].filter(Boolean).join('\n');
 
-  return resend.emails.send({
-    from: process.env.FROM_EMAIL || 'Ovlink <onboarding@resend.dev>',
+  return sendMail({
     to: safeTo,
     subject,
     text,

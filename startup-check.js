@@ -50,7 +50,7 @@ function validateLength(name, value, minLength, description) {
 
 console.log('\n📧 EMAIL YAPISI:');
 console.log('-'.repeat(70));
-checkRequired('RESEND_API_KEY', process.env.RESEND_API_KEY, 'Email göndermek için gerekli');
+checkRequired('SMTP_PASS', process.env.SMTP_PASS, 'Email göndermek için gerekli');
 checkRequired('FROM_EMAIL', process.env.FROM_EMAIL, 'Gönderen email adresi');
 
 if (process.env.FROM_EMAIL) {
