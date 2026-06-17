@@ -226,6 +226,9 @@ module.exports = function createAdminRouter(db, options = {}) {
   const getRequestGeoMetaFromOptions = options && typeof options.getRequestGeoMeta === 'function'
     ? options.getRequestGeoMeta
     : null;
+  const blockIpFn = options && typeof options.blockIp === 'function' ? options.blockIp : null;
+  const unblockIpFn = options && typeof options.unblockIp === 'function' ? options.unblockIp : null;
+  const getBlockedIpsFn = options && typeof options.getBlockedIps === 'function' ? options.getBlockedIps : null;
 
   function getClientIpForAdmin(req) {
     return getClientIp(req, getRequestIpFromOptions);
@@ -489,6 +492,30 @@ module.exports = function createAdminRouter(db, options = {}) {
   if (createRateLimitStore) loginLimiterOptions.store = createRateLimitStore('admin-login');
   const loginLimiter = rateLimit(loginLimiterOptions);
 
+  // DDoS KORUMA: Admin 2FA brute-force koruması (6 haneli TOTP)
+  const twoFaVerifyLimiterOptions = {
+    windowMs: 15 * 60 * 1000, // 15 dakika
+    max: 5, // 15 dakikada max 5 deneme
+    message: { error: 'Too many 2FA attempts. Please try again in 15 minutes.' },
+    keyGenerator: (req) => buildAdminRateLimitKey(req, 'admin-2fa'),
+    standardHeaders: true,
+    legacyHeaders: false,
+  };
+  if (createRateLimitStore) twoFaVerifyLimiterOptions.store = createRateLimitStore('admin-2fa');
+  const twoFaVerifyLimiter = rateLimit(twoFaVerifyLimiterOptions);
+
+  // DDoS KORUMA: Admin POST rotaları için genel limiter
+  const adminPostLimiterOptions = {
+    windowMs: 60 * 1000, // 1 dakika
+    max: 60, // Dakikada max 60 POST
+    message: { error: 'Too many requests. Please try again in 1 minute.' },
+    keyGenerator: (req) => buildAdminRateLimitKey(req, 'admin-post'),
+    standardHeaders: true,
+    legacyHeaders: false,
+  };
+  if (createRateLimitStore) adminPostLimiterOptions.store = createRateLimitStore('admin-post');
+  const adminPostLimiter = rateLimit(adminPostLimiterOptions);
+
   const adminGetLimiterOptions = {
     windowMs: 60 * 1000,
     max: 250,
@@ -503,6 +530,9 @@ module.exports = function createAdminRouter(db, options = {}) {
   router.use((req, res, next) => {
     if (req.method === 'GET') {
       return adminGetLimiter(req, res, next);
+    }
+    if (req.method === 'POST' && req.path !== '/login') {
+      return adminPostLimiter(req, res, next);
     }
     return next();
   });
@@ -638,7 +668,7 @@ module.exports = function createAdminRouter(db, options = {}) {
   });
 
 
-  router.post('/2fa/verify', requirePending2FA, async (req, res) => {
+  router.post('/2fa/verify', requirePending2FA, twoFaVerifyLimiter, async (req, res) => {
     const token = (req.body.token || '').toString().replace(/\s+/g, '');
     const nextUrl = safeAdminReturn(req.session.pendingAdminNext) || '/admin/links';
 
@@ -1418,6 +1448,7 @@ module.exports = function createAdminRouter(db, options = {}) {
 
   router.get('/users', requireRole('admin'), async (req, res) => {
     const rows = await all('SELECT id, email, role, created_at, last_login_at FROM admin_users ORDER BY datetime(created_at) DESC');
+    rows.forEach(u => { try { u.email = decryptAES256GCM(u.email); } catch { u.email = '(unknown)'; } });
     return res.render('admin/users', { rows });
   });
 
@@ -1428,16 +1459,18 @@ module.exports = function createAdminRouter(db, options = {}) {
 
     if (!email || !password || password.length < 10) {
       const rows = await all('SELECT id, email, role, created_at, last_login_at FROM admin_users ORDER BY datetime(created_at) DESC');
+      rows.forEach(u => { try { u.email = decryptAES256GCM(u.email); } catch { u.email = '(unknown)'; } });
       return res.status(400).render('admin/users', { rows, error: 'Email and password (min 10 chars) are required.' });
     }
 
     const hash = await bcrypt.hash(password, 12);
 
     try {
-      await run('INSERT INTO admin_users (email, email_hash, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)', [email, hash, role, nowIso()]);
+      await run('INSERT INTO admin_users (email, email_hash, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)', [encryptAES256GCM(email), blindIndex(email), hash, role, nowIso()]);
       await audit(req, 'CREATE_ADMIN_USER', 'admin_user', email, { role });
     } catch {
       const rows = await all('SELECT id, email, role, created_at, last_login_at FROM admin_users ORDER BY datetime(created_at) DESC');
+      rows.forEach(u => { try { u.email = decryptAES256GCM(u.email); } catch { u.email = '(unknown)'; } });
       return res.status(400).render('admin/users', { rows, error: 'User could not be created (email may already be in use).' });
     }
 
@@ -1681,6 +1714,46 @@ module.exports = function createAdminRouter(db, options = {}) {
 
     return res.render('admin/audit', { rows, page, pageSize, total: totalRow ? totalRow.cnt : 0 });
   });
+
+  // ==============================
+  // IP Blacklist Yönetimi (DDoS Koruması)
+  // ==============================
+  if (blockIpFn && unblockIpFn && getBlockedIpsFn) {
+    router.get('/ip-blocklist', requireRole('admin'), (req, res) => {
+      const blockedIps = getBlockedIpsFn();
+      return res.render('admin/not-found', { error: null }); // Geçici: basit render
+    });
+
+    router.post('/ip-blocklist/block', requireRole('admin'), async (req, res) => {
+      const ip = (req.body.ip || '').toString().trim();
+      const durationMinutes = parseInt(req.body.duration || '0', 10);
+      const reason = (req.body.reason || 'abuse').toString().trim().slice(0, 200);
+
+      if (!ip || !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip) && !/^[a-fA-F0-9:]+$/.test(ip)) {
+        return res.status(400).json({ error: 'Geçersiz IP adresi.' });
+      }
+
+      const durationMs = durationMinutes > 0 ? durationMinutes * 60 * 1000 : null;
+      blockIpFn(ip, durationMs, reason);
+      await audit(req, 'IP_BLOCKED', 'ip', ip, { durationMinutes, reason });
+
+      return res.json({ success: true, ip, durationMinutes, reason });
+    });
+
+    router.post('/ip-blocklist/unblock', requireRole('admin'), async (req, res) => {
+      const ip = (req.body.ip || '').toString().trim();
+      if (!ip) return res.status(400).json({ error: 'IP gerekli.' });
+
+      unblockIpFn(ip);
+      await audit(req, 'IP_UNBLOCKED', 'ip', ip, {});
+
+      return res.json({ success: true, ip });
+    });
+
+    router.get('/ip-blocklist.json', requireRole('admin'), (req, res) => {
+      return res.json({ blocked: getBlockedIpsFn() });
+    });
+  }
 
   router.use((req, res) => {
     res.status(404).render('admin/not-found');

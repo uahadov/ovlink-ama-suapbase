@@ -1,3 +1,7 @@
+// DEPRECATED: This file is NOT mounted in server.js. All auth logic lives in server.js.
+// This file is kept only for `node --check` syntax validation per AGENTS.md.
+// DO NOT import or mount this router — it lacks CSRF protection, rate limiting,
+// session regeneration, and PII encryption that the server.js routes provide.
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");

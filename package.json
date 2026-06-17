@@ -8,7 +8,12 @@
     "test": "node --test test/**/*.test.js",
     "check:syntax": "node --check server.js routes/admin.js routes/auth.js public/script.js public/lang.js",
     "check:security": "npm audit --omit=dev",
-    "check:release": "npm test && npm run check:syntax && npm run check:security"
+    "check:release": "npm test && npm run check:syntax && npm run check:security",
+    "test:email": "node test-email.js",
+    "check:database": "node check-database.js",
+    "check:env": "node startup-check.js",
+    "check:all": "npm run check:env && npm run check:database",
+    "debug": "node --inspect server.js"
   },
   "dependencies": {
     "@types/lusca": "^1.7.5",
@@ -37,7 +42,8 @@
     "serverless-http": "^4.0.0",
     "shortid": "^2.2.16",
     "speakeasy": "^2.0.0",
-    "sqlite3": "^6.0.1"
+    "sqlite3": "^6.0.1",
+    "tsscmp": "^1.0.6"
   },
   "devDependencies": {
     "@flydotio/dockerfile": "^0.7.10"

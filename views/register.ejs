@@ -157,6 +157,10 @@
               <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill py-3 fw-bold shadow-lg home-primary-btn auth-submit-btn btn-animated btn-glow btn-shimmer btn-magnetic btn-stagger">
                 <span data-i18n="verify_btn">Təsdiqlə</span> <i class="fa-solid fa-check-circle ms-2"></i>
               </button>
+
+              <button type="button" id="resendCodeBtn" class="btn btn-outline-secondary btn-sm w-100 rounded-pill py-2 mt-2 fw-semibold">
+                <i class="fa-solid fa-rotate me-2"></i><span data-i18n="resend_code">Kodu Yenidən Göndər</span>
+              </button>
             </form>
 
             <p id="verifyMessage" class="text-center small mt-3 mb-0 auth-message"></p>
@@ -233,6 +237,58 @@
         }
       } catch (err) {
         msg.textContent = currentLang === 'az' ? "Xəta baş verdi." : (currentLang === 'en' ? "An error occurred." : "Hata oluştu.");
+      }
+    });
+
+    // Resend verification code handler
+    document.getElementById('resendCodeBtn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('resendCodeBtn');
+      const msg = document.getElementById('verifyMessage');
+      
+      if (!userEmail) {
+        msg.className = "text-center text-danger small";
+        msg.textContent = currentLang === 'az' ? "E-poçt ünvanı tapılmadı." : (currentLang === 'en' ? "Email address not found." : "E-posta adresi bulunamadı.");
+        return;
+      }
+
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>' + (currentLang === 'az' ? "Göndərilir..." : (currentLang === 'en' ? "Sending..." : "Gönderiliyor..."));
+      msg.textContent = "";
+
+      try {
+        if (!getCsrfToken()) {
+          await refreshCsrfToken();
+        }
+        const res = await postJsonWithCsrf('/api/resend-verification', { email: userEmail, lang: currentLang });
+        const data = await res.json();
+
+        if (res.ok) {
+          msg.className = "text-center text-success small";
+          msg.textContent = data.message || (currentLang === 'az' ? "Kod yenidən göndərildi." : (currentLang === 'en' ? "Code resent successfully." : "Kod başarıyla yeniden gönderildi."));
+          
+          // Disable resend button for 60 seconds
+          let countdown = 60;
+          const interval = setInterval(() => {
+            countdown--;
+            btn.innerHTML = '<i class="fa-solid fa-clock me-2"></i>' + countdown + 's';
+            if (countdown <= 0) {
+              clearInterval(interval);
+              btn.disabled = false;
+              btn.innerHTML = originalText;
+            }
+          }, 1000);
+        } else {
+          msg.className = "text-center text-danger small";
+          msg.textContent = data.error;
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+      } catch (err) {
+        msg.className = "text-center text-danger small";
+        msg.textContent = currentLang === 'az' ? "Xəta baş verdi." : (currentLang === 'en' ? "An error occurred." : "Hata oluştu.");
+        btn.disabled = false;
+        btn.innerHTML = originalText;
       }
     });
   </script>

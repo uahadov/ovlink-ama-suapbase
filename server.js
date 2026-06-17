@@ -25,9 +25,7 @@ const isProdRuntime = process.env.NODE_ENV === 'production';
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL || process.env.SUPABASE_DB_URL,
-  ssl: (process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || '').includes('localhost') ? false : {
-    rejectUnauthorized: false
-  }
+  ssl: (process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || '').includes('localhost') ? false : { rejectUnauthorized: true }
 });
 
 const db = {
@@ -46,6 +44,9 @@ const db = {
       const tableNameMatch = converted.match(/PRAGMA table_info\((\w+)\)/i);
       if (tableNameMatch) {
         const tableName = tableNameMatch[1];
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableName)) {
+          throw new Error('Invalid table name in PRAGMA table_info');
+        }
         converted = `SELECT column_name AS name FROM information_schema.columns WHERE table_name = '${tableName}'`;
       }
     }
@@ -62,6 +63,15 @@ const db = {
                               .concat(' ON CONFLICT (domain) DO NOTHING');
       } else {
         converted = converted.replace(/INSERT OR IGNORE INTO/gi, 'INSERT INTO');
+      }
+    }
+
+    if (converted.toUpperCase().includes('INSERT OR REPLACE')) {
+      if (converted.toLowerCase().includes('site_settings')) {
+        converted = converted.replace(/INSERT OR REPLACE INTO site_settings/gi, 'INSERT INTO site_settings')
+                              .concat(' ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value');
+      } else {
+        converted = converted.replace(/INSERT OR REPLACE INTO/gi, 'INSERT INTO');
       }
     }
     
@@ -430,7 +440,16 @@ async function initGoogleOidc(options = {}) {
   return googleOidcInitPromise;
 }
 
-initGoogleOidc();
+initGoogleOidc().then((initialized) => {
+  if (initialized) {
+    console.log('[google-auth] Status: READY');
+    console.log('[google-auth] Redirect URI:', googleOidc.redirectUri);
+  } else {
+    console.warn('[google-auth] Status: DISABLED');
+    console.warn('[google-auth] Error:', googleOidcInitError || 'Unknown error');
+    console.warn('[google-auth] Check GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and PUBLIC_BASE_URL/BASE_URL environment variables.');
+  }
+});
 
 const createAdminRouter = require('./routes/admin');
 const app = express();
@@ -2978,10 +2997,141 @@ const proKeyCreateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Genel rate limiter'ı uygula (sadece GET, admin GET hariç)
+// ============================================================
+// DDoS KORUMA: Genel mutation (POST/PUT/DELETE/PATCH) rate limiter
+// Tüm mutating isteklere blanket koruma sağlar
+// ============================================================
+const mutationLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 dakika
+  max: 60, // Dakikada max 60 mutation isteği
+  message: { error: 'Çok fazla istek gönderdiniz. Lütfen bir dakika sonra tekrar deneyin.' },
+  ...(redisClient ? { store: createRateLimitStore('mutation') } : {}),
+  keyGenerator: (req) => buildRateLimitKey(req, 'mutation'),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ============================================================
+// DDoS KORUMA: Sensitif endpoint'ler için sıkı limiter
+// Consent redirect, verify, password reset gibi kritik akışlar
+// ============================================================
+const sensitiveActionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 dakika
+  max: 20, // 15 dakikada max 20 istek
+  message: { error: 'Çok fazla deneme. Lütfen 15 dakika sonra tekrar deneyin.' },
+  ...(redisClient ? { store: createRateLimitStore('sensitive') } : {}),
+  keyGenerator: (req) => buildRateLimitKey(req, 'sensitive'),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ============================================================
+// DDoS KORUMA: IP Blacklist (bellek içi, admin tarafından yönetilir)
+// Kötü niyetli IP'leri geçici veya kalıcı olarak engeller
+// ============================================================
+const ipBlacklist = new Map(); // ip -> { blockedAt, expiresAt|null, reason }
+
+function isIpBlacklisted(ip) {
+  if (!ip) return false;
+  const entry = ipBlacklist.get(ip);
+  if (!entry) return false;
+  if (entry.expiresAt && Date.now() > entry.expiresAt) {
+    ipBlacklist.delete(ip);
+    return false;
+  }
+  return true;
+}
+
+function blockIp(ip, durationMs, reason) {
+  if (!ip) return;
+  ipBlacklist.set(ip, {
+    blockedAt: Date.now(),
+    expiresAt: durationMs ? Date.now() + durationMs : null,
+    reason: reason || 'abuse',
+  });
+}
+
+function unblockIp(ip) {
+  ipBlacklist.delete(ip);
+}
+
+function getBlockedIps() {
+  const now = Date.now();
+  const result = [];
+  for (const [ip, entry] of ipBlacklist) {
+    if (entry.expiresAt && now > entry.expiresAt) {
+      ipBlacklist.delete(ip);
+      continue;
+    }
+    result.push({ ip, ...entry });
+  }
+  return result;
+}
+
+// IP blacklist middleware
+function ipBlacklistMiddleware(req, res, next) {
+  const ip = getRequestIp(req);
+  if (isIpBlacklisted(ip)) {
+    const entry = ipBlacklist.get(ip);
+    logSecurityEvent(req, 'ddos.ip_blocked', 'blocked', { ip, reason: entry?.reason });
+    return res.status(403).json({ error: 'Erişiminiz engellenmiştir.' });
+  }
+  next();
+}
+
+// ============================================================
+// DDoS KORUMA: Slow-down (progressive delay)
+// Yüksek trafikli IP'lere giderek artan gecikme uygular
+// ============================================================
+const ipRequestCounts = new Map(); // ip -> { count, windowStart }
+const SLOWDOWN_WINDOW_MS = 60 * 1000; // 1 dakikalık pencere
+const SLOWDOWN_THRESHHOLD = 50; // 50 istek sonrası yavaşlatmaya başla
+const SLOWDOWN_MAX_DELAY_MS = 5000; // Maksimum 5 saniye gecikme
+
+// Periyodik temizlik (her 5 dakikada eski kayıtları sil)
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, data] of ipRequestCounts) {
+    if (now - data.windowStart > SLOWDOWN_WINDOW_MS * 2) {
+      ipRequestCounts.delete(ip);
+    }
+  }
+}, 5 * 60 * 1000);
+
+function slowdownMiddleware(req, res, next) {
+  const ip = getRequestIp(req);
+  if (!ip) return next();
+
+  const now = Date.now();
+  let data = ipRequestCounts.get(ip);
+
+  if (!data || now - data.windowStart > SLOWDOWN_WINDOW_MS) {
+    data = { count: 1, windowStart: now };
+    ipRequestCounts.set(ip, data);
+    return next();
+  }
+
+  data.count++;
+
+  if (data.count > SLOWDOWN_THRESHHOLD) {
+    const excess = data.count - SLOWDOWN_THRESHHOLD;
+    const delay = Math.min(excess * 100, SLOWDOWN_MAX_DELAY_MS);
+    res.set('X-Slowdown-Delay', String(delay));
+    return setTimeout(() => next(), delay);
+  }
+
+  next();
+}
+
+// Genel rate limiter'ı uygula (GET + mutation için koruma)
+app.use(ipBlacklistMiddleware);
+app.use(slowdownMiddleware);
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/admin')) {
     return generalLimiter(req, res, next);
+  }
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method) && !req.path.startsWith('/admin')) {
+    return mutationLimiter(req, res, next);
   }
   return next();
 });
@@ -2989,7 +3139,15 @@ app.use((req, res, next) => {
 // Geçici e-posta sağlayıcıları (fake adresleri engellemek için)
 const tempEmailDomains = ['mailinator.com', 'tempmail.com', '10minutemail.com'];
 
-// Resend API client
+// Resend API client - with validation
+if (!process.env.RESEND_API_KEY) {
+  console.error('[startup] RESEND_API_KEY is required for email functionality. Email features will not work.');
+  console.error('[startup] Please add RESEND_API_KEY to your .env file.');
+  if (isProdRuntime) {
+    console.error('[startup] Cannot start in production without RESEND_API_KEY.');
+    process.exit(1);
+  }
+}
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 
@@ -4211,6 +4369,7 @@ db.serialize(() => {
     password TEXT,
     email_verified INTEGER DEFAULT 0,
     verification_code TEXT,
+    verification_expires_at TEXT,
     auth_provider TEXT DEFAULT 'local',
     google_id TEXT
   )`);
@@ -4522,6 +4681,7 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
   db.run('ALTER TABLE users ADD COLUMN notify_disabled INTEGER DEFAULT 1', () => {});
   db.run("ALTER TABLE users ADD COLUMN auth_provider TEXT DEFAULT 'local'", () => {});
   db.run('ALTER TABLE users ADD COLUMN google_id TEXT', () => {});
+  db.run('ALTER TABLE users ADD COLUMN google_id_hash TEXT', () => {});
   db.run('ALTER TABLE users ADD COLUMN verification_expires_at TEXT', () => {});
   db.run("ALTER TABLE users ADD COLUMN plan_tier TEXT DEFAULT 'free'", () => {});
   db.run("ALTER TABLE users ADD COLUMN plan_status TEXT DEFAULT 'active'", () => {});
@@ -4571,6 +4731,7 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_user_sessions_device_fp ON user_sessions(user_id, device_fingerprint)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)', () => {});
   db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)', () => {});
+  db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id_hash ON users(google_id_hash)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_users_plan ON users(plan_tier, plan_status, pro_expires_at)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_blocked_domains_domain ON blocked_domains(domain)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit_log(created_at)', () => {});
@@ -4716,6 +4877,9 @@ app.use('/admin', createAdminRouter(db, {
   createRateLimitStore,
   getRequestIp,
   getRequestGeoMeta,
+  blockIp,
+  unblockIp,
+  getBlockedIps,
 }));
 
 /* ----------------------
@@ -4783,7 +4947,17 @@ app.post('/api/register',
           })
           .catch((error) => {
             console.error("Mail gönderim hatası:", error);
-            res.status(500).json({ error: pickLang(uiLang, 'Təsdiqləmə e-poçtu göndərilə bilmədi.', 'Doğrulama e-postası gönderilemedi.', 'Verification email could not be sent.') });
+            console.error("Email send error details:", {
+              message: error.message || 'Unknown error',
+              statusCode: error.statusCode || 'N/A',
+              name: error.name || 'Error',
+              response: error.response || 'N/A'
+            });
+            // Delete the user record since email failed to send
+            db.run('DELETE FROM users WHERE email_hash = ?', [blindIndex(email)], (delErr) => {
+              if (delErr) console.error('Failed to cleanup user after email error:', delErr);
+            });
+            res.status(500).json({ error: pickLang(uiLang, 'Təsdiqləmə e-poçtu göndərilə bilmədi. Zəhmət olmasa bir az sonra yenidən cəhd edin.', 'Doğrulama e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin.', 'Verification email could not be sent. Please try again later.') });
           });
       });
     });
@@ -4848,6 +5022,61 @@ app.post('/api/verify-email',
             });
           });
         });
+      });
+    });
+  }
+);
+
+// Resend Verification Code (POST /api/resend-verification)
+// Allows users to request a new verification code if they didn't receive the original one
+app.post('/api/resend-verification',
+  authLimiter,
+  [
+    body('email').isEmail().withMessage('Düzgün bir e-poçt ünvanı daxil edin.').normalizeEmail().trim(),
+  ],
+  (req, res) => {
+    const uiLang = normalizeLang(req.body && req.body.lang, 'az');
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: pickLang(uiLang, 'Düzgün bir e-poçt ünvanı daxil edin.', 'Düzgün bir e-posta adresi girin.', 'Please enter a valid email address.') });
+    }
+
+    const email = (req.body.email || '').toString().trim().toLowerCase();
+
+    db.get('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(email)], (err, user) => {
+      if (err || !user) {
+        return res.status(404).json({ error: pickLang(uiLang, 'İstifadəçi tapılmadı.', 'Kullanıcı bulunamadı.', 'User not found.') });
+      }
+
+      if (user.email_verified == 1) {
+        return res.status(400).json({ error: pickLang(uiLang, 'Bu e-poçt artıq təsdiqlənib.', 'Bu e-posta zaten doğrulanmış.', 'This email is already verified.') });
+      }
+
+      // Generate new verification code
+      const rawVerificationCode = generateVerificationCode();
+      const verificationCode = encryptAES256GCM(rawVerificationCode);
+      const verificationExpiresAt = buildVerificationExpiryIso(15);
+
+      db.run('UPDATE users SET verification_code = ?, verification_expires_at = ? WHERE email_hash = ?', 
+        [verificationCode, verificationExpiresAt, blindIndex(email)], (updateErr) => {
+        if (updateErr) {
+          console.error('Failed to update verification code:', updateErr);
+          return res.status(500).json({ error: pickLang(uiLang, 'Təsdiqləmə kodu yeniləmə xətası.', 'Doğrulama kodu güncellenemedi.', 'Failed to update verification code.') });
+        }
+
+        sendVerificationEmail(decryptAES256GCM(user.email), rawVerificationCode, uiLang)
+          .then(() => {
+            res.json({ message: pickLang(uiLang, 'Yeni təsdiqləmə kodu göndərildi.', 'Yeni doğrulama kodu gönderildi.', 'New verification code sent.') });
+          })
+          .catch((error) => {
+            console.error("Resend verification email error:", error);
+            console.error("Email resend error details:", {
+              message: error.message || 'Unknown error',
+              statusCode: error.statusCode || 'N/A',
+              name: error.name || 'Error'
+            });
+            res.status(500).json({ error: pickLang(uiLang, 'Təsdiqləmə e-poçtu göndərilə bilmədi.', 'Doğrulama e-postası gönderilemedi.', 'Verification email could not be sent.') });
+          });
       });
     });
   }
@@ -5065,7 +5294,7 @@ app.get('/auth/google/callback', authLimiter, async (req, res) => {
     const googleId = claims.sub;
     const fallbackLang = normalizeLang(res.locals.defaultLang || 'az', 'az');
 
-    db.get('SELECT * FROM users WHERE google_id = ?', [googleId], (err, user) => {
+    db.get('SELECT * FROM users WHERE google_id_hash = ?', [blindIndex(googleId)], (err, user) => {
       if (err) {
         logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'db_lookup_failed' });
         return res.redirect('/login?error=google_failed');
@@ -5137,8 +5366,8 @@ app.get('/auth/google/callback', authLimiter, async (req, res) => {
           }
 
           return db.run(
-            'UPDATE users SET google_id = ?, email_verified = 1 WHERE id = ?',
-            [encryptAES256GCM(googleId), existing.id],
+            'UPDATE users SET google_id = ?, google_id_hash = ?, email_verified = 1 WHERE id = ?',
+            [encryptAES256GCM(googleId), blindIndex(googleId), existing.id],
             (updateErr) => {
               if (updateErr) {
                 logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'google_attach_failed', user_id: existing.id });
@@ -5170,8 +5399,8 @@ app.get('/auth/google/callback', authLimiter, async (req, res) => {
         const createdAt = new Date().toISOString();
         const initialLang = fallbackLang;
         db.run(
-          'INSERT INTO users (email, email_hash, password, email_verified, google_id, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, 1, 1, 1)',
-          [encryptAES256GCM(email), blindIndex(email), null, encryptAES256GCM(googleId), 'google', createdAt, initialLang, 'light'],
+          'INSERT INTO users (email, email_hash, password, email_verified, google_id, google_id_hash, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, 1, 1, 1)',
+          [encryptAES256GCM(email), blindIndex(email), null, encryptAES256GCM(googleId), blindIndex(googleId), 'google', createdAt, initialLang, 'light'],
           function (err3) {
             if (err3) {
               logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'user_create_failed' });
@@ -7407,7 +7636,7 @@ app.get('/consent/redirect/:short', (req, res) => {
   });
 });
 
-app.post('/consent/redirect/:short', (req, res) => {
+app.post('/consent/redirect/:short', sensitiveActionLimiter, (req, res) => {
   const short = normalizeShortCode(req.params.short);
   if (!short) return send404(res);
 
@@ -7557,7 +7786,7 @@ app.get('/proceed/:short', (req, res) => {
 });
 
 // Şifre doğrulama (POST /verify/:short)
-app.post('/verify/:short', (req, res) => {
+app.post('/verify/:short', sensitiveActionLimiter, (req, res) => {
   const short = normalizeShortCode(req.params.short);
   const password = (req.body.password || '').toString();
   const uiLang = normalizeLang(req.body && req.body.lang, 'az');
