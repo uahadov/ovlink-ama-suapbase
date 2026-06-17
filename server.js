@@ -7378,22 +7378,37 @@ const checkCustomDomain = (cb) => {
         return res.status(429).json({ error: limitErr });
       }
 
-      checkUserBan((banMsg) => {
-      if (banMsg) {
-        return res.status(403).json({ error: banMsg });
+      // Run ban, blocked domain, and custom domain checks in parallel
+      const parallelChecks = new Promise((resolve) => {
+        let banResult = null;
+        let blockedResult = null;
+        let domainResult = null;
+        let domainErrResult = null;
+        let done = 0;
+        const total = 3;
+        const checkDone = () => { if (++done >= total) resolve({ banResult, blockedResult, domainResult, domainErrResult }); };
+
+        checkUserBan((banMsg) => { banResult = banMsg; checkDone(); });
+        checkBlockedDomain((blocked) => { blockedResult = blocked; checkDone(); });
+        checkCustomDomain((dErr, dSel) => { domainErrResult = dErr; domainResult = dSel; checkDone(); });
+      });
+
+      parallelChecks.then(({ banResult, blockedResult, domainResult, domainErrResult }) => {
+      if (banResult) {
+        return res.status(403).json({ error: banResult });
       }
 
-      checkBlockedDomain((blockedDomain) => {
-        if (blockedDomain) {
+      if (blockedResult) {
           return res.status(403).json({
             error: pickLang(uiLang, 'Bu domen bloklanıb. Bu linki qısaltmaq mümkün deyil.', 'Bu alan adı engellendi. Bu link kısaltılamaz.', 'This domain is blocked. This link cannot be shortened.')
           });
         }
 
-        checkCustomDomain((domainErr, selectedDomain) => {
-          if (domainErr) {
-            return res.status(400).json({ error: domainErr });
+        if (domainErrResult) {
+            return res.status(400).json({ error: domainErrResult });
           }
+
+          const selectedDomain = domainResult;
 
           let short = "";
           if (customLink && customLink.trim() !== "") {
@@ -7458,10 +7473,8 @@ const checkCustomDomain = (cb) => {
               }
             );
           }
-        });
       });
     });
-  });
   });
 
 // 404 Xəta Səhifəsi
