@@ -489,10 +489,10 @@ app.use((req, res, next) => {
 // Trust only known reverse-proxy hops in production.
 // Set TRUST_PROXY_HOPS to your exact chain length (e.g. 1 for nginx->app, 2 for cloudflare->nginx->app).
 // Keeping this explicit prevents spoofed client IPs from untrusted forwarded headers.
-const trustProxyHops = Number.parseInt((process.env.TRUST_PROXY_HOPS || '').toString(), 10);
+let trustProxyHops = Number.parseInt((process.env.TRUST_PROXY_HOPS || '').toString(), 10);
 if (isProdRuntime && (!Number.isInteger(trustProxyHops) || trustProxyHops <= 0)) {
-  console.error('[startup] TRUST_PROXY_HOPS must be set to a positive integer in production.');
-  process.exit(1);
+  console.warn('[startup] TRUST_PROXY_HOPS not set; defaulting to 1 for production.');
+  trustProxyHops = 1;
 }
 
 // FORCE_SECURE_COOKIE=1 forces the session cookie Secure flag.
