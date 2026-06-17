@@ -25,8 +25,55 @@ const isProdRuntime = process.env.NODE_ENV === 'production';
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL || process.env.SUPABASE_DB_URL,
-  ssl: (process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || '').includes('localhost') ? false : { rejectUnauthorized: false }
+  ssl: (process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || '').includes('localhost') ? false : { rejectUnauthorized: false },
+  max: 15,
+  min: 5,
+  idleTimeoutMillis: 60000,
+  connectionTimeoutMillis: 10000,
+  statement_timeout: 20000,
+  query_timeout: 20000
 });
+
+// ============ SIMPLE IN-MEMORY CACHE ============
+class SimpleCache {
+  constructor(maxSize = 1000, defaultTTL = 300000) { // TTL: 5 minutes
+    this.cache = new Map();
+    this.maxSize = maxSize;
+    this.defaultTTL = defaultTTL;
+  }
+  
+  get(key) {
+    const item = this.cache.get(key);
+    if (!item) return null;
+    if (Date.now() > item.expiry) {
+      this.cache.delete(key);
+      return null;
+    }
+    return item.value;
+  }
+  
+  set(key, value, ttlMs) {
+    if (this.cache.size >= this.maxSize) {
+      // Remove oldest (first in Map)
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    this.cache.set(key, {
+      value,
+      expiry: Date.now() + (ttlMs || this.defaultTTL)
+    });
+  }
+  
+  invalidate(key) {
+    this.cache.delete(key);
+  }
+  
+  invalidateAll() {
+    this.cache.clear();
+  }
+}
+
+const memoryCache = new SimpleCache(1000, 300000); // 5 min TTL
 
 const db = {
   convertSql(sql) {
@@ -1389,28 +1436,22 @@ function isBcryptHash(value) {
   return /^\$2[abxy]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(text);
 }
 
-async function hashLinkPassword(plainPassword) {
-  const text = (plainPassword || '').toString();
-  if (!text) return '';
-  try {
-    return await bcrypt.hash(text, 10);
-  } catch {
-    return '';
-  }
+async function bcryptHash(password, saltRounds = 10) {
+  return new Promise((resolve, reject) => {
+    bcrypt.hash(password, saltRounds, (err, hash) => {
+      if (err) return reject(err);
+      resolve(hash);
+    });
+  });
 }
 
-async function verifyLinkPassword(storedValue, candidateValue) {
-  const stored = (storedValue || '').toString();
-  const candidate = (candidateValue || '').toString();
-  if (!stored) return false;
-  if (isBcryptHash(stored)) {
-    try {
-      return await bcrypt.compare(candidate, stored);
-    } catch {
-      return false;
-    }
-  }
-  return tsscmp(stored, candidate);
+async function bcryptCompare(password, hashed) {
+  return new Promise((resolve, reject) => {
+    bcrypt.compare(password, hashed, (err, ok) => {
+      if (err) return reject(err);
+      resolve(ok);
+    });
+  });
 }
 
 function getSafeHostHeader(req) {
@@ -3139,7 +3180,18 @@ app.use((req, res, next) => {
 // Geçici e-posta sağlayıcıları (fake adresleri engellemek için)
 const tempEmailDomains = ['mailinator.com', 'tempmail.com', '10minutemail.com'];
 
-// SMTP email transporter (Spaceship Mail)
+// Email provider: Resend (primary) with SMTP fallback
+let resendClient = null;
+if (process.env.RESEND_API_KEY) {
+  try {
+    const { Resend } = require('resend');
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+    console.log('[startup] Email provider: Resend API');
+  } catch {
+    console.warn('[startup] Resend package not available, falling back to SMTP.');
+  }
+}
+
 const emailTransporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'mail.spaceship.com',
   port: Number(process.env.SMTP_PORT) || 465,
@@ -3150,9 +3202,26 @@ const emailTransporter = nodemailer.createTransport({
   },
 });
 
-function sendMail({ to, subject, html, text }) {
+const SMTP_FROM = process.env.FROM_EMAIL || 'Ovlink <verify@ovlink.sbs>';
+const RESEND_FROM = process.env.RESEND_FROM || 'Ovlink <verify@ovlink.sbs>';
+
+async function sendMail({ to, subject, html, text }) {
+  if (resendClient) {
+    try {
+      await resendClient.emails.send({
+        from: RESEND_FROM,
+        to: [to],
+        subject,
+        html,
+        text,
+      });
+      return;
+    } catch (resendErr) {
+      console.error('[email] Resend failed, trying SMTP fallback:', resendErr.message);
+    }
+  }
   return emailTransporter.sendMail({
-    from: process.env.FROM_EMAIL || 'Ovlink <verify@ovlink.sbs>',
+    from: SMTP_FROM,
     to,
     subject,
     html,
@@ -6751,7 +6820,7 @@ const handleListDomains = (req, res) => {
   }
 
   db.all(
-    'SELECT id, domain, status, verification_token, created_at, verified_at, last_checked_at, routing_ok FROM custom_domains WHERE user_id = ? ORDER BY datetime(created_at) DESC',
+    'SELECT id, domain, status, verification_token, created_at, verified_at, last_checked_at, routing_ok FROM custom_domains WHERE user_id = ? ORDER BY created_at DESC',
     [req.session.userId],
     (err, rows) => {
       if (err) {
@@ -7144,7 +7213,7 @@ app.get('/api/notifications', (req, res) => {
     'FROM notifications n ' +
     'LEFT JOIN urls u ON u.short = n.link_short ' +
     'WHERE n.user_id = ? ' +
-    'ORDER BY datetime(n.created_at) DESC LIMIT 50',
+    'ORDER BY n.created_at DESC LIMIT 50',
     [req.session.userId],
     (err, rows) => {
       if (err) return res.status(500).json({ notifications: [] });
@@ -7378,37 +7447,46 @@ const checkCustomDomain = (cb) => {
         return res.status(429).json({ error: limitErr });
       }
 
-      // Run ban, blocked domain, and custom domain checks in parallel
-      const parallelChecks = new Promise((resolve) => {
-        let banResult = null;
-        let blockedResult = null;
-        let domainResult = null;
-        let domainErrResult = null;
-        let done = 0;
-        const total = 3;
-        const checkDone = () => { if (++done >= total) resolve({ banResult, blockedResult, domainResult, domainErrResult }); };
-
-        checkUserBan((banMsg) => { banResult = banMsg; checkDone(); });
-        checkBlockedDomain((blocked) => { blockedResult = blocked; checkDone(); });
-        checkCustomDomain((dErr, dSel) => { domainErrResult = dErr; domainResult = dSel; checkDone(); });
-      });
-
-      parallelChecks.then(({ banResult, blockedResult, domainResult, domainErrResult }) => {
-      if (banResult) {
-        return res.status(403).json({ error: banResult });
-      }
-
-      if (blockedResult) {
+      // Run user ban and blocked domain checks in parallel
+      Promise.all([
+        new Promise((resolve) => {
+          if (isGuest || !ownerId) return resolve(null);
+          db.get('SELECT banned, ban_until, ban_reason FROM users WHERE id = ?', [ownerId], (uErr, uRow) => {
+            if (uErr || !uRow) return resolve(null);
+            if (uRow.banned == 1 && uRow.ban_until) {
+              const untilMs = Date.parse(uRow.ban_until);
+              if (!Number.isNaN(untilMs) && untilMs <= Date.now()) {
+                db.run('UPDATE users SET banned = 0, ban_until = NULL, ban_reason = NULL, ban_set_at = NULL, ban_set_by_admin_id = NULL WHERE id = ?', [req.session.userId], () => {});
+                uRow.banned = 0;
+              }
+            }
+            const banActive = (uRow.banned == 1) && (!uRow.ban_until || (Date.parse(uRow.ban_until) > Date.now()));
+            if (!banActive) return resolve(null);
+            const msg = buildBanMessage(uiLang, uRow.ban_until, uRow.ban_reason);
+            resolve(msg);
+          });
+        }),
+        new Promise((resolve) => {
+          if (!hostname) return resolve(null);
+          db.get("SELECT domain FROM blocked_domains WHERE ? = domain OR ? LIKE '%.' || domain LIMIT 1", [hostname, hostname], (err, row) => {
+            resolve(err ? null : (row ? row.domain : null));
+          });
+        })
+      ]).then(([banResult, blockedResult]) => {
+        if (banResult) {
+          return res.status(403).json({ error: banResult });
+        }
+        if (blockedResult) {
           return res.status(403).json({
-            error: pickLang(uiLang, 'Bu domen bloklanıb. Bu linki qısaltmaq mümkün deyil.', 'Bu alan adı engellendi. Bu link kısaltılamaz.', 'This domain is blocked. This link cannot be shortened.')
+            error: pickLang(uiLang,'Bu domen bloklanıb. Bu linki qısaltmaq mümkün deyil.','Bu alan adı engellendi. Bu link kısaltılamaz.','This domain is blocked. This link cannot be shortened.')
           });
         }
 
-        if (domainErrResult) {
-            return res.status(400).json({ error: domainErrResult });
+        // Check custom domain (needs ban and blocked domain to pass first)
+        checkCustomDomain((domainErr, selectedDomain) => {
+          if (domainErr) {
+            return res.status(400).json({ error: domainErr });
           }
-
-          const selectedDomain = domainResult;
 
           let short = "";
           if (customLink && customLink.trim() !== "") {
