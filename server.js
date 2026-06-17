@@ -7554,6 +7554,7 @@ const checkCustomDomain = (cb) => {
       });
     });
   });
+});
 
 // 404 Xəta Səhifəsi
 function send404(res) {
