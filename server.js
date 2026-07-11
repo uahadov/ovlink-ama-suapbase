@@ -7753,15 +7753,7 @@ app.post('/consent/redirect/:short', sensitiveActionLimiter, (req, res) => {
     return res.redirect(303, `/consent/redirect/${encodeURIComponent(short)}?${q}`);
   }
 
-  const readyAt = Number.parseInt((req.body && req.body.ready_at) || '', 10);
-  const readySig = (req.body && req.body.ready_sig) || '';
-  const now = Date.now();
-  const isSignatureValid = isRedirectConsentSignatureValid(short, nextAction, readyAt, readySig);
-  const isTimestampValid = Number.isFinite(readyAt) && readyAt <= now && readyAt >= (now - REDIRECT_CONSENT_MAX_TOKEN_AGE_MS);
-  if (!isSignatureValid || !isTimestampValid) {
-    const q = new URLSearchParams({ next: nextAction, too_early: '1' }).toString();
-    return res.redirect(303, `/consent/redirect/${encodeURIComponent(short)}?${q}`);
-  }
+  // Countdown removed — no timestamp/signature validation needed
 
   db.get('SELECT id, domain_host FROM urls WHERE short = ?', [short], (err, row) => {
     if (err) return res.status(500).send('Server error.');

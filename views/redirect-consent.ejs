@@ -88,17 +88,11 @@
             </a>
           </div>
         <% } else { %>
-          <% if (tooEarly) { %>
-            <div class="alert alert-info mb-3" data-i18n="consent_gate_wait_error">Please wait for the countdown before continuing.</div>
-          <% } %>
-          <div class="consent-countdown text-center mb-3" id="countdownText" data-i18n="consent_gate_continue_in">Continue in {s}s</div>
           <div class="consent-actions d-flex flex-wrap gap-2 justify-content-center">
             <form method="POST" action="/consent/redirect/<%= encodeURIComponent(shortCode) %>">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
               <input type="hidden" name="next" value="<%= nextAction %>" />
-              <input type="hidden" name="ready_at" value="<%= countdownReadyAt %>" />
-              <input type="hidden" name="ready_sig" value="<%= countdownReadySig %>" />
-              <button type="submit" id="consentContinueBtn" name="decision" value="continue" class="btn btn-primary rounded-pill px-4" disabled>
+              <button type="submit" id="consentContinueBtn" name="decision" value="continue" class="btn btn-primary rounded-pill px-4 btn-animated">
                 <i class="fa-solid fa-check me-2"></i>
                 <span data-i18n="consent_gate_yes">YES (Continue)</span>
               </button>
@@ -129,8 +123,6 @@
       const body = document.body;
       const themeBtn = document.getElementById('themeToggleBtn');
       const icon = themeBtn ? themeBtn.querySelector('i') : null;
-      const continueBtn = document.getElementById('consentContinueBtn');
-      const countdownText = document.getElementById('countdownText');
 
       function syncThemeIcon() {
         if (!icon) return;
@@ -151,42 +143,6 @@
         themeBtn.addEventListener('click', function () {
           setTimeout(syncThemeIcon, 0);
         });
-      }
-
-      if (continueBtn && countdownText) {
-        const countdownMsRaw = Number.parseInt('<%= countdownDurationMs %>', 10);
-        const countdownMs = Number.isFinite(countdownMsRaw) && countdownMsRaw > 0 ? countdownMsRaw : 1000;
-        const deadline = Date.now() + countdownMs;
-
-        const renderReady = () => {
-          continueBtn.disabled = false;
-          countdownText.textContent = tr('consent_gate_continue_ready', 'You can continue now.');
-        };
-
-        const renderCountdown = () => {
-          const remainingMs = Math.max(0, deadline - Date.now());
-          const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
-
-          if (remainingSec <= 0) {
-            renderReady();
-            return;
-          }
-
-          const template = tr('consent_gate_continue_in', 'Continue in {s}s');
-          countdownText.textContent = template.replace('{s}', String(remainingSec));
-        };
-
-        renderCountdown();
-
-        const timer = setInterval(() => {
-          const remainingMs = deadline - Date.now();
-          if (remainingMs <= 0) {
-            clearInterval(timer);
-            renderReady();
-            return;
-          }
-          renderCountdown();
-        }, 250);
       }
     })();
   </script>
