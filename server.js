@@ -9250,7 +9250,10 @@ app.use((err, req, res, next) => {
 if (require.main === module) {
   (async () => {
     await ensureRedisConnected();
-    app.listen(PORT, () => {});
+    const host = process.env.IP || '::';
+    app.listen(PORT, host, () => {
+      console.log(`Server listening on ${host}:${PORT}`);
+    });
   })().catch((err) => {
     console.error('[startup] fatal error before listen', err && (err.message || err));
     process.exit(1);
