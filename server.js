@@ -2906,7 +2906,7 @@ app.use(helmet({
       baseUri: ["'self'"],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
-      formAction: ["'self'"],
+      formAction: ["*"],
       scriptSrc: [
         "'self'",
         (req, res) => `'nonce-${res.locals.nonce}'`,
