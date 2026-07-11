@@ -3493,7 +3493,7 @@ function sendNewDeviceLoginEmailForUser(userId, details = {}) {
 }
 
 // Middleware
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '100kb', verify: (req, _res, buf) => { req.rawBody = buf.toString(); } }));
 app.use(express.urlencoded({ extended: false, limit: '100kb', parameterLimit: 100 }));
 const sessionCookieSecure = forceSecureCookie ? true : 'auto';
 const sessionOptions = {
@@ -4869,11 +4869,45 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
     'blocked_domains', 'admin_audit_log', 'admin_auth_audit', 'guest_limits',
     'custom_domains', 'user_sessions', 'api_keys', 'webhooks', 'webhook_deliveries',
     'subscription_audit', 'security_events', 'api_idempotency_keys', 'api_usage_logs',
-    'notifications', 'password_resets'
+    'notifications', 'password_resets', 'bot_users', 'bot_settings', 'bot_auth_codes'
   ];
   allTablesForRls.forEach(t => {
     db.run(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`, () => {});
   });
+
+  // Bot integration tables
+  db.run(`CREATE TABLE IF NOT EXISTS bot_users (
+    id SERIAL PRIMARY KEY,
+    platform TEXT NOT NULL,
+    platform_user_id TEXT NOT NULL,
+    platform_username TEXT,
+    user_id INTEGER NOT NULL,
+    linked_at TEXT NOT NULL,
+    UNIQUE(platform, platform_user_id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  )`, () => {});
+  db.run('CREATE INDEX IF NOT EXISTS idx_bot_users_platform ON bot_users(platform, platform_user_id)', () => {});
+  db.run('CREATE INDEX IF NOT EXISTS idx_bot_users_user_id ON bot_users(user_id)', () => {});
+
+  db.run(`CREATE TABLE IF NOT EXISTS bot_settings (
+    id SERIAL PRIMARY KEY,
+    platform TEXT NOT NULL,
+    platform_user_id TEXT NOT NULL,
+    language TEXT NOT NULL DEFAULT 'en',
+    UNIQUE(platform, platform_user_id)
+  )`, () => {});
+  db.run('CREATE INDEX IF NOT EXISTS idx_bot_settings_platform ON bot_settings(platform, platform_user_id)', () => {});
+
+  db.run(`CREATE TABLE IF NOT EXISTS bot_auth_codes (
+    id SERIAL PRIMARY KEY,
+    code TEXT NOT NULL UNIQUE,
+    platform TEXT NOT NULL,
+    platform_user_id TEXT NOT NULL,
+    platform_username TEXT,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`, () => {});
+  db.run('CREATE INDEX IF NOT EXISTS idx_bot_auth_codes_code ON bot_auth_codes(code)', () => {});
 
   db.run('CREATE INDEX IF NOT EXISTS idx_password_resets_user_id ON password_resets(user_id)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token_hash)', () => {});
@@ -4933,6 +4967,151 @@ scheduleSecurityEventPurge();
 scheduleApiIdempotencyPurge();
 scheduleApiUsageLogPurge();
 void resumePendingWebhookDeliveries();
+
+// ========================
+// BOT INTEGRATIONS (Telegram + Discord)
+// ========================
+
+const botOptions = {
+  buildShortUrl,
+  ensureAbsoluteUrl,
+  generateSafeShortCode,
+  isProAccessActive,
+  normalizeLang,
+  pickLang,
+  logSecurityEvent,
+};
+
+let telegramBot = null;
+let discordBot = null;
+
+try {
+  const { createTelegramBot } = require('./bots/telegram');
+  telegramBot = createTelegramBot(db, botOptions);
+  if (telegramBot.isEnabled) {
+    console.log('[startup] Telegram bot enabled.');
+  } else {
+    console.log('[startup] Telegram bot disabled (no token).');
+  }
+} catch (err) {
+  console.warn('[startup] Telegram bot init failed:', err.message);
+}
+
+try {
+  const { createDiscordBot } = require('./bots/discord');
+  discordBot = createDiscordBot(db, botOptions);
+  if (discordBot.isEnabled) {
+    console.log('[startup] Discord bot enabled.');
+  } else {
+    console.log('[startup] Discord bot disabled (no token).');
+  }
+} catch (err) {
+  console.warn('[startup] Discord bot init failed:', err.message);
+}
+
+// Set Telegram webhook on startup
+(async () => {
+  if (telegramBot && telegramBot.isEnabled) {
+    const webhookUrl = (process.env.PUBLIC_BASE_URL || process.env.BASE_URL || '').replace(/\/+$/, '') + '/api/bots/telegram/webhook';
+    try {
+      await telegramBot.setWebhook(webhookUrl);
+      console.log('[startup] Telegram webhook set:', webhookUrl);
+    } catch (err) {
+      console.error('[startup] Telegram setWebhook failed:', err.message);
+    }
+  }
+})();
+
+// Telegram webhook endpoint
+app.post('/api/bots/telegram/webhook', express.json(), (req, res) => {
+  if (!telegramBot || !telegramBot.isEnabled) return res.status(404).json({ error: 'Not found' });
+  try {
+    telegramBot.processUpdate(req.body);
+  } catch (err) {
+    console.error('[telegram-bot] webhook error:', err.message);
+  }
+  res.json({ ok: true });
+});
+
+// Discord interactions endpoint (slash commands)
+app.post('/api/bots/discord/interactions', async (req, res) => {
+  if (!discordBot || !discordBot.isEnabled) return res.status(404).json({ error: 'Not found' });
+
+  const signature = req.get('X-Signature-Ed25519');
+  const timestamp = req.get('X-Signature-Timestamp');
+
+  if (!signature || !timestamp || !discordBot.verifySignature(signature, timestamp, req.rawBody)) {
+    console.error('[discord-bot] Signature verification failed or missing headers.');
+    return res.status(401).end('invalid request signature');
+  }
+
+  let body = req.body;
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body);
+    } catch (e) {
+      console.error('[discord-bot] Failed to parse JSON body:', e.message);
+      return res.status(400).json({ error: 'invalid json' });
+    }
+  }
+
+  if (body && body.type === 1) {
+    return res.json({ type: 1 });
+  }
+
+  const response = await discordBot.handleInteraction(body);
+  res.json(response);
+});
+
+// Deep-link bot authorization page
+app.get('/bot/auth', (req, res) => {
+  const platform = (req.query.platform || '').toString().trim();
+  const platformUserId = (req.query.id || '').toString().trim();
+  const platformUsername = (req.query.name || '').toString().trim();
+
+  if (!platform || !platformUserId || !['telegram', 'discord'].includes(platform)) {
+    return res.status(400).render('error-disabled', { csrfToken: res.locals._csrf, reason: 'Geçersiz parametreler.' });
+  }
+
+  // If user is logged in, auto-link immediately
+  if (req.session && req.session.userId) {
+    const botShared = require('./bots/shared').createBotShared(db, botOptions);
+    botShared.linkBotUser(platform, platformUserId, platformUsername, req.session.userId).then((ok) => {
+      if (ok) {
+        logSecurityEvent(req, `bot.${platform}.link`, 'success', { user_id: req.session.userId });
+        return res.send(`<html><body><h2>✅ Account connected successfully!</h2><p>You can now close this page and return to ${platform === 'telegram' ? 'Telegram' : 'Discord'}.</p></body></html>`);
+      }
+      return res.send(`<html><body><h2>❌ Could not connect account.</h2><p>Please try again.</p></body></html>`);
+    });
+    return;
+  }
+
+  // Not logged in → store pending auth in session, redirect to login
+  req.session.pendingBotAuth = { platform, platformUserId, platformUsername, createdAt: Date.now() };
+  req.session.save(() => {
+    res.redirect('/login?redirect=/bot/auth/complete');
+  });
+});
+
+// Complete bot auth after login
+app.get('/bot/auth/complete', requireSignedIn, (req, res) => {
+  const pending = req.session.pendingBotAuth;
+  if (!pending || Date.now() - pending.createdAt > 5 * 60 * 1000) {
+    return res.send(`<html><body><h2>❌ Session expired.</h2><p>Please try again from your bot.</p></body></html>`);
+  }
+
+  delete req.session.pendingBotAuth;
+  const botShared = require('./bots/shared').createBotShared(db, botOptions);
+
+  botShared.linkBotUser(pending.platform, pending.platformUserId, pending.platformUsername, req.session.userId).then((ok) => {
+    if (ok) {
+      logSecurityEvent(req, `bot.${pending.platform}.link`, 'success', { user_id: req.session.userId });
+      return res.send(`<html><body><h2>✅ Account connected!</h2><p>You can now close this page and return to ${pending.platform === 'telegram' ? 'Telegram' : 'Discord'}.</p></body></html>`);
+    }
+    return res.send(`<html><body><h2>❌ Could not connect account.</h2><p>Please try again.</p></body></html>`);
+  });
+});
+
 
 // New secure admin system (replaces all old hidden admin panels)
 // Serve /admin directly to avoid an extra 301 hop (/admin -> /admin/),
