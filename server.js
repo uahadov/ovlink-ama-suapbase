@@ -7924,12 +7924,20 @@ app.post('/consent/redirect/:short', sensitiveActionLimiter, (req, res) => {
     clearRedirectConsentSession(req);
     clearRedirectConsentMode(res);
     const q = new URLSearchParams({ next: nextAction, view: 'declined' }).toString();
-    return res.redirect(303, `/consent/redirect/${encodeURIComponent(short)}?${q}`);
+    const target = `/consent/redirect/${encodeURIComponent(short)}?${q}`;
+    if (req.session) {
+      return req.session.save(() => res.redirect(303, target));
+    }
+    return res.redirect(303, target);
   }
 
   if (decision !== 'continue') {
     const q = new URLSearchParams({ next: nextAction }).toString();
-    return res.redirect(303, `/consent/redirect/${encodeURIComponent(short)}?${q}`);
+    const target = `/consent/redirect/${encodeURIComponent(short)}?${q}`;
+    if (req.session) {
+      return req.session.save(() => res.redirect(303, target));
+    }
+    return res.redirect(303, target);
   }
 
   // Countdown removed — no timestamp/signature validation needed
@@ -7951,7 +7959,12 @@ app.post('/consent/redirect/:short', sensitiveActionLimiter, (req, res) => {
 
     setRedirectConsentSession(req, short, nextAction, REDIRECT_CONSENT_MODES.ANALYTICS);
     setRedirectConsentMode(res, REDIRECT_CONSENT_MODES.ANALYTICS);
-    return res.redirect(303, getConsentResumePath(short, nextAction));
+    
+    const target = getConsentResumePath(short, nextAction);
+    if (req.session) {
+      return req.session.save(() => res.redirect(303, target));
+    }
+    return res.redirect(303, target);
   });
 });
 
