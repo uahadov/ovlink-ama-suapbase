@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test test/**/*.test.js",
-    "check:syntax": "node --check server.js routes/admin.js routes/auth.js public/script.js public/lang.js",
+    "check:syntax": "node --check server.js routes/admin.js public/script.js public/lang.js",
     "check:security": "npm audit --omit=dev",
     "check:release": "npm test && npm run check:syntax && npm run check:security",
     "test:email": "node test-email.js",

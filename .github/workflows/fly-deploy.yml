@@ -17,7 +17,7 @@ jobs:
           cache: "npm"
       - run: npm ci
       - run: npm test
-      - run: node --check server.js routes/admin.js routes/auth.js public/script.js public/lang.js
+      - run: node --check server.js routes/admin.js public/script.js public/lang.js
       - run: npm audit --omit=dev
 
   deploy:
