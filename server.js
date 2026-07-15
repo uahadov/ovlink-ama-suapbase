@@ -25,12 +25,12 @@ const isProdRuntime = process.env.NODE_ENV === 'production';
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL || process.env.SUPABASE_DB_URL,
   ssl: (process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || '').includes('localhost') ? false : { rejectUnauthorized: false },
-  max: 15,
-  min: 5,
-  idleTimeoutMillis: 60000,
-  connectionTimeoutMillis: 10000,
-  statement_timeout: 20000,
-  query_timeout: 20000
+  max: 20,
+  min: 3,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+  statement_timeout: 10000,
+  query_timeout: 10000
 });
 
 // ============ SIMPLE IN-MEMORY CACHE ============
@@ -74,9 +74,18 @@ class SimpleCache {
 
 const memoryCache = new SimpleCache(1000, 300000); // 5 min TTL
 
+// SQL conversion cache - avoid repeated regex processing
+const _sqlCache = new Map();
+const _SQL_CACHE_MAX = 500;
+
 const db = {
   convertSql(sql) {
     if (typeof sql !== 'string') return sql;
+    
+    // Check cache first
+    const cached = _sqlCache.get(sql);
+    if (cached !== undefined) return cached;
+    
     let index = 1;
     let converted = sql.replace(/\?/g, () => `$${index++}`);
     converted = converted.replace(/INTEGER PRIMARY KEY AUTOINCREMENT/gi, 'SERIAL PRIMARY KEY');
@@ -120,6 +129,13 @@ const db = {
         converted = converted.replace(/INSERT OR REPLACE INTO/gi, 'INSERT INTO');
       }
     }
+    
+    // Cache the result
+    if (_sqlCache.size >= _SQL_CACHE_MAX) {
+      const firstKey = _sqlCache.keys().next().value;
+      _sqlCache.delete(firstKey);
+    }
+    _sqlCache.set(sql, converted);
     
     return converted;
   },
