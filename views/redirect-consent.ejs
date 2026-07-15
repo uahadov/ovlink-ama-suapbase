@@ -143,14 +143,15 @@
         body.append('next', nextAction);
         body.append('decision', decision);
 
+        // Use redirect: 'manual' so fetch doesn't follow the 303 redirect chain.
+        // The consent cookie is set in the response headers, so we can navigate immediately.
         fetch(consentUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: body.toString(),
-          redirect: 'follow'
+          redirect: 'manual'
         }).then(function (resp) {
-          // Server returns 303 redirect to the target URL.
-          // After consent is set, navigate to the short URL which will now redirect directly.
+          // Cookie is now set. Navigate to the short URL which will redirect to target.
           var targetPath = nextAction === 'proceed'
             ? '/proceed/' + encodeURIComponent(shortCode)
             : '/' + encodeURIComponent(shortCode);
