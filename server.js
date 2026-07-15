@@ -7768,6 +7768,12 @@ function send404(res) {
 // Mərkəzləşdirilmiş Yönləndirmə Məntiqi
 function handleRedirection(req, res, row, passwordVerified = false) {
   const short = row.short;
+  const consentState = getRedirectConsentModeForRequest(req, short, 'redirect');
+  const consentMode = consentState.mode;
+
+  if (!consentMode) {
+    return res.redirect(302, `/consent/redirect/${encodeURIComponent(short)}`);
+  }
 
   // 1. Bitmə Tarixi Kontrolü
   if (isIsoTimeExpired(row.expires_at)) {
@@ -8024,6 +8030,13 @@ app.get('/proceed/:short', (req, res) => {
       return send404(res);
     }
 
+    const consentState = getRedirectConsentModeForRequest(req, short, 'proceed');
+    const consentMode = consentState.mode;
+    if (!consentMode) {
+      const q = new URLSearchParams({ next: 'proceed' }).toString();
+      return res.redirect(303, `/consent/redirect/${encodeURIComponent(short)}?${q}`);
+    }
+
     if (row.link_password) {
       const seo = buildSeo(req, {
         path: `/proceed/${encodeURIComponent(short)}`,
@@ -8041,7 +8054,10 @@ app.get('/proceed/:short', (req, res) => {
         seo,
       });
     } else {
-      recordClickEvent(req, row, REDIRECT_CONSENT_MODES.ANALYTICS);
+      recordClickEvent(req, row, consentMode);
+      if (consentState.source === 'session') {
+        clearRedirectConsentSession(req);
+      }
       const targetUrl = ensureAbsoluteUrl(row.original);
       if (!targetUrl) return send404(res);
       res.redirect(targetUrl);

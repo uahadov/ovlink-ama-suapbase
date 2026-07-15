@@ -89,23 +89,15 @@
           </div>
         <% } else { %>
           <div class="consent-actions d-flex flex-wrap gap-2 justify-content-center">
-            <form method="POST" action="/consent/redirect/<%= encodeURIComponent(shortCode) %>">
-              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-              <input type="hidden" name="next" value="<%= nextAction %>" />
-              <button type="submit" id="consentContinueBtn" name="decision" value="continue" class="btn btn-primary rounded-pill px-4 btn-animated">
-                <i class="fa-solid fa-check me-2"></i>
-                <span data-i18n="consent_gate_yes">YES (Continue)</span>
-              </button>
-            </form>
+            <button type="button" id="consentContinueBtn" class="btn btn-primary rounded-pill px-4 btn-animated">
+              <i class="fa-solid fa-check me-2"></i>
+              <span data-i18n="consent_gate_yes">YES (Continue)</span>
+            </button>
 
-            <form method="POST" action="/consent/redirect/<%= encodeURIComponent(shortCode) %>">
-              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-              <input type="hidden" name="next" value="<%= nextAction %>" />
-              <button type="submit" name="decision" value="no" class="btn btn-outline-secondary rounded-pill px-4 btn-animated">
-                <i class="fa-solid fa-xmark me-2"></i>
-                <span data-i18n="consent_gate_no">NO (Decline)</span>
-              </button>
-            </form>
+            <button type="button" id="consentDeclineBtn" class="btn btn-outline-secondary rounded-pill px-4 btn-animated">
+              <i class="fa-solid fa-xmark me-2"></i>
+              <span data-i18n="consent_gate_no">NO (Decline)</span>
+            </button>
           </div>
         <% } %>
       </div>
@@ -119,23 +111,15 @@
   <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
   <script nonce="<%= nonce %>">
     (function () {
-      const root = document.documentElement;
-      const body = document.body;
-      const themeBtn = document.getElementById('themeToggleBtn');
-      const icon = themeBtn ? themeBtn.querySelector('i') : null;
+      var root = document.documentElement;
+      var body = document.body;
+      var themeBtn = document.getElementById('themeToggleBtn');
+      var icon = themeBtn ? themeBtn.querySelector('i') : null;
 
       function syncThemeIcon() {
         if (!icon) return;
-        const isDark = root.classList.contains('dark-mode') || body.classList.contains('dark-mode');
+        var isDark = root.classList.contains('dark-mode') || body.classList.contains('dark-mode');
         icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-      }
-
-      function tr(key, fallback) {
-        try {
-          return (translations[currentLang] && translations[currentLang][key]) || fallback;
-        } catch {
-          return fallback;
-        }
       }
 
       syncThemeIcon();
@@ -144,8 +128,55 @@
           setTimeout(syncThemeIcon, 0);
         });
       }
+
+      // Consent buttons - use fetch() instead of form submit to bypass CSP form-action
+      var shortCode = '<%= shortCode %>';
+      var consentUrl = '/consent/redirect/' + encodeURIComponent(shortCode);
+      var csrfToken = '<%= csrfToken %>';
+      var nextAction = '<%= nextAction %>';
+      var continueBtn = document.getElementById('consentContinueBtn');
+      var declineBtn = document.getElementById('consentDeclineBtn');
+
+      function submitConsent(decision) {
+        var body = new URLSearchParams();
+        body.append('_csrf', csrfToken);
+        body.append('next', nextAction);
+        body.append('decision', decision);
+
+        fetch(consentUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: body.toString(),
+          redirect: 'follow'
+        }).then(function (resp) {
+          // Server returns 303 redirect to the target URL.
+          // After consent is set, navigate to the short URL which will now redirect directly.
+          var targetPath = nextAction === 'proceed'
+            ? '/proceed/' + encodeURIComponent(shortCode)
+            : '/' + encodeURIComponent(shortCode);
+          window.location.href = targetPath;
+        }).catch(function () {
+          // Fallback: navigate to the short URL directly
+          window.location.href = '/' + encodeURIComponent(shortCode);
+        });
+      }
+
+      if (continueBtn) {
+        continueBtn.addEventListener('click', function () {
+          continueBtn.disabled = true;
+          if (declineBtn) declineBtn.disabled = true;
+          submitConsent('continue');
+        });
+      }
+
+      if (declineBtn) {
+        declineBtn.addEventListener('click', function () {
+          declineBtn.disabled = true;
+          if (continueBtn) continueBtn.disabled = true;
+          submitConsent('no');
+        });
+      }
     })();
   </script>
 </body>
 </html>
-
