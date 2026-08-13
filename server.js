@@ -5050,21 +5050,45 @@ try {
   console.warn('[startup] Discord bot init failed:', err.message);
 }
 
-// Set Telegram webhook on startup
+// Set Telegram webhook on startup.
+// Telegram only accepts an absolute, publicly reachable URL. Do not call
+// setWebhook with a relative path when BASE_URL is missing or malformed.
 (async () => {
-  if (telegramBot && telegramBot.isEnabled) {
-    const webhookUrl = (process.env.PUBLIC_BASE_URL || process.env.BASE_URL || '').replace(/\/+$/, '') + '/api/bots/telegram/webhook';
-    try {
-      await telegramBot.setWebhook(webhookUrl, TELEGRAM_WEBHOOK_SECRET_TOKEN);
-      console.log('[startup] Telegram webhook set:', webhookUrl);
-    } catch (err) {
-      console.error('[startup] Telegram setWebhook failed:', err.message);
+  if (!telegramBot || !telegramBot.isEnabled) return;
+
+  const configuredBaseUrl = (process.env.PUBLIC_BASE_URL || process.env.BASE_URL || '').trim().replace(/\/+$/, '');
+  if (!configuredBaseUrl) {
+    console.error('[startup] Telegram webhook not set: PUBLIC_BASE_URL or BASE_URL is missing.');
+    return;
+  }
+
+  let webhookUrl;
+  try {
+    const parsedBaseUrl = new URL(configuredBaseUrl);
+    const allowInsecureHttp = isEnabledEnv('ALLOW_INSECURE_WEBHOOK_HTTP', false);
+    if (parsedBaseUrl.protocol !== 'https:' && !(parsedBaseUrl.protocol === 'http:' && allowInsecureHttp && !isProdRuntime)) {
+      throw new Error('webhook base URL must use HTTPS');
     }
+    webhookUrl = `${parsedBaseUrl.toString().replace(/\/+$/, '')}/api/bots/telegram/webhook`;
+  } catch (err) {
+    console.error('[startup] Telegram webhook not set:', err.message);
+    return;
+  }
+
+  try {
+    const configured = await telegramBot.setWebhook(webhookUrl, TELEGRAM_WEBHOOK_SECRET_TOKEN);
+    if (configured) {
+      console.log('[startup] Telegram webhook set:', webhookUrl);
+    } else {
+      console.error('[startup] Telegram setWebhook was rejected:', webhookUrl);
+    }
+  } catch (err) {
+    console.error('[startup] Telegram setWebhook failed:', err.message);
   }
 })();
 
 // Telegram webhook endpoint
-app.post('/api/bots/telegram/webhook', express.json(), (req, res) => {
+app.post('/api/bots/telegram/webhook', express.json(), async (req, res) => {
   if (!telegramBot || !telegramBot.isEnabled) return res.status(404).json({ error: 'Not found' });
 
   // Verify the request actually came from Telegram (or at least from
@@ -5078,11 +5102,12 @@ app.post('/api/bots/telegram/webhook', express.json(), (req, res) => {
   }
 
   try {
-    telegramBot.processUpdate(req.body);
+    await telegramBot.processUpdate(req.body);
+    return res.json({ ok: true });
   } catch (err) {
     console.error('[telegram-bot] webhook error:', err.message);
+    return res.status(500).json({ error: 'webhook processing failed' });
   }
-  res.json({ ok: true });
 });
 
 // Discord interactions endpoint (slash commands)
