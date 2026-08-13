@@ -1,23 +1,58 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
 const ejs = require('ejs');
-const sqlite3 = require('sqlite3').verbose();
 
-const tmpDbPath = path.join(os.tmpdir(), `ovlink-security-${process.pid}-${Date.now()}.db`);
 process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'b66f58f96f4a4f6090de997ca71b72910d9695f95f24ddf9b255f4cbebf9804cff9e1b9d79f60df7e840a9136dbf126fd1f6f4f94b1f8cfbd93afbfccf8d4f8a';
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_PATH = tmpDbPath;
 process.env.BASE_URL = '';
 process.env.PUBLIC_BASE_URL = '';
 
 const { helpers } = require('../server');
 
-test.after(() => {
+// Rows created by tests against the real database (see the API test below)
+// so they can be cleaned up even if an assertion throws midway.
+const createdTestUserIds = [];
+
+test.after(async () => {
+  for (const userId of createdTestUserIds) {
+    try {
+      // The API test below triggers fire-and-forget usage/security-event
+      // logging via `res.on('finish', ...)` (not awaited by the request
+      // handler). Poll briefly for that write to land before we delete the
+      // rows it references, so cleanup doesn't race a foreign-key insert
+      // against our deletes. This bounds the wait instead of guessing a
+      // fixed delay.
+      const deadline = Date.now() + 4000;
+      while (Date.now() < deadline) {
+        const row = await helpers.dbGetAsync(
+          'SELECT COUNT(*) AS cnt FROM api_usage_logs WHERE user_id = ?',
+          [userId]
+        );
+        if (row && Number(row.cnt) > 0) break;
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      }
+
+      await helpers.dbRunAsync('DELETE FROM api_usage_logs WHERE user_id = ?', [userId]);
+      await helpers.dbRunAsync('DELETE FROM security_events WHERE user_id = ?', [userId]);
+      await helpers.dbRunAsync('DELETE FROM api_keys WHERE user_id = ?', [userId]);
+      await helpers.dbRunAsync('DELETE FROM urls WHERE user_id = ?', [userId]);
+      await helpers.dbRunAsync('DELETE FROM users WHERE id = ?', [userId]);
+    } catch {}
+  }
+
+  // Wait for the server's fire-and-forget startup migration queue to drain
+  // before closing the pool, so we don't log spurious "pool already ended"
+  // errors for migrations that were still in flight.
+  const migrationDrainDeadline = Date.now() + 5000;
+  while (!helpers.isDbMigrationQueueDrained() && Date.now() < migrationDrainDeadline) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  // Close the pg Pool so the test process can exit instead of hanging on
+  // the pool's minimum idle connections.
   try {
-    if (fs.existsSync(tmpDbPath)) fs.unlinkSync(tmpDbPath);
+    await helpers.closeDbPool();
   } catch {}
 });
 
@@ -181,70 +216,27 @@ test('adsterra native partial does not crash when optional flag is missing', asy
   assert.equal(html.trim(), '');
 });
 
-function openDb() {
-  return new sqlite3.Database(tmpDbPath);
-}
-
-function dbRun(db, sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function onRun(err) {
-      if (err) return reject(err);
-      return resolve(this);
-    });
-  });
-}
-
-function dbAll(db, sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows || [])));
-  });
-}
-
-function dbGet(db, sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => (err ? reject(err) : resolve(row || null)));
-  });
-}
-
-async function waitForApiSchema(db, timeoutMs = 4000) {
-  const startedAt = Date.now();
-  while ((Date.now() - startedAt) < timeoutMs) {
-    try {
-      const userCols = await dbAll(db, 'PRAGMA table_info(users)');
-      const keyCols = await dbAll(db, 'PRAGMA table_info(api_keys)');
-      if (
-        userCols.some((c) => c && c.name === 'plan_tier') &&
-        userCols.some((c) => c && c.name === 'pro_expires_at') &&
-        keyCols.some((c) => c && c.name === 'scopes')
-      ) {
-        return;
-      }
-    } catch {}
-    await new Promise((resolve) => setTimeout(resolve, 80));
-  }
-  throw new Error('API schema did not become ready in time.');
-}
-
 test('pro shorten API accepts camelCase payloads and returns API-friendly errors', async () => {
-  const db = openDb();
-  await waitForApiSchema(db);
-
   const nowIso = new Date().toISOString();
   const expiresIso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const email = `api-test-${Date.now()}@example.com`;
   const rawKey = `ovk_${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`.slice(0, 70);
   const keyHash = helpers.hashApiKeyValue(rawKey);
 
-  await dbRun(
-    db,
+  // Seed against the *same* database the running app uses (helpers.dbRunAsync
+  // talks to the real pg Pool inside server.js), not a disconnected local
+  // sqlite file. Previously this test created an empty throwaway sqlite
+  // database that never had a schema, so it always failed by timing out in
+  // `waitForApiSchema`.
+  await helpers.dbRunAsync(
     "INSERT INTO users (email, password, plan_tier, plan_status, pro_expires_at) VALUES (?, ?, 'pro', 'active', ?)",
     [email, 'x', expiresIso]
   );
-  const user = await dbGet(db, 'SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
+  const user = await helpers.dbGetAsync('SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
   assert.equal(Number.isInteger(user && user.id), true);
+  createdTestUserIds.push(user.id);
 
-  await dbRun(
-    db,
+  await helpers.dbRunAsync(
     'INSERT INTO api_keys (user_id, name, scopes, key_hash, hash_version, key_prefix, last4, created_at) VALUES (?, ?, ?, ?, 2, ?, ?, ?)',
     [
       user.id,
@@ -257,8 +249,10 @@ test('pro shorten API accepts camelCase payloads and returns API-friendly errors
     ]
   );
 
-  const server = await new Promise((resolve) => {
-    const s = helpers && helpers.ensureAbsoluteUrl ? require('../server').app.listen(0, () => resolve(s)) : null;
+  const server = require('../server').app.listen(0);
+  await new Promise((resolve, reject) => {
+    server.once('listening', resolve);
+    server.once('error', reject);
   });
   const port = server.address().port;
   const base = `http://127.0.0.1:${port}`;
@@ -300,7 +294,6 @@ test('pro shorten API accepts camelCase payloads and returns API-friendly errors
     );
   } finally {
     await new Promise((resolve) => server.close(resolve));
-    db.close();
   }
 });
 

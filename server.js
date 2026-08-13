@@ -338,6 +338,17 @@ const WEBHOOK_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('WEBHOOK_HASH_SECRE
   allowFallbackInProduction: true,
 });
 
+// Telegram calls our webhook with no built-in authenticity proof unless we
+// configure a secret token (sent back on every request as the
+// `X-Telegram-Bot-Api-Secret-Token` header). Without this, anyone who
+// discovers the webhook URL could POST forged "updates" impersonating any
+// linked Telegram user (create links against their quota, read their recent
+// links, change their language, or unlink their account).
+const TELEGRAM_WEBHOOK_SECRET_TOKEN = resolveSecurityKeyMaterial('TELEGRAM_WEBHOOK_SECRET', 'ovlink:telegram-webhook-secret:v1', {
+  minBytes: 32,
+  allowFallbackInProduction: true,
+}).toString('hex').slice(0, 64);
+
 const redisUrl = (process.env.REDIS_URL || '').toString().trim();
 const requireRedisInProd = isEnabledEnv('REQUIRE_REDIS_IN_PROD', true);
 let redisClient = null;
@@ -2922,7 +2933,10 @@ app.use(helmet({
       baseUri: ["'self'"],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
-      formAction: ["*"],
+      // All forms in this app submit to same-origin routes. Restricting
+      // formAction closes a common HTML-injection exfiltration vector
+      // (an injected <form> posting captured data to an attacker domain).
+      formAction: ["'self'"],
       scriptSrc: [
         "'self'",
         (req, res) => `'nonce-${res.locals.nonce}'`,
@@ -3145,7 +3159,7 @@ const SLOWDOWN_THRESHHOLD = 50; // 50 istek sonrası yavaşlatmaya başla
 const SLOWDOWN_MAX_DELAY_MS = 5000; // Maksimum 5 saniye gecikme
 
 // Periyodik temizlik (her 5 dakikada eski kayıtları sil)
-setInterval(() => {
+const ipRequestCountsCleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [ip, data] of ipRequestCounts) {
     if (now - data.windowStart > SLOWDOWN_WINDOW_MS * 2) {
@@ -3153,6 +3167,7 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000);
+if (typeof ipRequestCountsCleanupTimer.unref === 'function') ipRequestCountsCleanupTimer.unref();
 
 function slowdownMiddleware(req, res, next) {
   const ip = getRequestIp(req);
@@ -3612,11 +3627,21 @@ const csrfProtection = lusca.csrf({
   impl: csrfImpl
 });
 
+// Server-to-server bot webhook callbacks (Telegram/Discord) can never carry
+// a session-bound CSRF token - they are authenticated by their own
+// mechanisms instead (Telegram: X-Telegram-Bot-Api-Secret-Token header;
+// Discord: Ed25519 request signature verified inside the route handler).
+function isBotWebhookRoute(pathname) {
+  const path = (pathname || '').toString();
+  return path === '/api/bots/telegram/webhook' || path === '/api/bots/discord/interactions';
+}
+
 app.use((req, res, next) => {
   const isStaticLike = /\.(css|js|png|jpg|jpeg|webp|svg|ico|woff2?|ttf|map|txt|xml|webmanifest)$/i.test(req.path);
   const skipStaticPath = req.path === '/robots.txt' || req.path === '/sitemap.xml' || req.path === '/favicon.ico';
   if (req.method === 'GET' && (isStaticLike || skipStaticPath)) return next();
   if (req.path.startsWith('/consent/redirect/')) return next();
+  if (req.method === 'POST' && isBotWebhookRoute(req.path)) return next();
   const hasApiKeyHeader = hasApiKeyAuthHeader(req);
   if (hasApiKeyHeader) return next();
   return csrfProtection(req, res, next);
@@ -5030,7 +5055,7 @@ try {
   if (telegramBot && telegramBot.isEnabled) {
     const webhookUrl = (process.env.PUBLIC_BASE_URL || process.env.BASE_URL || '').replace(/\/+$/, '') + '/api/bots/telegram/webhook';
     try {
-      await telegramBot.setWebhook(webhookUrl);
+      await telegramBot.setWebhook(webhookUrl, TELEGRAM_WEBHOOK_SECRET_TOKEN);
       console.log('[startup] Telegram webhook set:', webhookUrl);
     } catch (err) {
       console.error('[startup] Telegram setWebhook failed:', err.message);
@@ -5041,6 +5066,17 @@ try {
 // Telegram webhook endpoint
 app.post('/api/bots/telegram/webhook', express.json(), (req, res) => {
   if (!telegramBot || !telegramBot.isEnabled) return res.status(404).json({ error: 'Not found' });
+
+  // Verify the request actually came from Telegram (or at least from
+  // someone who knows our secret token) using constant-time comparison.
+  // Without this, anyone who discovers the webhook URL could forge
+  // "updates" impersonating any linked Telegram user.
+  const providedToken = (req.get('X-Telegram-Bot-Api-Secret-Token') || '').toString();
+  if (!providedToken || !tsscmp(providedToken, TELEGRAM_WEBHOOK_SECRET_TOKEN)) {
+    console.error('[telegram-bot] Secret token verification failed or missing header.');
+    return res.status(401).json({ error: 'invalid request token' });
+  }
+
   try {
     telegramBot.processUpdate(req.body);
   } catch (err) {
@@ -9286,6 +9322,17 @@ module.exports = {
     isBlockedWebhookIp,
     isBlockedWebhookHostname,
     validateOutboundWebhookUrl,
+    // Exposed strictly for test teardown (closing the pg Pool so `node --test`
+    // can exit cleanly) and for tests that need to seed/clean up rows against
+    // the same database the running app uses.
+    dbRunAsync,
+    dbGetAsync,
+    dbAllAsync,
+    closeDbPool: () => pool.end(),
+    // Lets callers (tests) wait for the fire-and-forget startup migration
+    // queue to finish before tearing down the pool, avoiding noisy
+    // "Cannot use a pool after calling end" errors from in-flight migrations.
+    isDbMigrationQueueDrained: () => !db._isSerializing && db._queue.length === 0,
   },
 };
 

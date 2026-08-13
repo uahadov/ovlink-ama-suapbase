@@ -564,13 +564,15 @@ function createTelegramBot(db, options = {}) {
     }
   }
 
-  async function setWebhook(webhookUrl) {
+  async function setWebhook(webhookUrl, secretToken) {
     if (!BOT_TOKEN) return false;
     try {
+      const payload = { url: webhookUrl, allowed_updates: ['message', 'callback_query'] };
+      if (secretToken) payload.secret_token = secretToken;
       const res = await fetch(`${API_BASE}/setWebhook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: webhookUrl, allowed_updates: ['message', 'callback_query'] }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       console.log('[telegram-bot] webhook:', data.ok ? 'set' : data.description);
