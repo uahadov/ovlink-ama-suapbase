@@ -1,21 +1,7 @@
 // Ovlink PWA Service Worker
-const CACHE_NAME = 'ovlink-pwa-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/style.css',
-  '/script.js',
-  '/lang.js',
-  '/logo.png',
-  '/logo.ico',
-  '/site.webmanifest'
-];
+const CACHE_NAME = 'ovlink-pwa-v2';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch(() => {});
-    })
-  );
   self.skipWaiting();
 });
 
@@ -37,25 +23,23 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Skip API, admin, and non-GET requests
+  // Skip API, admin, and bot endpoints
   if (event.request.method !== 'GET' || url.pathname.startsWith('/api/') || url.pathname.startsWith('/admin') || url.pathname.startsWith('/bot/')) {
     return;
   }
 
+  // Network First for all HTML, CSS, JS to guarantee latest design
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Fetch fresh in background
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-          }
-        }).catch(() => {});
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const resClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+        }
         return networkResponse;
-      }).catch(() => caches.match('/'));
-    })
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });
