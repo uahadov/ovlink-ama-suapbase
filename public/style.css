@@ -349,7 +349,7 @@ textarea:focus {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 /* Tema geçiş düğmesi */
@@ -1336,12 +1336,11 @@ body.dark-mode,
 }
 
 .home-page .home-brand-logo {
-  height: 48px;
-  width: 148px;
+  height: 42px;
+  width: auto;
+  max-width: 148px;
   display: block;
   object-fit: contain;
-  transform: scale(2.8);
-  transform-origin: left center;
 }
 
 .home-page .brand-mark {

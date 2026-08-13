@@ -3291,7 +3291,7 @@ if (customDomainList) {
         feedbackEl.className = `alert mt-3 py-2 mb-0 small fw-bold text-center rounded-pill ${isError ? 'alert-danger' : 'alert-success'}`;
         feedbackEl.classList.remove("d-none");
         // Hata durumunda sonuç alanını gizle
-        if (isError && resultDiv) resultDiv.classList.add("hidden");
+        if (isError && resultDiv) resultDiv.classList.add("hidden", "d-none");
       };
 
       if (!response.ok || data.error) {
@@ -3342,7 +3342,7 @@ if (customDomainList) {
             ? "Share quickly with Copy, generate a QR with Send to QR."
             : "Kopyala ile hızlı paylaş, QR’ye gönder ile tek tık QR üret.");
       }
-      if (resultDiv) resultDiv.classList.remove("hidden");
+      if (resultDiv) resultDiv.classList.remove("hidden", "d-none");
     } catch (err) {
       const feedbackEl = document.getElementById("shortenFeedback");
       if (feedbackEl) {
