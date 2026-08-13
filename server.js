@@ -5050,11 +5050,16 @@ try {
   console.warn('[startup] Discord bot init failed:', err.message);
 }
 
-// Set Telegram webhook on startup.
-// Telegram only accepts an absolute, publicly reachable URL. Do not call
-// setWebhook with a relative path when BASE_URL is missing or malformed.
+// Telegram startup: polling or webhook
 (async () => {
-  if (!telegramBot || !telegramBot.isEnabled) return;
+  if (!telegramBot || !telegramBot.isEnabled || process.env.NODE_ENV === 'test') return;
+
+  const useWebhook = (process.env.TELEGRAM_MODE || '').toLowerCase() === 'webhook';
+  const usePolling = !useWebhook || isEnabledEnv('TELEGRAM_POLLING', true);
+  if (usePolling) {
+    telegramBot.startPolling();
+    return;
+  }
 
   const configuredBaseUrl = (process.env.PUBLIC_BASE_URL || process.env.BASE_URL || '').trim().replace(/\/+$/, '');
   if (!configuredBaseUrl) {

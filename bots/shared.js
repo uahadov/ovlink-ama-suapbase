@@ -85,9 +85,50 @@ function createBotShared(db, options = {}) {
     });
   }
 
+  function isSuspiciousOrPhishingUrl(rawUrl) {
+    if (!rawUrl) return { suspicious: false };
+    try {
+      const parsed = new URL(rawUrl);
+      const hostname = parsed.hostname.toLowerCase();
+      const pathname = parsed.pathname.toLowerCase();
+
+      // 1. IP address as hostname (raw IP phishing/malware kits)
+      if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname) || hostname.startsWith('[') || hostname.includes('0x')) {
+        return { suspicious: true, reason: 'ip_hostname' };
+      }
+
+      // 2. Dangerous executable file extensions in URL
+      const dangerousExts = ['.exe', '.scr', '.bat', '.cmd', '.vbs', '.apk', '.pif', '.hta', '.jar', '.msi', '.ps1'];
+      if (dangerousExts.some(ext => pathname.endsWith(ext) || pathname.includes(ext + '?'))) {
+        return { suspicious: true, reason: 'dangerous_extension' };
+      }
+
+      // 3. Known phishing patterns in hostname/path (brand spoofing / fake gifts / fake logins)
+      const phishingPatterns = [
+        /(?:free-?(?:nitro|robux|vbucks|steam|premium)|telegram-?(?:gift|premium|airdrop)|metamask-?(?:login|verify)|binance-?(?:security|verify)|paypal-?(?:login|security|update)|bank-?(?:login|verify)|login-?(?:steamcommunity|discord)|discord-?(?:nitro|app-gift))/i
+      ];
+
+      for (const pattern of phishingPatterns) {
+        if (pattern.test(hostname) || pattern.test(pathname)) {
+          return { suspicious: true, reason: 'phishing_pattern' };
+        }
+      }
+
+      return { suspicious: false };
+    } catch {
+      return { suspicious: false };
+    }
+  }
+
   async function createShortLink(userId, originalUrl, customAlias, maxClicks) {
     const original = normalizeUrl(originalUrl);
     if (!original) return { error: 'invalid_url' };
+
+    // Phishing / Malicious Link Security Filter
+    const securityCheck = isSuspiciousOrPhishingUrl(original);
+    if (securityCheck.suspicious) {
+      return { error: 'phishing_detected', reason: securityCheck.reason };
+    }
 
     let short = '';
     if (customAlias) {
@@ -150,10 +191,10 @@ function createBotShared(db, options = {}) {
   }
 
   function getTierLimits(userRow) {
-    if (!userRow) return { dailyLinks: 10, maxLinks: 200, customAlias: false, batchMax: 1 };
+    if (!userRow) return { dailyLinks: 5, maxLinks: 50, customAlias: false, batchMax: 1 };
     const isPro = isProAccessActive(userRow);
-    if (isPro) return { dailyLinks: 100, maxLinks: 5000, customAlias: true, batchMax: 25 };
-    return { dailyLinks: 10, maxLinks: 200, customAlias: false, batchMax: 1 };
+    if (isPro) return { dailyLinks: 500, maxLinks: 50000, customAlias: true, batchMax: 50 };
+    return { dailyLinks: 50, maxLinks: 1000, customAlias: true, batchMax: 10 };
   }
 
   async function getBotLanguage(platform, platformUserId) {

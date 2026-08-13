@@ -3661,4 +3661,11 @@ document.addEventListener("click", async (e) => {
       btn.style.transform = '';
     }
   });
+
+  // Register PWA Service Worker for App Installation & Offline Caching
+  if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
 })();
