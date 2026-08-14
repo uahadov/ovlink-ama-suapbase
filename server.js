@@ -2987,6 +2987,20 @@ app.use((req, res, next) => {
   next();
 });
 
+// Static Files Middleware (Served with proper caching and service-worker headers)
+app.use(express.static(publicDir, {
+  maxAge: isProd ? '7d' : 0,
+  etag: true,
+  redirect: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('sw.js')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Service-Worker-Allowed', '/');
+    } else if (filePath.endsWith('.css') || filePath.endsWith('.js')) {
+      res.setHeader('Cache-Control', isProd ? 'public, max-age=604800, stale-while-revalidate=86400' : 'no-cache');
+    }
+  }
+}));
 
 // Rate Limiting - Brute-force saldırılarını engeller
 const generalLimiter = rateLimit({
@@ -4182,16 +4196,6 @@ app.get('/site.webmanifest', (req, res) => {
   });
 });
 
-app.use(express.static(publicDir, isProd ? {
-  maxAge: '365d',
-  immutable: true,
-  etag: false,
-  redirect: false,
-} : {
-  maxAge: 0,
-  etag: true,
-  redirect: false,
-}));
 
 // Veritabanı bağlantısı ve tabloların oluşturulması
 

@@ -1,5 +1,5 @@
 // Ovlink PWA Service Worker
-const CACHE_NAME = 'ovlink-pwa-v2';
+const CACHE_NAME = 'ovlink-pwa-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -21,20 +21,46 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // Skip API, admin, and bot endpoints
-  if (event.request.method !== 'GET' || url.pathname.startsWith('/api/') || url.pathname.startsWith('/admin') || url.pathname.startsWith('/bot/')) {
+  // Only handle http/https requests from our own origin
+  if (!event.request.url || !event.request.url.startsWith('http')) {
     return;
   }
 
-  // Network First for all HTML, CSS, JS to guarantee latest design
+  let url;
+  try {
+    url = new URL(event.request.url);
+  } catch {
+    return;
+  }
+
+  // Only handle same-origin GET requests
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Skip API, admin, bot, and dynamic user routes
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/admin') ||
+    url.pathname.startsWith('/bot/') ||
+    url.pathname.startsWith('/dashboard') ||
+    url.pathname.startsWith('/account') ||
+    url.pathname.startsWith('/notifications')
+  ) {
+    return;
+  }
+
+  // Network First for all HTML, CSS, JS with fallback
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const resClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+          caches.open(CACHE_NAME).then((cache) => {
+            try {
+              cache.put(event.request, resClone);
+            } catch {}
+          }).catch(() => {});
         }
         return networkResponse;
       })
