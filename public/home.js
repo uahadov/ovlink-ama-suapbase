@@ -438,7 +438,10 @@ window.addEventListener("DOMContentLoaded", () => {
         feedbackEl.textContent = msg;
         feedbackEl.className = `alert mt-3 py-2 mb-0 small fw-bold text-center rounded-pill ${isError ? "alert-danger" : "alert-success"}`;
         feedbackEl.classList.remove("d-none");
-        if (isError && resultDiv) resultDiv.classList.add("hidden");
+        if (isError && resultDiv) {
+          resultDiv.classList.add("hidden", "d-none");
+          resultDiv.style.display = "none";
+        }
       };
 
       if (!response.ok || data.error) {
@@ -478,7 +481,10 @@ window.addEventListener("DOMContentLoaded", () => {
           "Share quickly with Copy, generate a QR with Send to QR."
         );
       }
-      if (resultDiv) resultDiv.classList.remove("hidden");
+      if (resultDiv) {
+        resultDiv.classList.remove("hidden", "d-none");
+        resultDiv.style.display = "block";
+      }
     } catch (err) {
       const feedbackEl = document.getElementById("shortenFeedback");
       if (feedbackEl) {
@@ -554,7 +560,10 @@ document.addEventListener("click", async (e) => {
     qrFeedback.textContent = msg;
     qrFeedback.className = `alert mt-3 py-2 mb-0 small fw-bold text-center rounded-pill ${isError ? "alert-danger" : "alert-success"}`;
     qrFeedback.classList.remove("d-none");
-    if (isError && qrResultDiv) qrResultDiv.classList.add("hidden");
+    if (isError && qrResultDiv) {
+      qrResultDiv.classList.add("hidden", "d-none");
+      qrResultDiv.style.display = "none";
+    }
     if (isError && qrDownloadBtn) qrDownloadBtn.classList.add("d-none");
   };
 
@@ -591,7 +600,10 @@ document.addEventListener("click", async (e) => {
       if (data.qrCode && qrImage) {
         if (qrFeedback) qrFeedback.classList.add("d-none");
         qrImage.src = data.qrCode;
-        if (qrResultDiv) qrResultDiv.classList.remove("hidden");
+        if (qrResultDiv) {
+          qrResultDiv.classList.remove("hidden", "d-none");
+          qrResultDiv.style.display = "block";
+        }
         if (qrDownloadBtn) qrDownloadBtn.classList.remove("d-none");
       } else {
         let errorMsg = pickLang("QR Kod yaradıla bilmədi.", "QR Kod oluşturulamadı.", "QR code could not be created.");
