@@ -332,7 +332,7 @@ const API_KEY_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('API_KEY_HASH_SECRE
   minBytes: 64,
   allowFallbackInProduction: true,
 });
-const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260814-8';
+const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260814-9';
 const WEBHOOK_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('WEBHOOK_HASH_SECRET', 'ovlink:webhook-secret-hash:v2', {
   minBytes: 64,
   allowFallbackInProduction: true,
@@ -9014,23 +9014,23 @@ ${announcementHtml}
           <nav class="navbar navbar-expand-lg navbar-light home-navbar shadow-sm">
             <div class="container">
               <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
-                <img src="/logo.png" alt="Ovlink" class="home-brand-logo" />
+                <img src="/logo.webp" alt="Ovlink" class="home-brand-logo" />
               </a>
               <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#dashboardNavbarContent" aria-controls="dashboardNavbarContent" aria-expanded="false" aria-label="Menu toggle">
                 <span class="navbar-toggler-icon"></span>
               </button>
               <div class="collapse navbar-collapse" id="dashboardNavbarContent">
                 <ul class="navbar-nav ms-auto align-items-lg-center">
-                  <li class="nav-item" id="navAuthGuestLogin">
+                  <li class="nav-item d-none" id="navAuthGuestLogin">
                     <a class="nav-link" href="/login"><i class="fa-solid fa-right-to-bracket"></i> <span data-i18n="nav_login">Giriş</span></a>
                   </li>
-                  <li class="nav-item" id="navAuthGuestReg">
+                  <li class="nav-item d-none" id="navAuthGuestReg">
                     <a class="nav-link" href="/register"><i class="fa-solid fa-user-plus"></i> <span data-i18n="nav_register">Qeydiyyat</span></a>
                   </li>
                   <li class="nav-item" id="navPricingItem">
                     <a class="nav-link" href="/pricing"><i class="fa-solid fa-crown"></i> <span data-i18n="nav_pricing">Pro Plan</span></a>
                   </li>
-                  <li class="nav-item dropdown nav-user-dropdown d-none" id="navAuthUser">
+                  <li class="nav-item dropdown nav-user-dropdown" id="navAuthUser">
                     <a class="nav-link dropdown-toggle position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                       <i class="fa-solid fa-user-circle me-1"></i>
                       <span id="navUserEmail" data-i18n="nav_my_account">Hesabım</span>

@@ -291,7 +291,11 @@ function clearClientSession() {
 }
 
 function getClientSession() {
-  return { isLoggedIn: localStorage.getItem("isLoggedIn") === "1" };
+  const userNav = document.getElementById("navAuthUser");
+  const ssrLoggedIn = !!(userNav && !userNav.classList.contains("d-none"));
+  const localLoggedIn = localStorage.getItem("isLoggedIn") === "1";
+  const hasWindowUser = !!(window.__userId || window.__userEmail);
+  return { isLoggedIn: ssrLoggedIn || localLoggedIn || hasWindowUser };
 }
 
 async function trySyncSessionFromServer() {

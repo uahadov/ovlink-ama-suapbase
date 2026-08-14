@@ -17,6 +17,7 @@ const TRANSLATIONS = {
     guest_limit_reached: "⚠️ Guest daily limit (5/5) reached. Link account with /start for 50 links/day!",
     bulk_guest_blocked: "⚠️ Bulk shortening requires a linked account. Use /start to link.",
     bulk_limit_exceeded: "⚠️ <b>Bulk limit exceeded!</b>\nYou can shorten at most <b>{max}</b> links at once. (You sent {count})\n\n<i>For 50 links at once: /upgrade</i>",
+    bulk_daily_quota_exceeded: "⚠️ <b>Not enough daily quota for this batch!</b>\nYou used <b>{dailyCount}/{limit}</b> links today. Remaining: <b>{remaining}</b> links (You sent {count} links).\n\n<i>For 500 links/day: /upgrade</i>",
     phishing_detected: "🚨 Security Alert: Link blocked (phishing/malware).",
     custom_alias_pro: "❌ Custom alias requires Pro plan. /upgrade",
     invalid_alias: "❌ Invalid alias (3-50 chars).",
@@ -54,6 +55,7 @@ const TRANSLATIONS = {
     guest_limit_reached: "⚠️ Misafir günlük limitiniz (5/5) doldu. Günde 50 link için /start ile hesabınızı bağlayın!",
     bulk_guest_blocked: "⚠️ Toplu kısaltma için hesabınızı bağlayın. /start yazabilirsiniz.",
     bulk_limit_exceeded: "⚠️ <b>Toplu kısaltma limiti aşıldı!</b>\nTek seferde en fazla <b>{max}</b> link gönderebilirsiniz. (Siz {count} link gönderdiniz)\n\n<i>Tek seferde 50 link için: /upgrade</i>",
+    bulk_daily_quota_exceeded: "⚠️ <b>Bu toplu işlem için günlük limitiniz yetersiz!</b>\nBugün <b>{dailyCount}/{limit}</b> link kullandınız. Kalan hakkınız: <b>{remaining}</b> link (Gönderilen: {count} link).\n\n<i>Günde 500 link için: /upgrade</i>",
     phishing_detected: "🚨 Güvenlik Uyarısı: Bağlantı engellendi (zararlı/phishing).",
     custom_alias_pro: "❌ Özel alias Pro plan gerektirir. /upgrade",
     invalid_alias: "❌ Geçersiz alias (3-50 karakter).",
@@ -91,6 +93,7 @@ const TRANSLATIONS = {
     guest_limit_reached: "⚠️ Qonaq günlük limitiniz (5/5) doldu. Gündə 50 link üçün /start ilə hesabınızı bağlayın!",
     bulk_guest_blocked: "⚠️ Toplu qısaltmaq üçün hesabınızı bağlayın. /start ilə bağlayın.",
     bulk_limit_exceeded: "⚠️ <b>Toplu qısaltma limiti aşıldı!</b>\nBir dəfəyə ən çox <b>{max}</b> link göndərə bilərsiniz. (Siz {count} link göndərdiniz)\n\n<i>Tək səfərdə 50 link üçün: /upgrade</i>",
+    bulk_daily_quota_exceeded: "⚠️ <b>Bu toplu link üçün gündəlik limitiniz çatmır!</b>\nBu gün artıq <b>{dailyCount}/{limit}</b> link qısaltmısınız. Qalan limitiniz: <b>{remaining}</b> link (Göndərilən: {count} link).\n\n<i>Gündə 500 link üçün: /upgrade</i>",
     phishing_detected: "🚨 Təhlükəsizlik Xəbərdarlığı: Link bloklandı (zərərli/phishing).",
     custom_alias_pro: "❌ Xüsusi alias Pro plan tələb edir. /upgrade",
     invalid_alias: "❌ Keçərsiz alias (3-50 simvol).",
@@ -128,6 +131,7 @@ const TRANSLATIONS = {
     guest_limit_reached: "⚠️ Гостевой лимит (5/5) исчерпан. Привяжите аккаунт через /start для 50 ссылок/день!",
     bulk_guest_blocked: "⚠️ Массовое сокращение доступно после привязки аккаунта.",
     bulk_limit_exceeded: "⚠️ <b>Превышен лимит массового сокращения!</b>\nЗа один раз можно отправить максимум <b>{max}</b> ссылок. (Вы отправили {count})\n\n<i>В тарифе Pro доступно до 50 ссылок: /upgrade</i>",
+    bulk_daily_quota_exceeded: "⚠️ <b>Недостаточно дневного лимита для этой пачки!</b>\nСегодня уже использовано <b>{dailyCount}/{limit}</b>. Осталось: <b>{remaining}</b> ссылок (Отправлено: {count} ссылок).\n\n<i>Для 500 ссылок/день: /upgrade</i>",
     phishing_detected: "🚨 Ссылка заблокирована (фишинг/вредоносное ПО).",
     custom_alias_pro: "❌ Свой алиас доступен в Pro. /upgrade",
     invalid_alias: "❌ Неверный алиас (3-50 симв.).",
@@ -297,7 +301,8 @@ function createTelegramBot(db, options = {}) {
       const dailyCount = await shared.getDailyLinkCount(userId);
 
       if (dailyCount + foundUrls.length > limits.dailyLinks) {
-        await sendMessage(chat.id, t(lang, 'daily_limit_reached', { limit: limits.dailyLinks, dailyCount, count: foundUrls.length }));
+        const remaining = Math.max(0, limits.dailyLinks - dailyCount);
+        await sendMessage(chat.id, t(lang, 'bulk_daily_quota_exceeded', { limit: limits.dailyLinks, dailyCount, remaining, count: foundUrls.length }));
         return;
       }
 

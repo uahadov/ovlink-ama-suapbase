@@ -1635,9 +1635,12 @@ function clearClientSession() {
 }
 
 function getClientSession() {
+  const userNav = document.getElementById("navAuthUser");
+  const ssrLoggedIn = !!(userNav && !userNav.classList.contains("d-none"));
+  const localLoggedIn = localStorage.getItem("isLoggedIn") === "1";
+  const hasWindowUser = !!(window.__userId || window.__userEmail);
   return {
-    isLoggedIn: localStorage.getItem("isLoggedIn") === "1",
-    // server-side verileri buradan sildik
+    isLoggedIn: ssrLoggedIn || localLoggedIn || hasWindowUser,
   };
 }
 
@@ -1681,8 +1684,12 @@ async function trySyncSessionFromServer() {
       updatePricingBuyCta();
       renderNavbarAuth();
     } else {
-      clearClientSession();
-      renderNavbarAuth();
+      const userNav = document.getElementById("navAuthUser");
+      const isSsrPrivatePage = document.body.classList.contains("app-page") || !!document.getElementById("dashboardStats") || !!document.getElementById("profileSettingsForm");
+      if (!isSsrPrivatePage) {
+        clearClientSession();
+        renderNavbarAuth();
+      }
     }
   } catch {
     // ignore
