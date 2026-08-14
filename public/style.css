@@ -1335,12 +1335,19 @@ body.dark-mode,
   overflow: visible;
 }
 
-.home-page .home-brand-logo {
-  height: 42px;
+.home-page .home-brand-logo,
+.home-brand-logo {
+  height: 64px;
   width: auto;
-  max-width: 148px;
+  max-width: 240px;
   display: block;
   object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+.home-page .home-brand-logo:hover,
+.home-brand-logo:hover {
+  transform: scale(1.04);
 }
 
 .home-page .brand-mark {
@@ -1890,8 +1897,10 @@ body.dark-mode,
     padding-top: 34px;
   }
 
-  .home-page .home-brand-logo {
-    height: 48px;
+  .home-page .home-brand-logo,
+  .home-brand-logo {
+    height: 52px;
+    max-width: 190px;
   }
 
   .home-page .hero-chip {
