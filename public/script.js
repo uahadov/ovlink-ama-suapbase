@@ -2215,8 +2215,86 @@ if (document.readyState === "loading") {
     });
   };
 
-  let dashboardEditModal = null;
-  let dashboardEditModalEl = null;
+  function showQuickToast(message, type = 'success') {
+    let toast = document.getElementById("ovlinkQuickToast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "ovlinkQuickToast";
+      toast.style.cssText = "position:fixed;bottom:24px;right:24px;z-index:999999;padding:12px 22px;border-radius:12px;font-weight:600;font-size:14px;box-shadow:0 10px 25px rgba(0,0,0,0.25);transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);opacity:0;transform:translateY(20px);pointer-events:none;";
+      document.body.appendChild(toast);
+    }
+    toast.style.backgroundColor = type === 'danger' ? '#ef4444' : '#10b981';
+    toast.style.color = '#ffffff';
+    toast.textContent = message;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    if (toast.__timer) clearTimeout(toast.__timer);
+    toast.__timer = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(20px)';
+    }, 2200);
+  }
+
+  function openModalById(modalId) {
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl) return null;
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+      try {
+        const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(modalEl) : new bootstrap.Modal(modalEl);
+        if (inst) {
+          inst.show();
+          return inst;
+        }
+      } catch (err) {
+        console.warn('Bootstrap modal error, using fallback:', err);
+      }
+    }
+    modalEl.style.display = 'block';
+    modalEl.classList.add('show');
+    modalEl.removeAttribute('aria-hidden');
+    modalEl.setAttribute('aria-modal', 'true');
+    let backdrop = document.getElementById('modalFallbackBackdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'modalFallbackBackdrop';
+      backdrop.className = 'modal-backdrop fade show';
+      document.body.appendChild(backdrop);
+    }
+    return {
+      hide: () => closeModalById(modalId)
+    };
+  }
+
+  function closeModalById(modalId) {
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl) return;
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+      try {
+        const inst = bootstrap.Modal.getInstance ? bootstrap.Modal.getInstance(modalEl) : null;
+        if (inst) {
+          inst.hide();
+          return;
+        }
+      } catch {}
+    }
+    modalEl.style.display = 'none';
+    modalEl.classList.remove('show');
+    modalEl.setAttribute('aria-hidden', 'true');
+    modalEl.removeAttribute('aria-modal');
+    const backdrop = document.getElementById('modalFallbackBackdrop');
+    if (backdrop) backdrop.remove();
+  }
+
+  document.addEventListener('click', (e) => {
+    const dismissBtn = e.target.closest('[data-bs-dismiss="modal"]');
+    if (dismissBtn) {
+      const modal = dismissBtn.closest('.modal');
+      if (modal) {
+        closeModalById(modal.id);
+      }
+    }
+  });
+
   const dashboardEditModalState = {
     short: "",
     row: null,
@@ -2224,7 +2302,7 @@ if (document.readyState === "loading") {
   };
 
   const ensureDashboardEditModal = () => {
-    dashboardEditModalEl = document.getElementById("dashboardEditLinkModal");
+    let dashboardEditModalEl = document.getElementById("dashboardEditLinkModal");
     if (!dashboardEditModalEl) {
       const modalWrapper = document.createElement("div");
       modalWrapper.innerHTML = `
@@ -2256,9 +2334,6 @@ if (document.readyState === "loading") {
       `;
       document.body.appendChild(modalWrapper.firstElementChild);
       dashboardEditModalEl = document.getElementById("dashboardEditLinkModal");
-    }
-    if (dashboardEditModalEl && typeof bootstrap !== "undefined" && bootstrap.Modal) {
-      dashboardEditModal = bootstrap.Modal.getOrCreateInstance(dashboardEditModalEl);
     }
     if (typeof applyLanguage === "function") applyLanguage();
 
@@ -2316,8 +2391,9 @@ if (document.readyState === "loading") {
             msgEl.className = "small text-success";
             msgEl.textContent = data.message || pickLang("Link yeniləndi.", "Link güncellendi.", "Link updated.");
           }
+          showQuickToast(pickLang("Link yeniləndi!", "Link güncellendi!", "Link updated!"));
           window.setTimeout(() => {
-            dashboardEditModal?.hide();
+            closeModalById("dashboardEditLinkModal");
           }, 400);
         } catch (err) {
           if (msgEl) {
@@ -2332,7 +2408,7 @@ if (document.readyState === "loading") {
   };
 
   const ensureDashboardMetaModal = () => {
-    dashboardMetaModalEl = document.getElementById("dashboardMetaModal");
+    let dashboardMetaModalEl = document.getElementById("dashboardMetaModal");
     if (!dashboardMetaModalEl) {
       const modalWrapper = document.createElement("div");
       modalWrapper.innerHTML = `
@@ -2366,9 +2442,6 @@ if (document.readyState === "loading") {
       `;
       document.body.appendChild(modalWrapper.firstElementChild);
       dashboardMetaModalEl = document.getElementById("dashboardMetaModal");
-    }
-    if (dashboardMetaModalEl && typeof bootstrap !== "undefined" && bootstrap.Modal) {
-      dashboardMetaModal = bootstrap.Modal.getOrCreateInstance(dashboardMetaModalEl);
     }
     if (typeof applyLanguage === "function") applyLanguage();
 
@@ -2422,7 +2495,8 @@ if (document.readyState === "loading") {
             msgEl.className = "small text-success";
             msgEl.textContent = data.message || pickLang("Link məlumatları yeniləndi.", "Link bilgileri güncellendi.", "Link metadata updated.");
           }
-          window.setTimeout(() => dashboardMetaModal?.hide(), 400);
+          showQuickToast(pickLang("Məlumatlar yadda saxlanıldı!", "Bilgiler kaydedildi!", "Metadata updated!"));
+          window.setTimeout(() => closeModalById("dashboardMetaModal"), 400);
         } catch (err) {
           if (msgEl) {
             msgEl.className = "small text-danger";
@@ -2433,6 +2507,7 @@ if (document.readyState === "loading") {
         }
       });
     }
+  };
   };
 
   const ensureDashboardMetaButtons = () => {
@@ -3176,6 +3251,7 @@ if (customDomainList) {
 
       const copied = await copyTextToClipboard(text);
       if (copied) {
+        showQuickToast(pickLang("Link kopyalandı!", "Link kopyalandı!", "Link copied!"));
         const icon = copyBtn.querySelector("i");
         const originalIconClass = icon ? icon.className : "";
         if (icon) {
@@ -3194,7 +3270,6 @@ if (customDomainList) {
     const metaBtn = e.target.closest("[data-meta-short]");
     if (metaBtn) {
       ensureDashboardMetaModal();
-      if (!dashboardMetaModal || !dashboardMetaModalEl) return;
 
       const short = (metaBtn.getAttribute("data-meta-short") || "").trim();
       if (!short) return;
@@ -3216,7 +3291,7 @@ if (customDomainList) {
         msgEl.textContent = "";
       }
       refreshDashboardMetaSuggestions();
-      dashboardMetaModal.show();
+      openModalById("dashboardMetaModal");
       return;
     }
 
@@ -3224,7 +3299,6 @@ if (customDomainList) {
     const editBtn = e.target.closest("[data-edit-short]");
     if (editBtn) {
       ensureDashboardEditModal();
-      if (!dashboardEditModal || !dashboardEditModalEl) return;
 
       const short = (editBtn.getAttribute("data-edit-short") || "").trim();
       if (!short) return;
@@ -3253,7 +3327,7 @@ if (customDomainList) {
         msgEl.textContent = "";
       }
 
-      dashboardEditModal.show();
+      openModalById("dashboardEditLinkModal");
       return;
     }
 

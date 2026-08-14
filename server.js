@@ -332,7 +332,7 @@ const API_KEY_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('API_KEY_HASH_SECRE
   minBytes: 64,
   allowFallbackInProduction: true,
 });
-const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260814-9';
+const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260814-10';
 const WEBHOOK_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('WEBHOOK_HASH_SECRET', 'ovlink:webhook-secret-hash:v2', {
   minBytes: 64,
   allowFallbackInProduction: true,
@@ -9201,9 +9201,9 @@ ${announcementHtml}
                         </td>
                         <td class="text-end pe-4">
                           <div class="d-inline-flex align-items-center gap-1 flex-nowrap">
-                            <button type="button" class="btn btn-sm btn-light border" data-edit-short="${safeShort}" data-edit-original="${safeOriginalEncoded}" data-i18n="edit_btn" aria-label="Edit"><i class="fa-solid fa-pen"></i></button>
-                            <button type="button" class="btn btn-sm btn-light border d-inline-flex align-items-center gap-1" data-meta-short="${safeShort}" data-meta-folder="${safeFolder}" data-meta-tags="${safeTagsAttr}" aria-label="Metadata"><i class="fa-solid fa-tags"></i><span data-i18n="dashboard_meta_btn">Qovluq/Teq</span></button>
-                            <button type="button" class="btn btn-sm btn-light border" data-copy-text="${safeShortUrl}" aria-label="Copy"><i class="fa-solid fa-copy"></i></button>
+                            <button type="button" class="btn btn-sm btn-light border d-inline-flex align-items-center gap-1" data-edit-short="${safeShort}" data-edit-original="${safeOriginalEncoded}" aria-label="Edit"><i class="fa-solid fa-pen"></i> <span data-i18n="edit_btn">Düzəliş</span></button>
+                            <button type="button" class="btn btn-sm btn-light border d-inline-flex align-items-center gap-1" data-meta-short="${safeShort}" data-meta-folder="${safeFolder}" data-meta-tags="${safeTagsAttr}" aria-label="Metadata"><i class="fa-solid fa-tags"></i> <span data-i18n="dashboard_meta_btn">Qovluq/Teq</span></button>
+                            <button type="button" class="btn btn-sm btn-light border d-inline-flex align-items-center gap-1" data-copy-text="${safeShortUrl}" aria-label="Copy"><i class="fa-solid fa-copy"></i> <span data-i18n="copy_btn">Kopyala</span></button>
                             <a href="${safeStatsPath}" class="btn btn-sm btn-light border" aria-label="Stats"><i class="fa-solid fa-chart-bar"></i></a>
                             <form method="POST" action="/api/user/delete" class="d-inline-block m-0">
                               <input type="hidden" name="short" value="${safeShort}">
@@ -9225,6 +9225,62 @@ ${announcementHtml}
               </div>
             </section>
           </main>
+
+          <!-- Dashboard Edit Modal -->
+          <div class="modal fade" id="dashboardEditLinkModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" data-i18n="dashboard_edit_modal_title">Hədəf Linki Yenilə</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold small text-muted">Qısa Kod</label>
+                    <input id="dashboardEditShortDisplay" class="form-control bg-light" type="text" readonly disabled>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold" for="dashboardEditOriginalInput" data-i18n="dashboard_edit_url_label">Yeni Hədəf URL</label>
+                    <input id="dashboardEditOriginalInput" class="form-control" type="url" placeholder="https://example.com/yeni-link" data-i18n="dashboard_edit_url_placeholder" required>
+                  </div>
+                  <div id="dashboardEditMsg" class="small"></div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-i18n="cancel_btn">Ləğv et</button>
+                  <button type="button" class="btn btn-primary" id="dashboardEditSaveBtn" data-i18n="dashboard_edit_save">Yenilə</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dashboard Meta Modal -->
+          <div class="modal fade" id="dashboardMetaModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" data-i18n="dashboard_meta_modal_title">Qovluq və teq düzəlişi</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="mb-3">
+                    <label class="form-label" for="dashboardMetaFolderInput" data-i18n="dashboard_meta_folder_label">Qovluq</label>
+                    <input id="dashboardMetaFolderInput" class="form-control" list="dashboardMetaFolderSuggestions" data-i18n="dashboard_meta_folder_placeholder" placeholder="Məs: kampaniyalar">
+                    <datalist id="dashboardMetaFolderSuggestions"></datalist>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label" for="dashboardMetaTagsInput" data-i18n="dashboard_meta_tags_label">Teqlər</label>
+                    <input id="dashboardMetaTagsInput" class="form-control" list="dashboardMetaTagSuggestions" data-i18n="dashboard_meta_tags_placeholder" placeholder="Məs: reklam, instagram, yaz">
+                    <datalist id="dashboardMetaTagSuggestions"></datalist>
+                  </div>
+                  <div id="dashboardMetaMsg" class="small"></div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-i18n="dashboard_meta_cancel">Ləğv et</button>
+                  <button type="button" class="btn btn-primary" id="dashboardMetaSaveBtn" data-i18n="dashboard_meta_save">Yadda saxla</button>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div class="modal fade" id="bulkImportModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered">
