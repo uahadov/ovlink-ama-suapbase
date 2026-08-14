@@ -1337,9 +1337,9 @@ body.dark-mode,
 
 .home-page .home-brand-logo,
 .home-brand-logo {
-  height: 64px;
+  height: 100px;
   width: auto;
-  max-width: 240px;
+  max-width: 360px;
   display: block;
   object-fit: contain;
   transition: transform 0.2s ease;
@@ -1899,8 +1899,8 @@ body.dark-mode,
 
   .home-page .home-brand-logo,
   .home-brand-logo {
-    height: 52px;
-    max-width: 190px;
+    height: 72px;
+    max-width: 260px;
   }
 
   .home-page .hero-chip {
