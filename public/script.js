@@ -2178,42 +2178,161 @@ if (document.readyState === "loading") {
     });
   };
 
-  const ensureDashboardMetaModal = () => {
-    if (dashboardMetaModalEl) return;
-    const modalWrapper = document.createElement("div");
-    modalWrapper.innerHTML = `
-      <div class="modal fade" id="dashboardMetaModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" data-i18n="dashboard_meta_modal_title">Qovluq və teq düzəlişi</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <div class="mb-3">
-                <label class="form-label" for="dashboardMetaFolderInput" data-i18n="dashboard_meta_folder_label">Qovluq</label>
-                <input id="dashboardMetaFolderInput" class="form-control" list="dashboardMetaFolderSuggestions" data-i18n="dashboard_meta_folder_placeholder" placeholder="Məs: kampaniyalar">
-                <datalist id="dashboardMetaFolderSuggestions"></datalist>
+  let dashboardEditModal = null;
+  let dashboardEditModalEl = null;
+  const dashboardEditModalState = {
+    short: "",
+    row: null,
+    button: null,
+  };
+
+  const ensureDashboardEditModal = () => {
+    dashboardEditModalEl = document.getElementById("dashboardEditLinkModal");
+    if (!dashboardEditModalEl) {
+      const modalWrapper = document.createElement("div");
+      modalWrapper.innerHTML = `
+        <div class="modal fade" id="dashboardEditLinkModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" data-i18n="dashboard_edit_modal_title">Hədəf Linki Yenilə</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
-              <div class="mb-2">
-                <label class="form-label" for="dashboardMetaTagsInput" data-i18n="dashboard_meta_tags_label">Teqlər</label>
-                <input id="dashboardMetaTagsInput" class="form-control" list="dashboardMetaTagSuggestions" data-i18n="dashboard_meta_tags_placeholder" placeholder="Məs: reklam, instagram, yaz">
-                <datalist id="dashboardMetaTagSuggestions"></datalist>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold small text-muted">Qısa Kod</label>
+                  <input id="dashboardEditShortDisplay" class="form-control bg-light" type="text" readonly disabled>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold" for="dashboardEditOriginalInput" data-i18n="dashboard_edit_url_label">Yeni Hədəf URL</label>
+                  <input id="dashboardEditOriginalInput" class="form-control" type="url" placeholder="https://example.com/yeni-link" data-i18n="dashboard_edit_url_placeholder" required>
+                </div>
+                <div id="dashboardEditMsg" class="small"></div>
               </div>
-              <div id="dashboardMetaMsg" class="small"></div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-i18n="dashboard_meta_cancel">Ləğv et</button>
-              <button type="button" class="btn btn-primary" id="dashboardMetaSaveBtn" data-i18n="dashboard_meta_save">Yadda saxla</button>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-i18n="cancel_btn">Ləğv et</button>
+                <button type="button" class="btn btn-primary" id="dashboardEditSaveBtn" data-i18n="dashboard_edit_save">Yenilə</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    `;
-    document.body.appendChild(modalWrapper.firstElementChild);
+      `;
+      document.body.appendChild(modalWrapper.firstElementChild);
+      dashboardEditModalEl = document.getElementById("dashboardEditLinkModal");
+    }
+    if (dashboardEditModalEl && typeof bootstrap !== "undefined" && bootstrap.Modal) {
+      dashboardEditModal = bootstrap.Modal.getOrCreateInstance(dashboardEditModalEl);
+    }
+    if (typeof applyLanguage === "function") applyLanguage();
+
+    const saveBtn = document.getElementById("dashboardEditSaveBtn");
+    const originalInput = document.getElementById("dashboardEditOriginalInput");
+    const msgEl = document.getElementById("dashboardEditMsg");
+
+    if (saveBtn && !saveBtn.dataset.bound) {
+      saveBtn.dataset.bound = "1";
+      saveBtn.addEventListener("click", async () => {
+        if (!dashboardEditModalState.short) return;
+        const newUrl = (originalInput?.value || "").trim();
+        if (!newUrl) {
+          if (msgEl) {
+            msgEl.className = "small text-danger";
+            msgEl.textContent = pickLang("URL boş ola bilməz.", "URL boş olamaz.", "URL cannot be empty.");
+          }
+          return;
+        }
+
+        saveBtn.disabled = true;
+        if (msgEl) {
+          msgEl.className = "small text-muted";
+          msgEl.textContent = pickLang("Yenilənir...", "Güncelleniyor...", "Updating...");
+        }
+
+        try {
+          const res = await postJsonWithCsrf("/api/user/link/update", {
+            short: dashboardEditModalState.short,
+            original: newUrl,
+            lang: currentLang,
+            _csrf: getCsrfToken()
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            if (msgEl) {
+              msgEl.className = "small text-danger";
+              msgEl.textContent = data.error || pickLang("Link yenilənə bilmədi.", "Link güncellenemedi.", "Link could not be updated.");
+            }
+            return;
+          }
+
+          if (dashboardEditModalState.row) {
+            const originalCell = dashboardEditModalState.row.querySelector("td:nth-child(3)");
+            if (originalCell) {
+              originalCell.textContent = newUrl;
+            }
+            dashboardEditModalState.row.setAttribute("data-original", newUrl.toLowerCase());
+          }
+          if (dashboardEditModalState.button) {
+            dashboardEditModalState.button.setAttribute("data-edit-original", encodeURIComponent(newUrl));
+          }
+
+          if (msgEl) {
+            msgEl.className = "small text-success";
+            msgEl.textContent = data.message || pickLang("Link yeniləndi.", "Link güncellendi.", "Link updated.");
+          }
+          window.setTimeout(() => {
+            dashboardEditModal?.hide();
+          }, 400);
+        } catch (err) {
+          if (msgEl) {
+            msgEl.className = "small text-danger";
+            msgEl.textContent = (currentLang === "tr" ? "Hata: " : (currentLang === "en" ? "Error: " : "Xəta: ")) + err.message;
+          }
+        } finally {
+          saveBtn.disabled = false;
+        }
+      });
+    }
+  };
+
+  const ensureDashboardMetaModal = () => {
     dashboardMetaModalEl = document.getElementById("dashboardMetaModal");
-    if (!dashboardMetaModalEl || typeof bootstrap === "undefined" || !bootstrap.Modal) return;
-    dashboardMetaModal = bootstrap.Modal.getOrCreateInstance(dashboardMetaModalEl);
+    if (!dashboardMetaModalEl) {
+      const modalWrapper = document.createElement("div");
+      modalWrapper.innerHTML = `
+        <div class="modal fade" id="dashboardMetaModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" data-i18n="dashboard_meta_modal_title">Qovluq və teq düzəlişi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label" for="dashboardMetaFolderInput" data-i18n="dashboard_meta_folder_label">Qovluq</label>
+                  <input id="dashboardMetaFolderInput" class="form-control" list="dashboardMetaFolderSuggestions" data-i18n="dashboard_meta_folder_placeholder" placeholder="Məs: kampaniyalar">
+                  <datalist id="dashboardMetaFolderSuggestions"></datalist>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label" for="dashboardMetaTagsInput" data-i18n="dashboard_meta_tags_label">Teqlər</label>
+                  <input id="dashboardMetaTagsInput" class="form-control" list="dashboardMetaTagSuggestions" data-i18n="dashboard_meta_tags_placeholder" placeholder="Məs: reklam, instagram, yaz">
+                  <datalist id="dashboardMetaTagSuggestions"></datalist>
+                </div>
+                <div id="dashboardMetaMsg" class="small"></div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-i18n="dashboard_meta_cancel">Ləğv et</button>
+                <button type="button" class="btn btn-primary" id="dashboardMetaSaveBtn" data-i18n="dashboard_meta_save">Yadda saxla</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modalWrapper.firstElementChild);
+      dashboardMetaModalEl = document.getElementById("dashboardMetaModal");
+    }
+    if (dashboardMetaModalEl && typeof bootstrap !== "undefined" && bootstrap.Modal) {
+      dashboardMetaModal = bootstrap.Modal.getOrCreateInstance(dashboardMetaModalEl);
+    }
     if (typeof applyLanguage === "function") applyLanguage();
 
     const saveBtn = document.getElementById("dashboardMetaSaveBtn");
@@ -2221,59 +2340,62 @@ if (document.readyState === "loading") {
     const tagsInput = document.getElementById("dashboardMetaTagsInput");
     const msgEl = document.getElementById("dashboardMetaMsg");
 
-    saveBtn?.addEventListener("click", async () => {
-      if (!dashboardMetaModalState.short) return;
-      const folderName = (folderInput?.value || "").trim();
-      const tags = buildMetaTagsInput(tagsInput?.value || "");
-      const tagsRaw = tags.join(", ");
+    if (saveBtn && !saveBtn.dataset.bound) {
+      saveBtn.dataset.bound = "1";
+      saveBtn.addEventListener("click", async () => {
+        if (!dashboardMetaModalState.short) return;
+        const folderName = (folderInput?.value || "").trim();
+        const tags = buildMetaTagsInput(tagsInput?.value || "");
+        const tagsRaw = tags.join(", ");
 
-      saveBtn.disabled = true;
-      if (msgEl) {
-        msgEl.className = "small text-muted";
-        msgEl.textContent = "";
-      }
-      try {
-        const res = await postJsonWithCsrf("/api/user/link/meta", {
-          short: dashboardMetaModalState.short,
-          folder_name: folderName,
-          tags: tagsRaw,
-          lang: currentLang,
-          _csrf: getCsrfToken(),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
+        saveBtn.disabled = true;
+        if (msgEl) {
+          msgEl.className = "small text-muted";
+          msgEl.textContent = pickLang("Yadda saxlanılır...", "Kaydediliyor...", "Saving...");
+        }
+        try {
+          const res = await postJsonWithCsrf("/api/user/link/meta", {
+            short: dashboardMetaModalState.short,
+            folder_name: folderName,
+            tags: tagsRaw,
+            lang: currentLang,
+            _csrf: getCsrfToken(),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            if (msgEl) {
+              msgEl.className = "small text-danger";
+              msgEl.textContent = data.error || pickLang("Link məlumatları yenilənmədi.", "Link bilgileri güncellenemedi.", "Link metadata could not be updated.");
+            }
+            return;
+          }
+
+          if (dashboardMetaModalState.row) {
+            updateDashboardRowMetaAttributes(dashboardMetaModalState.row, folderName, tags);
+            renderDashboardRowMetaCells(dashboardMetaModalState.row);
+          }
+          if (dashboardMetaModalState.button) {
+            dashboardMetaModalState.button.setAttribute("data-meta-folder", folderName);
+            dashboardMetaModalState.button.setAttribute("data-meta-tags", JSON.stringify(tags));
+          }
+          rebuildDashboardMetaFilterOptions();
+          applyDashboardFilters();
+
+          if (msgEl) {
+            msgEl.className = "small text-success";
+            msgEl.textContent = data.message || pickLang("Link məlumatları yeniləndi.", "Link bilgileri güncellendi.", "Link metadata updated.");
+          }
+          window.setTimeout(() => dashboardMetaModal?.hide(), 400);
+        } catch (err) {
           if (msgEl) {
             msgEl.className = "small text-danger";
-            msgEl.textContent = data.error || pickLang("Link məlumatları yenilənmədi.", "Link bilgileri güncellenemedi.", "Link metadata could not be updated.");
+            msgEl.textContent = (currentLang === "tr" ? "Hata: " : (currentLang === "en" ? "Error: " : "Xəta: ")) + err.message;
           }
-          return;
+        } finally {
+          saveBtn.disabled = false;
         }
-
-        if (dashboardMetaModalState.row) {
-          updateDashboardRowMetaAttributes(dashboardMetaModalState.row, folderName, tags);
-          renderDashboardRowMetaCells(dashboardMetaModalState.row);
-        }
-        if (dashboardMetaModalState.button) {
-          dashboardMetaModalState.button.setAttribute("data-meta-folder", folderName);
-          dashboardMetaModalState.button.setAttribute("data-meta-tags", JSON.stringify(tags));
-        }
-        rebuildDashboardMetaFilterOptions();
-        applyDashboardFilters();
-
-        if (msgEl) {
-          msgEl.className = "small text-success";
-          msgEl.textContent = data.message || pickLang("Link məlumatları yeniləndi.", "Link bilgileri güncellendi.", "Link metadata updated.");
-        }
-        window.setTimeout(() => dashboardMetaModal?.hide(), 420);
-      } catch (err) {
-        if (msgEl) {
-          msgEl.className = "small text-danger";
-          msgEl.textContent = (currentLang === "tr" ? "Hata: " : (currentLang === "en" ? "Error: " : "Xəta: ")) + err.message;
-        }
-      } finally {
-        saveBtn.disabled = false;
-      }
-    });
+      });
+    }
   };
 
   const ensureDashboardMetaButtons = () => {
@@ -2972,27 +3094,145 @@ if (customDomainList) {
     });
   }
 
-  // Dashboard ve diger yerlerde data-copy-text butonlari
+  async function copyTextToClipboard(text) {
+    if (!text) return false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {}
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      textArea.setAttribute("readonly", "");
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand("copy");
+      textArea.remove();
+      return !!successful;
+    } catch {
+      return false;
+    }
+  }
+
+  // Dashboard ve diger yerlerdeki butonlar (Copy, Edit, Meta, Filtreler)
   document.addEventListener("click", async (e) => {
-    const btn = e.target.closest("[data-copy-text], [data-copy-target]");
-    if (!btn) return;
-    let text = btn.getAttribute("data-copy-text") || "";
-    if (!text) {
-      const targetId = btn.getAttribute("data-copy-target") || "";
-      if (targetId) {
-        const target = document.getElementById(targetId);
-        if (target) {
-          text = (target.textContent || "").trim();
+    // 1. Kopyalama Butonu (Copy)
+    const copyBtn = e.target.closest("[data-copy-text], [data-copy-target]");
+    if (copyBtn) {
+      let text = copyBtn.getAttribute("data-copy-text") || "";
+      if (!text) {
+        const targetId = copyBtn.getAttribute("data-copy-target") || "";
+        if (targetId) {
+          const target = document.getElementById(targetId);
+          if (target) {
+            text = (target.textContent || target.value || "").trim();
+          }
         }
       }
+      if (!text) return;
+
+      const copied = await copyTextToClipboard(text);
+      if (copied) {
+        const icon = copyBtn.querySelector("i");
+        const originalIconClass = icon ? icon.className : "";
+        if (icon) {
+          icon.className = "fa-solid fa-check text-success";
+        }
+        copyBtn.classList.add("border-success");
+        setTimeout(() => {
+          if (icon) icon.className = originalIconClass;
+          copyBtn.classList.remove("border-success");
+        }, 1500);
+      }
+      return;
     }
-    if (!text) return;
-    try {
-      await navigator.clipboard.writeText(text);
-      const msg = (translations[currentLang] && translations[currentLang]["copied_msg"]) || "Kopyalandı!";
-      alert(msg);
-    } catch {
-      // ignore
+
+    // 2. Qovluq/Teq Modal Butonu (Meta)
+    const metaBtn = e.target.closest("[data-meta-short]");
+    if (metaBtn) {
+      ensureDashboardMetaModal();
+      if (!dashboardMetaModal || !dashboardMetaModalEl) return;
+
+      const short = (metaBtn.getAttribute("data-meta-short") || "").trim();
+      if (!short) return;
+      const folderCurrent = (metaBtn.getAttribute("data-meta-folder") || "").trim();
+      const row = metaBtn.closest("tr[data-short]");
+      const tagsCurrent = parseMetaTagsFromRow(row || metaBtn);
+      const folderInput = document.getElementById("dashboardMetaFolderInput");
+      const tagsInput = document.getElementById("dashboardMetaTagsInput");
+      const msgEl = document.getElementById("dashboardMetaMsg");
+
+      dashboardMetaModalState.short = short;
+      dashboardMetaModalState.row = row || null;
+      dashboardMetaModalState.button = metaBtn;
+
+      if (folderInput) folderInput.value = folderCurrent;
+      if (tagsInput) tagsInput.value = tagsCurrent.join(", ");
+      if (msgEl) {
+        msgEl.className = "small";
+        msgEl.textContent = "";
+      }
+      refreshDashboardMetaSuggestions();
+      dashboardMetaModal.show();
+      return;
+    }
+
+    // 3. Link Düzəliş Butonu (Edit)
+    const editBtn = e.target.closest("[data-edit-short]");
+    if (editBtn) {
+      ensureDashboardEditModal();
+      if (!dashboardEditModal || !dashboardEditModalEl) return;
+
+      const short = (editBtn.getAttribute("data-edit-short") || "").trim();
+      if (!short) return;
+      const encodedOriginal = editBtn.getAttribute("data-edit-original") || "";
+      let currentOriginal = "";
+      try { currentOriginal = decodeURIComponent(encodedOriginal); } catch { currentOriginal = ""; }
+
+      const row = editBtn.closest("tr[data-short]");
+      if (!currentOriginal && row) {
+        const originalCell = row.querySelector("td:nth-child(3)");
+        if (originalCell) currentOriginal = (originalCell.textContent || "").trim();
+      }
+
+      dashboardEditModalState.short = short;
+      dashboardEditModalState.row = row || null;
+      dashboardEditModalState.button = editBtn;
+
+      const shortDisplay = document.getElementById("dashboardEditShortDisplay");
+      const originalInput = document.getElementById("dashboardEditOriginalInput");
+      const msgEl = document.getElementById("dashboardEditMsg");
+
+      if (shortDisplay) shortDisplay.value = short;
+      if (originalInput) originalInput.value = currentOriginal;
+      if (msgEl) {
+        msgEl.className = "small";
+        msgEl.textContent = "";
+      }
+
+      dashboardEditModal.show();
+      return;
+    }
+
+    // 4. Folder & Tag Filters
+    const folderFilterBtn = e.target.closest("[data-meta-filter-folder]");
+    if (folderFilterBtn && dashboardFolderFilter) {
+      dashboardFolderFilter.value = folderFilterBtn.getAttribute("data-meta-filter-folder") || "all";
+      applyDashboardFilters();
+      return;
+    }
+
+    const tagFilterBtn = e.target.closest("[data-meta-filter-tag]");
+    if (tagFilterBtn && dashboardTagFilter) {
+      dashboardTagFilter.value = tagFilterBtn.getAttribute("data-meta-filter-tag") || "all";
+      applyDashboardFilters();
+      return;
     }
   });
 
@@ -3054,82 +3294,6 @@ if (customDomainList) {
       }
     });
   }
-
-  document.addEventListener("click", async (e) => {
-    const folderFilterBtn = e.target.closest("[data-meta-filter-folder]");
-    if (folderFilterBtn && dashboardFolderFilter) {
-      dashboardFolderFilter.value = folderFilterBtn.getAttribute("data-meta-filter-folder") || "all";
-      applyDashboardFilters();
-      return;
-    }
-
-    const tagFilterBtn = e.target.closest("[data-meta-filter-tag]");
-    if (tagFilterBtn && dashboardTagFilter) {
-      dashboardTagFilter.value = tagFilterBtn.getAttribute("data-meta-filter-tag") || "all";
-      applyDashboardFilters();
-      return;
-    }
-
-    const metaBtn = e.target.closest("[data-meta-short]");
-    if (metaBtn) {
-      ensureDashboardMetaModal();
-      if (!dashboardMetaModal || !dashboardMetaModalEl) return;
-
-      const short = (metaBtn.getAttribute("data-meta-short") || "").trim();
-      if (!short) return;
-      const folderCurrent = (metaBtn.getAttribute("data-meta-folder") || "").trim();
-      const row = metaBtn.closest("tr[data-short]");
-      const tagsCurrent = parseMetaTagsFromRow(row || metaBtn);
-      const folderInput = document.getElementById("dashboardMetaFolderInput");
-      const tagsInput = document.getElementById("dashboardMetaTagsInput");
-      const msgEl = document.getElementById("dashboardMetaMsg");
-
-      dashboardMetaModalState.short = short;
-      dashboardMetaModalState.row = row || null;
-      dashboardMetaModalState.button = metaBtn;
-
-      if (folderInput) folderInput.value = folderCurrent;
-      if (tagsInput) tagsInput.value = tagsCurrent.join(", ");
-      if (msgEl) {
-        msgEl.className = "small";
-        msgEl.textContent = "";
-      }
-      refreshDashboardMetaSuggestions();
-      dashboardMetaModal.show();
-      return;
-    }
-
-    const editBtn = e.target.closest("[data-edit-short]");
-    if (!editBtn) return;
-
-    const short = (editBtn.getAttribute("data-edit-short") || "").trim();
-    const encodedOriginal = editBtn.getAttribute("data-edit-original") || "";
-    let currentOriginal = "";
-    try { currentOriginal = decodeURIComponent(encodedOriginal); } catch { currentOriginal = ""; }
-
-    const promptLabel = pickLang("Yeni hədəf URL daxil edin:", "Yeni hedef URL girin:", "Enter new destination URL:");
-    const nextOriginal = window.prompt(promptLabel, currentOriginal);
-    if (nextOriginal === null) return;
-
-    const trimmed = nextOriginal.trim();
-    if (!trimmed) {
-      alert(pickLang("URL boş ola bilməz.", "URL boş olamaz.", "URL cannot be empty."));
-      return;
-    }
-
-    try {
-      const res = await postJsonWithCsrf("/api/user/link/update", { short, original: trimmed, lang: currentLang, _csrf: getCsrfToken() });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data.error || pickLang("Link yenilənə bilmədi.", "Link güncellenemedi.", "Link could not be updated."));
-        return;
-      }
-      alert(data.message || pickLang("Link yeniləndi.", "Link güncellendi.", "Link updated."));
-      location.reload();
-    } catch (err) {
-      alert((currentLang === "tr" ? "Hata: " : (currentLang === "en" ? "Error: " : "Xəta: ")) + err.message);
-    }
-  });
 
   const bulkImportBtn = document.getElementById("bulkImportBtn");
   const bulkImportModalEl = document.getElementById("bulkImportModal");
