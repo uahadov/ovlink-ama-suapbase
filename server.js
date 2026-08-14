@@ -2759,6 +2759,18 @@ function getLangFromCookie(req) {
 
 const DEFAULT_SEO_KEYWORDS = Object.freeze([
   'ovlink',
+  'link qisaltmaq',
+  'link qısaltma',
+  'link qisalt',
+  'pulsuz link qisalt',
+  'link qısaldıcı',
+  'url qisaltmaq',
+  'qr kod yaratmaq',
+  'link kisaltma',
+  'ucretsiz link kisaltma',
+  'link kisaltici',
+  'qr kod olusturucu',
+  'telegram link botu',
   'url shortener',
   'link shortener',
   'custom short links',
@@ -2769,6 +2781,7 @@ const DEFAULT_SEO_KEYWORDS = Object.freeze([
   'best url shorteners',
   'free url shortener websites',
   'tinyurl alternatives',
+  'bitly alternative free',
   'popular url shortener tools',
   'best url shortener sites 2025',
   'link shortening services comparison',
@@ -2811,15 +2824,15 @@ function buildSeo(req, opts = {}) {
   const base = getPublicBaseUrl(req);
   const rawLang = getLangFromCookie(req) || req.defaultLang || 'en';
   const lang = normalizeLang(rawLang, 'en');
-  const title = pickLang(lang, opts.titleAz || 'Ovlink', opts.titleTr || 'Ovlink', opts.titleEn || 'Ovlink');
-  const description = pickLang(lang, opts.descAz || '', opts.descTr || '', opts.descEn || '');
+  const title = pickLang(lang, opts.titleAz || 'Ovlink - Link Qısaltmaq', opts.titleTr || 'Ovlink - Link Kısaltma', opts.titleEn || 'Ovlink - URL Shortener');
+  const description = pickLang(lang, opts.descAz || 'Ovlink ilə uzun linkləri pulsuz qısaldın və QR kod yaradın.', opts.descTr || 'Ovlink ile linklerinizi ücretsiz kısaltın ve QR kod oluşturun.', opts.descEn || 'Shorten long links for free and generate custom QR codes with Ovlink.');
   const keywords = normalizeSeoKeywords([
     ...DEFAULT_SEO_KEYWORDS,
     ...normalizeSeoKeywords(opts.keywords || []),
   ]).join(', ');
   const path = (opts.path || req.path || '/').toString();
   const canonical = base + path;
-  const org = { "@context": "https://schema.org", "@type": "Organization", "name": "Ovlink", "url": base };
+  const org = { "@context": "https://schema.org", "@type": "Organization", "name": "Ovlink", "url": base, "logo": `${base}/logo.png` };
   const website = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -2830,6 +2843,27 @@ function buildSeo(req, opts = {}) {
       "target": `${base}/?q={search_term_string}`,
       "query-input": "required name=search_term_string"
     }
+  };
+  const softwareApp = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Ovlink",
+    "url": base,
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Web, iOS, Android, Telegram",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "URL Shortener",
+      "Custom Aliases",
+      "Dynamic QR Code Generator",
+      "Real-time Click Analytics",
+      "Telegram Bot Integration (@OvlinkBOT)",
+      "Multi-language support"
+    ]
   };
   const hreflangEn = base + path + (path.includes('?') ? '&' : '?') + 'lang=en';
   const hreflangAz = base + path + (path.includes('?') ? '&' : '?') + 'lang=az';
@@ -2850,7 +2884,7 @@ function buildSeo(req, opts = {}) {
     hreflangAz,
     hreflangTr,
     hreflangXDefault,
-    jsonLd: JSON.stringify([org, website])
+    jsonLd: JSON.stringify([org, website, softwareApp])
   };
 }
 
@@ -3871,12 +3905,12 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => {
   const seo = buildSeo(req, {
     path: '/',
-    titleAz: 'Ovlink - URL Qısaltma',
-    titleTr: 'Ovlink - URL Kısaltma',
-    titleEn: 'Ovlink - URL Shortener',
-    descAz: 'Ovlink linklərinizi qısaldır, izləyir və təhlükəsiz idarə etməyə kömək edir.',
-    descTr: 'Ovlink linklerinizi kısaltır, izler ve güvenli şekilde yönetmenize yardımcı olur.',
-    descEn: 'Ovlink shortens your links, tracks clicks, and helps you manage them securely.'
+    titleAz: 'Link Qısaltmaq - Pulsuz URL Qısaltma və QR Kod Yarat | Ovlink',
+    titleTr: 'Link Kısaltma - Ücretsiz URL Kısaltıcı & QR Kod Oluşturucu | Ovlink',
+    titleEn: 'URL Shortener - Free Link Shortening & QR Code Generator | Ovlink',
+    descAz: 'Ovlink ilə uzun linkləri 1 saniyədə pulsuz qısaldın, xüsusi QR kodlar yaradın, klik analitikasını izləyin və @OvlinkBOT Telegram botu ilə idarə edin.',
+    descTr: 'Ovlink ile uzun linklerinizi saniyeler içinde ücretsiz kısaltın, özel QR kodlar oluşturun, anlık tıklama analitiğini takip edin ve @OvlinkBOT Telegram botu ile yönetin.',
+    descEn: 'Shorten long URLs in seconds, generate custom QR codes, track real-time click analytics, and use our instant @OvlinkBOT Telegram bot with Ovlink.'
   });
   res.render('index', { csrfToken: res.locals._csrf, seo });
 });
