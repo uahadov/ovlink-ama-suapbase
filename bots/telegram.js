@@ -2,10 +2,10 @@ const QRCode = require('qrcode');
 
 const TRANSLATIONS = {
   en: {
-    welcome_linked: "👋 Welcome back, <b>{name}</b>!\n\n🔗 <b>Ovlink Bot</b> — {tier}\n📊 Daily limit: {dailyLinks} links\n📈 Today: {dailyCount}/{dailyLinks} used\n\n📌 <b>Commands:</b>\n/short &lt;url&gt; — Shorten URL\n/short &lt;url&gt; &lt;alias&gt; — Custom alias (⭐ Pro)\n/stats &lt;code&gt; — Link stats (⭐ Pro)\n/mylinks — Your recent links\n/help — Commands\n/lang — Language\n/unlink — Disconnect\n\n💡 Send URLs directly to shorten!\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
+    welcome_linked: "👋 Welcome back, <b>{name}</b>!\n\n🔗 <b>Ovlink Bot</b> — {tier}\n📊 Daily limit: {dailyLinks} links\n📈 Today: {dailyCount}/{dailyLinks} used\n\n📌 <b>Commands:</b>\n/short &lt;url&gt; — Shorten URL\n/qr &lt;url/code&gt; — Generate QR code\n/limit — Check remaining limits\n/mylinks — Your recent links\n/search &lt;query&gt; — Search your links\n/export — Export your links\n/delete &lt;code&gt; — Delete a link\n/stats &lt;code&gt; — Link stats (⭐ Pro)\n/help — All commands\n/lang — Language\n/unlink — Disconnect\n\n💡 Send URLs directly to shorten!\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     welcome_guest: "👋 <b>Ovlink Bot</b> — Fast URL shortener!\n\n📌 <b>Features:</b>\n• Shorten any URL (Guest: 5 links/day)\n• QR code generation\n• 4 languages\n\n⚡ Send me a link to test!\n\n🔑 <b>Link account</b> for 50 links/day & Dashboard:\n<a href=\"{authUrl}\">→ Link Account</a>\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     welcome_guest_btn: "🔗 Link Account",
-    help: "📖 <b>Ovlink Bot Commands:</b>\n/short &lt;url&gt; — Shorten URL\n/short &lt;url&gt; &lt;alias&gt; — Custom alias (⭐ Pro)\n/stats &lt;code&gt; — Statistics (⭐ Pro)\n/mylinks — Recent links\n/unlink — Disconnect\n/lang — Language\n/upgrade — Pro info\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
+    help: "📖 <b>Ovlink Bot Commands:</b>\n/short &lt;url&gt; — Shorten URL\n/qr &lt;url/code&gt; — Generate QR Code\n/limit — View daily limits\n/mylinks — Recent links\n/search &lt;query&gt; — Search links\n/export — Export links\n/delete &lt;code&gt; — Delete link\n/stats &lt;code&gt; — Statistics (⭐ Pro)\n/unlink — Disconnect\n/lang — Language\n/upgrade — Pro info\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     upgrade: "⭐ <b>Ovlink Pro — $2/month</b>\n\n🆓 Free: 50 links/day + 5 bulk\n⭐ Pro: 500 links/day + 50 bulk + alias + stats\n\n🌐 <a href=\"{baseUrl}/pricing\">ovlink.sbs/pricing</a>",
     url_required: "❌ URL is required. Usage: /short <url>",
     invalid_url: "❌ Invalid URL.",
@@ -36,10 +36,10 @@ const TRANSLATIONS = {
     lang_updated: "✅ Language updated to English."
   },
   tr: {
-    welcome_linked: "👋 Tekrar hoş geldin, <b>{name}</b>!\n\n🔗 <b>Ovlink Bot</b> — {tier}\n📊 Günlük limit: {dailyLinks} link\n📈 Bugün: {dailyCount}/{dailyLinks} kullanıldı\n\n📌 <b>Komutlar:</b>\n/short &lt;url&gt; — Link kısalt\n/short &lt;url&gt; &lt;alias&gt; — Özel alias (⭐ Pro)\n/stats &lt;kod&gt; — İstatistik (⭐ Pro)\n/mylinks — Son linklerin\n/help — Komutlar\n/lang — Dil değiştir\n/unlink — Hesabı ayır\n\n💡 URL gönder, anında kısaltayım!\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
+    welcome_linked: "👋 Tekrar hoş geldin, <b>{name}</b>!\n\n🔗 <b>Ovlink Bot</b> — {tier}\n📊 Günlük limit: {dailyLinks} link\n📈 Bugün: {dailyCount}/{dailyLinks} kullanıldı\n\n📌 <b>Komutlar:</b>\n/short &lt;url&gt; — Link kısalt\n/qr &lt;url/kod&gt; — QR kod oluştur\n/limit — Kalan limitleri gör\n/mylinks — Son linklerin\n/search &lt;arama&gt; — Linklerde ara\n/export — Linkleri dışa aktar\n/delete &lt;kod&gt; — Link sil\n/stats &lt;kod&gt; — İstatistik (⭐ Pro)\n/help — Tüm komutlar\n/lang — Dil değiştir\n/unlink — Hesabı ayır\n\n💡 URL gönder, anında kısaltayım!\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     welcome_guest: "👋 <b>Ovlink Bot</b> — Hızlı Link Kısaltıcı!\n\n📌 <b>Özellikler:</b>\n• Herhangi bir linki kısalt (Misafir: 5 link/gün)\n• QR kod oluşturma\n• 4 dil desteği\n\n⚡ Denemek için bir link gönder!\n\n🔑 <b>Hesabını bağla</b> (Günde 50 link + Panel):\n<a href=\"{authUrl}\">→ Hesabımı Bağla</a>\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     welcome_guest_btn: "🔗 Hesabımı Bağla",
-    help: "📖 <b>Ovlink Bot Komutları:</b>\n/short &lt;url&gt; — Link kısalt\n/short &lt;url&gt; &lt;alias&gt; — Özel alias (⭐ Pro)\n/stats &lt;kod&gt; — İstatistik (⭐ Pro)\n/mylinks — Son linkler\n/unlink — Hesabı ayır\n/lang — Dil değiştir\n/upgrade — Pro bilgi\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
+    help: "📖 <b>Ovlink Bot Komutları:</b>\n/short &lt;url&gt; — Link kısalt\n/qr &lt;url/kod&gt; — QR kod oluştur\n/limit — Günlük limitleri gör\n/mylinks — Son linkler\n/search &lt;kelime&gt; — Link ara\n/export — Linkleri listele\n/delete &lt;kod&gt; — Link sil\n/stats &lt;kod&gt; — İstatistik (⭐ Pro)\n/unlink — Hesabı ayır\n/lang — Dil değiştir\n/upgrade — Pro bilgi\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     upgrade: "⭐ <b>Ovlink Pro — $2/ay</b>\n\n🆓 Ücretsiz: Günde 50 link + 5 toplu\n⭐ Pro: Günde 500 link + 50 toplu + alias + istatistik\n\n🌐 <a href=\"{baseUrl}/pricing\">ovlink.sbs/pricing</a>",
     url_required: "❌ URL gerekli. Kullanım: /short <url>",
     invalid_url: "❌ Geçersiz URL.",
@@ -70,10 +70,10 @@ const TRANSLATIONS = {
     lang_updated: "✅ Dil Türkçe olarak güncellendi."
   },
   az: {
-    welcome_linked: "👋 Xoş gəldiniz, <b>{name}</b>!\n\n🔗 <b>Ovlink Bot</b> — {tier}\n📊 Gündəlik limit: {dailyLinks} link\n📈 Bu gün: {dailyCount}/{dailyLinks} istifadə edilib\n\n📌 <b>Komandalar:</b>\n/short &lt;url&gt; — Link qısalt\n/short &lt;url&gt; &lt;alias&gt; — Xüsusi alias (⭐ Pro)\n/stats &lt;kod&gt; — Statistika (⭐ Pro)\n/mylinks — Son linkləriniz\n/help — Komandalar\n/lang — Dil dəyişdir\n/unlink — Hesabı ayır\n\n💡 URL göndərin, dərhal qısaldım!\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
+    welcome_linked: "👋 Xoş gəldiniz, <b>{name}</b>!\n\n🔗 <b>Ovlink Bot</b> — {tier}\n📊 Gündəlik limit: {dailyLinks} link\n📈 Bu gün: {dailyCount}/{dailyLinks} istifadə edilib\n\n📌 <b>Komandalar:</b>\n/short &lt;url&gt; — Link qısalt\n/qr &lt;url/kod&gt; — QR kod yarat\n/limit — Gündəlik limit vəziyyəti\n/mylinks — Son linkləriniz\n/search &lt;axtarış&gt; — Linklərdə axtarış\n/export — Linkləri ixrac et\n/delete &lt;kod&gt; — Link sil\n/stats &lt;kod&gt; — Statistika (⭐ Pro)\n/help — Bütün komandalar\n/lang — Dil dəyişdir\n/unlink — Hesabı ayır\n\n💡 URL göndərin, dərhal qısaldım!\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     welcome_guest: "👋 <b>Ovlink Bot</b> — Sürətli Link Qısaldıcı!\n\n📌 <b>Xüsusiyyətlər:</b>\n• İstənilən linki qısalt (Qonaq: 5 link/gün)\n• QR kod generasiyası\n• 4 dil dəstəyi\n\n⚡ Yoxlamaq üçün link göndərin!\n\n🔑 <b>Hesabınızı bağlayın</b> (Gündə 50 link + Panel):\n<a href=\"{authUrl}\">→ Hesabımı Bağla</a>\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     welcome_guest_btn: "🔗 Hesabımı Bağla",
-    help: "📖 <b>Ovlink Bot Komandaları:</b>\n/short &lt;url&gt; — Link qısalt\n/short &lt;url&gt; &lt;alias&gt; — Xüsusi alias (⭐ Pro)\n/stats &lt;kod&gt; — Statistika (⭐ Pro)\n/mylinks — Son linklər\n/unlink — Hesabı ayır\n/lang — Dil dəyişdir\n/upgrade — Pro haqqında\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
+    help: "📖 <b>Ovlink Bot Komandaları:</b>\n/short &lt;url&gt; — Link qısalt\n/qr &lt;url/kod&gt; — QR kod yarat\n/limit — Gündəlik limitlər\n/mylinks — Son linklər\n/search &lt;söz&gt; — Linklərdə axtarış\n/export — Linkləri göstər\n/delete &lt;kod&gt; — Link sil\n/stats &lt;kod&gt; — Statistika (⭐ Pro)\n/unlink — Hesabı ayır\n/lang — Dil dəyişdir\n/upgrade — Pro haqqında\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     upgrade: "⭐ <b>Ovlink Pro — $2/ay</b>\n\n🆓 Pulsuz: Gündə 50 link + 5 toplu\n⭐ Pro: Gündə 500 link + 50 toplu + alias + statistika\n\n🌐 <a href=\"{baseUrl}/pricing\">ovlink.sbs/pricing</a>",
     url_required: "❌ URL tələb olunur. İstifadəsi: /short <url>",
     invalid_url: "❌ Keçərsiz URL.",
@@ -104,10 +104,10 @@ const TRANSLATIONS = {
     lang_updated: "✅ Dil Azərbaycan dili olaraq yeniləndi."
   },
   ru: {
-    welcome_linked: "👋 С возвращением, <b>{name}</b>!\n\n🔗 <b>Ovlink Bot</b> — {tier}\n📊 Лимит: {dailyLinks} ссылок/день\n📈 Сегодня: {dailyCount}/{dailyLinks} использовано\n\n📌 <b>Команды:</b>\n/short &lt;url&gt; — Сократить URL\n/short &lt;url&gt; &lt;alias&gt; — Свой алиас (⭐ Pro)\n/stats &lt;код&gt; — Статистика (⭐ Pro)\n/mylinks — Последние ссылки\n/help — Команды\n/lang — Язык\n/unlink — Отвязать\n\n💡 Отправьте ссылки для сокращения!\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
+    welcome_linked: "👋 С возвращением, <b>{name}</b>!\n\n🔗 <b>Ovlink Bot</b> — {tier}\n📊 Лимит: {dailyLinks} ссылок/день\n📈 Сегодня: {dailyCount}/{dailyLinks} использовано\n\n📌 <b>Команды:</b>\n/short &lt;url&gt; — Сократить URL\n/qr &lt;url/код&gt; — QR код\n/limit — Проверить лимиты\n/mylinks — Последние ссылки\n/search &lt;поиск&gt; — Поиск по ссылкам\n/export — Экспорт ссылок\n/delete &lt;код&gt; — Удалить ссылку\n/stats &lt;код&gt; — Статистика (⭐ Pro)\n/help — Все команды\n/lang — Язык\n/unlink — Отвязать\n\n💡 Отправьте ссылки для сокращения!\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     welcome_guest: "👋 <b>Ovlink Bot</b> — Сервис сокращения ссылок!\n\n📌 <b>Возможности:</b>\n• Сократить ссылку (Гость: 5 в день)\n• Генерация QR кодов\n• 4 языка\n\n⚡ Отправьте ссылку для проверки!\n\n🔑 <b>Привязать аккаунт</b> (50 ссылок в день + панель):\n<a href=\"{authUrl}\">→ Привязать аккаунт</a>\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     welcome_guest_btn: "🔗 Привязать аккаунт",
-    help: "📖 <b>Команды Ovlink Bot:</b>\n/short &lt;url&gt; — Сократить URL\n/short &lt;url&gt; &lt;alias&gt; — Свой алиас (⭐ Pro)\n/stats &lt;код&gt; — Статистика (⭐ Pro)\n/mylinks — Последние ссылки\n/unlink — Отвязать\n/lang — Язык\n/upgrade — Pro тариф\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
+    help: "📖 <b>Команды Ovlink Bot:</b>\n/short &lt;url&gt; — Сократить URL\n/qr &lt;url/код&gt; — QR код\n/limit — Лимиты\n/mylinks — Последние ссылки\n/search &lt;слово&gt; — Поиск ссылок\n/export — Список ссылок\n/delete &lt;код&gt; — Удалить ссылку\n/stats &lt;код&gt; — Статистика (⭐ Pro)\n/unlink — Отвязать\n/lang — Язык\n/upgrade — Pro тариф\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     upgrade: "⭐ <b>Ovlink Pro — $2/мес</b>\n\n🆓 Бесплатно: 50 ссылок в день + 5 пачкой\n⭐ Pro: 500 ссылок в день + 50 пачкой + алиас + статистика\n\n🌐 <a href=\"{baseUrl}/pricing\">ovlink.sbs/pricing</a>",
     url_required: "❌ Требуется URL. /short <url>",
     invalid_url: "❌ Неверный URL.",
@@ -386,6 +386,137 @@ function createTelegramBot(db, options = {}) {
     });
   }
 
+  async function handleQrCommand(chat, args) {
+    const lang = await shared.getBotLanguage('telegram', chat.id);
+    const raw = (args.text || '').replace(/^\/qr\s*/i, '').trim();
+    if (!raw) {
+      const usage = lang === 'az'
+        ? '📱 <b>QR Kod Yaratmaq:</b>\nİstifadə: <code>/qr &lt;url və ya qısa kod&gt;</code>\nNümunə: <code>/qr https://google.com</code>'
+        : (lang === 'tr'
+          ? '📱 <b>QR Kod Oluşturma:</b>\nKullanım: <code>/qr &lt;url veya kısa kod&gt;</code>\nÖrnek: <code>/qr https://google.com</code>'
+          : '📱 <b>Generate QR Code:</b>\nUsage: <code>/qr &lt;url or short code&gt;</code>\nExample: <code>/qr https://google.com</code>');
+      return sendMessage(chat.id, usage);
+    }
+
+    let targetUrl = raw;
+    if (!/^https?:\/\//i.test(raw)) {
+      const shortCode = raw.split('/').pop().trim();
+      targetUrl = `${BASE_URL}/${shortCode}`;
+    }
+
+    try {
+      const qrBuffer = await QRCode.toBuffer(targetUrl, {
+        errorCorrectionLevel: 'M',
+        type: 'png',
+        margin: 2,
+        width: 400,
+        color: { dark: '#0f172a', light: '#ffffff' }
+      });
+      await sendPhoto(chat.id, qrBuffer, `📱 <b>${esc(targetUrl)}</b>\n\n🌐 <a href="${BASE_URL}">ovlink.sbs</a>`, { replyToMessageId: args.messageId });
+    } catch (err) {
+      await sendMessage(chat.id, '❌ QR kod yaradıla bilmədi.');
+    }
+  }
+
+  async function handleLimitsCommand(chat) {
+    const lang = await shared.getBotLanguage('telegram', chat.id);
+    const botUser = await shared.getBotUser('telegram', chat.id);
+    if (!botUser) {
+      const guestCount = getGuestDailyCount(chat.id);
+      const authUrl = `${BASE_URL}/bot/auth?platform=telegram&id=${chat.id}&name=${encodeURIComponent(chat.username || chat.first_name || '')}`;
+      const msg = lang === 'az'
+        ? `📊 <b>Limit Vəziyyətiniz (Qonaq):</b>\n\n• Gündəlik Limit: <b>5 link</b>\n• Bu gün istifadə edilən: <b>${guestCount}/5</b>\n• Toplu Qısaltma: ❌ (Hesab tələb olunur)\n\n🔑 <i>Limiti 50-yə qaldırmaq və Paneldən idarə etmək üçün hesabınızı bağlayın:</i>\n<a href="${authUrl}">→ Hesabımı Bağla</a>`
+        : (lang === 'tr'
+          ? `📊 <b>Limit Durumunuz (Misafir):</b>\n\n• Günlük Limit: <b>5 link</b>\n• Bugün kullanılan: <b>${guestCount}/5</b>\n• Toplu Kısaltma: ❌ (Hesap gerekli)\n\n🔑 <i>Limiti 50'ye yükseltmek ve Paneli kullanmak için hesabınızı bağlayın:</i>\n<a href="${authUrl}">→ Hesabımı Bağla</a>`
+          : `📊 <b>Your Limits (Guest):</b>\n\n• Daily Limit: <b>5 links</b>\n• Used today: <b>${guestCount}/5</b>\n• Bulk shorten: ❌ (Account required)\n\n🔑 <i>Link account for 50 links/day & Dashboard:</i>\n<a href="${authUrl}">→ Link Account</a>`);
+      const keyboard = [[{ text: t(lang, 'welcome_guest_btn'), url: authUrl }]];
+      return sendMessage(chat.id, msg, { keyboard });
+    }
+
+    const isPro = isProAccessActive ? isProAccessActive(botUser) : false;
+    const limits = shared.getTierLimits(botUser);
+    const dailyCount = await shared.getDailyLinkCount(botUser.user_id);
+    const tier = isPro ? '⭐ PRO Plan' : '🆓 Free Plan';
+
+    const msg = lang === 'az'
+      ? `📊 <b>Hesab Limitləriniz (${tier}):</b>\n\n• Gündəlik Limit: <b>${limits.dailyLinks} link</b>\n• Bu gün istifadə edilən: <b>${dailyCount}/${limits.dailyLinks}</b>\n• Tək Səfərdə Toplu: <b>${limits.bulkLimit} link</b>\n• Ümumi Maksimum Link: <b>${limits.maxLinks}</b>\n• Xüsusi Alias: <b>${limits.customAlias ? '✅ Aktiv' : '❌ Pro Tələb Olunur'}</b>\n\n` +
+        (isPro ? `👑 <i>Pro abunəliyiniz aktivdir.</i>` : `⭐ <i>Gündə 500 link və xüsusi alias üçün /upgrade yazın.</i>\n🌐 <a href="${BASE_URL}/pricing">ovlink.sbs/pricing</a>`)
+      : (lang === 'tr'
+        ? `📊 <b>Hesap Limitleriniz (${tier}):</b>\n\n• Günlük Limit: <b>${limits.dailyLinks} link</b>\n• Bugün kullanılan: <b>${dailyCount}/${limits.dailyLinks}</b>\n• Tek Seferde Toplu: <b>${limits.bulkLimit} link</b>\n• Toplam Maksimum Link: <b>${limits.maxLinks}</b>\n• Özel Alias: <b>${limits.customAlias ? '✅ Aktif' : '❌ Pro Gerekli'}</b>\n\n` +
+          (isPro ? `👑 <i>Pro üyeliğiniz aktif.</i>` : `⭐ <i>Günde 500 link ve özel alias için /upgrade yazın.</i>\n🌐 <a href="${BASE_URL}/pricing">ovlink.sbs/pricing</a>`)
+        : `📊 <b>Account Limits (${tier}):</b>\n\n• Daily Limit: <b>${limits.dailyLinks} links</b>\n• Used today: <b>${dailyCount}/${limits.dailyLinks}</b>\n• Bulk at once: <b>${limits.bulkLimit} links</b>\n• Total Max Links: <b>${limits.maxLinks}</b>\n• Custom Alias: <b>${limits.customAlias ? '✅ Active' : '❌ Pro Required'}</b>\n\n` +
+          (isPro ? `👑 <i>Pro subscription is active.</i>` : `⭐ <i>For 500 links/day and custom alias, type /upgrade</i>\n🌐 <a href="${BASE_URL}/pricing">ovlink.sbs/pricing</a>`));
+
+    await sendMessage(chat.id, msg);
+  }
+
+  async function handleExportCommand(chat) {
+    const lang = await shared.getBotLanguage('telegram', chat.id);
+    const botUser = await shared.getBotUser('telegram', chat.id);
+    if (!botUser) return sendMessage(chat.id, t(lang, 'not_linked'));
+
+    db.all('SELECT short, original, created_at FROM urls WHERE user_id = ? ORDER BY created_at DESC LIMIT 20', [botUser.user_id], async (err, rows) => {
+      if (err || !rows || !rows.length) {
+        return sendMessage(chat.id, t(lang, 'no_links'));
+      }
+
+      const summary = `📁 <b>Linklərinizin Siyahısı (${rows.length}):</b>\n\n` +
+        rows.map((r, i) => `${i + 1}. 🔗 <b>${BASE_URL}/${esc(r.short)}</b>\n   📎 <code>${esc(r.original.slice(0, 45))}</code>\n   📅 <i>${(r.created_at || '').slice(0, 10)}</i>`).join('\n\n') +
+        `\n\n🌐 <a href="${BASE_URL}/dashboard">Panelə Get & CSV İndir</a>`;
+
+      await sendMessage(chat.id, summary);
+    });
+  }
+
+  async function handleSearchCommand(chat, args) {
+    const lang = await shared.getBotLanguage('telegram', chat.id);
+    const botUser = await shared.getBotUser('telegram', chat.id);
+    if (!botUser) return sendMessage(chat.id, t(lang, 'not_linked'));
+
+    const query = (args.text || '').replace(/^\/search\s*/i, '').trim();
+    if (!query) {
+      return sendMessage(chat.id, '🔍 Axtarış üçün söz yazın. Nümunə: <code>/search youtube</code>');
+    }
+
+    const searchPattern = `%${query}%`;
+    db.all(
+      'SELECT short, original, created_at FROM urls WHERE user_id = ? AND (short LIKE ? OR original LIKE ?) ORDER BY created_at DESC LIMIT 8',
+      [botUser.user_id, searchPattern, searchPattern],
+      async (err, rows) => {
+        if (err || !rows || !rows.length) {
+          return sendMessage(chat.id, `🔍 "<b>${esc(query)}</b>" üzrə heç bir link tapılmadı.`);
+        }
+
+        const lines = rows.map((r, i) => `${i + 1}. 🔗 <b>${BASE_URL}/${esc(r.short)}</b>\n   📎 <code>${esc(r.original.slice(0, 45))}</code>`).join('\n\n');
+        const keyboard = rows.slice(0, 4).map(r => ([
+          { text: `📷 QR: /${r.short}`, callback_data: `qr_${r.short}` },
+          { text: `🗑️ Sil: /${r.short}`, callback_data: `del_${r.short}` }
+        ]));
+
+        await sendMessage(chat.id, `🔍 "<b>${esc(query)}</b>" Axtarış Nəticələri (${rows.length}):\n\n${lines}\n\n🌐 <a href="${BASE_URL}">ovlink.sbs</a>`, { keyboard });
+      }
+    );
+  }
+
+  async function handleDeleteCommand(chat, args) {
+    const lang = await shared.getBotLanguage('telegram', chat.id);
+    const botUser = await shared.getBotUser('telegram', chat.id);
+    if (!botUser) return sendMessage(chat.id, t(lang, 'not_linked'));
+
+    const raw = (args.text || '').replace(/^\/(delete|del)\s*/i, '').trim();
+    const shortCode = raw.split('/').pop().trim();
+    if (!shortCode) {
+      return sendMessage(chat.id, '❌ Silmək istədiyiniz qısa kodu yazın. Nümunə: <code>/delete ab12cd</code>');
+    }
+
+    db.run('DELETE FROM urls WHERE short = ? AND user_id = ?', [shortCode, botUser.user_id], function (err) {
+      if (err) {
+        return sendMessage(chat.id, '❌ Silinmə zamanı xəta baş verdi.');
+      }
+      sendMessage(chat.id, t(lang, 'deleted_success', { short: shortCode }));
+    });
+  }
+
   async function handleStats(chat, args) {
     const lang = await shared.getBotLanguage('telegram', chat.id);
     const botUser = await shared.getBotUser('telegram', chat.id);
@@ -463,7 +594,7 @@ function createTelegramBot(db, options = {}) {
             width: 400,
             color: { dark: '#0f172a', light: '#ffffff' }
           });
-          await answerCallbackQuery(callbackQueryId, 'QR...');
+          await answerCallbackQuery(callbackQueryId, 'QR Code ready!');
           await sendPhoto(message.chat.id, qrBuffer, `📱 <b>${shortUrl}</b>\n\n🌐 <a href="${BASE_URL}">ovlink.sbs</a>`);
         } catch (e) { await answerCallbackQuery(callbackQueryId, 'Error'); }
         return;
@@ -474,8 +605,9 @@ function createTelegramBot(db, options = {}) {
         const botUser = await shared.getBotUser('telegram', message.chat.id);
         if (!botUser) return answerCallbackQuery(callbackQueryId, t(lang, 'not_linked'));
         db.run('DELETE FROM urls WHERE short = ? AND user_id = ?', [shortCode, botUser.user_id], function (err) {
-          if (err || this.changes === 0) answerCallbackQuery(callbackQueryId, 'Xəta');
-          else {
+          if (err) {
+            answerCallbackQuery(callbackQueryId, 'Xəta');
+          } else {
             answerCallbackQuery(callbackQueryId, t(lang, 'deleted_success', { short: shortCode }));
             sendMessage(message.chat.id, t(lang, 'deleted_success', { short: shortCode }));
           }
@@ -495,6 +627,15 @@ function createTelegramBot(db, options = {}) {
     switch (cmd) {
       case '/start': return handleStart(chat, { text, messageId: message.message_id });
       case '/short': return handleShort(chat, { text, messageId: message.message_id });
+      case '/qr': return handleQrCommand(chat, { text, messageId: message.message_id });
+      case '/limit':
+      case '/limits':
+      case '/quota':
+      case '/kota': return handleLimitsCommand(chat);
+      case '/export': return handleExportCommand(chat);
+      case '/search': return handleSearchCommand(chat, { text, messageId: message.message_id });
+      case '/delete':
+      case '/del': return handleDeleteCommand(chat, { text, messageId: message.message_id });
       case '/mylinks': return handleMyLinks(chat);
       case '/stats': return handleStats(chat, { text, messageId: message.message_id });
       case '/help': return handleHelp(chat);

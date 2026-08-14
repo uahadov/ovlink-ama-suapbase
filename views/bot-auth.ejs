@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="az">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title>Bot Hesab Bağlantısı - Ovlink</title>
+  <link rel="icon" href="/logo.ico" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>">
+  <style>
+    .bot-auth-card {
+      max-width: 480px;
+      margin: 40px auto;
+      border-radius: 24px;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+      padding: 2.5rem 2rem;
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+    body.dark-mode .bot-auth-card {
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.4);
+    }
+    .platform-badge {
+      width: 76px;
+      height: 76px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+    }
+    .platform-telegram {
+      background: linear-gradient(135deg, #229ED9 0%, #0088cc 100%);
+      color: #ffffff;
+    }
+    .platform-discord {
+      background: linear-gradient(135deg, #5865F2 0%, #4752C4 100%);
+      color: #ffffff;
+    }
+    .user-pill {
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      color: #4f46e5;
+      padding: 0.5rem 1.25rem;
+      border-radius: 999px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    body.dark-mode .user-pill {
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+  </style>
+</head>
+
+<body class="home-page app-page animated-gradient-bg">
+
+  <div id="particlesContainer" class="particles-container"></div>
+
+  <nav class="navbar navbar-expand-lg navbar-light home-navbar shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+        <img src="/logo.png" alt="Ovlink" class="home-brand-logo" />
+      </a>
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <button class="theme-toggle home-theme-btn theme-toggle-animated" aria-label="Temanı Dəyiş">
+          <i class="fa-solid fa-sun"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-4">
+    <div class="bot-auth-card">
+      
+      <% if (platform === 'telegram') { %>
+        <div class="platform-badge platform-telegram">
+          <i class="fa-brands fa-telegram"></i>
+        </div>
+      <% } else { %>
+        <div class="platform-badge platform-discord">
+          <i class="fa-brands fa-discord"></i>
+        </div>
+      <% } %>
+
+      <h3 class="fw-bold mb-2">
+        <%= platform === 'telegram' ? 'Telegram Bot Bağlantısı' : 'Discord Bot Bağlantısı' %>
+      </h3>
+
+      <% if (platformUsername) { %>
+        <div class="user-pill">
+          <i class="fa-solid fa-user-circle"></i>
+          <span>@<%= platformUsername %></span>
+        </div>
+      <% } %>
+
+      <% if (status === 'success') { %>
+        <!-- Uğurlu Bağlantı -->
+        <div class="alert alert-success rounded-4 border-0 p-3 mb-4">
+          <i class="fa-solid fa-circle-check fa-2x mb-2 text-success"></i>
+          <h5 class="fw-bold mb-1">Hesabınız Uğurla Bağlandı!</h5>
+          <p class="small mb-0 opacity-75">
+            Ovlink hesabınız <strong><%= platform === 'telegram' ? 'Telegram' : 'Discord' %></strong> profilinizlə əlaqələndirildi. İndi botdan yüksək limitlərlə rahatlıqla istifadə edə bilərsiniz.
+          </p>
+        </div>
+
+        <% if (platform === 'telegram') { %>
+          <a href="https://t.me/OvlinkBOT" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold shadow-sm home-primary-btn">
+            <i class="fa-brands fa-telegram me-2"></i>Telegram-a Qayıt
+          </a>
+        <% } else { %>
+          <a href="/" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold shadow-sm home-primary-btn">
+            <i class="fa-solid fa-house me-2"></i>Ana Səhifəyə Get
+          </a>
+        <% } %>
+
+      <% } else if (status === 'confirm' && user) { %>
+        <!-- Təsdiq Ekranı (İstifadəçi Giriş Edib) -->
+        <p class="text-muted small mb-4">
+          <strong><%= user.email %></strong> hesabınızı bu bot profilinə bağlamaq istədiyinizdən əminsiniz?
+        </p>
+
+        <form method="POST" action="/bot/auth/confirm">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="platform" value="<%= platform %>">
+          <input type="hidden" name="id" value="<%= platformUserId %>">
+          <input type="hidden" name="name" value="<%= platformUsername %>">
+          
+          <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold shadow-sm home-primary-btn mb-2">
+            <i class="fa-solid fa-link me-2"></i>Hesabı Təsdiqlə və Bağla
+          </button>
+        </form>
+
+        <a href="/" class="btn btn-light btn-sm rounded-pill text-muted w-100">Ləğv et</a>
+
+      <% } else if (status === 'error') { %>
+        <!-- Xəta Ekranı -->
+        <div class="alert alert-danger rounded-4 border-0 p-3 mb-4">
+          <i class="fa-solid fa-triangle-exclamation fa-2x mb-2 text-danger"></i>
+          <h5 class="fw-bold mb-1">Bağlantı Alınmadı</h5>
+          <p class="small mb-0 opacity-75"><%= errorMessage || 'Xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.' %></p>
+        </div>
+
+        <a href="/" class="btn btn-secondary btn-lg w-100 rounded-pill fw-bold">Ana Səhifə</a>
+
+      <% } else { %>
+        <!-- Giriş Edilməyib -->
+        <p class="text-muted small mb-4">
+          Bot profilinizi Ovlink hesabınıza bağlamaq üçün zəhmət olmasa hesabınıza daxil olun və ya yeni hesab yaradın.
+        </p>
+
+        <div class="d-grid gap-2">
+          <a href="/login?redirect=<%= encodeURIComponent('/bot/auth?platform=' + platform + '&id=' + platformUserId + '&name=' + encodeURIComponent(platformUsername)) %>" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm home-primary-btn">
+            <i class="fa-solid fa-right-to-bracket me-2"></i>Giriş Et
+          </a>
+          <a href="/register?redirect=<%= encodeURIComponent('/bot/auth?platform=' + platform + '&id=' + platformUserId + '&name=' + encodeURIComponent(platformUsername)) %>" class="btn btn-outline-secondary btn-lg rounded-pill fw-bold">
+            <i class="fa-solid fa-user-plus me-2"></i>Qeydiyyatdan Keç
+          </a>
+        </div>
+      <% } %>
+
+    </div>
+  </main>
+
+  <script src="/script.js?v=<%= assetVersion %>"></script>
+</body>
+
+</html>

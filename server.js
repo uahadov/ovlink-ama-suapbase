@@ -332,7 +332,7 @@ const API_KEY_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('API_KEY_HASH_SECRE
   minBytes: 64,
   allowFallbackInProduction: true,
 });
-const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260814-6';
+const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260814-7';
 const WEBHOOK_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('WEBHOOK_HASH_SECRET', 'ovlink:webhook-secret-hash:v2', {
   minBytes: 64,
   allowFallbackInProduction: true,
@@ -5147,7 +5147,7 @@ app.post('/api/bots/discord/interactions', async (req, res) => {
 
 // Deep-link bot authorization page
 app.get('/bot/auth', (req, res) => {
-  const platform = (req.query.platform || '').toString().trim();
+  const platform = (req.query.platform || '').toString().trim().toLowerCase();
   const platformUserId = (req.query.id || '').toString().trim();
   const platformUsername = (req.query.name || '').toString().trim();
 
@@ -5157,40 +5157,94 @@ app.get('/bot/auth', (req, res) => {
 
   // If user is logged in, auto-link immediately
   if (req.session && req.session.userId) {
-    const botShared = require('./bots/shared').createBotShared(db, botOptions);
-    botShared.linkBotUser(platform, platformUserId, platformUsername, req.session.userId).then((ok) => {
-      if (ok) {
-        logSecurityEvent(req, `bot.${platform}.link`, 'success', { user_id: req.session.userId });
-        return res.send(`<html><body><h2>✅ Account connected successfully!</h2><p>You can now close this page and return to ${platform === 'telegram' ? 'Telegram' : 'Discord'}.</p></body></html>`);
-      }
-      return res.send(`<html><body><h2>❌ Could not connect account.</h2><p>Please try again.</p></body></html>`);
+    db.get('SELECT id, email FROM users WHERE id = ?', [req.session.userId], (uErr, user) => {
+      if (uErr || !user) return res.redirect('/login');
+      const botShared = require('./bots/shared').createBotShared(db, botOptions);
+      botShared.linkBotUser(platform, platformUserId, platformUsername, req.session.userId).then((ok) => {
+        if (ok) {
+          logSecurityEvent(req, `bot.${platform}.link`, 'success', { user_id: req.session.userId });
+          return res.render('bot-auth', {
+            csrfToken: res.locals._csrf,
+            platform,
+            platformUserId,
+            platformUsername,
+            status: 'success',
+            user,
+            errorMessage: null,
+          });
+        }
+        return res.render('bot-auth', {
+          csrfToken: res.locals._csrf,
+          platform,
+          platformUserId,
+          platformUsername,
+          status: 'error',
+          user,
+          errorMessage: 'Hesabınızı bağlamaq mümkün olmadı. Zəhmət olmasa yenidən cəhd edin.',
+        });
+      });
     });
     return;
   }
 
-  // Not logged in → store pending auth in session, redirect to login
+  // Not logged in → store pending auth in session, render beautiful login prompt
   req.session.pendingBotAuth = { platform, platformUserId, platformUsername, createdAt: Date.now() };
   req.session.save(() => {
-    res.redirect('/login?redirect=/bot/auth/complete');
+    return res.render('bot-auth', {
+      csrfToken: res.locals._csrf,
+      platform,
+      platformUserId,
+      platformUsername,
+      status: 'login_required',
+      user: null,
+      errorMessage: null,
+    });
   });
 });
 
 // Complete bot auth after login
 app.get('/bot/auth/complete', requireSignedIn, (req, res) => {
   const pending = req.session.pendingBotAuth;
-  if (!pending || Date.now() - pending.createdAt > 5 * 60 * 1000) {
-    return res.send(`<html><body><h2>❌ Session expired.</h2><p>Please try again from your bot.</p></body></html>`);
+  if (!pending || Date.now() - pending.createdAt > 15 * 60 * 1000) {
+    return res.render('bot-auth', {
+      csrfToken: res.locals._csrf,
+      platform: 'telegram',
+      platformUserId: '',
+      platformUsername: '',
+      status: 'error',
+      user: null,
+      errorMessage: 'Sessiyanın vaxtı bitib. Zəhmət olmasa botdan yenidən cəhd edin.',
+    });
   }
 
+  const { platform, platformUserId, platformUsername } = pending;
   delete req.session.pendingBotAuth;
   const botShared = require('./bots/shared').createBotShared(db, botOptions);
 
-  botShared.linkBotUser(pending.platform, pending.platformUserId, pending.platformUsername, req.session.userId).then((ok) => {
-    if (ok) {
-      logSecurityEvent(req, `bot.${pending.platform}.link`, 'success', { user_id: req.session.userId });
-      return res.send(`<html><body><h2>✅ Account connected!</h2><p>You can now close this page and return to ${pending.platform === 'telegram' ? 'Telegram' : 'Discord'}.</p></body></html>`);
-    }
-    return res.send(`<html><body><h2>❌ Could not connect account.</h2><p>Please try again.</p></body></html>`);
+  botShared.linkBotUser(platform, platformUserId, platformUsername, req.session.userId).then((ok) => {
+    db.get('SELECT id, email FROM users WHERE id = ?', [req.session.userId], (uErr, user) => {
+      if (ok) {
+        logSecurityEvent(req, `bot.${platform}.link`, 'success', { user_id: req.session.userId });
+        return res.render('bot-auth', {
+          csrfToken: res.locals._csrf,
+          platform,
+          platformUserId,
+          platformUsername,
+          status: 'success',
+          user: user || { email: '' },
+          errorMessage: null,
+        });
+      }
+      return res.render('bot-auth', {
+        csrfToken: res.locals._csrf,
+        platform,
+        platformUserId,
+        platformUsername,
+        status: 'error',
+        user: user || { email: '' },
+        errorMessage: 'Hesabınızı bağlamaq mümkün olmadı.',
+      });
+    });
   });
 });
 
@@ -8777,95 +8831,116 @@ app.post('/api/user/import',
     });
   }
 
-  const MAX_IMPORT_ROWS = 1000;
-  if (urls.length > MAX_IMPORT_ROWS) {
-    return res.status(400).json({
-      error: pickLang(uiLang, `Bir dəfəyə maksimum ${MAX_IMPORT_ROWS} URL idxal edilə bilər.`, `Bir seferde en fazla ${MAX_IMPORT_ROWS} URL içe aktarılabilir.`, `Maximum ${MAX_IMPORT_ROWS} URLs can be imported at once.`)
-    });
-  }
+  db.get('SELECT is_pro, pro_until, pro_plan FROM users WHERE id = ?', [req.session.userId], (uErr, userRow) => {
+    const isPro = isProAccessActive(userRow);
+    const maxBulk = isPro ? 50 : 5;
+    const dailyLimit = isPro ? 500 : 50;
 
-  let created = 0;
-  let blocked = 0;
-  let skipped = 0;
-  const createdLinks = [];
-
-  const createAndInsert = (originalAbs, done, retry = 0) => {
-    if (retry > 7) {
-      skipped += 1;
-      return done();
-    }
-
-    const short = generateSafeShortCode();
-    const createdAt = new Date().toISOString();
-
-    db.run(
-      'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [originalAbs, short, createdAt, req.session.userId, '', null, null, null],
-      function (err) {
-        if (!err) {
-          created += 1;
-          createdLinks.push({
-            short,
-            shortUrl: buildShortUrl(req, short, ''),
-            original: originalAbs,
-          });
-          return done();
-        }
-        const msg = (err && err.message || '').toLowerCase();
-        if (msg.includes('unique') && msg.includes('urls.short')) {
-          return createAndInsert(originalAbs, done, retry + 1);
-        }
-        skipped += 1;
-        return done();
-      }
-    );
-  };
-
-  const processAt = (index) => {
-    if (index >= urls.length) {
-      return res.json({
-        created,
-        blocked,
-        skipped,
-        total: urls.length,
-        created_links: createdLinks,
-        message: pickLang(
+    if (urls.length > maxBulk) {
+      return res.status(400).json({
+        error: pickLang(
           uiLang,
-          `Import tamamlandı. Yaradıldı: ${created}, bloklandı: ${blocked}, keçildi: ${skipped}.`,
-          `İçe aktarma tamamlandı. Oluşturulan: ${created}, engellenen: ${blocked}, atlanan: ${skipped}.`,
-          `Import completed. Created: ${created}, blocked: ${blocked}, skipped: ${skipped}.`
+          `Bir dəfəyə maksimum ${maxBulk} URL idxal edə bilərsiniz.${!isPro ? ' (Pro plana keçərək 50-yə qaldırın)' : ''}`,
+          `Bir seferde en fazla ${maxBulk} URL içe aktarabilirsiniz.${!isPro ? ' (Pro plana geçerek 50\'ye yükseltin)' : ''}`,
+          `You can import at most ${maxBulk} URLs at once.${!isPro ? ' (Upgrade to Pro for 50)' : ''}`
         )
       });
     }
 
-    const originalAbs = urls[index];
-    let hostname = '';
-    try { hostname = new URL(originalAbs).hostname.toLowerCase(); } catch { hostname = ''; }
+    const today = new Date().toISOString().slice(0, 10);
+    db.get('SELECT COUNT(*) as count FROM urls WHERE user_id = ? AND created_at >= ?', [req.session.userId, today], (dErr, dRow) => {
+      const todayCount = Number(dRow && dRow.count || 0);
+      if (todayCount + urls.length > dailyLimit) {
+        return res.status(400).json({
+          error: pickLang(
+            uiLang,
+            `Gündəlik limitiniz (${dailyLimit} link) dolmaq üzrədir. Bu gün istifadə edilən: ${todayCount}/${dailyLimit}.`,
+            `Günlük limitiniz (${dailyLimit} link) dolmak üzere. Bugün kullanılan: ${todayCount}/${dailyLimit}.`,
+            `Daily limit (${dailyLimit} links) reached. Used today: ${todayCount}/${dailyLimit}.`
+          )
+        });
+      }
 
-    if (!hostname) {
-      skipped += 1;
-      return processAt(index + 1);
-    }
+      let created = 0;
+      let blocked = 0;
+      let skipped = 0;
+      const createdLinks = [];
 
-    db.get(
-      "SELECT domain FROM blocked_domains WHERE ? = domain OR ? LIKE '%.' || domain LIMIT 1",
-      [hostname, hostname],
-      (err, row) => {
-        if (err) {
+      const createAndInsert = (originalAbs, done, retry = 0) => {
+        if (retry > 7) {
+          skipped += 1;
+          return done();
+        }
+
+        const short = generateSafeShortCode();
+        const createdAt = new Date().toISOString();
+
+        db.run(
+          'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [originalAbs, short, createdAt, req.session.userId, '', null, null, null],
+          function (err) {
+            if (!err) {
+              created += 1;
+              createdLinks.push({
+                short,
+                shortUrl: buildShortUrl(req, short, ''),
+                original: originalAbs,
+              });
+              return done();
+            }
+            const msg = (err && err.message || '').toLowerCase();
+            if (msg.includes('unique') && msg.includes('urls.short')) {
+              return createAndInsert(originalAbs, done, retry + 1);
+            }
+            skipped += 1;
+            return done();
+          }
+        );
+      };
+
+      const processAt = (index) => {
+        if (index >= urls.length) {
+          return res.json({
+            created,
+            blocked,
+            skipped,
+            total: urls.length,
+            created_links: createdLinks,
+            message: pickLang(
+              uiLang,
+              `Import tamamlandı. Yaradıldı: ${created}, bloklandı: ${blocked}, keçildi: ${skipped}.`,
+              `İçe aktarma tamamlandı. Oluşturulan: ${created}, engellenen: ${blocked}, atlanan: ${skipped}.`,
+              `Import completed. Created: ${created}, blocked: ${blocked}, skipped: ${skipped}.`
+            )
+          });
+        }
+
+        const originalAbs = urls[index];
+        let hostname = '';
+        try { hostname = new URL(originalAbs).hostname.toLowerCase(); } catch { hostname = ''; }
+
+        if (!hostname) {
           skipped += 1;
           return processAt(index + 1);
         }
-        if (row) {
-          blocked += 1;
-          return processAt(index + 1);
-        }
 
-        createAndInsert(originalAbs, () => processAt(index + 1));
-      }
-    );
-  };
+        db.get(
+          'SELECT 1 FROM blocked_domains WHERE domain = ? OR domain = ?',
+          [hostname, `.${hostname}`],
+          (bErr, bRow) => {
+            if (bRow || isSuspiciousOrPhishingUrl(originalAbs)) {
+              blocked += 1;
+              return processAt(index + 1);
+            }
 
-  processAt(0);
+            createAndInsert(originalAbs, () => processAt(index + 1));
+          }
+        );
+      };
+
+      processAt(0);
+    });
+  });
 });
 
 
