@@ -1352,15 +1352,15 @@ body.dark-mode,
   max-width: 170px;
   display: block;
   object-fit: contain;
-  transform: scale(1.75);
+  transform: scale(3.5);
   transform-origin: left center;
-  margin-right: 36px;
+  margin-right: 145px;
   transition: transform 0.2s ease;
 }
 
 .home-page .home-brand-logo:hover,
 .home-brand-logo:hover {
-  transform: scale(1.82);
+  transform: scale(3.6);
 }
 
 .home-page .brand-mark {
@@ -1914,9 +1914,9 @@ body.dark-mode,
   .home-brand-logo {
     height: 38px;
     max-width: 140px;
-    transform: scale(1.5);
+    transform: scale(2.6);
     transform-origin: left center;
-    margin-right: 20px;
+    margin-right: 75px;
   }
 
   .home-page .hero-chip {
