@@ -3613,7 +3613,6 @@ if (customDomainList) {
       }
     }
   }
-});
 
 // =========================
 // URL Shorten
