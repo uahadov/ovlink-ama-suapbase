@@ -13,10 +13,10 @@ const TRANSLATIONS = {
     search_usage: "❌ <b>No search query provided!</b>\n\n📌 <b>Usage:</b>\n<code>/search &lt;keyword or url&gt;</code>\n\n💡 <b>Example:</b>\n<code>/search youtube</code>",
     delete_usage: "❌ <b>No short code provided to delete!</b>\n\n📌 <b>Usage:</b>\n<code>/delete &lt;short-code&gt;</code>\n\n💡 <b>Example:</b>\n<code>/delete a1b2c3</code>\n\n<i>💡 Tip: Check your links with /mylinks</i>",
     stats_code_required: "❌ <b>No link code provided!</b>\n\n📌 <b>Usage:</b>\n<code>/stats &lt;short-code&gt;</code>\n\n💡 <b>Example:</b>\n<code>/stats a1b2c3</code>",
-    daily_limit_reached: "❌ Daily limit ({limit}) reached.",
+    daily_limit_reached: "❌ <b>Daily limit ({limit}) reached!</b>\nYou have already used <b>{dailyCount}/{limit}</b> links today.\n\n<i>Type /upgrade for 500 links/day.</i>",
     guest_limit_reached: "⚠️ Guest daily limit (5/5) reached. Link account with /start for 50 links/day!",
     bulk_guest_blocked: "⚠️ Bulk shortening requires a linked account. Use /start to link.",
-    bulk_limit_exceeded: "⚠️ Max {max} links at once!",
+    bulk_limit_exceeded: "⚠️ <b>Bulk limit exceeded!</b>\nYou can shorten at most <b>{max}</b> links at once. (You sent {count})\n\n<i>For 50 links at once: /upgrade</i>",
     phishing_detected: "🚨 Security Alert: Link blocked (phishing/malware).",
     custom_alias_pro: "❌ Custom alias requires Pro plan. /upgrade",
     invalid_alias: "❌ Invalid alias (3-50 chars).",
@@ -50,10 +50,10 @@ const TRANSLATIONS = {
     search_usage: "❌ <b>Arama terimi girmediniz!</b>\n\n📌 <b>Kullanım Şekli:</b>\n<code>/search &lt;kelime veya link&gt;</code>\n\n💡 <b>Örnek:</b>\n<code>/search youtube</code>",
     delete_usage: "❌ <b>Silinecek link kodunu girmediniz!</b>\n\n📌 <b>Kullanım Şekli:</b>\n<code>/delete &lt;kısa-kod&gt;</code>\n\n💡 <b>Örnek:</b>\n<code>/delete a1b2c3</code>\n\n<i>💡 İpucu: Link kodlarınızı görmek için /mylinks yazabilirsiniz.</i>",
     stats_code_required: "❌ <b>İstatistiğini görmek istediğiniz kodu girmediniz!</b>\n\n📌 <b>Kullanım Şekli:</b>\n<code>/stats &lt;kısa-kod&gt;</code>\n\n💡 <b>Örnek:</b>\n<code>/stats a1b2c3</code>",
-    daily_limit_reached: "❌ Günlük limit ({limit}) doldu.",
+    daily_limit_reached: "❌ <b>Günlük limit ({limit}) doldu!</b>\nBugün zaten <b>{dailyCount}/{limit}</b> link kısalttınız.\n\n<i>Limiti 500'e yükseltmek için /upgrade yazabilirsiniz.</i>",
     guest_limit_reached: "⚠️ Misafir günlük limitiniz (5/5) doldu. Günde 50 link için /start ile hesabınızı bağlayın!",
     bulk_guest_blocked: "⚠️ Toplu kısaltma için hesabınızı bağlayın. /start yazabilirsiniz.",
-    bulk_limit_exceeded: "⚠️ Tek seferde en fazla {max} link kısaltabilirsiniz!",
+    bulk_limit_exceeded: "⚠️ <b>Toplu kısaltma limiti aşıldı!</b>\nTek seferde en fazla <b>{max}</b> link gönderebilirsiniz. (Siz {count} link gönderdiniz)\n\n<i>Tek seferde 50 link için: /upgrade</i>",
     phishing_detected: "🚨 Güvenlik Uyarısı: Bağlantı engellendi (zararlı/phishing).",
     custom_alias_pro: "❌ Özel alias Pro plan gerektirir. /upgrade",
     invalid_alias: "❌ Geçersiz alias (3-50 karakter).",
@@ -87,10 +87,10 @@ const TRANSLATIONS = {
     search_usage: "❌ <b>Axtarış sözü daxil etmədiniz!</b>\n\n📌 <b>İstifadə Qaydası:</b>\n<code>/search &lt;söz və ya link&gt;</code>\n\n💡 <b>Nümunə:</b>\n<code>/search youtube</code>",
     delete_usage: "❌ <b>Silinəcək linkin kodunu daxil etmədiniz!</b>\n\n📌 <b>İstifadə Qaydası:</b>\n<code>/delete &lt;qısa-kod&gt;</code>\n\n💡 <b>Nümunə:</b>\n<code>/delete a1b2c3</code>\n\n<i>💡 Məsləhət: Linklərinizin kodunu tapmaq üçün /mylinks yaza bilərsiniz.</i>",
     stats_code_required: "❌ <b>Statistikasını görmək istədiyiniz kodu daxil etmədiniz!</b>\n\n📌 <b>İstifadə Qaydası:</b>\n<code>/stats &lt;qısa-kod&gt;</code>\n\n💡 <b>Nümunə:</b>\n<code>/stats a1b2c3</code>",
-    daily_limit_reached: "❌ Gündəlik limit ({limit}) doldu.",
+    daily_limit_reached: "❌ <b>Gündəlik limit ({limit}) doldu!</b>\nBu gün artıq <b>{dailyCount}/{limit}</b> link qısaltmısınız.\n\n<i>Limiti 500-ə qaldırmaq üçün /upgrade yazın.</i>",
     guest_limit_reached: "⚠️ Qonaq günlük limitiniz (5/5) doldu. Gündə 50 link üçün /start ilə hesabınızı bağlayın!",
     bulk_guest_blocked: "⚠️ Toplu qısaltmaq üçün hesabınızı bağlayın. /start ilə bağlayın.",
-    bulk_limit_exceeded: "⚠️ Bir dəfəyə ən çox {max} link qısalda bilərsiniz!",
+    bulk_limit_exceeded: "⚠️ <b>Toplu qısaltma limiti aşıldı!</b>\nBir dəfəyə ən çox <b>{max}</b> link göndərə bilərsiniz. (Siz {count} link göndərdiniz)\n\n<i>Tək səfərdə 50 link üçün: /upgrade</i>",
     phishing_detected: "🚨 Təhlükəsizlik Xəbərdarlığı: Link bloklandı (zərərli/phishing).",
     custom_alias_pro: "❌ Xüsusi alias Pro plan tələb edir. /upgrade",
     invalid_alias: "❌ Keçərsiz alias (3-50 simvol).",
@@ -124,10 +124,10 @@ const TRANSLATIONS = {
     search_usage: "❌ <b>Поисковый запрос не указан!</b>\n\n📌 <b>Использование:</b>\n<code>/search &lt;слово или ссылка&gt;</code>\n\n💡 <b>Пример:</b>\n<code>/search youtube</code>",
     delete_usage: "❌ <b>Код ссылки для удаления не указан!</b>\n\n📌 <b>Использование:</b>\n<code>/delete &lt;код&gt;</code>\n\n💡 <b>Пример:</b>\n<code>/delete a1b2c3</code>\n\n<i>💡 Подсказка: Список ваших ссылок можно посмотреть через /mylinks</i>",
     stats_code_required: "❌ <b>Код ссылки не указан!</b>\n\n📌 <b>Использование:</b>\n<code>/stats &lt;код&gt;</code>\n\n💡 <b>Пример:</b>\n<code>/stats a1b2c3</code>",
-    daily_limit_reached: "❌ Дневной лимит ({limit}) исчерпан.",
+    daily_limit_reached: "❌ <b>Дневной лимит ({limit}) исчерпан!</b>\nСегодня уже использовано <b>{dailyCount}/{limit}</b> ссылок.\n\n<i>Напишите /upgrade для 500 ссылок/день.</i>",
     guest_limit_reached: "⚠️ Гостевой лимит (5/5) исчерпан. Привяжите аккаунт через /start для 50 ссылок/день!",
     bulk_guest_blocked: "⚠️ Массовое сокращение доступно после привязки аккаунта.",
-    bulk_limit_exceeded: "⚠️ Максимум {max} ссылок за раз!",
+    bulk_limit_exceeded: "⚠️ <b>Превышен лимит массового сокращения!</b>\nЗа один раз можно отправить максимум <b>{max}</b> ссылок. (Вы отправили {count})\n\n<i>В тарифе Pro доступно до 50 ссылок: /upgrade</i>",
     phishing_detected: "🚨 Ссылка заблокирована (фишинг/вредоносное ПО).",
     custom_alias_pro: "❌ Свой алиас доступен в Pro. /upgrade",
     invalid_alias: "❌ Неверный алиас (3-50 симв.).",
@@ -289,7 +289,7 @@ function createTelegramBot(db, options = {}) {
       }
       const maxBulk = isPro ? 50 : 5;
       if (foundUrls.length > maxBulk) {
-        await sendMessage(chat.id, t(lang, 'bulk_limit_exceeded', { max: maxBulk }));
+        await sendMessage(chat.id, t(lang, 'bulk_limit_exceeded', { max: maxBulk, count: foundUrls.length }));
         return;
       }
       const userId = botUser.user_id;
@@ -297,7 +297,7 @@ function createTelegramBot(db, options = {}) {
       const dailyCount = await shared.getDailyLinkCount(userId);
 
       if (dailyCount + foundUrls.length > limits.dailyLinks) {
-        await sendMessage(chat.id, t(lang, 'daily_limit_reached', { limit: limits.dailyLinks }));
+        await sendMessage(chat.id, t(lang, 'daily_limit_reached', { limit: limits.dailyLinks, dailyCount, count: foundUrls.length }));
         return;
       }
 
@@ -325,7 +325,7 @@ function createTelegramBot(db, options = {}) {
     if (userId) {
       const dailyCount = await shared.getDailyLinkCount(userId);
       if (dailyCount >= limits.dailyLinks) {
-        await sendMessage(chat.id, t(lang, 'daily_limit_reached', { limit: limits.dailyLinks }));
+        await sendMessage(chat.id, t(lang, 'daily_limit_reached', { limit: limits.dailyLinks, dailyCount, count: 1 }));
         return;
       }
     } else {

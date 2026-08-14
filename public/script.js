@@ -1642,12 +1642,16 @@ function getClientSession() {
 }
 
 async function trySyncSessionFromServer() {
-  // Opsiyonel: Backend'de /api/me varsa, UI'yi daha dogru yapar.
-  // Endpoint yoksa sessizce gec.
   try {
     const res = await fetch("/api/me", { credentials: "include" });
-    if (!res.ok) return;
-    const data = await res.json();
+    if (!res.ok) {
+      if (res.status === 401) {
+        clearClientSession();
+        renderNavbarAuth();
+      }
+      return;
+    }
+    const data = await res.json().catch(() => ({}));
     if (data && data.user) {
       setClientSession({
         email: data.user.email,
@@ -1675,6 +1679,10 @@ async function trySyncSessionFromServer() {
         expiresAt: data.user.proExpiresAt || null,
       };
       updatePricingBuyCta();
+      renderNavbarAuth();
+    } else {
+      clearClientSession();
+      renderNavbarAuth();
     }
   } catch {
     // ignore
@@ -1697,7 +1705,13 @@ function renderNavbarAuth() {
     regBtn?.classList.add("d-none");
     pricingItem?.classList.toggle("d-none", !showPricingForLoggedIn);
     user?.classList.remove("d-none");
-    // Email ve Admin durumu artık /api/me sync'inden geliyor
+    if (emailEl) {
+      if (typeof tKey === 'function') {
+        emailEl.textContent = tKey("nav_my_account", "Hesabım");
+      } else if (typeof getText === 'function') {
+        emailEl.textContent = getText("nav_my_account", "Hesabım");
+      }
+    }
   } else {
     user?.classList.add("d-none");
     loginBtn?.classList.remove("d-none");
@@ -1705,10 +1719,10 @@ function renderNavbarAuth() {
     pricingItem?.classList.remove("d-none");
     if (adminLink) adminLink.classList.add("d-none");
   }
+  syncFloatingPricingBanner();
 }
 
 async function clientLogout() {
-  // Sunucu session'ini kesin olarak kapatmadan local state'i temizleme.
   try {
     const res = await postJsonWithCsrf("/api/logout", { lang: currentLang });
     if (!res.ok) throw new Error("logout_failed");
@@ -1716,13 +1730,12 @@ async function clientLogout() {
     location.href = "/";
     return;
   } catch {
-    // Session kapanamadıysa UI'ı sunucuyla tekrar senkronla.
     await trySyncSessionFromServer();
     renderNavbarAuth();
   }
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+function initScriptApp() {
   if (localStorage.getItem("theme") === "dark") {
     document.body.classList.add("dark-mode");
   }
@@ -1731,16 +1744,17 @@ window.addEventListener("DOMContentLoaded", () => {
     refreshCsrfToken();
   }
 
-  // İlk çizimde beklemeyi azalt: UI'ı hemen göster, non-critical işleri idle'da yükle.
   renderNavbarAuth();
   updatePricingBuyCta();
   initPricingBuyFlow();
   syncFloatingPricingBanner();
 
-  const bootNonCritical = async () => {
-    await trySyncSessionFromServer();
+  void trySyncSessionFromServer().then(() => {
     renderNavbarAuth();
     initProUpsellExperience();
+  });
+
+  const bootNonCritical = async () => {
     const isLoggedIn = getClientSession().isLoggedIn;
 
     const tasks = [
@@ -1771,6 +1785,13 @@ window.addEventListener("DOMContentLoaded", () => {
       void bootNonCritical();
     }, 220);
   }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initScriptApp);
+} else {
+  initScriptApp();
+}
 
   const apiSampleTabs = Array.from(document.querySelectorAll("[data-api-sample-tab]"));
   const apiSamplePanels = Array.from(document.querySelectorAll("[data-api-sample-panel]"));
