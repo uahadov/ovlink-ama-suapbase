@@ -3166,27 +3166,36 @@ if (customDomainList) {
         }
 
         const links = Array.isArray(data.created_links) ? data.created_links : [];
+        currentBulkCreatedLinks = links;
         if (bulkImportLinks) {
           bulkImportLinks.innerHTML = "";
           links.forEach((item) => {
             const row = document.createElement("div");
-            row.className = "list-group-item d-flex align-items-center justify-content-between gap-2";
+            row.className = "list-group-item d-flex align-items-center justify-content-between gap-2 py-2";
 
             const left = document.createElement("div");
             left.className = "text-truncate";
+            left.style.maxWidth = "70%";
+            
+            const origDiv = document.createElement("div");
+            origDiv.className = "text-muted small text-truncate";
+            origDiv.textContent = item.original || "";
+            
             const a = document.createElement("a");
             a.href = item.shortUrl;
             a.target = "_blank";
             a.rel = "noopener noreferrer";
-            a.className = "text-decoration-none";
+            a.className = "text-decoration-none fw-bold";
             a.textContent = item.shortUrl;
+            
             left.appendChild(a);
+            left.appendChild(origDiv);
 
             const copyBtn = document.createElement("button");
             copyBtn.type = "button";
-            copyBtn.className = "btn btn-sm btn-outline-secondary";
+            copyBtn.className = "btn btn-sm btn-outline-secondary rounded-pill";
             copyBtn.setAttribute("data-copy-text", item.shortUrl || "");
-            copyBtn.textContent = pickLang("Kopyala", "Kopyala", "Copy");
+            copyBtn.innerHTML = `<i class="fa-solid fa-copy me-1"></i>${pickLang("Kopyala", "Kopyala", "Copy")}`;
 
             row.appendChild(left);
             row.appendChild(copyBtn);
@@ -3212,6 +3221,32 @@ if (customDomainList) {
     });
   }
 
+  let currentBulkCreatedLinks = [];
+  const bulkImportDownloadCsv = document.getElementById("bulkImportDownloadCsv");
+
+  if (bulkImportDownloadCsv) {
+    bulkImportDownloadCsv.addEventListener("click", () => {
+      if (!currentBulkCreatedLinks || !currentBulkCreatedLinks.length) return;
+      const header = "Original URL,Short URL,Short Code,Created At\r\n";
+      const now = new Date().toISOString();
+      const rows = currentBulkCreatedLinks.map(item => {
+        const orig = `"${(item.original || '').replace(/"/g, '""')}"`;
+        const shortUrl = `"${(item.shortUrl || '').replace(/"/g, '""')}"`;
+        const short = `"${(item.short || '').replace(/"/g, '""')}"`;
+        return `${orig},${shortUrl},${short},"${now}"`;
+      }).join("\r\n");
+
+      const blob = new Blob(["\uFEFF" + header + rows], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ovlink-bulk-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+  }
 
   if (bulkImportCopyAll) {
     bulkImportCopyAll.addEventListener("click", async () => {

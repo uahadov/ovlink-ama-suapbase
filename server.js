@@ -9155,11 +9155,14 @@ ${announcementHtml}
 https://example.com/page-2"></textarea>
                   <div id="bulkImportMsg" class="small mt-2"></div>
                   <div id="bulkImportResults" class="mt-3 d-none">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
                       <strong data-i18n="dashboard_import_created_links">Yaradılan linklər</strong>
-                      <button type="button" id="bulkImportCopyAll" class="btn btn-sm btn-outline-primary" data-i18n="dashboard_import_copy_all">Hamısını kopyala</button>
+                      <div class="d-flex gap-2">
+                        <button type="button" id="bulkImportCopyAll" class="btn btn-sm btn-outline-primary rounded-pill" data-i18n="dashboard_import_copy_all"><i class="fa-solid fa-copy me-1"></i>Hamısını kopyala</button>
+                        <button type="button" id="bulkImportDownloadCsv" class="btn btn-sm btn-outline-success rounded-pill" data-i18n="dashboard_import_download_csv"><i class="fa-solid fa-file-csv me-1"></i>CSV olaraq yüklə</button>
+                      </div>
                     </div>
-                    <div id="bulkImportLinks" class="list-group small"></div>
+                    <div id="bulkImportLinks" class="list-group small mb-2"></div>
                   </div>
                 </div>
                 <div class="modal-footer">
