@@ -1,23 +1,63 @@
 // =========================
-// Theme
+// Theme Management (Synchronized across all pages & document-level click handler)
 // =========================
-function toggleTheme() {
-  document.body.classList.toggle("dark-mode");
-  const theme = document.body.classList.contains("dark-mode") ? "dark" : "light";
-  localStorage.setItem("theme", theme);
-  window.dispatchEvent(new CustomEvent("ovlink:themeChanged", { detail: { theme } }));
+function syncThemeUi(theme) {
+  const current = theme || ((document.body && document.body.classList.contains("dark-mode")) || (document.documentElement && document.documentElement.classList.contains("dark-mode")) ? "dark" : (localStorage.getItem("theme") || "light"));
+  const isDark = current === "dark";
+  if (document.documentElement) {
+    if (isDark) document.documentElement.classList.add("dark-mode");
+    else document.documentElement.classList.remove("dark-mode");
+  }
+  if (document.body) {
+    if (isDark) document.body.classList.add("dark-mode");
+    else document.body.classList.remove("dark-mode");
+  }
+  document.querySelectorAll(".theme-toggle").forEach((btn) => {
+    btn.innerHTML = isDark ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+    btn.setAttribute("aria-label", isDark ? "Açıq rejimə keç" : "Qaranlıq rejimə keç");
+  });
 }
 
 function applyTheme(theme) {
   const normalizedTheme = theme === "dark" ? "dark" : "light";
-  if (normalizedTheme === "dark") {
-    document.body.classList.add("dark-mode");
-  } else {
-    document.body.classList.remove("dark-mode");
-  }
-  localStorage.setItem("theme", normalizedTheme);
+  try {
+    localStorage.setItem("theme", normalizedTheme);
+  } catch {}
+  syncThemeUi(normalizedTheme);
   window.dispatchEvent(new CustomEvent("ovlink:themeChanged", { detail: { theme: normalizedTheme } }));
 }
+
+function toggleTheme() {
+  const isDark = (document.body && document.body.classList.contains("dark-mode")) || (document.documentElement && document.documentElement.classList.contains("dark-mode"));
+  const nextTheme = isDark ? "light" : "dark";
+  applyTheme(nextTheme);
+}
+
+// Immediate initial execution to prevent any theme flash
+try {
+  const initialTheme = localStorage.getItem("theme");
+  if (initialTheme === "dark" || (!initialTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    if (document.documentElement) document.documentElement.classList.add("dark-mode");
+    if (document.body) document.body.classList.add("dark-mode");
+  }
+} catch {}
+
+// Document-level click handler for .theme-toggle (always works across all pages)
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".theme-toggle");
+  if (btn) {
+    e.preventDefault();
+    toggleTheme();
+  }
+}, true);
+
+// Initial UI sync on load
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => syncThemeUi());
+} else {
+  syncThemeUi();
+}
+
 
 // Yardımcı: CSRF Token al
 function getCsrfToken() {
@@ -1996,13 +2036,6 @@ if (document.readyState === "loading") {
     });
   }
 
-  // CSP uyumlu: inline onclick kullanma
-  document.querySelectorAll(".theme-toggle").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      toggleTheme();
-    });
-  });
 
   const dashboardSearch = document.getElementById("dashboardSearch");
   const dashboardFilter = document.getElementById("dashboardFilter");

@@ -19,16 +19,46 @@ function pickLang(az, tr, en) {
   return lang === "tr" ? tr : (lang === "en" ? en : az);
 }
 
+function syncThemeUi(theme) {
+  const current = theme || ((document.body && document.body.classList.contains("dark-mode")) || (document.documentElement && document.documentElement.classList.contains("dark-mode")) ? "dark" : (localStorage.getItem("theme") || "light"));
+  const isDark = current === "dark";
+  if (document.documentElement) {
+    if (isDark) document.documentElement.classList.add("dark-mode");
+    else document.documentElement.classList.remove("dark-mode");
+  }
+  if (document.body) {
+    if (isDark) document.body.classList.add("dark-mode");
+    else document.body.classList.remove("dark-mode");
+  }
+  document.querySelectorAll(".theme-toggle").forEach((btn) => {
+    btn.innerHTML = isDark ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+    btn.setAttribute("aria-label", isDark ? "Açıq rejimə keç" : "Qaranlıq rejimə keç");
+  });
+}
+
 function applyTheme(theme) {
-  if (theme === "dark") document.body.classList.add("dark-mode");
-  else document.body.classList.remove("dark-mode");
-  localStorage.setItem("theme", theme === "dark" ? "dark" : "light");
+  const normalizedTheme = theme === "dark" ? "dark" : "light";
+  try {
+    localStorage.setItem("theme", normalizedTheme);
+  } catch {}
+  syncThemeUi(normalizedTheme);
+  window.dispatchEvent(new CustomEvent("ovlink:themeChanged", { detail: { theme: normalizedTheme } }));
 }
 
 function toggleTheme() {
-  const next = document.body.classList.contains("dark-mode") ? "light" : "dark";
-  applyTheme(next);
+  const isDark = (document.body && document.body.classList.contains("dark-mode")) || (document.documentElement && document.documentElement.classList.contains("dark-mode"));
+  const nextTheme = isDark ? "light" : "dark";
+  applyTheme(nextTheme);
 }
+
+// Document-level click handler for .theme-toggle (always works across all pages)
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".theme-toggle");
+  if (btn) {
+    e.preventDefault();
+    toggleTheme();
+  }
+}, true);
 
 function getCsrfToken() {
   return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -368,17 +398,7 @@ async function clientLogout() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  if (localStorage.getItem("theme") === "dark") {
-    document.body.classList.add("dark-mode");
-  }
-
-  const themeBtn = document.querySelector(".theme-toggle");
-  if (themeBtn) {
-    themeBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      toggleTheme();
-    });
-  }
+  syncThemeUi();
 
   const logoutBtn = document.getElementById("navLogoutBtn");
   if (logoutBtn) {
