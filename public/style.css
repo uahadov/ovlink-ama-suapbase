@@ -1322,32 +1322,45 @@ body.dark-mode,
   }
 }
 
-.home-page .home-navbar {
-  background: #ffffff !important;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: none !important;
-  padding: 0.72rem 0;
+.home-page .home-navbar,
+.home-navbar {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05) !important;
+  padding: 0.45rem 0 !important;
+  min-height: 60px;
+  overflow: visible !important;
 }
 
-.home-page .navbar-brand {
+.home-page .navbar-brand,
+.navbar-brand {
   gap: 0.58rem;
   text-decoration: none;
-  overflow: visible;
+  overflow: visible !important;
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  margin: 0;
 }
 
 .home-page .home-brand-logo,
 .home-brand-logo {
-  height: 100px;
+  height: 46px;
   width: auto;
-  max-width: 360px;
+  max-width: 170px;
   display: block;
   object-fit: contain;
+  transform: scale(1.75);
+  transform-origin: left center;
+  margin-right: 36px;
   transition: transform 0.2s ease;
 }
 
 .home-page .home-brand-logo:hover,
 .home-brand-logo:hover {
-  transform: scale(1.04);
+  transform: scale(1.82);
 }
 
 .home-page .brand-mark {
@@ -1899,8 +1912,11 @@ body.dark-mode,
 
   .home-page .home-brand-logo,
   .home-brand-logo {
-    height: 72px;
-    max-width: 260px;
+    height: 38px;
+    max-width: 140px;
+    transform: scale(1.5);
+    transform-origin: left center;
+    margin-right: 20px;
   }
 
   .home-page .hero-chip {
