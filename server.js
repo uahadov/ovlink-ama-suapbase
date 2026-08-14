@@ -1,4 +1,5 @@
 const express = require('express');
+require('express-async-errors');
 const pg = require('pg');
 const path = require('path');
 const net = require('net');
@@ -2508,9 +2509,7 @@ const API_USAGE_LOGS_CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS api_usage_lo
   method TEXT NOT NULL,
   status_code INTEGER NOT NULL,
   error_type TEXT NOT NULL DEFAULT 'ok',
-  created_at TEXT NOT NULL,
-  FOREIGN KEY(user_id) REFERENCES users(id),
-  FOREIGN KEY(api_key_id) REFERENCES api_keys(id)
+  created_at TEXT NOT NULL
 )`;
 const API_USAGE_LOGS_INDEX_SQL = [
   'CREATE INDEX IF NOT EXISTS idx_api_usage_user_created ON api_usage_logs(user_id, created_at)',
@@ -4734,9 +4733,7 @@ db.run(`CREATE TABLE IF NOT EXISTS custom_domains (
     ip_hash TEXT,
     ip_masked TEXT,
     user_agent TEXT,
-    details_json TEXT,
-    FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(api_key_id) REFERENCES api_keys(id)
+    details_json TEXT
   )`);
 
   db.run(`CREATE TABLE IF NOT EXISTS api_idempotency_keys (
@@ -4764,9 +4761,7 @@ db.run(`CREATE TABLE IF NOT EXISTS custom_domains (
     method TEXT NOT NULL,
     status_code INTEGER NOT NULL,
     error_type TEXT NOT NULL DEFAULT 'ok',
-    created_at TEXT NOT NULL,
-    FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(api_key_id) REFERENCES api_keys(id)
+    created_at TEXT NOT NULL
   )`);
 
 // Domain-aware short links
