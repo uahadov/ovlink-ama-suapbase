@@ -1416,8 +1416,6 @@ body.dark-mode,
 }
 
 .home-page #hero {
-  background: transparent;
-.home-page #hero {
   position: relative;
   z-index: 2;
   min-height: auto;
