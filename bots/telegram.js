@@ -7,8 +7,12 @@ const TRANSLATIONS = {
     welcome_guest_btn: "🔗 Link Account",
     help: "📖 <b>Ovlink Bot Commands:</b>\n/short &lt;url&gt; — Shorten URL\n/qr &lt;url/code&gt; — Generate QR Code\n/limit — View daily limits\n/mylinks — Recent links\n/search &lt;query&gt; — Search links\n/export — Export links\n/delete &lt;code&gt; — Delete link\n/stats &lt;code&gt; — Statistics (⭐ Pro)\n/unlink — Disconnect\n/lang — Language\n/upgrade — Pro info\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     upgrade: "⭐ <b>Ovlink Pro — $2/month</b>\n\n🆓 Free: 50 links/day + 5 bulk\n⭐ Pro: 500 links/day + 50 bulk + alias + stats\n\n🌐 <a href=\"{baseUrl}/pricing\">ovlink.sbs/pricing</a>",
-    url_required: "❌ URL is required. Usage: /short <url>",
-    invalid_url: "❌ Invalid URL.",
+    url_required: "❌ <b>No link provided!</b>\n\n📌 <b>Usage:</b>\n<code>/short &lt;url&gt;</code> or <code>/short &lt;url&gt; &lt;alias&gt;</code>\n\n💡 <b>Example:</b>\n<code>/short https://youtube.com</code>\n<code>/short https://google.com my-google</code>\n\n<i>💡 Tip: You can also just send links directly as messages!</i>",
+    invalid_url: "❌ <b>Invalid URL format!</b>\n\n📌 <b>Valid format:</b> <code>https://example.com</code>",
+    qr_usage: "❌ <b>No URL or code provided!</b>\n\n📌 <b>Usage:</b>\n<code>/qr &lt;url or short-code&gt;</code>\n\n💡 <b>Example:</b>\n<code>/qr https://google.com</code>\n<code>/qr my-link</code>",
+    search_usage: "❌ <b>No search query provided!</b>\n\n📌 <b>Usage:</b>\n<code>/search &lt;keyword or url&gt;</code>\n\n💡 <b>Example:</b>\n<code>/search youtube</code>",
+    delete_usage: "❌ <b>No short code provided to delete!</b>\n\n📌 <b>Usage:</b>\n<code>/delete &lt;short-code&gt;</code>\n\n💡 <b>Example:</b>\n<code>/delete a1b2c3</code>\n\n<i>💡 Tip: Check your links with /mylinks</i>",
+    stats_code_required: "❌ <b>No link code provided!</b>\n\n📌 <b>Usage:</b>\n<code>/stats &lt;short-code&gt;</code>\n\n💡 <b>Example:</b>\n<code>/stats a1b2c3</code>",
     daily_limit_reached: "❌ Daily limit ({limit}) reached.",
     guest_limit_reached: "⚠️ Guest daily limit (5/5) reached. Link account with /start for 50 links/day!",
     bulk_guest_blocked: "⚠️ Bulk shortening requires a linked account. Use /start to link.",
@@ -29,7 +33,6 @@ const TRANSLATIONS = {
     qr_btn: "📷 QR Code",
     del_btn: "🗑️ Delete",
     stats_pro: "🔒 Stats require Pro plan. /upgrade",
-    stats_code_required: "❌ Code required. /stats <code>",
     stats_not_found: "❌ Link not found.",
     stats_detail: "📊 <b>{short}</b>\n📎 {original}\n👁 Clicks: {clicks}\n📅 Created: {created}\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     select_lang: "🌐 <b>Select language / Dil seçin / Выберите язык:</b>",
@@ -41,8 +44,12 @@ const TRANSLATIONS = {
     welcome_guest_btn: "🔗 Hesabımı Bağla",
     help: "📖 <b>Ovlink Bot Komutları:</b>\n/short &lt;url&gt; — Link kısalt\n/qr &lt;url/kod&gt; — QR kod oluştur\n/limit — Günlük limitleri gör\n/mylinks — Son linkler\n/search &lt;kelime&gt; — Link ara\n/export — Linkleri listele\n/delete &lt;kod&gt; — Link sil\n/stats &lt;kod&gt; — İstatistik (⭐ Pro)\n/unlink — Hesabı ayır\n/lang — Dil değiştir\n/upgrade — Pro bilgi\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     upgrade: "⭐ <b>Ovlink Pro — $2/ay</b>\n\n🆓 Ücretsiz: Günde 50 link + 5 toplu\n⭐ Pro: Günde 500 link + 50 toplu + alias + istatistik\n\n🌐 <a href=\"{baseUrl}/pricing\">ovlink.sbs/pricing</a>",
-    url_required: "❌ URL gerekli. Kullanım: /short <url>",
-    invalid_url: "❌ Geçersiz URL.",
+    url_required: "❌ <b>Link girmediniz!</b>\n\n📌 <b>Kullanım Şekli:</b>\n<code>/short &lt;link&gt;</code> veya <code>/short &lt;link&gt; &lt;özel-kod&gt;</code>\n\n💡 <b>Örnek:</b>\n<code>/short https://youtube.com</code>\n<code>/short https://google.com googlem</code>\n\n<i>💡 İpucu: Herhangi bir linki doğrudan bota mesaj olarak da atabilirsiniz!</i>",
+    invalid_url: "❌ <b>Geçersiz link formatı!</b>\n\n📌 <b>Doğru format:</b> <code>https://example.com</code>",
+    qr_usage: "❌ <b>Link veya kod girmediniz!</b>\n\n📌 <b>Kullanım Şekli:</b>\n<code>/qr &lt;link veya kısa kod&gt;</code>\n\n💡 <b>Örnek:</b>\n<code>/qr https://google.com</code>\n<code>/qr linkim</code>",
+    search_usage: "❌ <b>Arama terimi girmediniz!</b>\n\n📌 <b>Kullanım Şekli:</b>\n<code>/search &lt;kelime veya link&gt;</code>\n\n💡 <b>Örnek:</b>\n<code>/search youtube</code>",
+    delete_usage: "❌ <b>Silinecek link kodunu girmediniz!</b>\n\n📌 <b>Kullanım Şekli:</b>\n<code>/delete &lt;kısa-kod&gt;</code>\n\n💡 <b>Örnek:</b>\n<code>/delete a1b2c3</code>\n\n<i>💡 İpucu: Link kodlarınızı görmek için /mylinks yazabilirsiniz.</i>",
+    stats_code_required: "❌ <b>İstatistiğini görmek istediğiniz kodu girmediniz!</b>\n\n📌 <b>Kullanım Şekli:</b>\n<code>/stats &lt;kısa-kod&gt;</code>\n\n💡 <b>Örnek:</b>\n<code>/stats a1b2c3</code>",
     daily_limit_reached: "❌ Günlük limit ({limit}) doldu.",
     guest_limit_reached: "⚠️ Misafir günlük limitiniz (5/5) doldu. Günde 50 link için /start ile hesabınızı bağlayın!",
     bulk_guest_blocked: "⚠️ Toplu kısaltma için hesabınızı bağlayın. /start yazabilirsiniz.",
@@ -63,7 +70,6 @@ const TRANSLATIONS = {
     qr_btn: "📷 QR Kodu Al",
     del_btn: "🗑️ Sil",
     stats_pro: "🔒 İstatistikler Pro plan gerektirir. /upgrade",
-    stats_code_required: "❌ Kod gerekli. /stats <kod>",
     stats_not_found: "❌ Bulunamadı.",
     stats_detail: "📊 <b>{short}</b>\n📎 {original}\n👁 Tıklama: {clicks}\n📅 Oluşturulma: {created}\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     select_lang: "🌐 <b>Select language / Dil seçin / Выберите язык:</b>",
@@ -75,8 +81,12 @@ const TRANSLATIONS = {
     welcome_guest_btn: "🔗 Hesabımı Bağla",
     help: "📖 <b>Ovlink Bot Komandaları:</b>\n/short &lt;url&gt; — Link qısalt\n/qr &lt;url/kod&gt; — QR kod yarat\n/limit — Gündəlik limitlər\n/mylinks — Son linklər\n/search &lt;söz&gt; — Linklərdə axtarış\n/export — Linkləri göstər\n/delete &lt;kod&gt; — Link sil\n/stats &lt;kod&gt; — Statistika (⭐ Pro)\n/unlink — Hesabı ayır\n/lang — Dil dəyişdir\n/upgrade — Pro haqqında\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     upgrade: "⭐ <b>Ovlink Pro — $2/ay</b>\n\n🆓 Pulsuz: Gündə 50 link + 5 toplu\n⭐ Pro: Gündə 500 link + 50 toplu + alias + statistika\n\n🌐 <a href=\"{baseUrl}/pricing\">ovlink.sbs/pricing</a>",
-    url_required: "❌ URL tələb olunur. İstifadəsi: /short <url>",
-    invalid_url: "❌ Keçərsiz URL.",
+    url_required: "❌ <b>Link daxil etmədiniz!</b>\n\n📌 <b>İstifadə Qaydası:</b>\n<code>/short &lt;link&gt;</code> və ya <code>/short &lt;link&gt; &lt;özəl-ad&gt;</code>\n\n💡 <b>Nümunə:</b>\n<code>/short https://youtube.com</code>\n<code>/short https://google.com menim-linkim</code>\n\n<i>💡 Məsləhət: Həmçinin birbaşa linki bota mesaj olaraq da göndərə bilərsiniz!</i>",
+    invalid_url: "❌ <b>Keçərsiz link formatı!</b>\n\n📌 <b>Düzgün format:</b> <code>https://example.com</code>",
+    qr_usage: "❌ <b>Link və ya kod daxil etmədiniz!</b>\n\n📌 <b>İstifadə Qaydası:</b>\n<code>/qr &lt;link və ya qısa kod&gt;</code>\n\n💡 <b>Nümunə:</b>\n<code>/qr https://google.com</code>\n<code>/qr linkim</code>",
+    search_usage: "❌ <b>Axtarış sözü daxil etmədiniz!</b>\n\n📌 <b>İstifadə Qaydası:</b>\n<code>/search &lt;söz və ya link&gt;</code>\n\n💡 <b>Nümunə:</b>\n<code>/search youtube</code>",
+    delete_usage: "❌ <b>Silinəcək linkin kodunu daxil etmədiniz!</b>\n\n📌 <b>İstifadə Qaydası:</b>\n<code>/delete &lt;qısa-kod&gt;</code>\n\n💡 <b>Nümunə:</b>\n<code>/delete a1b2c3</code>\n\n<i>💡 Məsləhət: Linklərinizin kodunu tapmaq üçün /mylinks yaza bilərsiniz.</i>",
+    stats_code_required: "❌ <b>Statistikasını görmək istədiyiniz kodu daxil etmədiniz!</b>\n\n📌 <b>İstifadə Qaydası:</b>\n<code>/stats &lt;qısa-kod&gt;</code>\n\n💡 <b>Nümunə:</b>\n<code>/stats a1b2c3</code>",
     daily_limit_reached: "❌ Gündəlik limit ({limit}) doldu.",
     guest_limit_reached: "⚠️ Qonaq günlük limitiniz (5/5) doldu. Gündə 50 link üçün /start ilə hesabınızı bağlayın!",
     bulk_guest_blocked: "⚠️ Toplu qısaltmaq üçün hesabınızı bağlayın. /start ilə bağlayın.",
@@ -97,7 +107,6 @@ const TRANSLATIONS = {
     qr_btn: "📷 QR Kodu Al",
     del_btn: "🗑️ Sil",
     stats_pro: "🔒 Statistika Pro plan tələb edir. /upgrade",
-    stats_code_required: "❌ Kod tələb olunur. /stats <kod>",
     stats_not_found: "❌ Tapılmadı.",
     stats_detail: "📊 <b>{short}</b>\n📎 {original}\n👁 Klik: {clicks}\n📅 Tarix: {created}\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     select_lang: "🌐 <b>Select language / Dil seçin / Выберите язык:</b>",
@@ -109,8 +118,12 @@ const TRANSLATIONS = {
     welcome_guest_btn: "🔗 Привязать аккаунт",
     help: "📖 <b>Команды Ovlink Bot:</b>\n/short &lt;url&gt; — Сократить URL\n/qr &lt;url/код&gt; — QR код\n/limit — Лимиты\n/mylinks — Последние ссылки\n/search &lt;слово&gt; — Поиск ссылок\n/export — Список ссылок\n/delete &lt;код&gt; — Удалить ссылку\n/stats &lt;код&gt; — Статистика (⭐ Pro)\n/unlink — Отвязать\n/lang — Язык\n/upgrade — Pro тариф\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     upgrade: "⭐ <b>Ovlink Pro — $2/мес</b>\n\n🆓 Бесплатно: 50 ссылок в день + 5 пачкой\n⭐ Pro: 500 ссылок в день + 50 пачкой + алиас + статистика\n\n🌐 <a href=\"{baseUrl}/pricing\">ovlink.sbs/pricing</a>",
-    url_required: "❌ Требуется URL. /short <url>",
-    invalid_url: "❌ Неверный URL.",
+    url_required: "❌ <b>Ссылка не указана!</b>\n\n📌 <b>Использование:</b>\n<code>/short &lt;ссылка&gt;</code> или <code>/short &lt;ссылка&gt; &lt;алиас&gt;</code>\n\n💡 <b>Пример:</b>\n<code>/short https://youtube.com</code>\n<code>/short https://google.com moy-link</code>\n\n<i>💡 Совет: Вы также можете просто отправить ссылку сообщением боту!</i>",
+    invalid_url: "❌ <b>Неверный формат ссылки!</b>\n\n📌 <b>Правильный формат:</b> <code>https://example.com</code>",
+    qr_usage: "❌ <b>Ссылка или код не указаны!</b>\n\n📌 <b>Использование:</b>\n<code>/qr &lt;ссылка или короткий код&gt;</code>\n\n💡 <b>Пример:</b>\n<code>/qr https://google.com</code>\n<code>/qr moy-link</code>",
+    search_usage: "❌ <b>Поисковый запрос не указан!</b>\n\n📌 <b>Использование:</b>\n<code>/search &lt;слово или ссылка&gt;</code>\n\n💡 <b>Пример:</b>\n<code>/search youtube</code>",
+    delete_usage: "❌ <b>Код ссылки для удаления не указан!</b>\n\n📌 <b>Использование:</b>\n<code>/delete &lt;код&gt;</code>\n\n💡 <b>Пример:</b>\n<code>/delete a1b2c3</code>\n\n<i>💡 Подсказка: Список ваших ссылок можно посмотреть через /mylinks</i>",
+    stats_code_required: "❌ <b>Код ссылки не указан!</b>\n\n📌 <b>Использование:</b>\n<code>/stats &lt;код&gt;</code>\n\n💡 <b>Пример:</b>\n<code>/stats a1b2c3</code>",
     daily_limit_reached: "❌ Дневной лимит ({limit}) исчерпан.",
     guest_limit_reached: "⚠️ Гостевой лимит (5/5) исчерпан. Привяжите аккаунт через /start для 50 ссылок/день!",
     bulk_guest_blocked: "⚠️ Массовое сокращение доступно после привязки аккаунта.",
@@ -121,7 +134,7 @@ const TRANSLATIONS = {
     alias_taken: "❌ Алиас уже занят.",
     db_error: "❌ Ошибка сервера.",
     link_created: "✅ <b>{shortUrl}</b>\n📎 {original}\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
-    link_created_guest: "✅ <b>{shortUrl}</b>\n📎 {original}\n\n<i>Для 50 ссылок в день используйте /start</i>\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
+    link_created_guest: "✅ <b>{shortUrl}</b>\n📎 {original}\n\n<i>Для 50 ссылок в день используйте /start</i>\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs/pricing</a>",
     no_links: "📭 Ссылок пока нет.",
     recent_links: "📋 <b>Ваши последние ссылки:</b>\n\n{lines}\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     not_linked: "⚠️ Аккаунт не привязан. Используйте /start.",
@@ -131,7 +144,6 @@ const TRANSLATIONS = {
     qr_btn: "📷 QR Код",
     del_btn: "🗑️ Удалить",
     stats_pro: "🔒 Статистика в тарифе Pro. /upgrade",
-    stats_code_required: "❌ Укажите код. /stats <код>",
     stats_not_found: "❌ Ссылка не найдена.",
     stats_detail: "📊 <b>{short}</b>\n📎 {original}\n👁 Кликов: {clicks}\n📅 Создана: {created}\n\n🌐 <a href=\"{baseUrl}\">ovlink.sbs</a>",
     select_lang: "🌐 <b>Select language / Dil seçin / Выберите язык:</b>",
@@ -390,12 +402,7 @@ function createTelegramBot(db, options = {}) {
     const lang = await shared.getBotLanguage('telegram', chat.id);
     const raw = (args.text || '').replace(/^\/qr\s*/i, '').trim();
     if (!raw) {
-      const usage = lang === 'az'
-        ? '📱 <b>QR Kod Yaratmaq:</b>\nİstifadə: <code>/qr &lt;url və ya qısa kod&gt;</code>\nNümunə: <code>/qr https://google.com</code>'
-        : (lang === 'tr'
-          ? '📱 <b>QR Kod Oluşturma:</b>\nKullanım: <code>/qr &lt;url veya kısa kod&gt;</code>\nÖrnek: <code>/qr https://google.com</code>'
-          : '📱 <b>Generate QR Code:</b>\nUsage: <code>/qr &lt;url or short code&gt;</code>\nExample: <code>/qr https://google.com</code>');
-      return sendMessage(chat.id, usage);
+      return sendMessage(chat.id, t(lang, 'qr_usage'));
     }
 
     let targetUrl = raw;
@@ -475,7 +482,7 @@ function createTelegramBot(db, options = {}) {
 
     const query = (args.text || '').replace(/^\/search\s*/i, '').trim();
     if (!query) {
-      return sendMessage(chat.id, '🔍 Axtarış üçün söz yazın. Nümunə: <code>/search youtube</code>');
+      return sendMessage(chat.id, t(lang, 'search_usage'));
     }
 
     const searchPattern = `%${query}%`;
@@ -506,7 +513,7 @@ function createTelegramBot(db, options = {}) {
     const raw = (args.text || '').replace(/^\/(delete|del)\s*/i, '').trim();
     const shortCode = raw.split('/').pop().trim();
     if (!shortCode) {
-      return sendMessage(chat.id, '❌ Silmək istədiyiniz qısa kodu yazın. Nümunə: <code>/delete ab12cd</code>');
+      return sendMessage(chat.id, t(lang, 'delete_usage'));
     }
 
     db.run('DELETE FROM urls WHERE short = ? AND user_id = ?', [shortCode, botUser.user_id], function (err) {
