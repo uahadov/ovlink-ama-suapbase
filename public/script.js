@@ -2541,7 +2541,6 @@ if (document.readyState === "loading") {
       });
     }
   };
-  };
 
   const ensureDashboardMetaButtons = () => {
     const body = document.getElementById("dashboardTableBody");
