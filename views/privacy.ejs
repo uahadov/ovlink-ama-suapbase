@@ -47,59 +47,7 @@
 
   <div id="particlesContainer" class="particles-container"></div>
 
-  <nav class="navbar navbar-expand-lg navbar-light home-navbar shadow-sm">
-    <div class="container">
-      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
-        <img src="/logo.webp" alt="Ovlink" class="home-brand-logo" />
-      </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#policyNavbarContent"
-        aria-controls="policyNavbarContent" aria-expanded="false" aria-label="Menu toggle">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="policyNavbarContent">
-        <ul class="navbar-nav ms-auto align-items-lg-center">
-          <li class="nav-item" id="navAuthGuestLogin">
-            <a class="nav-link" href="/login"><i class="fa-solid fa-right-to-bracket"></i> <span data-i18n="nav_login">Giriş</span></a>
-          </li>
-          <li class="nav-item" id="navAuthGuestReg">
-            <a class="nav-link" href="/register"><i class="fa-solid fa-user-plus"></i> <span data-i18n="nav_register">Qeydiyyat</span></a>
-          </li>
-          <li class="nav-item dropdown nav-user-dropdown d-none" id="navAuthUser">
-            <a class="nav-link dropdown-toggle position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa-solid fa-user-circle me-1"></i>
-              <span id="navUserEmail" data-i18n="nav_my_account">Hesabım</span>
-              <span id="navNotifBadge" class="notif-badge d-none">0</span>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="/dashboard"><i class="fa-solid fa-chart-line me-2"></i><span data-i18n="dashboard_stats_link">Statistika</span></a></li>
-              <li><a class="dropdown-item" href="/account"><i class="fa-solid fa-user-gear me-2"></i><span data-i18n="profile_settings_title">Profil Parametrləri</span></a></li>
-              <li>
-                <a class="dropdown-item d-flex align-items-center justify-content-between" href="/notifications">
-                  <span><i class="fa-solid fa-bell me-2"></i><span data-i18n="notif_center_title">Bildiriş Mərkəzi</span></span>
-                  <span id="navNotifBadgeMenu" class="notif-menu-badge d-none">0</span>
-                </a>
-              </li>
-              <li><hr class="dropdown-divider" /></li>
-              <li><a id="navLogoutBtn" class="dropdown-item" href="#"><i class="fa-solid fa-right-from-bracket me-2"></i><span data-i18n="nav_logout">Çıxış</span></a></li>
-            </ul>
-          </li>
-        </ul>
-
-        <div class="dropdown ms-2 me-2">
-          <button id="langToggleBtn" class="btn btn-sm fw-bold dropdown-toggle lang-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false">AZ</button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><button class="dropdown-item lang-option" data-lang="az" type="button">AZ</button></li>
-            <li><button class="dropdown-item lang-option" data-lang="tr" type="button">TR</button></li>
-            <li><button class="dropdown-item lang-option" data-lang="en" type="button">EN</button></li>
-          </ul>
-        </div>
-
-        <button class="theme-toggle home-theme-btn theme-toggle-animated" aria-label="Temayı Değiştir">
-          <i class="fa-solid fa-sun"></i>
-        </button>
-      </div>
-    </div>
-  </nav>
+  <%- include('partials/public-navbar') %>
 
   <main class="policy-main">
     <section class="container">

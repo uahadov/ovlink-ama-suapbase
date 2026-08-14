@@ -3737,6 +3737,11 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => {
   res.locals.siteSettings = siteSettings;
+  res.locals.user = req.session && req.session.userId ? {
+    id: req.session.userId,
+    email: req.session.username || '',
+    isAdmin: !!req.session.adminUserId
+  } : null;
   next();
 });
 

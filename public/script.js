@@ -1735,6 +1735,34 @@ async function clientLogout() {
   }
 }
 
+function initScrollReveal() {
+  document.documentElement.classList.add("js-reveal");
+  const revealElements = document.querySelectorAll(".reveal, .reveal-left, .reveal-right, .reveal-scale, .stagger-children");
+  const activateReveal = (el) => el.classList.add("active");
+
+  if (revealElements.length && "IntersectionObserver" in window) {
+    const revealObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          activateReveal(entry.target);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.05, rootMargin: "0px 0px -20px 0px" });
+
+    revealElements.forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight + 100) {
+        activateReveal(el);
+      } else {
+        revealObserver.observe(el);
+      }
+    });
+  } else {
+    revealElements.forEach(activateReveal);
+  }
+}
+
 function initScriptApp() {
   if (localStorage.getItem("theme") === "dark") {
     document.body.classList.add("dark-mode");
@@ -1744,6 +1772,7 @@ function initScriptApp() {
     refreshCsrfToken();
   }
 
+  initScrollReveal();
   renderNavbarAuth();
   updatePricingBuyCta();
   initPricingBuyFlow();
@@ -1774,6 +1803,7 @@ function initScriptApp() {
 
     await Promise.allSettled(tasks);
     initProUpsellExperience();
+    initScrollReveal();
   };
 
   if (typeof window.requestIdleCallback === "function") {
