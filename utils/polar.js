@@ -74,6 +74,9 @@ function verifyPolarWebhook(rawBody, headers = {}, secret = POLAR_WEBHOOK_SECRET
     'content-encoding': headers['content-encoding'],
     'transfer-encoding': headers['transfer-encoding'],
   }));
+  // dump body sha256 and full base64 for exact reproduction
+  const bodySha256 = crypto.createHash('sha256').update(debugBody).digest('hex');
+  console.log('[polar-webhook-debug-body] sha256=' + bodySha256 + ' base64=' + debugBody.toString('base64'));
 
   const passedSignatures = msgSignature.split(' ').map((s) => {
     const parts = s.split(',');
