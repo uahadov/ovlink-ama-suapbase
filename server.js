@@ -2658,12 +2658,15 @@ function logSecurityEvent(req, eventType, outcome, details = {}) {
     insertSql,
     [now, eventTypeStr, outcomeStr, userId, apiKeyId, ipHash || null, ipMasked || null, userAgent, detailsJson],
     (err) => {
-      // Legacy databases carry a plain FK on user_id; when the referenced user is
-      // gone, keep the audit trail anyway: retry without the link, id preserved in details.
-      if (err && userId != null && /security_events_user_id_fkey|violates foreign key/i.test(String(err.message || ''))) {
+      // Older databases carry plain FKs on user_id/api_key_id; when the referenced
+      // row is gone, keep the audit trail anyway: retry without the links, ids preserved in details.
+      if (err && /violates foreign key/i.test(String(err.message || '')) && (userId != null || apiKeyId != null)) {
+        const fallbackDetails = { ...sanitizedDetails };
+        if (userId != null) fallbackDetails.orphan_user_id = userId;
+        if (apiKeyId != null) fallbackDetails.orphan_api_key_id = apiKeyId;
         db.run(
           insertSql,
-          [now, eventTypeStr, outcomeStr, null, apiKeyId, ipHash || null, ipMasked || null, userAgent, safeJsonStringify({ ...sanitizedDetails, orphan_user_id: userId }, 4000)],
+          [now, eventTypeStr, outcomeStr, null, null, ipHash || null, ipMasked || null, userAgent, safeJsonStringify(fallbackDetails, 4000)],
           () => {}
         );
       }
@@ -5179,11 +5182,23 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_subscription_audit_target ON subscription_audit(target_user_id, created_at)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_security_events_created ON security_events(created_at)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_security_events_type ON security_events(event_type, outcome, created_at)', () => {});
-  // Older databases created security_events with a plain FK on user_id, which broke
-  // audit logging once the referenced user was removed. Normalize to ON DELETE SET NULL.
-  db.run("ALTER TABLE security_events DROP CONSTRAINT IF EXISTS security_events_user_id_fkey", () => {
-    db.run("ALTER TABLE security_events ADD CONSTRAINT security_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL", () => {});
+  // Older databases created security_events with plain FKs (user_id/api_key_id) that
+  // broke audit inserts once the referenced row disappeared. Normalize both to
+  // ON DELETE SET NULL — guarded (only when actually needed) and race-safe across
+  // concurrently booting instances; goes straight through pool.query so the db-shim
+  // error hook does not spam ops alerts while it settles.
+  const normalizeSecurityEventFk = (conname, column, refTable) => pool.query(
+    'SELECT pg_get_constraintdef(c.oid) AS def FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid WHERE t.relname = $1 AND c.conname = $2',
+    ['security_events', conname]
+  ).then(({ rows }) => {
+    const def = rows && rows[0] && rows[0].def ? String(rows[0].def) : '';
+    if (/ON DELETE SET NULL/i.test(def)) return undefined;
+    return pool.query('DO $$ BEGIN ALTER TABLE security_events DROP CONSTRAINT IF EXISTS ' + conname + '; BEGIN ALTER TABLE security_events ADD CONSTRAINT ' + conname + ' FOREIGN KEY (' + column + ') REFERENCES ' + refTable + '(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_object THEN NULL; END; END $$');
+  }).catch((err) => {
+    console.error('[migrate] security_events FK normalization skipped:', err && err.message);
   });
+  normalizeSecurityEventFk('security_events_user_id_fkey', 'user_id', 'users');
+  normalizeSecurityEventFk('security_events_api_key_id_fkey', 'api_key_id', 'api_keys');
 
   // Notifications
   db.run('ALTER TABLE notifications ADD COLUMN title_en TEXT', () => {});
