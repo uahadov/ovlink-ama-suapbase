@@ -35,6 +35,7 @@ const isProdRuntime = process.env.NODE_ENV === 'production';
 const OPS_ALERT_RATE_LIMIT_MS = 10 * 60 * 1000;
 const opsAlertSentAt = new Map();
 function sendOpsAlert(key, title, details = '') {
+  if (process.env.NODE_ENV === 'test') return; // test runs share this process env via dotenv; never page real channels from tests
   const url = (process.env.ALERT_WEBHOOK_URL || '').toString().trim();
   if (!url) return;
   const now = Date.now();
@@ -3455,6 +3456,12 @@ if (process.env.RESEND_API_KEY) {
   } catch {
     console.warn('[startup] Resend package not available, falling back to SMTP.');
   }
+}
+
+// Startup visibility for the billing webhook secret (length only, never the value).
+{
+  const polarSecretLen = (process.env.POLAR_WEBHOOK_SECRET || '').toString().trim().length;
+  console.log(`[startup] Polar webhook secret len=${polarSecretLen}` + (polarSecretLen === 0 ? ' — WARNING: POLAR_WEBHOOK_SECRET is empty; Polar deliveries will be rejected (check .env / pm2 env)' : ''));
 }
 
 const emailTransporter = nodemailer.createTransport({
