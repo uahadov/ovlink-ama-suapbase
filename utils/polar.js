@@ -53,6 +53,15 @@ function verifyPolarWebhook(rawBody, headers = {}, secret = POLAR_WEBHOOK_SECRET
   }
   const computedSignature = crypto.createHmac('sha256', keyBuffer).update(toSign).digest('base64');
 
+  // DEBUG: log key values to diagnose signature mismatch
+  const debugBody = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(String(rawBody || ''));
+  console.log('[polar-webhook-debug] keyBuffer len=' + keyBuffer.length +
+    ' bodyLen=' + debugBody.length +
+    ' msgId=' + msgId +
+    ' msgTs=' + msgTimestamp +
+    ' computed=' + computedSignature +
+    ' received=' + msgSignature);
+
   const passedSignatures = msgSignature.split(' ').map((s) => {
     const parts = s.split(',');
     return parts.length === 2 && parts[0] === 'v1' ? parts[1] : s;
