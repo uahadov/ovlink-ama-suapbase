@@ -851,7 +851,7 @@ module.exports = function createAdminRouter(db, options = {}) {
   async function loadLink(short) {
     const safeShort = normalizeShortCode(short);
     if (!safeShort) return null;
-    return get(
+    const row = await get(
       'SELECT u.*, usr.email AS owner_email, ' +
       '  (SELECT COUNT(*) FROM clicks c WHERE c.url_id = u.id) AS clicks_count ' +
       'FROM urls u ' +
@@ -859,12 +859,16 @@ module.exports = function createAdminRouter(db, options = {}) {
       'WHERE u.short = ?',
       [safeShort],
     );
+    if (row && row.owner_email) {
+      row.owner_email = decryptAES256GCM(row.owner_email);
+    }
+    return row;
   }
 
   async function loadReports(short) {
     const safeShort = normalizeShortCode(short);
     if (!safeShort) return [];
-    return all(
+    const rows = await all(
       'SELECT r.*, u.email AS reporter_email ' +
       'FROM reports r ' +
       'LEFT JOIN users u ON u.id = r.user_id ' +
@@ -872,6 +876,12 @@ module.exports = function createAdminRouter(db, options = {}) {
       'ORDER BY datetime(r.created_at) DESC',
       [safeShort],
     );
+    (rows || []).forEach((r) => {
+      if (r.reporter_email) {
+        r.reporter_email = decryptAES256GCM(r.reporter_email);
+      }
+    });
+    return rows;
   }
 
   // ==============================
@@ -952,9 +962,9 @@ module.exports = function createAdminRouter(db, options = {}) {
     const params = [];
 
     if (q) {
-      where.push('(LOWER(u.short) LIKE ? OR LOWER(u.original) LIKE ? OR LOWER(usr.email) LIKE ?)');
+      where.push('(LOWER(u.short) LIKE ? OR LOWER(u.original) LIKE ? OR usr.email_hash = ? OR LOWER(usr.email) LIKE ?)');
       const like = '%' + q.toLowerCase() + '%';
-      params.push(like, like, like);
+      params.push(like, like, blindIndex(q), like);
     }
 
     if (status === 'disabled') where.push('u.disabled = 1');
@@ -984,6 +994,12 @@ module.exports = function createAdminRouter(db, options = {}) {
       'LIMIT ? OFFSET ?',
       [...params, pageSize, offset],
     );
+
+    (rows || []).forEach((r) => {
+      if (r.owner_email) {
+        r.owner_email = decryptAES256GCM(r.owner_email);
+      }
+    });
 
     return res.render('admin/links', {
       q: qRaw,
@@ -1092,6 +1108,11 @@ module.exports = function createAdminRouter(db, options = {}) {
       'ORDER BY datetime(b.created_at) DESC',
       [],
     );
+    (rows || []).forEach((r) => {
+      if (r.created_by_email) {
+        r.created_by_email = decryptAES256GCM(r.created_by_email);
+      }
+    });
     return res.render('admin/domains', { rows });
   });
 
@@ -1107,6 +1128,11 @@ module.exports = function createAdminRouter(db, options = {}) {
         'ORDER BY datetime(b.created_at) DESC',
         [],
       );
+      (rows || []).forEach((r) => {
+        if (r.created_by_email) {
+          r.created_by_email = decryptAES256GCM(r.created_by_email);
+        }
+      });
       return res.status(400).render('admin/domains', { rows, error: 'Invalid domain.' });
     }
 
@@ -1156,8 +1182,8 @@ module.exports = function createAdminRouter(db, options = {}) {
     const params = [];
 
     if (q) {
-      where.push('LOWER(u.email) LIKE ?');
-      params.push('%' + q + '%');
+      where.push('(u.email_hash = ? OR LOWER(u.email) LIKE ?)');
+      params.push(blindIndex(q), '%' + q + '%');
     }
 
     if (status === 'banned') {
@@ -1195,7 +1221,11 @@ module.exports = function createAdminRouter(db, options = {}) {
       [...params, pageSize, offset],
     );
 
-    rows.forEach(u => u.email = decryptAES256GCM(u.email));
+    rows.forEach(u => {
+      if (u.email) {
+        u.email = decryptAES256GCM(u.email);
+      }
+    });
     return res.render('admin/site-users', {
       active: 'site-users',
       q: qRaw,
@@ -1218,6 +1248,9 @@ module.exports = function createAdminRouter(db, options = {}) {
       [id],
     );
     if (!user) return res.status(404).render('admin/not-found');
+    if (user.email) {
+      user.email = decryptAES256GCM(user.email);
+    }
 
     // Aggregate stats
     const summary = await get(
@@ -1722,6 +1755,7 @@ module.exports = function createAdminRouter(db, options = {}) {
         : normalizeCountryCode(meta && meta.country);
       return {
         ...row,
+        admin_email: row.admin_email ? decryptAES256GCM(row.admin_email) : '',
         country_display: explicitCountry || getCountryCodeFromIp(row && row.ip),
       };
     });
