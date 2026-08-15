@@ -1,10 +1,5 @@
 const crypto = require('crypto');
 
-const POLAR_CHECKOUT_URL = (
-  process.env.POLAR_CHECKOUT_URL ||
-  'https://buy.polar.sh/polar_cl_9QZbWPt4zCzplBGNFgy6xeZf9rxVICG62IIe03GpkNS'
-).toString().trim();
-
 const POLAR_WEBHOOK_SECRET = (
   process.env.POLAR_WEBHOOK_SECRET || ''
 ).toString().trim();
@@ -68,8 +63,28 @@ function verifyPolarWebhook(rawBody, headers = {}, secret = POLAR_WEBHOOK_SECRET
   return false;
 }
 
+/**
+ * Decides how the webhook product allowlist must behave.
+ * - enforce:      an expected product id is configured; only its events pass.
+ * - fail_closed:  no product id configured AND running in production; the
+ *                 caller must refuse to process events (otherwise ANY product
+ *                 in the organization would grant entitlements).
+ * - disabled:     no product id configured in a non-production environment;
+ *                 callers may process events (with a warning) for local use.
+ */
+function resolvePolarProductPolicy(configuredId, isProduction) {
+  const expectedProductId = (configuredId == null ? '' : configuredId).toString().trim();
+  if (expectedProductId) {
+    return { mode: 'enforce', expectedProductId };
+  }
+  if (isProduction) {
+    return { mode: 'fail_closed', expectedProductId: '' };
+  }
+  return { mode: 'disabled', expectedProductId: '' };
+}
+
 module.exports = {
-  POLAR_CHECKOUT_URL,
   POLAR_WEBHOOK_SECRET,
   verifyPolarWebhook,
+  resolvePolarProductPolicy,
 };

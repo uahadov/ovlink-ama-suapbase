@@ -240,29 +240,39 @@ function isFreeUpsellEligible() {
   return !isProPlanActive();
 }
 
-const POLAR_DEFAULT_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_9QZbWPt4zCzplBGNFgy6xeZf9rxVICG62IIe03GpkNS";
-
-function buildPolarCheckoutHref() {
-  try {
-    const base = new URL(POLAR_DEFAULT_CHECKOUT_URL);
-    if (Number.isInteger(window.__userId) && window.__userId > 0) {
-      base.searchParams.set("customer_metadata[user_id]", String(window.__userId));
-    }
-    if (window.__userEmail && typeof window.__userEmail === "string") {
-      base.searchParams.set("customer_email", window.__userEmail);
-    }
-    return base.toString();
-  } catch {
-    return POLAR_DEFAULT_CHECKOUT_URL;
-  }
-}
-
 function updatePricingBuyCta() {
   const btn = document.getElementById("pricingBuyBtn");
   if (!btn) return;
-  btn.setAttribute("href", buildPolarCheckoutHref());
-  const fallback = document.getElementById("pricingContactFallback");
-  if (fallback) fallback.setAttribute("href", buildPolarCheckoutHref());
+
+  btn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const isLoggedIn = btn.getAttribute("data-is-logged-in") === "true";
+    if (!isLoggedIn) {
+      window.location.href = "/login?next=/pricing";
+      return;
+    }
+
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Yüklənir...';
+
+    try {
+      const data = await postJsonWithCsrf("/api/polar/create-checkout", {});
+      if (data && data.url) {
+        window.location.href = data.url;
+      } else if (data && data.error === 'unauthorized') {
+        window.location.href = "/login?next=/pricing";
+      } else {
+        alert("Xəta baş verdi: " + (data ? data.error : "Bilinməyən xəta"));
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    } catch (err) {
+      alert("Xəta baş verdi. Lütfən yenidən yoxlayın.");
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
 }
 
 function syncFloatingPricingBanner() {

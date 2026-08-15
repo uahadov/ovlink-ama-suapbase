@@ -1,3 +1,4 @@
+require('dotenv').config(); // MUST remain line 1: populates process.env before any module reads it
 const express = require('express');
 require('express-async-errors');
 const pg = require('pg');
@@ -20,9 +21,9 @@ const tsscmp = require('tsscmp');
 const lusca = require('lusca');
 const { body, validationResult } = require('express-validator');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('./utils/crypto.js');
-const { verifyPolarWebhook, POLAR_CHECKOUT_URL } = require('./utils/polar.js');
-const POLAR_WEBHOOK_SECRET = (process.env.POLAR_WEBHOOK_SECRET || '').toString().trim();
-require('dotenv').config();
+const { verifyPolarWebhook, resolvePolarProductPolicy } = require('./utils/polar.js');
+// POLAR_WEBHOOK_SECRET is read from process.env inside the webhook handler (not cached at startup)
+// so that dotenv-loaded values are always visible.
 const isProdRuntime = process.env.NODE_ENV === 'production';
 
 const pool = new pg.Pool({
@@ -282,6 +283,18 @@ const sessionSecretEstimatedBytes = estimateSecretBytes(process.env.SESSION_SECR
 if (sessionSecretEstimatedBytes < 64) {
   console.error('[startup] SESSION_SECRET must be at least 64 random bytes (or equivalent encoded length).');
   process.exit(1);
+}
+
+// Warn at startup if the Polar webhook secret is missing.  The webhook handler
+// reads process.env.POLAR_WEBHOOK_SECRET at request time (not cached), so
+// providing it in .env or the OS environment will activate it without restart
+// in development — but in production the process must be started with the var set.
+if (!process.env.POLAR_WEBHOOK_SECRET) {
+  console.error('[startup] WARNING: POLAR_WEBHOOK_SECRET is not set. All Polar webhook events will be rejected with HTTP 403 and no subscription activations will succeed.');
+}
+
+if (isProdRuntime && !(process.env.POLAR_PRODUCT_ID || '').toString().trim()) {
+  console.error('[startup] WARNING: POLAR_PRODUCT_ID is not set. The Polar webhook will FAIL CLOSED (HTTP 500) in production until it is configured.');
 }
 
 function decodeOptionalKeyMaterial(rawValue) {
@@ -939,7 +952,7 @@ const RESERVED_SHORT_ALIASES = new Set([
   // Public pages
   'about', 'abuse-safety', 'account', 'contact', 'cookie-policy', 'dashboard',
   'docs', 'faq', 'forgot-password', 'help', 'how-it-works', 'login', 'notifications',
-  'privacy', 'pricing', 'register', 'reset-password', 'stats', 'stats-page', 'sss', 'terms',
+  'privacy', 'pricing', 'pro', 'register', 'reset-password', 'stats', 'stats-page', 'sss', 'terms',
   'updates', 'verify', 'why-ovlink', 'api-guide',
   // System and route namespaces
   'admin', 'api', 'auth', 'consent', 'proceed', 'qrcode', 'verify-email', 'logout',
@@ -4029,21 +4042,25 @@ app.get('/pricing', (req, res) => {
     descTr: 'Ovlink Free ve Pro planlarını karşılaştırın. Pro plan fiyatı $4.99/ay.',
     descEn: 'Compare Ovlink Free and Pro plans. Pro pricing is $4.99/month with 3-day free trial.',
   });
-
-  let polarCheckoutUrl = POLAR_CHECKOUT_URL;
-  if (req.session && req.session.userId) {
-    try {
-      const u = new URL(POLAR_CHECKOUT_URL);
-      u.searchParams.set('customer_metadata[user_id]', String(req.session.userId));
-      polarCheckoutUrl = u.toString();
-    } catch {
-      polarCheckoutUrl = POLAR_CHECKOUT_URL;
-    }
-  }
-
-  res.render('pricing', { csrfToken: res.locals._csrf, seo, polarCheckoutUrl });
+  
+  const isLoggedIn = !!(req.session && req.session.userId);
+  res.render('pricing', { csrfToken: res.locals._csrf, seo, isLoggedIn });
 });
 app.get('/pricing.html', (req, res) => res.redirect(301, '/pricing'));
+
+// Polar checkout success page: the checkout success_url returns here after payment.
+app.get('/pro', (req, res) => {
+  const seo = buildSeo(req, {
+    path: '/pro',
+    titleAz: 'Pro aktivləşdirilir - Ovlink',
+    titleTr: 'Pro etkinleştiriliyor - Ovlink',
+    titleEn: 'Pro activation - Ovlink',
+    descAz: 'Ovlink Pro ödənişi tamamlandı; abunəlik avtomatik aktivləşdirilir.',
+    descTr: 'Ovlink Pro ödemesi tamamlandı; abonelik otomatik etkinleştirilir.',
+    descEn: 'Ovlink Pro payment completed; the subscription is activated automatically.'
+  });
+  res.render('pro', { csrfToken: res.locals._csrf, seo });
+});
 
 app.get('/cookie-policy', (req, res) => {
   const seo = buildSeo(req, {
@@ -4874,6 +4891,8 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
   db.run('ALTER TABLE users ADD COLUMN pro_updated_at TEXT', () => {});
   db.run('ALTER TABLE users ADD COLUMN polar_customer_id TEXT', () => {});
   db.run('ALTER TABLE users ADD COLUMN polar_subscription_id TEXT', () => {});
+  db.run('ALTER TABLE users ADD COLUMN trial_used_at TEXT', () => {});
+  db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_polar_sub ON users(polar_subscription_id) WHERE polar_subscription_id IS NOT NULL', () => {});
   db.run(`ALTER TABLE api_keys ADD COLUMN scopes TEXT NOT NULL DEFAULT '${DEFAULT_API_KEY_SCOPES_STORAGE}'`, () => {});
   db.run('ALTER TABLE api_keys ADD COLUMN hash_version INTEGER NOT NULL DEFAULT 1', () => {});
   db.run("ALTER TABLE webhooks ADD COLUMN message_locale TEXT DEFAULT 'auto'", () => {});
@@ -4919,6 +4938,66 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
   db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)', () => {});
   db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id_hash ON users(google_id_hash)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_users_plan ON users(plan_tier, plan_status, pro_expires_at)', () => {});
+
+  // One account per email identity. users.email stores random-IV ciphertext,
+  // so the old `email UNIQUE` constraint never blocked duplicate plaintext
+  // emails; email_hash is the real identity key and must be unique. Legacy
+  // duplicate rows keep their data but lose email-keyed login: their
+  // email_hash gets a unique suffix. The kept row prefers verified accounts,
+  // then the oldest registration.
+  db.all("SELECT email_hash FROM users WHERE email_hash IS NOT NULL AND email_hash != '' GROUP BY email_hash HAVING COUNT(*) > 1", (dupErr, dupRows) => {
+    const createUsersEmailHashIndex = (attempt = 0) => {
+      db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_hash ON users(email_hash) WHERE email_hash IS NOT NULL', (idxErr) => {
+        if (!idxErr) return;
+        if (attempt === 0) {
+          // Another app instance may still be migrating duplicates (rolling
+          // restart / parallel boots); retry once before giving up.
+          setTimeout(createUsersEmailHashIndex, 2000, 1).unref();
+        } else {
+          console.error('[startup] users.email_hash unique index failed (will retry next boot):', idxErr.message);
+        }
+      });
+    };
+    if (dupErr || !Array.isArray(dupRows) || dupRows.length === 0) return createUsersEmailHashIndex();
+    let pendingUsersDupes = dupRows.length;
+    dupRows.forEach((dup) => {
+      db.all('SELECT id, email_verified FROM users WHERE email_hash = ? ORDER BY email_verified DESC, id ASC', [dup.email_hash], (rowErr, rows) => {
+        if (!rowErr && Array.isArray(rows) && rows.length > 1) {
+          rows.slice(1).forEach((staleRow) => {
+            db.run('UPDATE users SET email_hash = ? WHERE id = ?', [`${dup.email_hash}:dup:${staleRow.id}`, staleRow.id], () => {});
+          });
+        }
+        if (--pendingUsersDupes === 0) createUsersEmailHashIndex();
+      });
+    });
+  });
+
+  // Same one-identity-per-email rule for admin accounts.
+  db.all("SELECT email_hash FROM admin_users WHERE email_hash IS NOT NULL AND email_hash != '' GROUP BY email_hash HAVING COUNT(*) > 1", (adminDupErr, adminDupRows) => {
+    const createAdminEmailHashIndex = (attempt = 0) => {
+      db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_users_email_hash ON admin_users(email_hash) WHERE email_hash IS NOT NULL', (idxErr) => {
+        if (!idxErr) return;
+        if (attempt === 0) {
+          setTimeout(createAdminEmailHashIndex, 2000, 1).unref();
+        } else {
+          console.error('[startup] admin_users.email_hash unique index failed (will retry next boot):', idxErr.message);
+        }
+      });
+    };
+    if (adminDupErr || !Array.isArray(adminDupRows) || adminDupRows.length === 0) return createAdminEmailHashIndex();
+    let pendingAdminDupes = adminDupRows.length;
+    adminDupRows.forEach((dup) => {
+      db.all('SELECT id FROM admin_users WHERE email_hash = ? ORDER BY id ASC', [dup.email_hash], (rowErr, rows) => {
+        if (!rowErr && Array.isArray(rows) && rows.length > 1) {
+          rows.slice(1).forEach((staleRow) => {
+            db.run('UPDATE admin_users SET email_hash = ? WHERE id = ?', [`${dup.email_hash}:dup:${staleRow.id}`, staleRow.id], () => {});
+          });
+        }
+        if (--pendingAdminDupes === 0) createAdminEmailHashIndex();
+      });
+    });
+  });
+
   db.run('CREATE INDEX IF NOT EXISTS idx_blocked_domains_domain ON blocked_domains(domain)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit_log(created_at)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_api_keys_user_active ON api_keys(user_id, revoked_at)', () => {});
@@ -5215,9 +5294,84 @@ app.post('/api/bots/discord/interactions', async (req, res) => {
   res.json(response);
 });
 
+// Polar Server-Side Checkout Sessions API
+app.post('/api/polar/create-checkout', async (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: 'unauthorized', code: 'not_logged_in' });
+  }
+
+  const expectedPriceId = process.env.POLAR_PRODUCT_PRICE_ID || '';
+  if (!expectedPriceId) {
+    console.error('[polar] POLAR_PRODUCT_PRICE_ID is missing from environment variables.');
+    return res.status(500).json({ error: 'Checkout configuration missing on server.' });
+  }
+
+  if (!process.env.POLAR_ACCESS_TOKEN) {
+    console.error('[polar] POLAR_ACCESS_TOKEN is missing from environment variables.');
+    return res.status(500).json({ error: 'Checkout configuration missing on server.' });
+  }
+
+  try {
+    const user = await new Promise((resolve, reject) => {
+      db.get('SELECT email, trial_used_at FROM users WHERE id = ?', [req.session.userId], (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'unauthorized', code: 'user_not_found' });
+    }
+
+    // users.email is stored encrypted; Polar needs the real address.
+    const customerEmail = decryptAES256GCM(user.email).toString().trim();
+    if (!customerEmail || !customerEmail.includes('@')) {
+      console.error('[polar] Could not decrypt a usable email for user', req.session.userId, '; refusing checkout.');
+      return res.status(500).json({ error: 'Account email is unavailable. Please contact support.' });
+    }
+
+    const payload = {
+      product_price_id: expectedPriceId,
+      success_url: `${getPublicBaseUrl(req)}/pro`,
+      customer_email: customerEmail,
+      customer_metadata: {
+        user_id: req.session.userId.toString()
+      }
+    };
+    // One trial per account: once trial_used_at is set, disable the trial
+    // period for this checkout even when the product configures one.
+    if (user.trial_used_at) {
+      payload.allow_trial = false;
+    }
+
+    const response = await fetch('https://api.polar.sh/v1/checkouts/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.POLAR_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      console.error('[polar] Checkout session creation failed:', response.status, errData);
+      return res.status(502).json({ error: 'Failed to create checkout session with payment provider.' });
+    }
+
+    const sessionData = await response.json();
+    return res.json({ url: sessionData.url });
+  } catch (err) {
+    console.error('[polar] Checkout session error:', err);
+    return res.status(500).json({ error: 'Internal server error during checkout creation.' });
+  }
+});
+
 // Polar.sh Webhook Endpoint for automated subscriptions & orders
+let polarProductAllowlistWarned = false;
 app.post('/api/polar/webhook', async (req, res) => {
-  const verified = verifyPolarWebhook(req.rawBody, req.headers, POLAR_WEBHOOK_SECRET);
+  const secret = (process.env.POLAR_WEBHOOK_SECRET || '').toString().trim();
+  const verified = verifyPolarWebhook(req.rawBody, req.headers, secret);
   if (!verified) {
     console.error('[polar-webhook] Signature verification failed');
     return res.status(403).json({ error: 'invalid signature' });
@@ -5235,24 +5389,53 @@ app.post('/api/polar/webhook', async (req, res) => {
   const data = event.data || {};
   console.log(`[polar-webhook] Received event: ${eventType}`);
 
+  // Product ID Validation. An unconfigured allowlist must never silently
+  // accept every product in the organization: fail closed in production.
+  const productPolicy = resolvePolarProductPolicy(process.env.POLAR_PRODUCT_ID, isProdRuntime);
+  if (productPolicy.mode === 'fail_closed') {
+    console.error('[polar-webhook] POLAR_PRODUCT_ID is not configured; refusing to process events (fail closed).');
+    return res.status(500).json({ error: 'webhook product validation not configured' });
+  }
+  if (productPolicy.mode === 'enforce') {
+    const productId = data.product_id || (data.product && data.product.id) || null;
+    if (productId !== productPolicy.expectedProductId) {
+      console.warn(`[polar-webhook] Ignoring event for product ${productId} (expected ${productPolicy.expectedProductId})`);
+      return res.status(200).json({ received: true, ignored: 'wrong_product' });
+    }
+  } else if (!polarProductAllowlistWarned) {
+    polarProductAllowlistWarned = true;
+    console.warn('[polar-webhook] POLAR_PRODUCT_ID not set (non-production); product allowlist disabled.');
+  }
+
   try {
     const customerEmail = (data.customer && data.customer.email) || data.customer_email || data.email || '';
+    // Prevent email-binding attack if we eventually implement server-side checkout sessions:
+    // (We still resolve by user_id metadata first)
     const userIdRaw = (data.custom_field_data && data.custom_field_data.user_id) ||
       (data.metadata && data.metadata.user_id) ||
+      (data.user_metadata && data.user_metadata.user_id) ||
       (data.customer_metadata && data.customer_metadata.user_id) ||
       (data.customer && data.customer.metadata && data.customer.metadata.user_id) ||
       null;
     const userId = userIdRaw ? parseInt(userIdRaw, 10) : null;
-    const polarSubId = data.id || (data.subscription && data.subscription.id) || null;
+    // Orders reference their subscription via `subscription_id`; `data.id` on
+    // an order event is the ORDER id and must never be persisted as a
+    // subscription id (it breaks every later subscription-id comparison).
+    const isOrderEvent = eventType.startsWith('order.');
+    const polarSubId = isOrderEvent
+      ? ((data.subscription_id != null && data.subscription_id !== '') ? String(data.subscription_id) : ((data.subscription && data.subscription.id) || null))
+      : ((data.id != null && data.id !== '') ? String(data.id) : ((data.subscription && data.subscription.id) || null));
     const polarCustomerId = (data.customer && data.customer.id) || data.customer_id || null;
 
     const findUser = () => new Promise((resolve, reject) => {
+      // Narrowed query to avoid fetching sensitive data
+      const q = 'SELECT id, plan_tier, plan_status, pro_expires_at, polar_subscription_id, polar_customer_id, trial_used_at FROM users WHERE ';
       if (Number.isInteger(userId) && userId > 0) {
-        db.get('SELECT * FROM users WHERE id = ?', [userId], (err, row) => {
+        db.get(q + 'id = ?', [userId], (err, row) => {
           if (err) return reject(err);
           if (row) return resolve(row);
           if (customerEmail) {
-            db.get('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(customerEmail)], (e2, r2) => {
+            db.get(q + 'email_hash = ? ORDER BY id DESC', [blindIndex(customerEmail)], (e2, r2) => {
               if (e2) return reject(e2);
               resolve(r2 || null);
             });
@@ -5261,7 +5444,7 @@ app.post('/api/polar/webhook', async (req, res) => {
           }
         });
       } else if (customerEmail) {
-        db.get('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(customerEmail)], (err, row) => {
+        db.get(q + 'email_hash = ? ORDER BY id DESC', [blindIndex(customerEmail)], (err, row) => {
           if (err) return reject(err);
           resolve(row || null);
         });
@@ -5279,7 +5462,6 @@ app.post('/api/polar/webhook', async (req, res) => {
     const nowIso = new Date().toISOString();
     const msgId = req.headers['webhook-id'] || req.headers['Webhook-Id'] || `evt_${Date.now()}`;
 
-    // Helper to safely parse dates
     const parseIsoTimeMs = (raw) => {
       if (!raw) return Number.NaN;
       const ms = Date.parse(raw);
@@ -5291,65 +5473,136 @@ app.post('/api/polar/webhook', async (req, res) => {
       eventType.startsWith('subscription.created') ||
       eventType.startsWith('subscription.updated') ||
       eventType.startsWith('subscription.active') ||
-      eventType.startsWith('order.created')
+      eventType.startsWith('subscription.cycled') ||
+      eventType.startsWith('subscription.uncanceled') ||
+      eventType.startsWith('subscription.resumed') ||
+      eventType.startsWith('order.paid')
     ) {
-      const status = (data.status || 'active').toString().toLowerCase();
-      if (status !== 'canceled' && status !== 'revoked') {
-        
-        // Prevent Downgrade/Overwrite Attack:
-        // Do not overwrite an existing DIFFERENT active subscription ID.
-        if (isCurrentlyPro && targetUser.polar_subscription_id && polarSubId && targetUser.polar_subscription_id !== polarSubId) {
-          console.warn(`[polar-webhook] User ${targetUser.id} already has active sub ${targetUser.polar_subscription_id}. Ignoring new sub ${polarSubId}`);
-          return res.status(200).json({ received: true, ignored: 'active_sub_mismatch' });
-        }
-
-        let expiresAt = data.current_period_end ? new Date(data.current_period_end).toISOString() : null;
-        if (!expiresAt || Number.isNaN(Date.parse(expiresAt))) {
-          // Fix Replay Drift Attack: Use data.created_at instead of Date.now()
-          const fallbackBase = data.created_at ? new Date(data.created_at) : new Date();
-          fallbackBase.setDate(fallbackBase.getDate() + 32);
-          expiresAt = fallbackBase.toISOString();
-        }
-
-        await new Promise((resolve, reject) => {
-          db.run(
-            'UPDATE users SET plan_tier = ?, plan_status = ?, pro_expires_at = ?, polar_subscription_id = ?, polar_customer_id = ?, pro_updated_at = ? WHERE id = ?',
-            ['pro', 'active', expiresAt, polarSubId || targetUser.polar_subscription_id, polarCustomerId || targetUser.polar_customer_id, nowIso, targetUser.id],
-            (err) => (err ? reject(err) : resolve())
-          );
-        });
-
-        // Add notification for the user (idempotent by webhook msgId)
-        const notifEventKey = `polar_pro_${msgId}`;
-        db.run(
-          'INSERT OR IGNORE INTO notifications (user_id, type, title_az, title_tr, title_en, body_az, body_tr, body_en, event_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [
-            targetUser.id,
-            'system',
-            'Ovlink Pro Aktiv Edildi! 👑',
-            'Ovlink Pro Aktif Edildi! 👑',
-            'Ovlink Pro Activated! 👑',
-            'Pro abunəliyiniz uğurla aktivləşdirildi. Bütün limitsiz imkanlardan dərhal istifadə edə bilərsiniz.',
-            'Pro üyeliğiniz başarıyla aktifleştirildi. Tüm sınırsız özelliklerden hemen yararlanabilirsiniz.',
-            'Your Pro subscription has been successfully activated. Enjoy full access to all premium features.',
-            notifEventKey,
-            nowIso
-          ],
-          () => {}
-        );
-
-        console.log(`[polar-webhook] User id=${targetUser.id} upgraded to PRO until ${expiresAt}`);
+      // Polar subscription statuses: incomplete, incomplete_expired, trialing,
+      // active, past_due, canceled, unpaid, paused. Orders carry
+      // draft/pending/paid/refunded/... Only genuinely paid or trialing states
+      // grant/extend entitlement; other states are handled by their dedicated
+      // lifecycle events (revoke/cancel branches below).
+      const status = (data.status != null && data.status !== '' ? data.status : (isOrderEvent ? 'paid' : 'active')).toString().toLowerCase();
+      const isPaidActivationState = status === 'active' || status === 'trialing' || (isOrderEvent && status === 'paid');
+      if (!isPaidActivationState) {
+        console.log(`[polar-webhook] Ignoring ${eventType} with status=${status} (not an activation state).`);
+        return res.status(200).json({ received: true, ignored: 'inactive_status', status });
       }
-    } else if (eventType.startsWith('subscription.canceled') || eventType.startsWith('subscription.revoked')) {
-      // Prevent Downgrade Attack: Only cancel if the sub IDs match!
+
+      // Prevent Downgrade/Overwrite Attack
+      if (isCurrentlyPro && targetUser.polar_subscription_id && polarSubId && targetUser.polar_subscription_id !== polarSubId) {
+        console.warn(`[polar-webhook] User ${targetUser.id} already has active sub ${targetUser.polar_subscription_id}. Ignoring new sub ${polarSubId}`);
+        return res.status(200).json({ received: true, ignored: 'active_sub_mismatch' });
+      }
+
+      // Trial detection per the Polar schema: status === 'trialing' and/or a
+      // trial_end in the future. (There is no `is_free_trial` field.)
+      const trialEndMs = parseIsoTimeMs(data.trial_end);
+      const isTrial = status === 'trialing' || (Number.isFinite(trialEndMs) && trialEndMs > Date.now());
+      // One trial per account: a trial on a different subscription than the
+      // one that is (or was) recorded means the account already consumed its
+      // trial; do not grant entitlement for it.
+      if (isTrial && targetUser.trial_used_at && targetUser.polar_subscription_id !== polarSubId) {
+        console.warn(`[polar-webhook] User ${targetUser.id} already used the trial; ignoring repeat trial on sub ${polarSubId}.`);
+        return res.status(200).json({ received: true, ignored: 'trial_already_used' });
+      }
+
+      let expiresAt = data.current_period_end ? new Date(data.current_period_end).toISOString() : null;
+      if (!expiresAt || Number.isNaN(Date.parse(expiresAt))) {
+        // Fix Replay Drift Attack
+        const fallbackBase = data.created_at ? new Date(data.created_at) : new Date();
+        fallbackBase.setDate(fallbackBase.getDate() + 32);
+        expiresAt = fallbackBase.toISOString();
+      }
+      // Event ordering must never shrink an already-paid period of the same
+      // subscription (e.g. order.paid arriving after subscription.updated).
+      if (polarSubId && targetUser.polar_subscription_id === polarSubId) {
+        const existingExpiryMs = parseIsoTimeMs(targetUser.pro_expires_at);
+        if (Number.isFinite(existingExpiryMs) && existingExpiryMs > Date.parse(expiresAt)) {
+          expiresAt = targetUser.pro_expires_at;
+        }
+      }
+
+      let trialUsedAt = targetUser.trial_used_at;
+      if (isTrial && !trialUsedAt) {
+        trialUsedAt = nowIso;
+      }
+
+      await new Promise((resolve, reject) => {
+        db.run(
+          'UPDATE users SET plan_tier = ?, plan_status = ?, pro_expires_at = ?, polar_subscription_id = ?, polar_customer_id = ?, trial_used_at = ?, pro_updated_at = ? WHERE id = ?',
+          ['pro', 'active', expiresAt, polarSubId || targetUser.polar_subscription_id, polarCustomerId || targetUser.polar_customer_id, trialUsedAt, nowIso, targetUser.id],
+          (err) => (err ? reject(err) : resolve())
+        );
+      });
+
+      // Add notification for the user
+      const notifEventKey = `polar_pro_${msgId}`;
+      db.run(
+        'INSERT OR IGNORE INTO notifications (user_id, type, title_az, title_tr, title_en, body_az, body_tr, body_en, event_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          targetUser.id,
+          'system',
+          'Ovlink Pro Aktiv Edildi! 👑',
+          'Ovlink Pro Aktif Edildi! 👑',
+          'Ovlink Pro Activated! 👑',
+          'Pro abunəliyiniz uğurla aktivləşdirildi. Bütün limitsiz imkanlardan dərhal istifadə edə bilərsiniz.',
+          'Pro üyeliğiniz başarıyla aktifleştirildi. Tüm sınırsız özelliklerden hemen yararlanabilirsiniz.',
+          'Your Pro subscription has been successfully activated. Enjoy full access to all premium features.',
+          notifEventKey,
+          nowIso
+        ],
+        () => {}
+      );
+
+      console.log(`[polar-webhook] User id=${targetUser.id} upgraded to PRO until ${expiresAt}`);
+    } else if (
+      eventType.startsWith('order.refunded') ||   // legacy alias kept for older integrations
+      eventType.startsWith('order.updated') ||
+      eventType.startsWith('subscription.revoked') ||
+      eventType.startsWith('subscription.past_due') ||
+      eventType.startsWith('subscription.expired') // defensive: not in the current Polar event list
+    ) {
+      // Refunds are delivered today as order.updated with status
+      // refunded / partially_refunded. Only a full refund revokes.
+      if (eventType.startsWith('order.updated')) {
+        const orderStatus = (data.status != null && data.status !== '' ? data.status : 'paid').toString().toLowerCase();
+        if (orderStatus === 'partially_refunded') {
+          return res.status(200).json({ received: true, ignored: 'partial_refund' });
+        }
+        if (orderStatus !== 'refunded') {
+          return res.status(200).json({ received: true, ignored: 'non_refund_update' });
+        }
+      }
+      // A revoke/refund event that belongs to a historical subscription must
+      // not revoke the currently active one.
+      if (targetUser.polar_subscription_id && polarSubId && targetUser.polar_subscription_id !== polarSubId) {
+        console.warn(`[polar-webhook] User ${targetUser.id} revoke event for sub ${polarSubId} ignored; active sub is ${targetUser.polar_subscription_id}`);
+        return res.status(200).json({ received: true, ignored: 'mismatched_sub_id' });
+      }
+
+      // Revoke Pro immediately on refund, revocation or payment failure
+      await new Promise((resolve, reject) => {
+        db.run(
+          'UPDATE users SET plan_tier = ?, plan_status = ?, pro_expires_at = NULL, polar_subscription_id = NULL, pro_updated_at = ? WHERE id = ?',
+          ['free', 'revoked', nowIso, targetUser.id],
+          (err) => (err ? reject(err) : resolve())
+        );
+      });
+      console.log(`[polar-webhook] User id=${targetUser.id} subscription completely revoked (event: ${eventType})`);
+
+    } else if (eventType.startsWith('subscription.canceled')) {
+      // Prevent Downgrade Attack
       if (targetUser.polar_subscription_id && polarSubId && targetUser.polar_subscription_id !== polarSubId) {
         console.warn(`[polar-webhook] User ${targetUser.id} canceling sub ${polarSubId} ignored because active sub is ${targetUser.polar_subscription_id}`);
         return res.status(200).json({ received: true, ignored: 'mismatched_sub_id' });
       }
 
       await new Promise((resolve, reject) => {
+        // Fix: clear polar_subscription_id to avoid stuck re-subscribe state
         db.run(
-          'UPDATE users SET plan_status = ?, pro_updated_at = ? WHERE id = ?',
+          'UPDATE users SET plan_status = ?, polar_subscription_id = NULL, pro_updated_at = ? WHERE id = ?',
           ['canceled', nowIso, targetUser.id],
           (err) => (err ? reject(err) : resolve())
         );
@@ -5540,34 +5793,52 @@ app.post('/api/register',
     const verificationCode = encryptAES256GCM(rawVerificationCode);
     const verificationExpiresAt = buildVerificationExpiryIso(15);
     const initialLang = uiLang;
+    const accountCreateFailedMsg = pickLang(uiLang, 'Hesab yaradıla bilmədi.', 'Hesap oluşturulamadı.', 'Account could not be created.');
+    const emailInUseMsg = pickLang(uiLang, 'Bu e-poçt artıq istifadə edilib.', 'Bu e-posta zaten kullanılıyor.', 'This email is already in use.');
 
-    bcrypt.hash(password, 10, (hashErr, hashed) => {
-      if (hashErr || !hashed) {
-        return res.status(500).json({ error: pickLang(uiLang, 'Hesab yaradıla bilmədi.', 'Hesap oluşturulamadı.', 'Account could not be created.') });
+    // One account per email identity. The unique index on users(email_hash)
+    // is the hard backstop; this check keeps the error friendly and avoids
+    // creating a row that would shadow an existing account.
+    db.get('SELECT id FROM users WHERE email_hash = ?', [blindIndex(email)], (chkErr, existingUser) => {
+      if (chkErr) {
+        return res.status(500).json({ error: accountCreateFailedMsg });
+      }
+      if (existingUser) {
+        return res.status(400).json({ error: emailInUseMsg });
       }
 
-      db.run('INSERT INTO users (email, email_hash, password, verification_code, verification_expires_at, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)', [encryptAES256GCM(email), blindIndex(email), hashed, verificationCode, verificationExpiresAt, 'local', new Date().toISOString(), initialLang, 'light'], function (err) {
-        if (err) return res.status(500).json({ error: pickLang(uiLang, 'Bu e-poçt artıq istifadə edilib.', 'Bu e-posta zaten kullanılıyor.', 'This email is already in use.') });
+      bcrypt.hash(password, 10, (hashErr, hashed) => {
+        if (hashErr || !hashed) {
+          return res.status(500).json({ error: accountCreateFailedMsg });
+        }
 
-        sendVerificationEmail(email, rawVerificationCode, uiLang)
-          .then(() => {
-            req.session.tempEmail = email;
-            res.json({ message: pickLang(uiLang, `${email} ünvanına təsdiqləmə kodu göndərildi. Zəhmət olmasa təsdiqləmə panelindən istifadə edin.`, `${email} adresine doğrulama kodu gönderildi. Lütfen doğrulama panelini kullanın.`, `A verification code has been sent to ${email}. Please complete verification.`) });
-          })
-          .catch((error) => {
-            console.error("Mail gönderim hatası:", error);
-            console.error("Email send error details:", {
-              message: error.message || 'Unknown error',
-              statusCode: error.statusCode || 'N/A',
-              name: error.name || 'Error',
-              response: error.response || 'N/A'
+        db.run('INSERT INTO users (email, email_hash, password, verification_code, verification_expires_at, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1) RETURNING id', [encryptAES256GCM(email), blindIndex(email), hashed, verificationCode, verificationExpiresAt, 'local', new Date().toISOString(), initialLang, 'light'], function (err) {
+          if (err) return res.status(400).json({ error: emailInUseMsg });
+          const insertedUserId = this.lastID;
+
+          sendVerificationEmail(email, rawVerificationCode, uiLang)
+            .then(() => {
+              req.session.tempEmail = email;
+              res.json({ message: pickLang(uiLang, `${email} ünvanına təsdiqləmə kodu göndərildi. Zəhmət olmasa təsdiqləmə panelindən istifadə edin.`, `${email} adresine doğrulama kodu gönderildi. Lütfen doğrulama panelini kullanın.`, `A verification code has been sent to ${email}. Please complete verification.`) });
+            })
+            .catch((error) => {
+              console.error("Mail gönderim hatası:", error);
+              console.error("Email send error details:", {
+                message: error.message || 'Unknown error',
+                statusCode: error.statusCode || 'N/A',
+                name: error.name || 'Error',
+                response: error.response || 'N/A'
+              });
+              // Delete only the row this request created (by id). Never delete
+              // by email_hash — that could destroy an unrelated account.
+              if (insertedUserId) {
+                db.run('DELETE FROM users WHERE id = ?', [insertedUserId], (delErr) => {
+                  if (delErr) console.error('Failed to cleanup user after email error:', delErr);
+                });
+              }
+              res.status(500).json({ error: pickLang(uiLang, 'Təsdiqləmə e-poçtu göndərilə bilmədi. Zəhmət olmasa bir az sonra yenidən cəhd edin.', 'Doğrulama e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin.', 'Verification email could not be sent. Please try again later.') });
             });
-            // Delete the user record since email failed to send
-            db.run('DELETE FROM users WHERE email_hash = ?', [blindIndex(email)], (delErr) => {
-              if (delErr) console.error('Failed to cleanup user after email error:', delErr);
-            });
-            res.status(500).json({ error: pickLang(uiLang, 'Təsdiqləmə e-poçtu göndərilə bilmədi. Zəhmət olmasa bir az sonra yenidən cəhd edin.', 'Doğrulama e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin.', 'Verification email could not be sent. Please try again later.') });
-          });
+        });
       });
     });
   });
@@ -5614,7 +5885,7 @@ app.post('/api/verify-email',
         return res.status(400).json({ error: pickLang(uiLang, 'Təsdiqləmə kodu yanlışdır.', 'Doğrulama kodu yanlış.', 'Verification code is incorrect.') });
       }
 
-      db.run('UPDATE users SET email_verified = 1, verification_code = NULL, verification_expires_at = NULL WHERE email_hash = ?', [blindIndex(email)], (updateErr) => {
+      db.run('UPDATE users SET email_verified = 1, verification_code = NULL, verification_expires_at = NULL WHERE id = ?', [user.id], (updateErr) => {
         if (updateErr) {
           return res.status(500).json({ error: pickLang(uiLang, 'Təsdiqləmə tamamlanmadı.', 'Doğrulama tamamlanamadı.', 'Verification could not be completed.') });
         }
@@ -5666,8 +5937,8 @@ app.post('/api/resend-verification',
       const verificationCode = encryptAES256GCM(rawVerificationCode);
       const verificationExpiresAt = buildVerificationExpiryIso(15);
 
-      db.run('UPDATE users SET verification_code = ?, verification_expires_at = ? WHERE email_hash = ?', 
-        [verificationCode, verificationExpiresAt, blindIndex(email)], (updateErr) => {
+      db.run('UPDATE users SET verification_code = ?, verification_expires_at = ? WHERE id = ?',
+        [verificationCode, verificationExpiresAt, user.id], (updateErr) => {
         if (updateErr) {
           console.error('Failed to update verification code:', updateErr);
           return res.status(500).json({ error: pickLang(uiLang, 'Təsdiqləmə kodu yeniləmə xətası.', 'Doğrulama kodu güncellenemedi.', 'Failed to update verification code.') });
@@ -9050,7 +9321,7 @@ app.post('/api/user/import',
     });
   }
 
-  db.get('SELECT is_pro, pro_until, pro_plan FROM users WHERE id = ?', [req.session.userId], (uErr, userRow) => {
+  db.get('SELECT plan_tier, plan_status, pro_expires_at FROM users WHERE id = ?', [req.session.userId], (uErr, userRow) => {
     const isPro = isProAccessActive(userRow);
     const maxBulk = isPro ? 50 : 5;
     const dailyLimit = isPro ? 500 : 50;
