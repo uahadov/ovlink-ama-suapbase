@@ -5614,8 +5614,13 @@ app.post('/api/polar/webhook', async (req, res) => {
   const secret = (process.env.POLAR_WEBHOOK_SECRET || '').toString().trim();
   const verified = verifyPolarWebhook(req.rawBody, req.headers, secret);
   if (!verified) {
-    console.error('[polar-webhook] Signature verification failed');
-    sendOpsAlert('polar_signature', 'Polar webhook signature verification failed', 'All events are rejected until POLAR_WEBHOOK_SECRET matches the Polar endpoint secret.');
+    const eventTs = parseInt((req.headers['webhook-timestamp'] || req.headers['Webhook-Timestamp'] || '0'), 10);
+    const isStale = Number.isFinite(eventTs) && eventTs > 0 && Math.abs(Math.floor(Date.now() / 1000) - eventTs) > 300;
+    const reason = isStale
+      ? ' (stale event: timestamp older than 5 minutes — replay protection rejected it; this is expected for Polar retries/redeliveries of old events)'
+      : '';
+    console.error('[polar-webhook] Signature verification failed' + reason);
+    sendOpsAlert('polar_signature', 'Polar webhook rejected', ('Event rejected.' + (isStale ? ' Stale event (replay protection) — not an error if secret is correct.' : ' Signature mismatch — check POLAR_WEBHOOK_SECRET.')));
     return res.status(403).json({ error: 'invalid signature' });
   }
 
