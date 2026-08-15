@@ -2651,10 +2651,23 @@ function logSecurityEvent(req, eventType, outcome, details = {}) {
   delete sanitizedDetails.api_key_id;
   const detailsJson = safeJsonStringify(sanitizedDetails, 4000);
 
+  const insertSql = 'INSERT INTO security_events (created_at, event_type, outcome, user_id, api_key_id, ip_hash, ip_masked, user_agent, details_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+  const eventTypeStr = (eventType || '').toString().slice(0, 128);
+  const outcomeStr = (outcome || '').toString().slice(0, 32);
   db.run(
-    'INSERT INTO security_events (created_at, event_type, outcome, user_id, api_key_id, ip_hash, ip_masked, user_agent, details_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [now, (eventType || '').toString().slice(0, 128), (outcome || '').toString().slice(0, 32), userId, apiKeyId, ipHash || null, ipMasked || null, userAgent, detailsJson],
-    () => {}
+    insertSql,
+    [now, eventTypeStr, outcomeStr, userId, apiKeyId, ipHash || null, ipMasked || null, userAgent, detailsJson],
+    (err) => {
+      // Legacy databases carry a plain FK on user_id; when the referenced user is
+      // gone, keep the audit trail anyway: retry without the link, id preserved in details.
+      if (err && userId != null && /security_events_user_id_fkey|violates foreign key/i.test(String(err.message || ''))) {
+        db.run(
+          insertSql,
+          [now, eventTypeStr, outcomeStr, null, apiKeyId, ipHash || null, ipMasked || null, userAgent, safeJsonStringify({ ...sanitizedDetails, orphan_user_id: userId }, 4000)],
+          () => {}
+        );
+      }
+    }
   );
 }
 
@@ -5166,6 +5179,11 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_subscription_audit_target ON subscription_audit(target_user_id, created_at)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_security_events_created ON security_events(created_at)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_security_events_type ON security_events(event_type, outcome, created_at)', () => {});
+  // Older databases created security_events with a plain FK on user_id, which broke
+  // audit logging once the referenced user was removed. Normalize to ON DELETE SET NULL.
+  db.run("ALTER TABLE security_events DROP CONSTRAINT IF EXISTS security_events_user_id_fkey", () => {
+    db.run("ALTER TABLE security_events ADD CONSTRAINT security_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL", () => {});
+  });
 
   // Notifications
   db.run('ALTER TABLE notifications ADD COLUMN title_en TEXT', () => {});
@@ -5614,13 +5632,27 @@ app.post('/api/polar/webhook', async (req, res) => {
   const secret = (process.env.POLAR_WEBHOOK_SECRET || '').toString().trim();
   const verified = verifyPolarWebhook(req.rawBody, req.headers, secret);
   if (!verified) {
+    const hasWebhookHeaders = !!(
+      (req.headers['webhook-id'] || req.headers['Webhook-Id']) &&
+      (req.headers['webhook-timestamp'] || req.headers['Webhook-Timestamp']) &&
+      (req.headers['webhook-signature'] || req.headers['Webhook-Signature'])
+    );
     const eventTs = parseInt((req.headers['webhook-timestamp'] || req.headers['Webhook-Timestamp'] || '0'), 10);
-    const isStale = Number.isFinite(eventTs) && eventTs > 0 && Math.abs(Math.floor(Date.now() / 1000) - eventTs) > 300;
-    const reason = isStale
-      ? ' (stale event: timestamp older than 5 minutes — replay protection rejected it; this is expected for Polar retries/redeliveries of old events)'
-      : '';
+    const ageSec = Number.isFinite(eventTs) && eventTs > 0 ? Math.abs(Math.floor(Date.now() / 1000) - eventTs) : null;
+    let reason;
+    let advice;
+    if (!hasWebhookHeaders) {
+      reason = ' (request carries no Standard Webhooks headers — not a Polar delivery; likely a probe or malformed request)';
+      advice = 'Not a Polar delivery (missing webhook headers) — no action needed.';
+    } else if (ageSec !== null && ageSec > 300) {
+      reason = ' (stale event: ' + ageSec + 's old — replay protection rejected it; expected for Polar retries/redeliveries of old events)';
+      advice = 'Stale event (' + ageSec + 's old, replay protection) — not an error if secret is correct.';
+    } else {
+      reason = ' (signature mismatch: secret len=' + secret.length + ', whsec_prefix=' + secret.startsWith('whsec_') + ', event age=' + (ageSec === null ? 'n/a' : ageSec + 's') + ')';
+      advice = 'Signature mismatch — copy the current secret from the Polar endpoint into POLAR_WEBHOOK_SECRET and restart (running secret len=' + secret.length + ').';
+    }
     console.error('[polar-webhook] Signature verification failed' + reason);
-    sendOpsAlert('polar_signature', 'Polar webhook rejected', ('Event rejected.' + (isStale ? ' Stale event (replay protection) — not an error if secret is correct.' : ' Signature mismatch — check POLAR_WEBHOOK_SECRET.')));
+    sendOpsAlert('polar_signature', 'Polar webhook rejected', ('Event rejected. ' + advice));
     return res.status(403).json({ error: 'invalid signature' });
   }
 
