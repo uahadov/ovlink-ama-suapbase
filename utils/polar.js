@@ -61,6 +61,19 @@ function verifyPolarWebhook(rawBody, headers = {}, secret = POLAR_WEBHOOK_SECRET
     ' msgTs=' + msgTimestamp +
     ' computed=' + computedSignature +
     ' received=' + msgSignature);
+  console.log('[polar-webhook-debug-hex]' +
+    ' msgId.hex=' + Buffer.from(msgId, 'utf8').toString('hex') +
+    ' msgTs.hex=' + Buffer.from(String(msgTimestamp), 'utf8').toString('hex') +
+    ' body.first30hex=' + debugBody.slice(0, 30).toString('hex'));
+  console.log('[polar-webhook-debug-headers] ' + JSON.stringify({
+    'webhook-id': headers['webhook-id'],
+    'Webhook-Id': headers['Webhook-Id'],
+    'webhook-timestamp': headers['webhook-timestamp'],
+    'webhook-signature': headers['webhook-signature'],
+    'content-type': headers['content-type'],
+    'content-encoding': headers['content-encoding'],
+    'transfer-encoding': headers['transfer-encoding'],
+  }));
 
   const passedSignatures = msgSignature.split(' ').map((s) => {
     const parts = s.split(',');
