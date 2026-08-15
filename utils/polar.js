@@ -41,8 +41,16 @@ function verifyPolarWebhook(rawBody, headers = {}, secret = POLAR_WEBHOOK_SECRET
     keyBuffer = Buffer.from(secret, 'utf8');
   }
 
-  const rawPayloadString = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : String(rawBody || '');
-  const toSign = `${msgId}.${msgTimestamp}.${rawPayloadString}`;
+  let toSign;
+  if (Buffer.isBuffer(rawBody)) {
+    toSign = Buffer.concat([
+      Buffer.from(`${msgId}.${msgTimestamp}.`, 'utf8'),
+      rawBody
+    ]);
+  } else {
+    const rawPayloadString = String(rawBody || '');
+    toSign = `${msgId}.${msgTimestamp}.${rawPayloadString}`;
+  }
   const computedSignature = crypto.createHmac('sha256', keyBuffer).update(toSign).digest('base64');
 
   const passedSignatures = msgSignature.split(' ').map((s) => {
