@@ -276,6 +276,41 @@ function updatePricingBuyCta() {
   });
 }
 
+function updateProManageCta() {
+  const btn = document.getElementById("proManageBtn");
+  if (!btn) return;
+
+  btn.addEventListener("click", async () => {
+    const isLoggedIn = btn.getAttribute("data-is-logged-in") === "true";
+    if (!isLoggedIn) {
+      window.location.href = "/login?next=/pro";
+      return;
+    }
+
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Yüklənir...';
+
+    try {
+      const res = await postJsonWithCsrf("/api/polar/portal-session", {});
+      const data = await res.json().catch(() => ({}));
+      if (data && data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      if (data && data.error === "no_subscription") {
+        alert("Aktiv abunəlik tapılmadı.");
+      } else {
+        alert("Xəta baş verdi: " + (data && data.error ? data.error : "Bilinməyən xəta"));
+      }
+    } catch (err) {
+      alert("Xəta baş verdi. Lütfən yenidən yoxlayın.");
+    }
+    btn.disabled = false;
+    btn.textContent = originalText;
+  });
+}
+
 function syncFloatingPricingBanner() {
   const banner = document.getElementById("floatingPricingBanner");
   if (!banner) return;
@@ -353,6 +388,7 @@ function bindFloatingPricingBannerClose() {
 
 function initPricingBuyFlow() {
   updatePricingBuyCta();
+  updateProManageCta();
   const hint = document.getElementById("pricingBuyHint");
   if (hint) hint.classList.add("d-none");
 }

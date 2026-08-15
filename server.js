@@ -348,7 +348,7 @@ const API_KEY_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('API_KEY_HASH_SECRE
   minBytes: 64,
   allowFallbackInProduction: true,
 });
-const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260815-02';
+const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260816-01';
 const WEBHOOK_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('WEBHOOK_HASH_SECRET', 'ovlink:webhook-secret-hash:v2', {
   minBytes: 64,
   allowFallbackInProduction: true,
@@ -4059,7 +4059,7 @@ app.get('/pro', (req, res) => {
     descTr: 'Ovlink Pro ödemesi tamamlandı; abonelik otomatik etkinleştirilir.',
     descEn: 'Ovlink Pro payment completed; the subscription is activated automatically.'
   });
-  res.render('pro', { csrfToken: res.locals._csrf, seo });
+  res.render('pro', { csrfToken: res.locals._csrf, seo, isLoggedIn: !!(req.session && req.session.userId) });
 });
 
 app.get('/cookie-policy', (req, res) => {
@@ -5364,6 +5364,61 @@ app.post('/api/polar/create-checkout', async (req, res) => {
   } catch (err) {
     console.error('[polar] Checkout session error:', err);
     return res.status(500).json({ error: 'Internal server error during checkout creation.' });
+  }
+});
+
+// Polar Customer Portal session: lets a signed-in customer manage their
+// subscription (cancel, renew/uncancel, update payment method, invoices) on
+// Polar's hosted portal via a short-lived pre-authenticated link.
+app.post('/api/polar/portal-session', async (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: 'unauthorized', code: 'not_logged_in' });
+  }
+  if (!process.env.POLAR_ACCESS_TOKEN) {
+    console.error('[polar] POLAR_ACCESS_TOKEN is missing from environment variables.');
+    return res.status(500).json({ error: 'Polar configuration missing on server.' });
+  }
+  try {
+    const user = await new Promise((resolve, reject) => {
+      db.get('SELECT polar_customer_id FROM users WHERE id = ?', [req.session.userId], (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+    if (!user) {
+      return res.status(401).json({ error: 'unauthorized', code: 'user_not_found' });
+    }
+    if (!user.polar_customer_id) {
+      return res.status(400).json({ error: 'no_subscription', code: 'polar_customer_not_linked' });
+    }
+
+    const response = await fetch('https://api.polar.sh/v1/customer-sessions/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.POLAR_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        customer_id: user.polar_customer_id,
+        return_url: `${getPublicBaseUrl(req)}/account`
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      console.error('[polar] Customer session creation failed:', response.status, errData);
+      return res.status(502).json({ error: 'Failed to create customer portal session.' });
+    }
+
+    const sessionData = await response.json();
+    const portalUrl = sessionData.customerPortalUrl || sessionData.url;
+    if (!portalUrl) {
+      return res.status(502).json({ error: 'Failed to create customer portal session.' });
+    }
+    return res.json({ url: portalUrl });
+  } catch (err) {
+    console.error('[polar] Customer session error:', err);
+    return res.status(500).json({ error: 'Internal server error.' });
   }
 });
 

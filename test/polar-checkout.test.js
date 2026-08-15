@@ -153,5 +153,56 @@ test('Polar Server-Side Checkout Sessions API', async (t) => {
     assert.equal(polarPayloadReceived.allow_trial, undefined);
   });
 
+  await t.test('5. Portal session: unauthenticated requests are rejected', async () => {
+    const res = await fetch(`${baseUrl}/api/polar/portal-session`, { method: 'POST' });
+    assert.equal(res.status, 403);
+  });
+
+  await t.test('6. Portal session: users without a Polar customer link get no_subscription', async () => {
+    const testEmail = `portal-nolink-${Date.now()}@example.com`;
+    const { cookie } = await createAuthenticatedSession(testEmail, null);
+
+    const getRes = await fetch(`${baseUrl}/pricing`, { headers: { 'cookie': cookie } });
+    const csrfToken = (await getRes.text()).match(/name="csrf-token" content="([^"]+)"/)?.[1] || '';
+
+    const res = await fetch(`${baseUrl}/api/polar/portal-session`, {
+      method: 'POST',
+      headers: { 'cookie': cookie, 'x-csrf-token': csrfToken, 'content-type': 'application/json' },
+      body: JSON.stringify({ _csrf: csrfToken })
+    });
+    assert.equal(res.status, 400);
+    const data = await res.json();
+    assert.equal(data.error, 'no_subscription');
+  });
+
+  await t.test('7. Portal session: linked users receive a Polar portal URL', async () => {
+    const testEmail = `portal-ok-${Date.now()}@example.com`;
+    const { cookie } = await createAuthenticatedSession(testEmail, null);
+    await helpers.dbRunAsync('UPDATE users SET polar_customer_id = ? WHERE email_hash = ?', ['00000000-0000-4000-8000-00000000c0de', blindIndex(testEmail)]);
+
+    const getRes = await fetch(`${baseUrl}/pricing`, { headers: { 'cookie': cookie } });
+    const csrfToken = (await getRes.text()).match(/name="csrf-token" content="([^"]+)"/)?.[1] || '';
+
+    let portalPayload = null;
+    globalThis.fetch = async (url, options) => {
+      if (url === 'https://api.polar.sh/v1/customer-sessions/') {
+        portalPayload = JSON.parse(options.body);
+        return { ok: true, json: async () => ({ customerPortalUrl: 'https://polar.sh/ovlink/portal/session?token=abc' }) };
+      }
+      return originalFetch(url, options);
+    };
+
+    const res = await fetch(`${baseUrl}/api/polar/portal-session`, {
+      method: 'POST',
+      headers: { 'cookie': cookie, 'x-csrf-token': csrfToken, 'content-type': 'application/json' },
+      body: JSON.stringify({ _csrf: csrfToken })
+    });
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.url, 'https://polar.sh/ovlink/portal/session?token=abc');
+    assert.equal(portalPayload.customer_id, '00000000-0000-4000-8000-00000000c0de');
+    assert.ok(portalPayload.return_url.endsWith('/account'));
+  });
+
   await new Promise((resolve) => server.close(resolve));
 });
