@@ -52,6 +52,9 @@
               <p class="fw-semibold"><%= new Date(plan.expires_at).toLocaleDateString() %></p>
             <% } %>
             <p class="small text-muted mb-3" data-i18n="account_sub_manage_hint">Abunəliyi ləğv et, yenilə və ya kart məlumatını dəyiş.</p>
+            <% if (!plan.polar_linked) { %>
+              <p class="small text-warning mb-3"><i class="fa-solid fa-circle-info me-1"></i><span data-i18n="account_sub_manual_note">Bu Pro abunəliyi admin tərəfindən aktivləşdirilib; Polar idarəetməsi mövcud deyil.</span></p>
+            <% } %>
           <% } else { %>
             <p class="mb-1 fw-semibold"><span data-i18n="account_sub_free">Free plan</span></p>
             <p class="small text-muted mb-3" data-i18n="account_sub_free_hint">Pro imkanları üçün yüksəliş: limitsiz linklər, API, webhooklar və statistika.</p>

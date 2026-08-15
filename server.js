@@ -387,7 +387,7 @@ const API_KEY_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('API_KEY_HASH_SECRE
   minBytes: 64,
   allowFallbackInProduction: true,
 });
-const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260816-02';
+const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260816-03';
 const WEBHOOK_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('WEBHOOK_HASH_SECRET', 'ovlink:webhook-secret-hash:v2', {
   minBytes: 64,
   allowFallbackInProduction: true,
@@ -2173,6 +2173,7 @@ function buildPlanPayload(userRow, nowMs = Date.now()) {
     paused_at: pausedAt,
     is_active: active,
     remaining_ms: remainingMs,
+    polar_linked: !!(userRow && userRow.polar_customer_id),
     features: active ? { ...PRO_FEATURES } : { api: false, webhooks: false, ip_security: false },
   };
 }
@@ -4397,7 +4398,7 @@ app.get('/updates.html', (req, res) => res.redirect(301, '/updates'));
 app.get('/account', async (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
   const plan = await getEffectivePlanForUser(req.session.userId).catch(() => null);
-  return res.render('account', { csrfToken: res.locals._csrf, plan: plan || {}, showSubManage: !!(plan && plan.tier === 'pro') });
+  return res.render('account', { csrfToken: res.locals._csrf, plan: plan || {}, showSubManage: !!(plan && plan.tier === 'pro' && plan.polar_linked) });
 });
 app.get('/notifications', (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
@@ -4462,7 +4463,7 @@ function dbRunAsync(sql, params = []) {
 async function loadUserPlanRow(userId) {
   if (!Number.isInteger(userId) || userId <= 0) return null;
   return dbGetAsync(
-    'SELECT id, plan_tier, plan_status, pro_expires_at, pro_paused_at FROM users WHERE id = ?',
+    'SELECT id, plan_tier, plan_status, pro_expires_at, pro_paused_at, polar_customer_id FROM users WHERE id = ?',
     [userId]
   );
 }
