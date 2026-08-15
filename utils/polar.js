@@ -6,8 +6,7 @@ const POLAR_CHECKOUT_URL = (
 ).toString().trim();
 
 const POLAR_WEBHOOK_SECRET = (
-  process.env.POLAR_WEBHOOK_SECRET ||
-  'whsec_QhXXCWsZbBmNT3LDlFOP2aUvf3YyrMXmiThvP1llYNN'
+  process.env.POLAR_WEBHOOK_SECRET || ''
 ).toString().trim();
 
 /**

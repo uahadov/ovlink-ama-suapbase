@@ -20,7 +20,8 @@ const tsscmp = require('tsscmp');
 const lusca = require('lusca');
 const { body, validationResult } = require('express-validator');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('./utils/crypto.js');
-const { verifyPolarWebhook, POLAR_CHECKOUT_URL, POLAR_WEBHOOK_SECRET } = require('./utils/polar.js');
+const { verifyPolarWebhook, POLAR_CHECKOUT_URL } = require('./utils/polar.js');
+const POLAR_WEBHOOK_SECRET = (process.env.POLAR_WEBHOOK_SECRET || '').toString().trim();
 require('dotenv').config();
 const isProdRuntime = process.env.NODE_ENV === 'production';
 
@@ -5276,6 +5277,15 @@ app.post('/api/polar/webhook', async (req, res) => {
     }
 
     const nowIso = new Date().toISOString();
+    const msgId = req.headers['webhook-id'] || req.headers['Webhook-Id'] || `evt_${Date.now()}`;
+
+    // Helper to safely parse dates
+    const parseIsoTimeMs = (raw) => {
+      if (!raw) return Number.NaN;
+      const ms = Date.parse(raw);
+      return Number.isFinite(ms) ? ms : Number.NaN;
+    };
+    const isCurrentlyPro = targetUser.plan_tier === 'pro' && targetUser.plan_status === 'active' && parseIsoTimeMs(targetUser.pro_expires_at) > Date.now();
 
     if (
       eventType.startsWith('subscription.created') ||
@@ -5285,11 +5295,20 @@ app.post('/api/polar/webhook', async (req, res) => {
     ) {
       const status = (data.status || 'active').toString().toLowerCase();
       if (status !== 'canceled' && status !== 'revoked') {
+        
+        // Prevent Downgrade/Overwrite Attack:
+        // Do not overwrite an existing DIFFERENT active subscription ID.
+        if (isCurrentlyPro && targetUser.polar_subscription_id && polarSubId && targetUser.polar_subscription_id !== polarSubId) {
+          console.warn(`[polar-webhook] User ${targetUser.id} already has active sub ${targetUser.polar_subscription_id}. Ignoring new sub ${polarSubId}`);
+          return res.status(200).json({ received: true, ignored: 'active_sub_mismatch' });
+        }
+
         let expiresAt = data.current_period_end ? new Date(data.current_period_end).toISOString() : null;
         if (!expiresAt || Number.isNaN(Date.parse(expiresAt))) {
-          const nextMonth = new Date();
-          nextMonth.setDate(nextMonth.getDate() + 32);
-          expiresAt = nextMonth.toISOString();
+          // Fix Replay Drift Attack: Use data.created_at instead of Date.now()
+          const fallbackBase = data.created_at ? new Date(data.created_at) : new Date();
+          fallbackBase.setDate(fallbackBase.getDate() + 32);
+          expiresAt = fallbackBase.toISOString();
         }
 
         await new Promise((resolve, reject) => {
@@ -5300,8 +5319,8 @@ app.post('/api/polar/webhook', async (req, res) => {
           );
         });
 
-        // Add notification for the user
-        const notifEventKey = `polar_pro_${polarSubId || targetUser.id}_${nowIso.slice(0, 10)}`;
+        // Add notification for the user (idempotent by webhook msgId)
+        const notifEventKey = `polar_pro_${msgId}`;
         db.run(
           'INSERT OR IGNORE INTO notifications (user_id, type, title_az, title_tr, title_en, body_az, body_tr, body_en, event_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
@@ -5322,6 +5341,12 @@ app.post('/api/polar/webhook', async (req, res) => {
         console.log(`[polar-webhook] User id=${targetUser.id} upgraded to PRO until ${expiresAt}`);
       }
     } else if (eventType.startsWith('subscription.canceled') || eventType.startsWith('subscription.revoked')) {
+      // Prevent Downgrade Attack: Only cancel if the sub IDs match!
+      if (targetUser.polar_subscription_id && polarSubId && targetUser.polar_subscription_id !== polarSubId) {
+        console.warn(`[polar-webhook] User ${targetUser.id} canceling sub ${polarSubId} ignored because active sub is ${targetUser.polar_subscription_id}`);
+        return res.status(200).json({ received: true, ignored: 'mismatched_sub_id' });
+      }
+
       await new Promise((resolve, reject) => {
         db.run(
           'UPDATE users SET plan_status = ?, pro_updated_at = ? WHERE id = ?',
