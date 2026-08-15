@@ -2975,7 +2975,8 @@ app.use(helmet({
         (req, res) => `'nonce-${res.locals.nonce}'`,
         "https://cdn.jsdelivr.net",
         "https://cdnjs.cloudflare.com",
-        "https://unpkg.com"
+        "https://unpkg.com",
+        "https://static.cloudflareinsights.com"
       ],
       scriptSrcAttr: ["'none'"],
       styleSrc: ["'self'", (req, res) => `'nonce-${res.locals.nonce}'`, "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
@@ -2992,7 +2993,8 @@ app.use(helmet({
         "'self'",
         "https://cdn.jsdelivr.net",
         "https://fonts.googleapis.com",
-        "https://fonts.gstatic.com"
+        "https://fonts.gstatic.com",
+        "https://cloudflareinsights.com"
       ],
       frameSrc: ["'self'"],
       manifestSrc: ["'self'"],
@@ -3018,6 +3020,19 @@ app.use((req, res, next) => {
   // Deprecated in modern browsers, but kept explicit to satisfy strict header checks.
   res.setHeader('Expect-CT', isProd ? 'max-age=86400, enforce' : 'max-age=0');
   next();
+});
+
+// Explicit Admin Static Assets (Fail-safe direct serving)
+app.get('/admin/admin.css', (req, res) => {
+  res.setHeader('Content-Type', 'text/css');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  return res.sendFile(path.join(publicDir, 'admin', 'admin.css'));
+});
+
+app.get('/admin/admin.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  return res.sendFile(path.join(publicDir, 'admin', 'admin.js'));
 });
 
 // Static Files Middleware (Served with proper caching and service-worker headers)

@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('../utils/crypto.js');
 const bcrypt = require('bcrypt');
@@ -524,8 +525,20 @@ module.exports = function createAdminRouter(db, options = {}) {
     standardHeaders: true,
     legacyHeaders: false,
   };
-  if (createRateLimitStore) adminGetLimiterOptions.store = createRateLimitStore('admin-get');
-  const adminGetLimiter = rateLimit(adminGetLimiterOptions);
+  const adminCssFile = path.join(__dirname, '../public/admin/admin.css');
+  const adminJsFile = path.join(__dirname, '../public/admin/admin.js');
+
+  router.get('/admin.css', (req, res) => {
+    res.setHeader('Content-Type', 'text/css');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.sendFile(adminCssFile);
+  });
+
+  router.get('/admin.js', (req, res) => {
+    res.setHeader('Content-Type', 'application/javascript');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.sendFile(adminJsFile);
+  });
 
   router.use((req, res, next) => {
     if (req.method === 'GET') {

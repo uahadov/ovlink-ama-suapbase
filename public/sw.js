@@ -1,5 +1,5 @@
 // Ovlink PWA Service Worker
-const CACHE_NAME = 'ovlink-pwa-v3';
+const CACHE_NAME = 'ovlink-pwa-v4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
