@@ -61,6 +61,16 @@
             <span>Audit Log</span>
             <span class="badge">Trail</span>
           </a>
+          <% if (admin && admin.role === 'admin') { %>
+            <a href="/admin/billing" class="<%= active === 'billing' ? 'active' : '' %>">
+              <span>Billing Events</span>
+              <span class="badge">Polar</span>
+            </a>
+            <a href="/admin/ip-blocklist" class="<%= active === 'ip-blocklist' ? 'active' : '' %>">
+              <span>IP Blocklist</span>
+              <span class="badge">Abuse</span>
+            </a>
+          <% } %>
 
           <div class="spacer"></div>
 

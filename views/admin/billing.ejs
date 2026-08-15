@@ -1,0 +1,56 @@
+<%- include('partials/layout-top', {
+  title: 'Admin · Billing Events',
+  heading: 'Billing Events',
+  subtitle: 'Polar webhook history with processing outcomes',
+  active: 'billing',
+  admin,
+  csrfToken,
+  topRightHtml: null,
+}) %>
+
+<div class="card">
+  <% if (error) { %>
+    <div class="alert"><%= error %></div>
+  <% } %>
+  <% if (!rows || rows.length === 0) { %>
+    <div class="alert">No billing events yet. Events appear here once Polar webhooks are received.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Event</th>
+            <th>Webhook ID</th>
+            <th>Product</th>
+            <th>User</th>
+            <th>Outcome</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach((r) => { %>
+            <tr>
+              <td><%= r.created_at ? new Date(r.created_at).toLocaleString() : '-' %></td>
+              <td><span class="kbd"><%= r.event_type || '-' %></span></td>
+              <td><div class="cell-url"><%= r.webhook_id || '-' %></div></td>
+              <td><div class="cell-url"><%= r.product_id || '-' %></div></td>
+              <td>
+                <% if (r.user_id) { %>
+                  <a href="/admin/site-users/<%= r.user_id %>">#<%= r.user_id %></a>
+                <% } else { %>-<% } %>
+              </td>
+              <td>
+                <% const ok = (r.outcome === 'activated' || r.outcome === 'revoked' || r.outcome === 'canceled'); %>
+                <span class="kbd <%= ok ? '' : 'muted' %>"><%= r.outcome %></span>
+              </td>
+              <td><div class="cell-url"><%= r.detail || '-' %></div></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/layout-bottom') %>

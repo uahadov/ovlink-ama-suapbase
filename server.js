@@ -22,9 +22,47 @@ const lusca = require('lusca');
 const { body, validationResult } = require('express-validator');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('./utils/crypto.js');
 const { verifyPolarWebhook, resolvePolarProductPolicy } = require('./utils/polar.js');
+const speakeasy = require('speakeasy');
 // POLAR_WEBHOOK_SECRET is read from process.env inside the webhook handler (not cached at startup)
 // so that dotenv-loaded values are always visible.
 const isProdRuntime = process.env.NODE_ENV === 'production';
+
+// ---- Ops alerting (ALERT_WEBHOOK_URL) -------------------------------------
+// Lightweight operational alerts (5xx, database errors, billing webhook
+// failures). Rate-limited per alert key so a persistent failure does not
+// spam the destination. Supports Telegram Bot API URLs and generic JSON
+// webhook receivers (Discord/Slack/webhook.site style {text} payloads).
+const OPS_ALERT_RATE_LIMIT_MS = 10 * 60 * 1000;
+const opsAlertSentAt = new Map();
+function sendOpsAlert(key, title, details = '') {
+  const url = (process.env.ALERT_WEBHOOK_URL || '').toString().trim();
+  if (!url) return;
+  const now = Date.now();
+  const last = opsAlertSentAt.get(key) || 0;
+  if (now - last < OPS_ALERT_RATE_LIMIT_MS) return;
+  opsAlertSentAt.set(key, now);
+  if (opsAlertSentAt.size > 100) opsAlertSentAt.clear();
+
+  const text = `[ovlink ALERT] ${title}${details ? `\n${String(details).slice(0, 1200)}` : ''}`;
+  const payload = url.includes('api.telegram.org')
+    ? { chat_id: (process.env.ALERT_TG_CHAT_ID || '').toString().trim(), text }
+    : { text, title, details: String(details).slice(0, 1500), timestamp: new Date().toISOString() };
+
+  (async () => {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        console.error('[ops-alert] destination responded', response.status);
+      }
+    } catch (err) {
+      console.error('[ops-alert] delivery failed:', err && (err.message || err));
+    }
+  })();
+}
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL || process.env.SUPABASE_DB_URL,
@@ -116,7 +154,7 @@ const db = {
                               .concat(' ON CONFLICT (key) DO NOTHING');
       } else if (converted.toLowerCase().includes('notifications')) {
         converted = converted.replace(/INSERT OR IGNORE INTO notifications/gi, 'INSERT INTO notifications')
-                              .concat(' ON CONFLICT (event_key) DO NOTHING');
+                              .concat(' ON CONFLICT (user_id, event_key) DO NOTHING');
       } else if (converted.toLowerCase().includes('blocked_domains')) {
         converted = converted.replace(/INSERT OR IGNORE INTO blocked_domains/gi, 'INSERT INTO blocked_domains')
                               .concat(' ON CONFLICT (domain) DO NOTHING');
@@ -159,6 +197,7 @@ const db = {
     pool.query(pgSql, task.params, (err, res) => {
       if (err) {
         console.error('[db error]', err.message, 'SQL:', task.sql);
+        sendOpsAlert('db_error:' + (err.code || err.message || '').toString().slice(0, 40), 'Database error', `${err.message}\nSQL: ${String(task.sql || '').slice(0, 300)}`);
         if (task.callback) task.callback(err);
       } else {
         if (task.type === 'get') {
@@ -348,7 +387,7 @@ const API_KEY_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('API_KEY_HASH_SECRE
   minBytes: 64,
   allowFallbackInProduction: true,
 });
-const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260816-01';
+const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260816-02';
 const WEBHOOK_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('WEBHOOK_HASH_SECRET', 'ovlink:webhook-secret-hash:v2', {
   minBytes: 64,
   allowFallbackInProduction: true,
@@ -2633,6 +2672,108 @@ function scheduleSecurityEventPurge() {
   if (typeof timer.unref === 'function') timer.unref();
 }
 
+function purgePolarEvents() {
+  const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+  db.run('DELETE FROM polar_events WHERE created_at < ?', [cutoff], () => {});
+}
+
+function schedulePolarEventPurge() {
+  purgePolarEvents();
+  const timer = setInterval(() => {
+    purgePolarEvents();
+  }, 24 * 60 * 60 * 1000);
+  if (typeof timer.unref === 'function') timer.unref();
+}
+
+// ---- Nightly PostgreSQL backup to Telegram (optional) ----------------------
+// Enabled only when BACKUP_TELEGRAM_CHAT_ID + TELEGRAM_BOT_TOKEN are set.
+// Runs pg_dump (credentials passed via environment, not argv), gzips the
+// stream, and uploads it with sendDocument. The dump never touches disk in
+// plaintext (only the .gz temp file).
+function runNightlyBackupOnce() {
+  const chatId = (process.env.BACKUP_TELEGRAM_CHAT_ID || '').toString().trim();
+  const token = (process.env.TELEGRAM_BOT_TOKEN || '').toString().trim();
+  if (!chatId || !token || !process.env.DATABASE_URL) {
+    return Promise.resolve(false);
+  }
+  const { spawn } = require('child_process');
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const zlib = require('zlib');
+
+  return new Promise((resolve) => {
+    let conn;
+    try {
+      conn = new URL(process.env.DATABASE_URL);
+    } catch {
+      sendOpsAlert('backup_invalid_url', 'Nightly backup: invalid DATABASE_URL', '');
+      return resolve(false);
+    }
+    const dumpEnv = {
+      ...process.env,
+      PGHOST: conn.hostname,
+      PGPORT: conn.port || '5432',
+      PGDATABASE: conn.pathname.replace(/^\//, ''),
+      PGUSER: decodeURIComponent(conn.username || ''),
+      PGPASSWORD: decodeURIComponent(conn.password || ''),
+    };
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const tmpPath = path.join(os.tmpdir(), `ovlink-backup-${stamp}.sql.gz`);
+    const dump = spawn('pg_dump', ['--no-owner', '--no-privileges'], { env: dumpEnv });
+    const out = fs.createWriteStream(tmpPath);
+    const gzip = zlib.createGzip();
+    dump.stdout.pipe(gzip).pipe(out);
+    let stderr = '';
+    dump.stderr.on('data', (c) => { stderr += c.toString(); });
+    out.on('error', () => { try { fs.unlink(tmpPath, () => {}); } catch {} resolve(false); });
+    out.on('finish', () => {
+      const send = async () => {
+        try {
+          const stat = fs.statSync(tmpPath);
+          const buffer = fs.readFileSync(tmpPath);
+          const form = new FormData();
+          form.append('chat_id', chatId);
+          form.append('caption', `Ovlink DB backup ${stamp} (${(stat.size / 1024 / 1024).toFixed(2)} MB)`);
+          form.append('document', new Blob([buffer], { type: 'application/gzip' }), `ovlink-backup-${stamp}.sql.gz`);
+          const response = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, { method: 'POST', body: form });
+          if (!response.ok) throw new Error(`Telegram responded ${response.status}`);
+          console.log('[backup] Nightly backup delivered to Telegram:', tmpPath);
+          sendOpsAlert('backup_ok', 'Nightly DB backup delivered', `${(stat.size / 1024 / 1024).toFixed(2)} MB`);
+        } catch (err) {
+          console.error('[backup] delivery failed:', err && (err.message || err));
+          sendOpsAlert('backup_failed', 'Nightly DB backup delivery failed', (err && err.message) || '');
+        } finally {
+          try { fs.unlink(tmpPath, () => {}); } catch {}
+          resolve(true);
+        }
+      };
+      send();
+    });
+    if (stderr) { /* pg_dump writes harmless notes to stderr; logged on failure above */ }
+  });
+}
+
+function scheduleNightlyBackup() {
+  const chatId = (process.env.BACKUP_TELEGRAM_CHAT_ID || '').toString().trim();
+  if (!chatId || !(process.env.TELEGRAM_BOT_TOKEN || '').toString().trim()) {
+    return; // feature disabled unless explicitly configured
+  }
+  const hour = Math.min(23, Math.max(0, Number(process.env.BACKUP_HOUR || '3') || 3));
+  const scheduleNext = () => {
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(hour, 0, 0, 0);
+    if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
+    const timer = setTimeout(() => {
+      runNightlyBackupOnce().finally(() => scheduleNext());
+    }, next.getTime() - now.getTime());
+    if (typeof timer.unref === 'function') timer.unref();
+  };
+  scheduleNext();
+  console.log(`[startup] Nightly DB backup to Telegram scheduled at ${String(hour).padStart(2, '0')}:00.`);
+}
+
 function purgeExpiredApiIdempotencyKeys() {
   if (!db) return;
   const nowIso = new Date().toISOString();
@@ -3594,7 +3735,8 @@ function sendNewDeviceLoginEmail(to, details = {}, lang = 'en') {
 function sendNewDeviceLoginEmailForUser(userId, details = {}) {
   db.get('SELECT email, ui_lang FROM users WHERE id = ?', [userId], (err, row) => {
     if (err || !row || !row.email) return;
-    sendNewDeviceLoginEmail(row.email, details, row.ui_lang || 'en').catch((mailErr) => {
+    // users.email is stored encrypted; the mail transport needs the plaintext.
+    sendNewDeviceLoginEmail(decryptAES256GCM(row.email), details, row.ui_lang || 'en').catch((mailErr) => {
       console.error('new-device-email failed:', mailErr && (mailErr.message || mailErr));
     });
   });
@@ -4236,9 +4378,10 @@ app.get('/updates', (req, res) => {
 app.get('/updates.html', (req, res) => res.redirect(301, '/updates'));
 
 
-app.get('/account', (req, res) => {
+app.get('/account', async (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
-  return res.render('account', { csrfToken: res.locals._csrf });
+  const plan = await getEffectivePlanForUser(req.session.userId).catch(() => null);
+  return res.render('account', { csrfToken: res.locals._csrf, plan: plan || {}, showSubManage: !!(plan && plan.tier === 'pro') });
 });
 app.get('/notifications', (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
@@ -4892,6 +5035,12 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
   db.run('ALTER TABLE users ADD COLUMN polar_customer_id TEXT', () => {});
   db.run('ALTER TABLE users ADD COLUMN polar_subscription_id TEXT', () => {});
   db.run('ALTER TABLE users ADD COLUMN trial_used_at TEXT', () => {});
+  db.run('ALTER TABLE users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0', () => {});
+  db.run('ALTER TABLE users ADD COLUMN totp_secret TEXT', () => {});
+  db.run('ALTER TABLE users ADD COLUMN totp_pending_secret TEXT', () => {});
+  db.run('ALTER TABLE users ADD COLUMN pending_email TEXT', () => {});
+  db.run('ALTER TABLE users ADD COLUMN pending_email_code TEXT', () => {});
+  db.run('ALTER TABLE users ADD COLUMN pending_email_expires_at TEXT', () => {});
   db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_polar_sub ON users(polar_subscription_id) WHERE polar_subscription_id IS NOT NULL', () => {});
   db.run(`ALTER TABLE api_keys ADD COLUMN scopes TEXT NOT NULL DEFAULT '${DEFAULT_API_KEY_SCOPES_STORAGE}'`, () => {});
   db.run('ALTER TABLE api_keys ADD COLUMN hash_version INTEGER NOT NULL DEFAULT 1', () => {});
@@ -5043,6 +5192,20 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_notifications_user_created_at ON notifications(user_id, created_at DESC)', () => {});
   db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_user_event ON notifications(user_id, event_key)', () => {});
 
+  // Durable history of every processed Polar webhook event so billing issues
+  // ("I paid but did not get Pro") can be traced from the admin panel.
+  db.run(`CREATE TABLE IF NOT EXISTS polar_events (
+    id SERIAL PRIMARY KEY,
+    webhook_id TEXT,
+    event_type TEXT,
+    product_id TEXT,
+    user_id INTEGER,
+    outcome TEXT,
+    detail TEXT,
+    created_at TEXT
+  )`, () => {});
+  db.run('CREATE INDEX IF NOT EXISTS idx_polar_events_created ON polar_events(created_at DESC)', () => {});
+
   // Password reset tokens
   db.run(`CREATE TABLE IF NOT EXISTS password_resets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -5154,6 +5317,8 @@ db.all('SELECT id, email_hash, email FROM admin_users', (err, rows) => {
 
 ensureUserSessionsSchema(() => {});
 scheduleSecurityEventPurge();
+schedulePolarEventPurge();
+scheduleNightlyBackup();
 scheduleApiIdempotencyPurge();
 scheduleApiUsageLogPurge();
 void resumePendingWebhookDeliveries();
@@ -5429,6 +5594,7 @@ app.post('/api/polar/webhook', async (req, res) => {
   const verified = verifyPolarWebhook(req.rawBody, req.headers, secret);
   if (!verified) {
     console.error('[polar-webhook] Signature verification failed');
+    sendOpsAlert('polar_signature', 'Polar webhook signature verification failed', 'All events are rejected until POLAR_WEBHOOK_SECRET matches the Polar endpoint secret.');
     return res.status(403).json({ error: 'invalid signature' });
   }
 
@@ -5444,6 +5610,16 @@ app.post('/api/polar/webhook', async (req, res) => {
   const data = event.data || {};
   console.log(`[polar-webhook] Received event: ${eventType}`);
 
+  // Durable billing history (surfaced in the admin panel, purged after 90d).
+  const polarWebhookId = (req.headers['webhook-id'] || req.headers['Webhook-Id'] || '').toString();
+  const logPolarEvent = (outcome, detail, userId) => {
+    db.run(
+      'INSERT INTO polar_events (webhook_id, event_type, product_id, user_id, outcome, detail, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [polarWebhookId, eventType, ((data.product_id || (data.product && data.product.id)) || '').toString(), userId || null, outcome, String(detail || '').slice(0, 300), new Date().toISOString()],
+      () => {}
+    );
+  };
+
   // Product ID Validation. An unconfigured allowlist must never silently
   // accept every product in the organization: fail closed in production.
   const productPolicy = resolvePolarProductPolicy(process.env.POLAR_PRODUCT_ID, isProdRuntime);
@@ -5455,6 +5631,7 @@ app.post('/api/polar/webhook', async (req, res) => {
     const productId = data.product_id || (data.product && data.product.id) || null;
     if (productId !== productPolicy.expectedProductId) {
       console.warn(`[polar-webhook] Ignoring event for product ${productId} (expected ${productPolicy.expectedProductId})`);
+      logPolarEvent('ignored:wrong_product', `product=${productId}`);
       return res.status(200).json({ received: true, ignored: 'wrong_product' });
     }
   } else if (!polarProductAllowlistWarned) {
@@ -5511,6 +5688,7 @@ app.post('/api/polar/webhook', async (req, res) => {
     const targetUser = await findUser();
     if (!targetUser) {
       console.warn(`[polar-webhook] No matching user found for email=${customerEmail} userId=${userId}`);
+      logPolarEvent('no_user_match', `email=${customerEmail} user_id=${userId}`);
       return res.status(200).json({ received: true, matched: false });
     }
 
@@ -5542,12 +5720,14 @@ app.post('/api/polar/webhook', async (req, res) => {
       const isPaidActivationState = status === 'active' || status === 'trialing' || (isOrderEvent && status === 'paid');
       if (!isPaidActivationState) {
         console.log(`[polar-webhook] Ignoring ${eventType} with status=${status} (not an activation state).`);
+        logPolarEvent('ignored:inactive_status', `status=${status}`, targetUser.id);
         return res.status(200).json({ received: true, ignored: 'inactive_status', status });
       }
 
       // Prevent Downgrade/Overwrite Attack
       if (isCurrentlyPro && targetUser.polar_subscription_id && polarSubId && targetUser.polar_subscription_id !== polarSubId) {
         console.warn(`[polar-webhook] User ${targetUser.id} already has active sub ${targetUser.polar_subscription_id}. Ignoring new sub ${polarSubId}`);
+        logPolarEvent('ignored:active_sub_mismatch', `stored=${targetUser.polar_subscription_id} event=${polarSubId}`, targetUser.id);
         return res.status(200).json({ received: true, ignored: 'active_sub_mismatch' });
       }
 
@@ -5560,6 +5740,7 @@ app.post('/api/polar/webhook', async (req, res) => {
       // trial; do not grant entitlement for it.
       if (isTrial && targetUser.trial_used_at && targetUser.polar_subscription_id !== polarSubId) {
         console.warn(`[polar-webhook] User ${targetUser.id} already used the trial; ignoring repeat trial on sub ${polarSubId}.`);
+        logPolarEvent('ignored:trial_already_used', `sub=${polarSubId}`, targetUser.id);
         return res.status(200).json({ received: true, ignored: 'trial_already_used' });
       }
 
@@ -5612,6 +5793,7 @@ app.post('/api/polar/webhook', async (req, res) => {
       );
 
       console.log(`[polar-webhook] User id=${targetUser.id} upgraded to PRO until ${expiresAt}`);
+      logPolarEvent('activated', `sub=${polarSubId} expires=${expiresAt}`, targetUser.id);
     } else if (
       eventType.startsWith('order.refunded') ||   // legacy alias kept for older integrations
       eventType.startsWith('order.updated') ||
@@ -5624,9 +5806,11 @@ app.post('/api/polar/webhook', async (req, res) => {
       if (eventType.startsWith('order.updated')) {
         const orderStatus = (data.status != null && data.status !== '' ? data.status : 'paid').toString().toLowerCase();
         if (orderStatus === 'partially_refunded') {
+          logPolarEvent('ignored:partial_refund', '', targetUser.id);
           return res.status(200).json({ received: true, ignored: 'partial_refund' });
         }
         if (orderStatus !== 'refunded') {
+          logPolarEvent('ignored:non_refund_update', `status=${orderStatus}`, targetUser.id);
           return res.status(200).json({ received: true, ignored: 'non_refund_update' });
         }
       }
@@ -5634,6 +5818,7 @@ app.post('/api/polar/webhook', async (req, res) => {
       // not revoke the currently active one.
       if (targetUser.polar_subscription_id && polarSubId && targetUser.polar_subscription_id !== polarSubId) {
         console.warn(`[polar-webhook] User ${targetUser.id} revoke event for sub ${polarSubId} ignored; active sub is ${targetUser.polar_subscription_id}`);
+        logPolarEvent('ignored:mismatched_sub_id', `stored=${targetUser.polar_subscription_id} event=${polarSubId}`, targetUser.id);
         return res.status(200).json({ received: true, ignored: 'mismatched_sub_id' });
       }
 
@@ -5646,7 +5831,26 @@ app.post('/api/polar/webhook', async (req, res) => {
         );
       });
       console.log(`[polar-webhook] User id=${targetUser.id} subscription completely revoked (event: ${eventType})`);
+      logPolarEvent('revoked', eventType, targetUser.id);
 
+      // Tell the user immediately and point them at the manage/repair flow.
+      db.run(
+        'INSERT OR IGNORE INTO notifications (user_id, type, title_az, title_tr, title_en, body_az, body_tr, body_en, link_short, event_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          targetUser.id,
+          'system',
+          'Pro abunəliyi dayandırıldı',
+          'Pro aboneliği durduruldu',
+          'Pro subscription stopped',
+          'Ödəniş alınmadı və ya geri ödəniş edildi. Pro imkanları deaktivdir. Kartınızı yeniləyib yenidən başlaya bilərsiniz.',
+          'Ödeme alınamadı veya geri ödeme yapıldı. Pro özellikleri devre dışı. Kartınızı güncelleyip yeniden başlayabilirsiniz.',
+          'Payment failed or was refunded. Pro features are disabled. You can update your card and restart anytime.',
+          '/pro',
+          `polar_revoked_${msgId}`,
+          nowIso
+        ],
+        () => {}
+      );
     } else if (eventType.startsWith('subscription.canceled')) {
       // Prevent Downgrade Attack
       if (targetUser.polar_subscription_id && polarSubId && targetUser.polar_subscription_id !== polarSubId) {
@@ -5663,11 +5867,33 @@ app.post('/api/polar/webhook', async (req, res) => {
         );
       });
       console.log(`[polar-webhook] User id=${targetUser.id} subscription marked as canceled`);
+      logPolarEvent('canceled', `sub=${polarSubId}`, targetUser.id);
+
+      db.run(
+        'INSERT OR IGNORE INTO notifications (user_id, type, title_az, title_tr, title_en, body_az, body_tr, body_en, link_short, event_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          targetUser.id,
+          'system',
+          'Abunəlik ləğv edildi',
+          'Abonelik iptal edildi',
+          'Subscription canceled',
+          `Abunəliyiniz ödənilmiş dövrün sonunadək aktiv qalacaq${targetUser.pro_expires_at ? ` (${targetUser.pro_expires_at.slice(0, 10)})` : ''}. Fikrinizi dəyişsəniz, /pro səhifəsindən yenidən aktivləşdirə bilərsiniz.`,
+          `Aboneliğiniz ödenen dönemin sonuna kadar aktif kalacak${targetUser.pro_expires_at ? ` (${targetUser.pro_expires_at.slice(0, 10)})` : ''}. Fikrinizi değiştirirseniz /pro sayfasından yeniden etkinleştirebilirsiniz.`,
+          `Your subscription stays active until the end of the paid period${targetUser.pro_expires_at ? ` (${targetUser.pro_expires_at.slice(0, 10)})` : ''}. If you change your mind, you can reactivate it from the /pro page.`,
+          '/pro',
+          `polar_canceled_${msgId}`,
+          nowIso
+        ],
+        () => {}
+      );
+    } else {
+      logPolarEvent('unhandled_type', '', targetUser.id);
     }
 
     return res.status(200).json({ received: true, success: true });
   } catch (handlerErr) {
     console.error('[polar-webhook] Processing error:', handlerErr);
+    sendOpsAlert('polar_processing', 'Polar webhook processing error', (handlerErr && handlerErr.message) || String(handlerErr));
     return res.status(500).json({ error: 'internal error' });
   }
 });
@@ -6107,6 +6333,13 @@ app.post('/api/login',
                 logSecurityEvent(req, 'auth.login', 'failure', { reason: 'session_save_failed', user_id: user.id });
                 return res.status(500).json({ error: pickLang(uiLang, 'Oturum açıla bilmədi.', 'Oturum açılamadı.', 'Session could not be created.') });
               }
+              // Account-level TOTP: finish login only after the 2FA code.
+              if (user.totp_enabled == 1 && user.totp_secret) {
+                req.session.pending2faUserId = user.id;
+                req.session.pending2faStartedAt = Date.now();
+                return req.session.save(() => res.json({ twofaRequired: true }));
+              }
+
               logSecurityEvent(req, 'auth.login', 'success', { user_id: user.id });
               return res.json({ message: pickLang(uiLang, 'Giriş uğurludur', 'Giriş başarılı', 'Login successful'), username: email });
             });
@@ -6117,9 +6350,57 @@ app.post('/api/login',
   });
 
 
+// Second factor for login (POST /api/verify-2fa)
+app.post('/api/verify-2fa', authLimiter, (req, res) => {
+  const uiLang = normalizeLang(req.body && req.body.lang, 'az');
+  const code = ((req.body && req.body.code) || '').toString().trim();
+  const pendingId = req.session && req.session.pending2faUserId;
+  const startedAt = req.session && req.session.pending2faStartedAt;
+
+  if (!pendingId) {
+    return res.status(401).json({ error: pickLang(uiLang, 'Əvvəlcə daxil olun.', 'Önce giriş yapın.', 'Please log in first.') });
+  }
+  if (!startedAt || Date.now() - startedAt > 10 * 60 * 1000) {
+    delete req.session.pending2faUserId;
+    delete req.session.pending2faStartedAt;
+    return res.status(401).json({ error: pickLang(uiLang, 'Sessiya vaxtı bitib. Yenidən daxil olun.', 'Oturum süresi doldu. Yeniden giriş yapın.', 'Session expired. Please log in again.') });
+  }
+  if (!/^\d{6}$/.test(code)) {
+    return res.status(400).json({ error: pickLang(uiLang, '6 rəqəmli kodu daxil edin.', '6 haneli kodu girin.', 'Enter the 6-digit code.') });
+  }
+
+  db.get('SELECT id, email, totp_secret FROM users WHERE id = ?', [pendingId], (err, user) => {
+    if (err || !user || !user.totp_secret) {
+      return res.status(401).json({ error: pickLang(uiLang, 'Kod yoxlanıla bilmədi.', 'Kod doğrulanamadı.', 'Code could not be verified.') });
+    }
+    const ok = speakeasy.totp.verify({
+      secret: decryptAES256GCM(user.totp_secret),
+      encoding: 'base32',
+      token: code,
+      window: 1
+    });
+    if (!ok) {
+      logSecurityEvent(req, 'auth.2fa.verify', 'failure', { user_id: user.id });
+      return res.status(401).json({ error: pickLang(uiLang, 'Kod yanlışdır.', 'Kod hatalı.', 'Invalid code.') });
+    }
+
+    const emailPlain = decryptAES256GCM(user.email);
+    delete req.session.pending2faUserId;
+    delete req.session.pending2faStartedAt;
+    req.session.regenerate((regenErr) => {
+      if (regenErr) {
+        return res.status(500).json({ error: pickLang(uiLang, 'Oturum açıla bilmədi.', 'Oturum açılamadı.', 'Session could not be created.') });
+      }
+      req.session.userId = user.id;
+      req.session.username = emailPlain;
+      logSecurityEvent(req, 'auth.2fa.verify', 'success', { user_id: user.id });
+      return res.json({ message: pickLang(uiLang, 'Giriş uğurludur', 'Giriş başarılı', 'Login successful'), username: emailPlain });
+    });
+  });
+});
+
 // Google OAuth (OIDC) Login
-app.get('/auth/google', authLimiter, async (req, res) => {
-  if (!googleOidc.ready || !googleOidc.client || !googleOidc.generators) {
+app.get('/auth/google', authLimiter, async (req, res) => {  if (!googleOidc.ready || !googleOidc.client || !googleOidc.generators) {
     await initGoogleOidc({ req, force: true });
   }
   if (!googleOidc.ready || !googleOidc.client || !googleOidc.generators) {
@@ -6418,7 +6699,7 @@ app.get('/api/me', (req, res) => {
   }
 
   db.get(
-    'SELECT ui_lang, ui_theme, notify_report, notify_limit, notify_disabled, auth_provider, google_id, password, plan_tier, plan_status, pro_expires_at, pro_paused_at FROM users WHERE id = ?',
+    'SELECT ui_lang, ui_theme, notify_report, notify_limit, notify_disabled, auth_provider, google_id, password, plan_tier, plan_status, pro_expires_at, pro_paused_at, totp_enabled FROM users WHERE id = ?',
     [req.session.userId],
     async (err, row) => {
       if (err || !row) {
@@ -6451,6 +6732,7 @@ app.get('/api/me', (req, res) => {
           auth_provider: row && row.auth_provider ? row.auth_provider : 'local',
           has_password: !!(row && row.password),
           has_google: !!(row && row.google_id),
+          twofaEnabled: !!(row && row.totp_enabled == 1),
           planTier: plan.tier,
           planStatus: plan.status,
           proExpiresAt: plan.expires_at,
@@ -7900,6 +8182,165 @@ app.post('/api/user/settings', (req, res) => {
 });
 
 // Şifre değiştirme (POST /api/user/password)
+// ---- Account TOTP 2FA (user-level) ----
+app.post('/api/user/2fa/setup', requireSignedIn, sensitiveActionLimiter, (req, res) => {
+  const uiLang = normalizeLang(req.body && req.body.lang, 'az');
+  db.get('SELECT totp_enabled FROM users WHERE id = ?', [req.session.userId], (err, row) => {
+    if (err || !row) return res.status(500).json({ error: 'Server error.' });
+    if (row.totp_enabled == 1) {
+      return res.status(400).json({ error: pickLang(uiLang, '2FA onsuz da aktivdir.', '2FA zaten etkin.', '2FA is already enabled.') });
+    }
+    const secret = speakeasy.generateSecret({ length: 20 });
+    db.run('UPDATE users SET totp_pending_secret = ? WHERE id = ?', [encryptAES256GCM(secret.base32), req.session.userId], (uErr) => {
+      if (uErr) return res.status(500).json({ error: 'Server error.' });
+      const otpauthUrl = speakeasy.otpauthURL({ secret: secret.base32, encoding: 'base32', label: encodeURIComponent('Ovlink'), issuer: 'Ovlink' });
+      QRCode.toDataURL(otpauthUrl, { margin: 1, width: 220 }, (qrErr, dataUrl) => {
+        return res.json({ otpauthUrl, qr: qrErr ? null : dataUrl });
+      });
+    });
+  });
+});
+
+app.post('/api/user/2fa/enable', requireSignedIn, sensitiveActionLimiter, (req, res) => {
+  const uiLang = normalizeLang(req.body && req.body.lang, 'az');
+  const code = ((req.body && req.body.code) || '').toString().trim();
+  if (!/^\d{6}$/.test(code)) {
+    return res.status(400).json({ error: pickLang(uiLang, '6 rəqəmli kodu daxil edin.', '6 haneli kodu girin.', 'Enter the 6-digit code.') });
+  }
+  db.get('SELECT totp_pending_secret FROM users WHERE id = ?', [req.session.userId], (err, row) => {
+    if (err || !row || !row.totp_pending_secret) {
+      return res.status(400).json({ error: pickLang(uiLang, 'Əvvəlcə quraşdırmanı başladın.', 'Önce kurulumu başlatın.', 'Start the setup first.') });
+    }
+    const ok = speakeasy.totp.verify({ secret: decryptAES256GCM(row.totp_pending_secret), encoding: 'base32', token: code, window: 1 });
+    if (!ok) {
+      return res.status(400).json({ error: pickLang(uiLang, 'Kod yanlışdır.', 'Kod hatalı.', 'Invalid code.') });
+    }
+    db.run('UPDATE users SET totp_enabled = 1, totp_secret = totp_pending_secret, totp_pending_secret = NULL WHERE id = ?', [req.session.userId], (uErr) => {
+      if (uErr) return res.status(500).json({ error: 'Server error.' });
+      logSecurityEvent(req, 'auth.2fa.enabled', 'success', { user_id: req.session.userId });
+      return res.json({ message: pickLang(uiLang, 'İki faktorlu autentifikasiya aktivləşdirildi.', 'İki faktörlü doğrulama etkinleştirildi.', 'Two-factor authentication enabled.') });
+    });
+  });
+});
+
+app.post('/api/user/2fa/disable', requireSignedIn, sensitiveActionLimiter, (req, res) => {
+  const uiLang = normalizeLang(req.body && req.body.lang, 'az');
+  const password = ((req.body && req.body.password) || '').toString();
+  const code = ((req.body && req.body.code) || '').toString().trim();
+  db.get('SELECT password, totp_secret, totp_enabled FROM users WHERE id = ?', [req.session.userId], (err, row) => {
+    if (err || !row || row.totp_enabled != 1 || !row.totp_secret) {
+      return res.status(400).json({ error: pickLang(uiLang, '2FA aktiv deyil.', '2FA etkin değil.', '2FA is not enabled.') });
+    }
+    bcrypt.compare(password, row.password || '', (cmpErr, passwordOk) => {
+      if (cmpErr || !passwordOk) {
+        return res.status(401).json({ error: pickLang(uiLang, 'Şifrə yanlışdır.', 'Şifre hatalı.', 'Invalid password.') });
+      }
+      const ok = speakeasy.totp.verify({ secret: decryptAES256GCM(row.totp_secret), encoding: 'base32', token: code, window: 1 });
+      if (!ok) {
+        return res.status(400).json({ error: pickLang(uiLang, 'Kod yanlışdır.', 'Kod hatalı.', 'Invalid code.') });
+      }
+      db.run('UPDATE users SET totp_enabled = 0, totp_secret = NULL, totp_pending_secret = NULL WHERE id = ?', [req.session.userId], (uErr) => {
+        if (uErr) return res.status(500).json({ error: 'Server error.' });
+        logSecurityEvent(req, 'auth.2fa.disabled', 'success', { user_id: req.session.userId });
+        return res.json({ message: pickLang(uiLang, 'İki faktorlu autentifikasiya söndürüldü.', 'İki faktörlü doğrulama devre dışı bırakıldı.', 'Two-factor authentication disabled.') });
+      });
+    });
+  });
+});
+
+// ---- Email change (verified, two-step) ----
+app.post('/api/user/email/change',
+  authLimiter,
+  [
+    body('new_email').isEmail().withMessage('Düzgün e-poçt ünvanı daxil edin.').normalizeEmail().trim(),
+  ],
+  (req, res) => {
+    const uiLang = normalizeLang(req.body && req.body.lang, 'az');
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: pickLang(uiLang, 'Düzgün e-poçt ünvanı daxil edin.', 'Geçerli bir e-posta adresi girin.', 'Please enter a valid email address.') });
+    }
+    if (!req.session.userId) return res.status(401).json({ error: 'Giriş gerekli.' });
+
+    const newEmail = (req.body.new_email || '').toString().trim().toLowerCase();
+    const password = ((req.body && req.body.current_password) || '').toString();
+
+    const emailDomain = newEmail.split('@')[1].toLowerCase();
+    if (tempEmailDomains.includes(emailDomain)) {
+      return res.status(400).json({ error: pickLang(uiLang, 'Bu e-poçt ünvanı müvəqqəti (fake) görünür.', 'Bu e-posta adresi geçici görünüyor.', 'This email address appears to be temporary.') });
+    }
+
+    db.get('SELECT id, email, password FROM users WHERE id = ?', [req.session.userId], (err, row) => {
+      if (err || !row) return res.status(500).json({ error: 'Server error.' });
+      const currentEmail = decryptAES256GCM(row.email).trim().toLowerCase();
+      if (newEmail === currentEmail) {
+        return res.status(400).json({ error: pickLang(uiLang, 'Yeni e-poçt cari e-poçtla eynidir.', 'Yeni e-posta mevcut e-postayla aynı.', 'The new email is the same as the current one.') });
+      }
+      bcrypt.compare(password, row.password || '', (cmpErr, passwordOk) => {
+        if (cmpErr || !passwordOk) {
+          return res.status(401).json({ error: pickLang(uiLang, 'Şifrə yanlışdır.', 'Şifre hatalı.', 'Invalid password.') });
+        }
+        db.get('SELECT id FROM users WHERE email_hash = ?', [blindIndex(newEmail)], (chkErr, existing) => {
+          if (chkErr) return res.status(500).json({ error: 'Server error.' });
+          if (existing) {
+            return res.status(400).json({ error: pickLang(uiLang, 'Bu e-poçt artıq istifadə edilib.', 'Bu e-posta zaten kullanılıyor.', 'This email is already in use.') });
+          }
+          const rawCode = generateVerificationCode();
+          const expiresAt = buildVerificationExpiryIso(15);
+          db.run(
+            'UPDATE users SET pending_email = ?, pending_email_code = ?, pending_email_expires_at = ? WHERE id = ?',
+            [encryptAES256GCM(newEmail), encryptAES256GCM(rawCode), expiresAt, req.session.userId],
+            (uErr) => {
+              if (uErr) return res.status(500).json({ error: 'Server error.' });
+              sendVerificationEmail(newEmail, rawCode, uiLang)
+                .then(() => res.json({ message: pickLang(uiLang, `Təsdiq kodu ${newEmail} ünvanına göndərildi.`, `Doğrulama kodu ${newEmail} adresine gönderildi.`, `A confirmation code has been sent to ${newEmail}.`) }))
+                .catch(() => res.status(500).json({ error: pickLang(uiLang, 'E-poçt göndərilə bilmədi.', 'E-posta gönderilemedi.', 'The email could not be sent.') }));
+            }
+          );
+        });
+      });
+    });
+  }
+);
+
+app.post('/api/user/email/confirm', authLimiter, (req, res) => {
+  const uiLang = normalizeLang(req.body && req.body.lang, 'az');
+  if (!req.session.userId) return res.status(401).json({ error: 'Giriş gerekli.' });
+  const code = ((req.body && req.body.code) || '').toString().trim();
+  if (!/^\d{6}$/.test(code)) {
+    return res.status(400).json({ error: pickLang(uiLang, '6 rəqəmli kodu daxil edin.', '6 haneli kodu girin.', 'Enter the 6-digit code.') });
+  }
+
+  db.get('SELECT pending_email, pending_email_code, pending_email_expires_at FROM users WHERE id = ?', [req.session.userId], (err, row) => {
+    if (err || !row || !row.pending_email || !row.pending_email_code) {
+      return res.status(400).json({ error: pickLang(uiLang, 'E-poçt dəyişikliyi tapılmadı.', 'E-posta değişikliği bulunamadı.', 'No pending email change found.') });
+    }
+    const expiresMs = Date.parse(row.pending_email_expires_at || '');
+    if (!Number.isFinite(expiresMs) || expiresMs <= Date.now()) {
+      db.run('UPDATE users SET pending_email = NULL, pending_email_code = NULL, pending_email_expires_at = NULL WHERE id = ?', [req.session.userId], () => {});
+      return res.status(400).json({ error: pickLang(uiLang, 'Kodun vaxtı bitib.', 'Kodun süresi doldu.', 'The code has expired.') });
+    }
+    const storedCode = decryptAES256GCM(row.pending_email_code);
+    if (storedCode.length !== code.length || !tsscmp(storedCode, code)) {
+      return res.status(400).json({ error: pickLang(uiLang, 'Kod yanlışdır.', 'Kod hatalı.', 'Invalid code.') });
+    }
+
+    const newEmailPlain = decryptAES256GCM(row.pending_email).trim().toLowerCase();
+    db.run(
+      'UPDATE users SET email = ?, email_hash = ?, pending_email = NULL, pending_email_code = NULL, pending_email_expires_at = NULL WHERE id = ?',
+      [encryptAES256GCM(newEmailPlain), blindIndex(newEmailPlain), req.session.userId],
+      (uErr) => {
+        if (uErr) {
+          return res.status(400).json({ error: pickLang(uiLang, 'Bu e-poçt artıq istifadə edilib.', 'Bu e-posta zaten kullanılıyor.', 'This email is already in use.') });
+        }
+        req.session.username = newEmailPlain;
+        logSecurityEvent(req, 'auth.email.changed', 'success', { user_id: req.session.userId });
+        return res.json({ message: pickLang(uiLang, 'E-poçt ünvanınız yeniləndi.', 'E-posta adresiniz güncellendi.', 'Your email address has been updated.'), email: newEmailPlain });
+      }
+    );
+  });
+});
+
 app.post('/api/user/password',
   authLimiter,
   (req, res) => {
@@ -9988,6 +10429,10 @@ app.use((err, req, res, next) => {
   const message = status >= 500
     ? 'Server error.'
     : (status === 404 ? 'Not found.' : 'Request could not be processed.');
+
+  if (status >= 500) {
+    sendOpsAlert('http_5xx:' + req.path, 'HTTP 5xx', `${req.method} ${req.originalUrl}\n${(err && (err.message || err.toString()) || '').toString().slice(0, 500)}`);
+  }
 
   if (wantsJson) {
     return res.status(status).json({ error: message });

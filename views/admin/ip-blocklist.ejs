@@ -1,0 +1,102 @@
+<%- include('partials/layout-top', {
+  title: 'Admin · IP Blocklist',
+  heading: 'IP Blocklist',
+  subtitle: 'Runtime IP blocks applied by the DDoS/abuse filter',
+  active: 'ip-blocklist',
+  admin,
+  csrfToken,
+  topRightHtml: null,
+}) %>
+
+<div class="card">
+  <form id="blockIpForm" class="settings-form" method="POST" action="/admin/ip-blocklist/block">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <div class="form-row">
+      <div class="form-group">
+        <label for="ip">IP address</label>
+        <input id="ip" name="ip" type="text" required placeholder="203.0.113.7" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label for="duration">Duration (minutes, 0 = permanent)</label>
+        <input id="duration" name="duration" type="number" min="0" value="60" />
+      </div>
+      <div class="form-group">
+        <label for="reason">Reason</label>
+        <input id="reason" name="reason" type="text" maxlength="200" value="abuse" />
+      </div>
+      <div class="form-group">
+        <button class="btn btn--primary" type="submit">Block IP</button>
+      </div>
+    </div>
+    <div id="blockIpResult" class="alert hidden"></div>
+  </form>
+</div>
+
+<div class="card">
+  <% if (!rows || rows.length === 0) { %>
+    <div class="alert">No IPs are currently blocked. (Note: blocks are in-memory and reset on restart.)</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>IP</th>
+            <th>Blocked At</th>
+            <th>Expires</th>
+            <th>Reason</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach((r) => { %>
+            <tr>
+              <td><span class="kbd"><%= r.ip %></span></td>
+              <td><%= r.blockedAt ? new Date(r.blockedAt).toLocaleString() : '-' %></td>
+              <td><%= r.expiresAt ? new Date(r.expiresAt).toLocaleString() : 'permanent' %></td>
+              <td><%= r.reason || '-' %></td>
+              <td>
+                <form method="POST" action="/admin/ip-blocklist/unblock">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                  <input type="hidden" name="ip" value="<%= r.ip %>" />
+                  <button class="btn btn--ghost" type="submit">Unblock</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<script nonce="<%= nonce %>">
+  (function () {
+    var form = document.getElementById('blockIpForm');
+    if (!form) return;
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var result = document.getElementById('blockIpResult');
+      result.classList.remove('hidden');
+      result.textContent = 'Blocking...';
+      fetch(form.action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': '<%= csrfToken %>' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          _csrf: '<%= csrfToken %>',
+          ip: document.getElementById('ip').value,
+          duration: document.getElementById('duration').value,
+          reason: document.getElementById('reason').value
+        })
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          result.textContent = data && data.success ? 'Blocked ' + data.ip + '. Reloading...' : (data && data.error ? data.error : 'Failed.');
+          if (data && data.success) setTimeout(function () { window.location.reload(); }, 600);
+        })
+        .catch(function () { result.textContent = 'Request failed.'; });
+    });
+  })();
+</script>
+
+<%- include('partials/layout-bottom') %>

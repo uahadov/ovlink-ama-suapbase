@@ -13,6 +13,7 @@ const { app, helpers } = require('../server');
 const { blindIndex, encryptAES256GCM } = require('../utils/crypto');
 
 const createdTestUserIds = [];
+const createdTestSids = [];
 const originalFetch = globalThis.fetch;
 
 test.before(async () => {
@@ -24,9 +25,13 @@ test.before(async () => {
 
 test.after(async () => {
   globalThis.fetch = originalFetch;
+  for (const sid of createdTestSids) {
+    try {
+      await helpers.dbRunAsync('DELETE FROM express_sessions WHERE sid = ?', [sid]);
+    } catch {}
+  }
   for (const userId of createdTestUserIds) {
     try {
-      await helpers.dbRunAsync('DELETE FROM express_sessions'); // Clear all sessions
       await helpers.dbRunAsync('DELETE FROM users WHERE id = ?', [userId]);
     } catch {}
   }
@@ -63,6 +68,7 @@ test('Polar Server-Side Checkout Sessions API', async (t) => {
 
     // Create session in DB to bypass the /login route for testing
     const sid = `test_sid_${Date.now()}_${Math.random()}`;
+    createdTestSids.push(sid);
     const sessData = { cookie: { originalMaxAge: 3600000 }, userId: user.id };
     const expireStr = new Date(Date.now() + 3600000).toISOString();
     await helpers.dbRunAsync(

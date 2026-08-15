@@ -43,6 +43,62 @@
           <p class="hero-subtitle" data-i18n="account_subtitle">Hesab parametrlərinizi idarə edin</p>
         </div>
 
+        <div class="policy-card app-card" id="subscriptionSection">
+          <h5 class="mb-3 fw-bold"><i class="fa-solid fa-crown me-2"></i><span data-i18n="account_sub_title">Abunəlik</span></h5>
+          <% if (plan && plan.tier === 'pro') { %>
+            <p class="mb-1"><span class="badge rounded-pill bg-primary"><%= plan.status === 'paused' ? 'Paused' : 'PRO' %></span></p>
+            <% if (plan.expires_at) { %>
+              <p class="mb-2 small text-muted" data-i18n="account_sub_expires">Bitmə tarixi:</p>
+              <p class="fw-semibold"><%= new Date(plan.expires_at).toLocaleDateString() %></p>
+            <% } %>
+            <p class="small text-muted mb-3" data-i18n="account_sub_manage_hint">Abunəliyi ləğv et, yenilə və ya kart məlumatını dəyiş.</p>
+          <% } else { %>
+            <p class="mb-1 fw-semibold"><span data-i18n="account_sub_free">Free plan</span></p>
+            <p class="small text-muted mb-3" data-i18n="account_sub_free_hint">Pro imkanları üçün yüksəliş: limitsiz linklər, API, webhooklar və statistika.</p>
+            <a href="/pricing" class="btn btn-primary rounded-pill mb-2" data-i18n="account_sub_upgrade">Pro-ya keç</a>
+          <% } %>
+          <% if (showSubManage) { %>
+            <button id="proManageBtn" type="button" class="btn btn-outline-primary rounded-pill" data-is-logged-in="true" data-i18n="pro_manage_cta">Abunəliyi idarə et</button>
+          <% } %>
+        </div>
+
+        <div class="policy-card app-card" id="securitySection">
+          <h5 class="mb-3 fw-bold"><i class="fa-solid fa-shield-halved me-2"></i><span data-i18n="account_security_title">Təhlükəsizlik</span></h5>
+
+          <h6 class="fw-bold mb-2" data-i18n="account_2fa_title">İki faktorlu autentifikasiya (2FA)</h6>
+          <div id="twofaStatus" class="mb-3 small text-muted" data-i18n="account_2fa_loading">Yoxlanılır...</div>
+          <div id="twofaSetupWrap" class="d-none mb-3">
+            <img id="twofaQr" alt="2FA QR" class="mb-2 rounded border" width="200" height="200">
+            <div class="small text-break mb-2"><code id="twofaOtpauth"></code></div>
+            <div class="d-flex gap-2 mb-2">
+              <input type="text" id="twofaEnableCode" class="form-control" inputmode="numeric" maxlength="6" placeholder="123456">
+              <button type="button" id="twofaEnableBtn" class="btn btn-primary rounded-pill" data-i18n="account_2fa_enable_btn">Aktivləşdir</button>
+            </div>
+          </div>
+          <div id="twofaDisableWrap" class="d-none mb-3 d-grid gap-2">
+            <input type="password" id="twofaDisablePassword" class="form-control" data-i18n-placeholder="account_current_pass" placeholder="Cari şifrə">
+            <div class="d-flex gap-2">
+              <input type="text" id="twofaDisableCode" class="form-control" inputmode="numeric" maxlength="6" placeholder="123456">
+              <button type="button" id="twofaDisableBtn" class="btn btn-outline-danger rounded-pill" data-i18n="account_2fa_disable_btn">Söndür</button>
+            </div>
+          </div>
+          <button type="button" id="twofaSetupBtn" class="btn btn-outline-primary rounded-pill d-none" data-i18n="account_2fa_setup_btn">2FA-nı qur</button>
+
+          <hr class="my-4">
+
+          <h6 class="fw-bold mb-2" data-i18n="account_email_change_title">E-poçtu dəyiş</h6>
+          <div class="d-grid gap-2">
+            <input type="email" id="newEmailInput" class="form-control" placeholder="yeni@email.com" data-i18n-placeholder="account_new_email">
+            <input type="password" id="emailChangePassword" class="form-control" data-i18n-placeholder="account_current_pass" placeholder="Cari şifrə">
+            <button type="button" id="emailChangeBtn" class="btn btn-outline-primary rounded-pill" data-i18n="account_email_change_btn">Kod göndər</button>
+            <div id="emailConfirmWrap" class="d-none d-flex gap-2">
+              <input type="text" id="emailConfirmCode" class="form-control" inputmode="numeric" maxlength="6" placeholder="123456">
+              <button type="button" id="emailConfirmBtn" class="btn btn-primary rounded-pill" data-i18n="account_email_confirm_btn">Təsdiqlə</button>
+            </div>
+          </div>
+          <div id="securityMessage" class="small mt-2"></div>
+        </div>
+
         <div class="policy-card app-card" id="profileSettingsSection">
           <h5 class="mb-3 fw-bold"><i class="fa-solid fa-user-gear me-2"></i><span data-i18n="profile_settings_title">Profil Parametrləri</span></h5>
           <form id="profileSettingsForm" class="d-grid gap-3">
@@ -350,6 +406,117 @@
   <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      var msgEl = document.getElementById('securityMessage');
+      if (!msgEl) return;
+      var showMsg = function (text, ok) {
+        msgEl.className = 'small mt-2 ' + (ok ? 'text-success' : 'text-danger');
+        msgEl.textContent = text || '';
+      };
+      var tr = function (az, en, trText) {
+        var lang = (typeof currentLang !== 'undefined' && currentLang) || 'az';
+        return lang === 'az' ? az : (lang === 'en' ? en : trText);
+      };
+
+      // --- 2FA ---
+      var statusEl = document.getElementById('twofaStatus');
+      var setupBtn = document.getElementById('twofaSetupBtn');
+      var setupWrap = document.getElementById('twofaSetupWrap');
+      var disableWrap = document.getElementById('twofaDisableWrap');
+
+      function render2faState(enabled) {
+        if (enabled) {
+          statusEl.textContent = tr('2FA aktivdir. ✅', '2FA is enabled. ✅', '2FA etkin. ✅');
+          disableWrap.classList.remove('d-none');
+          setupBtn.classList.add('d-none');
+          setupWrap.classList.add('d-none');
+        } else {
+          statusEl.textContent = tr('2FA deaktivdir. Hesabınızı daha da qorumaq üçün aktivləşdirin.', '2FA is disabled. Enable it to protect your account further.', '2FA devre dışı. Hesabınızı daha da korumak için etkinleştirin.');
+          setupBtn.classList.remove('d-none');
+          disableWrap.classList.add('d-none');
+        }
+      }
+
+      if (typeof getClientSession === 'function') {
+        fetch('/api/me', { credentials: 'include' })
+          .then(function (res) { return res.json(); })
+          .then(function (data) { render2faState(!!(data && data.user && data.user.twofaEnabled)); })
+          .catch(function () { render2faState(false); });
+      }
+
+      if (setupBtn) setupBtn.addEventListener('click', function () {
+        postJsonWithCsrf('/api/user/2fa/setup', {})
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if (!data || !data.otpauthUrl) { showMsg((data && data.error) || tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); return; }
+            document.getElementById('twofaOtpauth').textContent = data.otpauthUrl;
+            if (data.qr) document.getElementById('twofaQr').src = data.qr;
+            setupWrap.classList.remove('d-none');
+            showMsg(tr('Tətbiqə skan edin və kodu daxil edin.', 'Scan with an authenticator app and enter the code.', 'Uygulamayla tarayın ve kodu girin.'), true);
+          })
+          .catch(function () { showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
+      });
+
+      var enableBtn = document.getElementById('twofaEnableBtn');
+      if (enableBtn) enableBtn.addEventListener('click', function () {
+        postJsonWithCsrf('/api/user/2fa/enable', { code: document.getElementById('twofaEnableCode').value.trim() })
+          .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
+          .then(function (r) {
+            if (r.ok) { render2faState(true); showMsg(r.d.message, true); }
+            else showMsg(r.d.error, false);
+          })
+          .catch(function () { showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
+      });
+
+      var disableBtn = document.getElementById('twofaDisableBtn');
+      if (disableBtn) disableBtn.addEventListener('click', function () {
+        postJsonWithCsrf('/api/user/2fa/disable', {
+          password: document.getElementById('twofaDisablePassword').value,
+          code: document.getElementById('twofaDisableCode').value.trim()
+        })
+          .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
+          .then(function (r) {
+            if (r.ok) { render2faState(false); showMsg(r.d.message, true); }
+            else showMsg(r.d.error, false);
+          })
+          .catch(function () { showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
+      });
+
+      // --- Email change ---
+      var emailChangeBtn = document.getElementById('emailChangeBtn');
+      var emailConfirmWrap = document.getElementById('emailConfirmWrap');
+      if (emailChangeBtn) emailChangeBtn.addEventListener('click', function () {
+        emailChangeBtn.disabled = true;
+        postJsonWithCsrf('/api/user/email/change', {
+          new_email: document.getElementById('newEmailInput').value.trim(),
+          current_password: document.getElementById('emailChangePassword').value
+        })
+          .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
+          .then(function (r) {
+            emailChangeBtn.disabled = false;
+            if (r.ok) { emailConfirmWrap.classList.remove('d-none'); emailConfirmWrap.classList.add('d-flex'); showMsg(r.d.message, true); }
+            else showMsg(r.d.error, false);
+          })
+          .catch(function () { emailChangeBtn.disabled = false; showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
+      });
+
+      var emailConfirmBtn = document.getElementById('emailConfirmBtn');
+      if (emailConfirmBtn) emailConfirmBtn.addEventListener('click', function () {
+        postJsonWithCsrf('/api/user/email/confirm', { code: document.getElementById('emailConfirmCode').value.trim() })
+          .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
+          .then(function (r) {
+            if (r.ok) {
+              showMsg(r.d.message, true);
+              emailConfirmWrap.classList.add('d-none');
+              var profileEmail = document.getElementById('profileEmail');
+              if (profileEmail && r.d.email) profileEmail.value = r.d.email;
+            } else showMsg(r.d.error, false);
+          })
+          .catch(function () { showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
+      });
+    })();
+  </script>
 </body>
 
 </html>

@@ -31,8 +31,8 @@ const TRANSLATIONS = {
     help_lang_val: "Change bot language",
     help_footer: "💡 Send a URL to shorten automatically!",
     upgrade_title: "⭐ Ovlink Pro",
-    upgrade_free_val: "10 links/day",
-    upgrade_pro_val: "100 links/day\nCustom alias\nStatistics\nAPI",
+    upgrade_free_val: "50 links/day",
+    upgrade_pro_val: "500 links/day\nCustom alias\nStatistics\nAPI",
   },
   tr: {
     lang_updated: "✅ Dil Türkçe olarak güncellendi.",
@@ -63,8 +63,8 @@ const TRANSLATIONS = {
     help_lang_val: "Bot dilini değiştir",
     help_footer: "💡 URL gönder, otomatik kısaltır!",
     upgrade_title: "⭐ Ovlink Pro",
-    upgrade_free_val: "Günde 10 link",
-    upgrade_pro_val: "Günde 100 link\nÖzel alias\nİstatistik\nAPI",
+    upgrade_free_val: "Günde 50 link",
+    upgrade_pro_val: "Günde 500 link\nÖzel alias\nİstatistik\nAPI",
   },
   az: {
     lang_updated: "✅ Dil Azərbaycan dili olaraq yeniləndi.",
@@ -95,8 +95,8 @@ const TRANSLATIONS = {
     help_lang_val: "Botun dilini dəyiş",
     help_footer: "💡 URL göndərin, avtomatik qısaldılsın!",
     upgrade_title: "⭐ Ovlink Pro",
-    upgrade_free_val: "Gündə 10 link",
-    upgrade_pro_val: "Gündə 100 link\nXüsusi alias\nStatistika\nAPI",
+    upgrade_free_val: "Gündə 50 link",
+    upgrade_pro_val: "Gündə 500 link\nXüsusi alias\nStatistika\nAPI",
   },
   ru: {
     lang_updated: "✅ Язык изменен на русский.",
@@ -127,8 +127,8 @@ const TRANSLATIONS = {
     help_lang_val: "Изменить язык бота",
     help_footer: "💡 Отправьте ссылку для автоматического сокращения!",
     upgrade_title: "⭐ Ovlink Pro",
-    upgrade_free_val: "10 ссылок в день",
-    upgrade_pro_val: "100 ссылок в день\nСвой алиас\nСтатистика\nAPI",
+    upgrade_free_val: "50 ссылок в день",
+    upgrade_pro_val: "500 ссылок в день\nСвой алиас\nСтатистика\nAPI",
   }
 };
 

@@ -25,6 +25,7 @@ test.before(async () => {
 test.after(async () => {
   for (const userId of createdTestUserIds) {
     try {
+      await helpers.dbRunAsync('DELETE FROM polar_events WHERE user_id = ?', [userId]);
       await helpers.dbRunAsync('DELETE FROM notifications WHERE user_id = ?', [userId]);
       await helpers.dbRunAsync('DELETE FROM users WHERE id = ?', [userId]);
     } catch {}
@@ -115,6 +116,11 @@ test('Polar webhook regression tests', async (t) => {
     assert.equal(updated.plan_status, 'revoked');
     assert.equal(updated.pro_expires_at, null);
     assert.equal(updated.polar_subscription_id, null);
+
+    // Billing history: the event must be durably logged with its outcome.
+    const ev = await helpers.dbGetAsync('SELECT outcome, user_id FROM polar_events WHERE user_id = ? ORDER BY id DESC LIMIT 1', [user.id]);
+    assert.ok(ev, 'polar_events row must exist');
+    assert.equal(ev.outcome, 'revoked');
   });
 
   await t.test('3. Cancellation Clears Subscription ID (No stuck state)', async () => {

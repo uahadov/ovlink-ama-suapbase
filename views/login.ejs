@@ -64,6 +64,14 @@
               </div>
             </div>
 
+            <div class="mb-3 auth-field d-none" id="twofaGroup">
+              <label for="twofaCode" class="form-label" data-i18n="login_2fa_code">2FA Kodu</label>
+              <div class="input-group auth-input shadow-sm">
+                <span class="input-group-text"><i class="fa-solid fa-shield-halved"></i></span>
+                <input type="text" inputmode="numeric" pattern="\d{6}" maxlength="6" class="form-control form-control-animated" id="twofaCode" placeholder="123456" autocomplete="one-time-code">
+              </div>
+            </div>
+
             <div class="text-end mb-3">
               <a href="/forgot-password" class="text-decoration-none small fw-semibold" data-i18n="forgot_password_link">Şifrəni unutmusunuz?</a>
             </div>
@@ -132,8 +140,34 @@
         if (!getCsrfToken()) {
           await refreshCsrfToken();
         }
+        const twofaGroup = document.getElementById('twofaGroup');
+        const twofaCodeEl = document.getElementById('twofaCode');
+        if (twofaGroup && !twofaGroup.classList.contains('d-none')) {
+          // Second step: verify the TOTP code.
+          const res = await postJsonWithCsrf('/api/verify-2fa', { code: twofaCodeEl.value.trim(), lang: currentLang });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok) {
+            msg.className = "text-center text-success small";
+            msg.textContent = currentLang === 'az' ? "Giriş uğurludur! Yönləndirilirsiniz..." : (currentLang === 'en' ? "Login successful! Redirecting..." : "Giriş başarılı! Yönlendiriliyorsunuz...");
+            setClientSession({ email: data.username, isAdmin: false });
+            setTimeout(() => window.location.href = '/', 1000);
+          } else {
+            msg.className = "text-center text-danger small";
+            msg.textContent = data.error || (currentLang === 'az' ? "Kod yanlışdır." : (currentLang === 'en' ? "Invalid code." : "Kod hatalı."));
+            twofaCodeEl.value = '';
+            twofaCodeEl.focus();
+          }
+          return;
+        }
         const res = await postJsonWithCsrf('/api/login', { email, password, lang: currentLang });
         const data = await res.json().catch(() => ({}));
+        if (res.ok && data.twofaRequired) {
+          twofaGroup.classList.remove('d-none');
+          msg.className = "text-center text-muted small";
+          msg.textContent = currentLang === 'az' ? "Authenticator tətbiqindəki 6 rəqəmli kodu daxil edin." : (currentLang === 'en' ? "Enter the 6-digit code from your authenticator app." : "Authenticator uygulamasındaki 6 haneli kodu girin.");
+          twofaCodeEl.focus();
+          return;
+        }
         if (res.ok) {
           msg.className = "text-center text-success small";
           msg.textContent = currentLang === 'az' ? "Giriş uğurludur! Yönləndirilirsiniz..." : (currentLang === 'en' ? "Login successful! Redirecting..." : "Giriş başarılı! Yönlendiriliyorsunuz...");

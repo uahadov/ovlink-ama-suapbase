@@ -1703,8 +1703,29 @@ module.exports = function createAdminRouter(db, options = {}) {
   // ==============================
 
 
-  router.get('/auth-logs', requireRole('admin'), async (req, res) => {
+  // Polar billing webhook history: every processed event with its outcome.
+  router.get('/billing', requireRole('admin'), async (req, res) => {
     try {
+      const rows = await all(
+        'SELECT id, webhook_id, event_type, product_id, user_id, outcome, detail, created_at FROM polar_events ORDER BY datetime(created_at) DESC, id DESC LIMIT 200'
+      );
+      return res.render('admin/billing', {
+        admin: res.locals.admin,
+        csrfToken: res.locals._csrf,
+        rows,
+        error: null,
+      });
+    } catch {
+      return res.render('admin/billing', {
+        admin: res.locals.admin,
+        csrfToken: res.locals._csrf,
+        rows: [],
+        error: 'Could not load billing events.',
+      });
+    }
+  });
+
+  router.get('/auth-logs', requireRole('admin'), async (req, res) => {    try {
       const rowsRaw = await all('SELECT * FROM admin_auth_audit ORDER BY datetime(created_at) DESC LIMIT 200');
       const rows = (rowsRaw || []).map((row) => {
         const explicitCountry = (row && row.country && row.country.toString().trim() === 'Local Dev')
@@ -1769,7 +1790,12 @@ module.exports = function createAdminRouter(db, options = {}) {
   if (blockIpFn && unblockIpFn && getBlockedIpsFn) {
     router.get('/ip-blocklist', requireRole('admin'), (req, res) => {
       const blockedIps = getBlockedIpsFn();
-      return res.render('admin/not-found', { error: null }); // Geçici: basit render
+      return res.render('admin/ip-blocklist', {
+        admin: res.locals.admin,
+        csrfToken: res.locals._csrf,
+        rows: Array.isArray(blockedIps) ? blockedIps : [],
+        error: null,
+      });
     });
 
     router.post('/ip-blocklist/block', requireRole('admin'), async (req, res) => {

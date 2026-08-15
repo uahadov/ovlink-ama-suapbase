@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
+require('dotenv').config();
+
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
+const { encryptAES256GCM, blindIndex } = require('../utils/crypto');
 
 function arg(name) {
   const i = process.argv.indexOf(name);
@@ -46,10 +49,24 @@ async function main() {
       created_at TEXT
     )
   `);
+  // Columns the runtime migration also adds; kept here so the script works
+  // against a database that has never booted the app.
+  await pool.query('ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS email_hash TEXT');
+  await pool.query('ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS totp_enabled INTEGER NOT NULL DEFAULT 0');
+  await pool.query('ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS totp_secret TEXT');
+
+  // The login route looks admins up by blindIndex(email) and expects the
+  // email to be encrypted the same way /admin registration stores it.
+  const existing = await pool.query('SELECT id FROM admin_users WHERE email_hash = $1', [blindIndex(email)]);
+  if (existing.rowCount > 0) {
+    console.error('An admin with this email already exists (id:', existing.rows[0].id + ').');
+    process.exitCode = 1;
+    return;
+  }
 
   await pool.query(
-    'INSERT INTO admin_users (email, password_hash, role, created_at) VALUES ($1, $2, $3, $4)',
-    [email, hash, role, createdAt]
+    'INSERT INTO admin_users (email, email_hash, password_hash, role, totp_enabled, created_at) VALUES ($1, $2, $3, $4, 0, $5)',
+    [encryptAES256GCM(email), blindIndex(email), hash, role, createdAt]
   );
 
   console.log('Created admin user:', email, 'role:', role);

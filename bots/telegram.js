@@ -255,17 +255,35 @@ function createTelegramBot(db, options = {}) {
     await sendMessage(chat.id, text, { replyToMessageId: args.messageId, keyboard });
   }
 
+  // Guest daily quota persists in the guest_limits table so restarts no longer
+  // reset it (in-memory map is only a per-process cache).
   const guestDailyMap = new Map();
 
-  function getGuestDailyCount(chatId) {
-    const key = `${chatId}:${new Date().toISOString().slice(0, 10)}`;
-    return guestDailyMap.get(key) || 0;
+  async function getGuestDailyCount(chatId) {
+    const day = new Date().toISOString().slice(0, 10);
+    const key = `${chatId}:${day}`;
+    if (guestDailyMap.has(key)) return guestDailyMap.get(key);
+    return new Promise((resolve) => {
+      db.get('SELECT count FROM guest_limits WHERE ip = ? AND day = ?', [`tg:${chatId}`, day], (err, row) => {
+        const count = err || !row ? 0 : (row.count || 0);
+        guestDailyMap.set(key, count);
+        resolve(count);
+      });
+    });
   }
 
-  function incrementGuestDailyCount(chatId, count = 1) {
-    const key = `${chatId}:${new Date().toISOString().slice(0, 10)}`;
+  async function incrementGuestDailyCount(chatId, count = 1) {
+    const day = new Date().toISOString().slice(0, 10);
+    const key = `${chatId}:${day}`;
     const cur = guestDailyMap.get(key) || 0;
     guestDailyMap.set(key, cur + count);
+    await new Promise((resolve) => {
+      db.run(
+        'INSERT INTO guest_limits (ip, day, count, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(ip, day) DO UPDATE SET count = guest_limits.count + ?, updated_at = excluded.updated_at',
+        [`tg:${chatId}`, day, count, new Date().toISOString(), count],
+        () => resolve()
+      );
+    });
   }
 
   function extractUrls(text) {
@@ -334,7 +352,7 @@ function createTelegramBot(db, options = {}) {
         return;
       }
     } else {
-      const guestCount = getGuestDailyCount(chat.id);
+      const guestCount = await getGuestDailyCount(chat.id);
       if (guestCount >= 5) {
         await sendMessage(chat.id, t(lang, 'guest_limit_reached', { limit: 5 }));
         return;
@@ -360,7 +378,7 @@ function createTelegramBot(db, options = {}) {
       return;
     }
 
-    if (!userId) incrementGuestDailyCount(chat.id);
+    if (!userId) await incrementGuestDailyCount(chat.id);
 
     const shortUrl = `${BASE_URL}/${result.short}`;
     const text = userId
@@ -434,7 +452,7 @@ function createTelegramBot(db, options = {}) {
     const lang = await shared.getBotLanguage('telegram', chat.id);
     const botUser = await shared.getBotUser('telegram', chat.id);
     if (!botUser) {
-      const guestCount = getGuestDailyCount(chat.id);
+      const guestCount = await getGuestDailyCount(chat.id);
       const authUrl = `${BASE_URL}/bot/auth?platform=telegram&id=${chat.id}&name=${encodeURIComponent(chat.username || chat.first_name || '')}`;
       const msg = lang === 'az'
         ? `📊 <b>Limit Vəziyyətiniz (Qonaq):</b>\n\n• Gündəlik Limit: <b>5 link</b>\n• Bu gün istifadə edilən: <b>${guestCount}/5</b>\n• Toplu Qısaltma: ❌ (Hesab tələb olunur)\n\n🔑 <i>Limiti 50-yə qaldırmaq və Paneldən idarə etmək üçün hesabınızı bağlayın:</i>\n<a href="${authUrl}">→ Hesabımı Bağla</a>`
