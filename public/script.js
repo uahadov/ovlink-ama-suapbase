@@ -240,16 +240,29 @@ function isFreeUpsellEligible() {
   return !isProPlanActive();
 }
 
-function buildTelegramProfileHref() {
-  return `https://t.me/${encodeURIComponent(TELEGRAM_SALES_USERNAME)}`;
+const POLAR_DEFAULT_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_9QZbWPt4zCzplBGNFgy6xeZf9rxVICG62IIe03GpkNS";
+
+function buildPolarCheckoutHref() {
+  try {
+    const base = new URL(POLAR_DEFAULT_CHECKOUT_URL);
+    if (Number.isInteger(window.__userId) && window.__userId > 0) {
+      base.searchParams.set("customer_metadata[user_id]", String(window.__userId));
+    }
+    if (window.__userEmail && typeof window.__userEmail === "string") {
+      base.searchParams.set("customer_email", window.__userEmail);
+    }
+    return base.toString();
+  } catch {
+    return POLAR_DEFAULT_CHECKOUT_URL;
+  }
 }
 
 function updatePricingBuyCta() {
   const btn = document.getElementById("pricingBuyBtn");
   if (!btn) return;
-  btn.setAttribute("href", buildTelegramProfileHref());
+  btn.setAttribute("href", buildPolarCheckoutHref());
   const fallback = document.getElementById("pricingContactFallback");
-  if (fallback) fallback.setAttribute("href", buildTelegramProfileHref());
+  if (fallback) fallback.setAttribute("href", buildPolarCheckoutHref());
 }
 
 function syncFloatingPricingBanner() {

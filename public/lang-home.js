@@ -73,7 +73,7 @@ const homeTranslations = {
     updates_link: "Yeniliklər",
     floating_pricing_badge: "PRO",
     floating_pricing_title: "Premium funksiyaları açın",
-    floating_pricing_text: "$2/ay · API + Webhook",
+    floating_pricing_text: "$4.99/ay · API + Webhook · 3 Gün Pulsuz",
 
     error_alias_taken: "Bu xüsusi link artıq istifadə olunub.",
     error_invalid_url: "Zəhmət olmasa düzgün bir URL daxil edin.",
@@ -153,7 +153,7 @@ const homeTranslations = {
     updates_link: "Güncellemeler",
     floating_pricing_badge: "PRO",
     floating_pricing_title: "Premium özellikleri aç",
-    floating_pricing_text: "$2/ay · API + Webhook",
+    floating_pricing_text: "$4.99/ay · API + Webhook · 3 Gün Ücretsiz",
 
     error_alias_taken: "Bu özel link zaten kullanılıyor.",
     error_invalid_url: "Lütfen geçerli bir URL girin.",
@@ -233,7 +233,7 @@ const homeTranslations = {
     updates_link: "Updates",
     floating_pricing_badge: "PRO",
     floating_pricing_title: "Unlock Premium features",
-    floating_pricing_text: "$2/mo · API + Webhooks",
+    floating_pricing_text: "$4.99/mo · API + Webhooks · 3-Day Free Trial",
 
     error_alias_taken: "This custom alias is already in use.",
     error_invalid_url: "Please enter a valid URL.",

@@ -20,6 +20,7 @@ const tsscmp = require('tsscmp');
 const lusca = require('lusca');
 const { body, validationResult } = require('express-validator');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('./utils/crypto.js');
+const { verifyPolarWebhook, POLAR_CHECKOUT_URL, POLAR_WEBHOOK_SECRET } = require('./utils/polar.js');
 require('dotenv').config();
 const isProdRuntime = process.env.NODE_ENV === 'production';
 
@@ -3689,13 +3690,14 @@ const csrfProtection = lusca.csrf({
   impl: csrfImpl
 });
 
-// Server-to-server bot webhook callbacks (Telegram/Discord) can never carry
+// Server-to-server webhook callbacks (Telegram/Discord/Polar) can never carry
 // a session-bound CSRF token - they are authenticated by their own
-// mechanisms instead (Telegram: X-Telegram-Bot-Api-Secret-Token header;
-// Discord: Ed25519 request signature verified inside the route handler).
-function isBotWebhookRoute(pathname) {
+// signature mechanisms instead.
+function isServerWebhookRoute(pathname) {
   const path = (pathname || '').toString();
-  return path === '/api/bots/telegram/webhook' || path === '/api/bots/discord/interactions';
+  return path === '/api/bots/telegram/webhook' ||
+         path === '/api/bots/discord/interactions' ||
+         path === '/api/polar/webhook';
 }
 
 app.use((req, res, next) => {
@@ -3703,7 +3705,7 @@ app.use((req, res, next) => {
   const skipStaticPath = req.path === '/robots.txt' || req.path === '/sitemap.xml' || req.path === '/favicon.ico';
   if (req.method === 'GET' && (isStaticLike || skipStaticPath)) return next();
   if (req.path.startsWith('/consent/redirect/')) return next();
-  if (req.method === 'POST' && isBotWebhookRoute(req.path)) return next();
+  if (req.method === 'POST' && isServerWebhookRoute(req.path)) return next();
   const hasApiKeyHeader = hasApiKeyAuthHeader(req);
   if (hasApiKeyHeader) return next();
   return csrfProtection(req, res, next);
@@ -4022,11 +4024,23 @@ app.get('/pricing', (req, res) => {
     titleAz: 'Pro Plan Qiymətləri - Ovlink',
     titleTr: 'Pro Plan Fiyatlandırma - Ovlink',
     titleEn: 'Pro Plan Pricing - Ovlink',
-    descAz: 'Ovlink Free və Pro planlarını müqayisə edin. Pro plan üçün qiymət $2/ay.',
-    descTr: 'Ovlink Free ve Pro planlarını karşılaştırın. Pro plan fiyatı $2/ay.',
-    descEn: 'Compare Ovlink Free and Pro plans. Pro pricing is $2/month.',
+    descAz: 'Ovlink Free və Pro planlarını müqayisə edin. Pro plan üçün qiymət $4.99/ay.',
+    descTr: 'Ovlink Free ve Pro planlarını karşılaştırın. Pro plan fiyatı $4.99/ay.',
+    descEn: 'Compare Ovlink Free and Pro plans. Pro pricing is $4.99/month with 3-day free trial.',
   });
-  res.render('pricing', { csrfToken: res.locals._csrf, seo });
+
+  let polarCheckoutUrl = POLAR_CHECKOUT_URL;
+  if (req.session && req.session.userId) {
+    try {
+      const u = new URL(POLAR_CHECKOUT_URL);
+      u.searchParams.set('customer_metadata[user_id]', String(req.session.userId));
+      polarCheckoutUrl = u.toString();
+    } catch {
+      polarCheckoutUrl = POLAR_CHECKOUT_URL;
+    }
+  }
+
+  res.render('pricing', { csrfToken: res.locals._csrf, seo, polarCheckoutUrl });
 });
 app.get('/pricing.html', (req, res) => res.redirect(301, '/pricing'));
 
@@ -4857,6 +4871,8 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
   db.run('ALTER TABLE users ADD COLUMN pro_expires_at TEXT', () => {});
   db.run('ALTER TABLE users ADD COLUMN pro_paused_at TEXT', () => {});
   db.run('ALTER TABLE users ADD COLUMN pro_updated_at TEXT', () => {});
+  db.run('ALTER TABLE users ADD COLUMN polar_customer_id TEXT', () => {});
+  db.run('ALTER TABLE users ADD COLUMN polar_subscription_id TEXT', () => {});
   db.run(`ALTER TABLE api_keys ADD COLUMN scopes TEXT NOT NULL DEFAULT '${DEFAULT_API_KEY_SCOPES_STORAGE}'`, () => {});
   db.run('ALTER TABLE api_keys ADD COLUMN hash_version INTEGER NOT NULL DEFAULT 1', () => {});
   db.run("ALTER TABLE webhooks ADD COLUMN message_locale TEXT DEFAULT 'auto'", () => {});
@@ -5196,6 +5212,131 @@ app.post('/api/bots/discord/interactions', async (req, res) => {
 
   const response = await discordBot.handleInteraction(body);
   res.json(response);
+});
+
+// Polar.sh Webhook Endpoint for automated subscriptions & orders
+app.post('/api/polar/webhook', async (req, res) => {
+  const verified = verifyPolarWebhook(req.rawBody, req.headers, POLAR_WEBHOOK_SECRET);
+  if (!verified) {
+    console.error('[polar-webhook] Signature verification failed');
+    return res.status(403).json({ error: 'invalid signature' });
+  }
+
+  let event;
+  try {
+    event = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch (err) {
+    console.error('[polar-webhook] JSON parse error:', err.message);
+    return res.status(400).json({ error: 'invalid payload' });
+  }
+
+  const eventType = (event.type || '').toString();
+  const data = event.data || {};
+  console.log(`[polar-webhook] Received event: ${eventType}`);
+
+  try {
+    const customerEmail = (data.customer && data.customer.email) || data.customer_email || data.email || '';
+    const userIdRaw = (data.custom_field_data && data.custom_field_data.user_id) ||
+      (data.metadata && data.metadata.user_id) ||
+      (data.customer_metadata && data.customer_metadata.user_id) ||
+      (data.customer && data.customer.metadata && data.customer.metadata.user_id) ||
+      null;
+    const userId = userIdRaw ? parseInt(userIdRaw, 10) : null;
+    const polarSubId = data.id || (data.subscription && data.subscription.id) || null;
+    const polarCustomerId = (data.customer && data.customer.id) || data.customer_id || null;
+
+    const findUser = () => new Promise((resolve, reject) => {
+      if (Number.isInteger(userId) && userId > 0) {
+        db.get('SELECT * FROM users WHERE id = ?', [userId], (err, row) => {
+          if (err) return reject(err);
+          if (row) return resolve(row);
+          if (customerEmail) {
+            db.get('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(customerEmail)], (e2, r2) => {
+              if (e2) return reject(e2);
+              resolve(r2 || null);
+            });
+          } else {
+            resolve(null);
+          }
+        });
+      } else if (customerEmail) {
+        db.get('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(customerEmail)], (err, row) => {
+          if (err) return reject(err);
+          resolve(row || null);
+        });
+      } else {
+        resolve(null);
+      }
+    });
+
+    const targetUser = await findUser();
+    if (!targetUser) {
+      console.warn(`[polar-webhook] No matching user found for email=${customerEmail} userId=${userId}`);
+      return res.status(200).json({ received: true, matched: false });
+    }
+
+    const nowIso = new Date().toISOString();
+
+    if (
+      eventType.startsWith('subscription.created') ||
+      eventType.startsWith('subscription.updated') ||
+      eventType.startsWith('subscription.active') ||
+      eventType.startsWith('order.created')
+    ) {
+      const status = (data.status || 'active').toString().toLowerCase();
+      if (status !== 'canceled' && status !== 'revoked') {
+        let expiresAt = data.current_period_end ? new Date(data.current_period_end).toISOString() : null;
+        if (!expiresAt || Number.isNaN(Date.parse(expiresAt))) {
+          const nextMonth = new Date();
+          nextMonth.setDate(nextMonth.getDate() + 32);
+          expiresAt = nextMonth.toISOString();
+        }
+
+        await new Promise((resolve, reject) => {
+          db.run(
+            'UPDATE users SET plan_tier = ?, plan_status = ?, pro_expires_at = ?, polar_subscription_id = ?, polar_customer_id = ?, pro_updated_at = ? WHERE id = ?',
+            ['pro', 'active', expiresAt, polarSubId || targetUser.polar_subscription_id, polarCustomerId || targetUser.polar_customer_id, nowIso, targetUser.id],
+            (err) => (err ? reject(err) : resolve())
+          );
+        });
+
+        // Add notification for the user
+        const notifEventKey = `polar_pro_${polarSubId || targetUser.id}_${nowIso.slice(0, 10)}`;
+        db.run(
+          'INSERT OR IGNORE INTO notifications (user_id, type, title_az, title_tr, title_en, body_az, body_tr, body_en, event_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            targetUser.id,
+            'system',
+            'Ovlink Pro Aktiv Edildi! 👑',
+            'Ovlink Pro Aktif Edildi! 👑',
+            'Ovlink Pro Activated! 👑',
+            'Pro abunəliyiniz uğurla aktivləşdirildi. Bütün limitsiz imkanlardan dərhal istifadə edə bilərsiniz.',
+            'Pro üyeliğiniz başarıyla aktifleştirildi. Tüm sınırsız özelliklerden hemen yararlanabilirsiniz.',
+            'Your Pro subscription has been successfully activated. Enjoy full access to all premium features.',
+            notifEventKey,
+            nowIso
+          ],
+          () => {}
+        );
+
+        console.log(`[polar-webhook] User id=${targetUser.id} upgraded to PRO until ${expiresAt}`);
+      }
+    } else if (eventType.startsWith('subscription.canceled') || eventType.startsWith('subscription.revoked')) {
+      await new Promise((resolve, reject) => {
+        db.run(
+          'UPDATE users SET plan_status = ?, pro_updated_at = ? WHERE id = ?',
+          ['canceled', nowIso, targetUser.id],
+          (err) => (err ? reject(err) : resolve())
+        );
+      });
+      console.log(`[polar-webhook] User id=${targetUser.id} subscription marked as canceled`);
+    }
+
+    return res.status(200).json({ received: true, success: true });
+  } catch (handlerErr) {
+    console.error('[polar-webhook] Processing error:', handlerErr);
+    return res.status(500).json({ error: 'internal error' });
+  }
 });
 
 // Deep-link bot authorization page
