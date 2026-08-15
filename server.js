@@ -5194,17 +5194,38 @@ db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
 
   // Durable history of every processed Polar webhook event so billing issues
   // ("I paid but did not get Pro") can be traced from the admin panel.
-  db.run(`CREATE TABLE IF NOT EXISTS polar_events (
-    id SERIAL PRIMARY KEY,
-    webhook_id TEXT,
-    event_type TEXT,
-    product_id TEXT,
-    user_id INTEGER,
-    outcome TEXT,
-    detail TEXT,
-    created_at TEXT
-  )`, () => {});
-  db.run('CREATE INDEX IF NOT EXISTS idx_polar_events_created ON polar_events(created_at DESC)', () => {});
+  // Table + index are chained and retried once: a transient lock/timeout on
+  // the CREATE TABLE must not leave the index statement failing on a missing
+  // relation.
+  const createPolarEventsSchema = (attempt = 0) => {
+    db.run(`CREATE TABLE IF NOT EXISTS polar_events (
+      id SERIAL PRIMARY KEY,
+      webhook_id TEXT,
+      event_type TEXT,
+      product_id TEXT,
+      user_id INTEGER,
+      outcome TEXT,
+      detail TEXT,
+      created_at TEXT
+    )`, (tblErr) => {
+      if (tblErr) {
+        console.error('[startup] polar_events table creation failed:', tblErr.message);
+        if (attempt === 0) {
+          setTimeout(() => createPolarEventsSchema(1), 5000).unref();
+        }
+        return;
+      }
+      db.run('CREATE INDEX IF NOT EXISTS idx_polar_events_created ON polar_events(created_at DESC)', (idxErr) => {
+        if (!idxErr) return;
+        if (attempt === 0) {
+          setTimeout(() => createPolarEventsSchema(1), 5000).unref();
+        } else {
+          console.error('[startup] polar_events index failed (will retry next boot):', idxErr.message);
+        }
+      });
+    });
+  };
+  createPolarEventsSchema();
 
   // Password reset tokens
   db.run(`CREATE TABLE IF NOT EXISTS password_resets (
