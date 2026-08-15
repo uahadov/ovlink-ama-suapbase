@@ -2607,7 +2607,7 @@ function logSecurityEvent(req, eventType, outcome, details = {}) {
 function purgeSecurityEvents() {
   if (!db) return;
   const cutoff = new Date(Date.now() - (SECURITY_EVENT_RETENTION_DAYS * 24 * 60 * 60 * 1000)).toISOString();
-  db.run("DELETE FROM security_events WHERE datetime(created_at) < datetime(?)", [cutoff], () => {});
+  db.run("DELETE FROM security_events WHERE created_at < ?", [cutoff], () => {});
 }
 
 function scheduleSecurityEventPurge() {
@@ -2637,7 +2637,7 @@ function purgeApiUsageLogs() {
   const cutoff = new Date(Date.now() - (PRO_API_USAGE_RETENTION_DAYS * 24 * 60 * 60 * 1000)).toISOString();
   void ensureApiUsageLogsSchema().then((ready) => {
     if (!ready) return;
-    db.run('DELETE FROM api_usage_logs WHERE datetime(created_at) < datetime(?)', [cutoff], () => {});
+    db.run('DELETE FROM api_usage_logs WHERE created_at < ?', [cutoff], () => {});
   });
 }
 

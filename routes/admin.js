@@ -12,9 +12,9 @@ const REPORT_THRESHOLD = 4;
 const SHORT_CODE_RE = /^[A-Za-z0-9_-]{1,50}$/;
 
 const LINKS_SORT_SQL = Object.freeze({
-  recent: 'datetime(u.created_at) DESC',
-  reports: 'u.reports DESC, datetime(u.created_at) DESC',
-  clicks: 'clicks_count DESC, datetime(u.created_at) DESC',
+  recent: 'u.created_at DESC',
+  reports: 'u.reports DESC, u.created_at DESC',
+  clicks: 'clicks_count DESC, u.created_at DESC',
 });
 
 const SITE_USERS_SORT_SQL = Object.freeze({
@@ -868,7 +868,7 @@ module.exports = function createAdminRouter(db, options = {}) {
       'FROM reports r ' +
       'LEFT JOIN users u ON u.id = r.user_id ' +
       'WHERE r.short = ? ' +
-      'ORDER BY datetime(r.created_at) DESC',
+      'ORDER BY r.created_at DESC',
       [safeShort],
     );
   }
@@ -1088,7 +1088,7 @@ module.exports = function createAdminRouter(db, options = {}) {
       'SELECT b.*, a.email AS created_by_email ' +
       'FROM blocked_domains b ' +
       'LEFT JOIN admin_users a ON a.id = b.created_by_admin_id ' +
-      'ORDER BY datetime(b.created_at) DESC',
+      'ORDER BY b.created_at DESC',
       [],
     );
     return res.render('admin/domains', { rows });
@@ -1103,7 +1103,7 @@ module.exports = function createAdminRouter(db, options = {}) {
         'SELECT b.*, a.email AS created_by_email ' +
         'FROM blocked_domains b ' +
         'LEFT JOIN admin_users a ON a.id = b.created_by_admin_id ' +
-        'ORDER BY datetime(b.created_at) DESC',
+        'ORDER BY b.created_at DESC',
         [],
       );
       return res.status(400).render('admin/domains', { rows, error: 'Invalid domain.' });
@@ -1160,15 +1160,15 @@ module.exports = function createAdminRouter(db, options = {}) {
     }
 
     if (status === 'banned') {
-      where.push("u.banned = 1 AND (u.ban_until IS NULL OR datetime(u.ban_until) > datetime('now'))");
+      where.push("u.banned = 1 AND (u.ban_until IS NULL OR u.ban_until > CURRENT_TIMESTAMP)");
     } else if (status === 'active') {
-      where.push("(u.banned IS NULL OR u.banned != 1 OR (u.ban_until IS NOT NULL AND datetime(u.ban_until) <= datetime('now'))) ");
+      where.push("(u.banned IS NULL OR u.banned != 1 OR (u.ban_until IS NOT NULL AND u.ban_until <= CURRENT_TIMESTAMP)) ");
     } else if (status === 'unverified') {
       where.push('u.email_verified != 1');
     } else if (status === 'pro') {
-      where.push("u.plan_tier = 'pro' AND u.plan_status = 'active' AND u.pro_expires_at IS NOT NULL AND datetime(u.pro_expires_at) > datetime('now')");
+      where.push("u.plan_tier = 'pro' AND u.plan_status = 'active' AND u.pro_expires_at IS NOT NULL AND u.pro_expires_at > CURRENT_TIMESTAMP");
     } else if (status === 'free') {
-      where.push("(u.plan_tier IS NULL OR u.plan_tier = 'free' OR u.plan_status = 'paused' OR u.pro_expires_at IS NULL OR datetime(u.pro_expires_at) <= datetime('now'))");
+      where.push("(u.plan_tier IS NULL OR u.plan_tier = 'free' OR u.plan_status = 'paused' OR u.pro_expires_at IS NULL OR u.pro_expires_at <= CURRENT_TIMESTAMP)");
     }
 
     const whereSql = where.length ? ('WHERE ' + where.join(' AND ')) : '';
@@ -1184,7 +1184,7 @@ module.exports = function createAdminRouter(db, options = {}) {
         'COALESCE(SUM(ul.reports), 0) AS open_reports, ' +
         'COALESCE(SUM(CASE WHEN ul.dangerous = 1 THEN 1 ELSE 0 END), 0) AS dangerous_links, ' +
         'MAX(ul.created_at) AS last_link_at, ' +
-        "CASE WHEN u.banned = 1 AND (u.ban_until IS NULL OR datetime(u.ban_until) > datetime('now')) THEN 1 ELSE 0 END AS ban_active " +
+        "CASE WHEN u.banned = 1 AND (u.ban_until IS NULL OR u.ban_until > CURRENT_TIMESTAMP) THEN 1 ELSE 0 END AS ban_active " +
       'FROM users u ' +
       'LEFT JOIN urls ul ON ul.user_id = u.id ' +
       whereSql + ' ' +
@@ -1249,7 +1249,7 @@ module.exports = function createAdminRouter(db, options = {}) {
         '(SELECT COUNT(*) FROM clicks c WHERE c.url_id = u.id) AS clicks_count ' +
       'FROM urls u ' +
       'WHERE u.user_id = ? ' +
-      'ORDER BY datetime(u.created_at) DESC ' +
+      'ORDER BY u.created_at DESC ' +
       'LIMIT ? OFFSET ?',
       [id, pageSize, offset],
     );
@@ -1265,7 +1265,7 @@ module.exports = function createAdminRouter(db, options = {}) {
       [id]
     );
     const recentDeliveries = await all(
-      'SELECT id, webhook_id, event_type, status, attempt, http_status, created_at, next_retry_at FROM webhook_deliveries WHERE user_id = ? ORDER BY datetime(created_at) DESC LIMIT 10',
+      'SELECT id, webhook_id, event_type, status, attempt, http_status, created_at, next_retry_at FROM webhook_deliveries WHERE user_id = ? ORDER BY created_at DESC LIMIT 10',
       [id]
     );
 
@@ -1460,7 +1460,7 @@ module.exports = function createAdminRouter(db, options = {}) {
   // ==============================
 
   router.get('/users', requireRole('admin'), async (req, res) => {
-    const rows = await all('SELECT id, email, role, created_at, last_login_at FROM admin_users ORDER BY datetime(created_at) DESC');
+    const rows = await all('SELECT id, email, role, created_at, last_login_at FROM admin_users ORDER BY created_at DESC');
     rows.forEach(u => { try { u.email = decryptAES256GCM(u.email); } catch { u.email = '(unknown)'; } });
     return res.render('admin/users', { rows });
   });
@@ -1471,7 +1471,7 @@ module.exports = function createAdminRouter(db, options = {}) {
     const role = (req.body.role || '').toString() === 'moderator' ? 'moderator' : 'admin';
 
     if (!email || !password || password.length < 10) {
-      const rows = await all('SELECT id, email, role, created_at, last_login_at FROM admin_users ORDER BY datetime(created_at) DESC');
+      const rows = await all('SELECT id, email, role, created_at, last_login_at FROM admin_users ORDER BY created_at DESC');
       rows.forEach(u => { try { u.email = decryptAES256GCM(u.email); } catch { u.email = '(unknown)'; } });
       return res.status(400).render('admin/users', { rows, error: 'Email and password (min 10 chars) are required.' });
     }
@@ -1482,7 +1482,7 @@ module.exports = function createAdminRouter(db, options = {}) {
       await run('INSERT INTO admin_users (email, email_hash, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)', [encryptAES256GCM(email), blindIndex(email), hash, role, nowIso()]);
       await audit(req, 'CREATE_ADMIN_USER', 'admin_user', email, { role });
     } catch {
-      const rows = await all('SELECT id, email, role, created_at, last_login_at FROM admin_users ORDER BY datetime(created_at) DESC');
+      const rows = await all('SELECT id, email, role, created_at, last_login_at FROM admin_users ORDER BY created_at DESC');
       rows.forEach(u => { try { u.email = decryptAES256GCM(u.email); } catch { u.email = '(unknown)'; } });
       return res.status(400).render('admin/users', { rows, error: 'User could not be created (email may already be in use).' });
     }
@@ -1671,7 +1671,7 @@ module.exports = function createAdminRouter(db, options = {}) {
 
   router.get('/auth-logs', requireRole('admin'), async (req, res) => {
     try {
-      const rowsRaw = await all('SELECT * FROM admin_auth_audit ORDER BY datetime(created_at) DESC LIMIT 200');
+      const rowsRaw = await all('SELECT * FROM admin_auth_audit ORDER BY created_at DESC LIMIT 200');
       const rows = (rowsRaw || []).map((row) => {
         const explicitCountry = (row && row.country && row.country.toString().trim() === 'Local Dev')
           ? 'Local Dev'
@@ -1707,7 +1707,7 @@ module.exports = function createAdminRouter(db, options = {}) {
       'SELECT l.*, a.email AS admin_email ' +
       'FROM admin_audit_log l ' +
       'LEFT JOIN admin_users a ON a.id = l.admin_user_id ' +
-      'ORDER BY datetime(l.created_at) DESC ' +
+      'ORDER BY l.created_at DESC ' +
       'LIMIT ? OFFSET ?',
       [pageSize, offset],
     );
