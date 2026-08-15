@@ -257,13 +257,14 @@ function updatePricingBuyCta() {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Yüklənir...';
 
     try {
-      const data = await postJsonWithCsrf("/api/polar/create-checkout", {});
+      const res = await postJsonWithCsrf("/api/polar/create-checkout", {});
+      const data = await res.json().catch(() => ({}));
       if (data && data.url) {
         window.location.href = data.url;
-      } else if (data && data.error === 'unauthorized') {
+      } else if (res.status === 401 || (data && data.error === "unauthorized")) {
         window.location.href = "/login?next=/pricing";
       } else {
-        alert("Xəta baş verdi: " + (data ? data.error : "Bilinməyən xəta"));
+        alert("Xəta baş verdi: " + (data && data.error ? data.error : "Bilinməyən xəta"));
         btn.disabled = false;
         btn.textContent = originalText;
       }
