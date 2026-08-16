@@ -8240,6 +8240,24 @@ app.post('/api/domains/delete', (req, res) => {
   });
 });
 
+// Tema değiştirme (POST /api/user/theme)
+app.post('/api/user/theme', (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Giriş gerekli.' });
+  }
+
+  const theme = (req.body && req.body.theme === 'dark') ? 'dark' : 'light';
+
+  db.run(
+    'UPDATE users SET ui_theme = ? WHERE id = ?',
+    [theme, req.session.userId],
+    function (err) {
+      if (err) return res.status(500).json({ error: 'Ayarlar kaydedilemedi.' });
+      return res.json({ message: 'Tema kaydedildi.' });
+    }
+  );
+});
+
 // Kullanıcı ayarları (POST /api/user/settings)
 app.post('/api/user/settings', (req, res) => {
   if (!req.session.userId) {

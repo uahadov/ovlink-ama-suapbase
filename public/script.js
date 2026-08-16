@@ -58,6 +58,18 @@ if (document.readyState === "loading") {
   syncThemeUi();
 }
 
+window.addEventListener("ovlink:themeChanged", (e) => {
+  const newTheme = e.detail.theme;
+  const session = getClientSession();
+  if (session && session.isLoggedIn) {
+    fetch('/api/user/theme', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(withCsrf({ theme: newTheme }))
+    }).catch(() => {});
+  }
+});
+
 
 // Yardımcı: CSRF Token al
 function getCsrfToken() {

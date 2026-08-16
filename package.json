@@ -16,6 +16,7 @@
     "debug": "node --inspect server.js"
   },
   "dependencies": {
+    "@polar-sh/sdk": "^0.49.0",
     "bcrypt": "^6.0.0",
     "compression": "^1.8.1",
     "connect-pg-simple": "^10.0.0",
