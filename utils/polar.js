@@ -6,6 +6,13 @@ const POLAR_WEBHOOK_SECRET = (
 
 /**
  * Verifies Standard Webhooks (used by Polar.sh) HMAC-SHA256 signature.
+ *
+ * Polar's SDK derives the HMAC key by treating the full "whsec_..." secret
+ * string as UTF-8 bytes (the whole string including prefix). This matches
+ * what @polar-sh/sdk/webhooks does internally:
+ *   Buffer.from(secret, "utf-8") → base64 → Webhook(base64Secret)
+ *   → standardwebhooks strips nothing (no whsec_ prefix in base64) → base64.decode → original UTF-8 bytes
+ *
  * @param {Buffer|string} rawBody
  * @param {object} headers
  * @param {string} secret
@@ -19,6 +26,7 @@ function verifyPolarWebhook(rawBody, headers = {}, secret = POLAR_WEBHOOK_SECRET
   const msgSignature = headers['webhook-signature'] || headers['Webhook-Signature'];
 
   if (!msgId || !msgTimestamp || !msgSignature) {
+    console.log('[polar-webhook] Missing headers');
     return false;
   }
 
@@ -26,20 +34,15 @@ function verifyPolarWebhook(rawBody, headers = {}, secret = POLAR_WEBHOOK_SECRET
   const timestamp = parseInt(msgTimestamp, 10);
   if (!Number.isFinite(timestamp)) return false;
   const now = Math.floor(Date.now() / 1000);
-  if (Math.abs(now - timestamp) > 300) {
+  const age = Math.abs(now - timestamp);
+  if (age > 300) {
+    console.log(`[polar-webhook] Timestamp too old/new (age=${age}s)`);
     return false;
   }
 
-  let keyBuffer;
-  if (secret.startsWith('whsec_')) {
-    try {
-      keyBuffer = Buffer.from(secret.slice(6), 'base64');
-    } catch {
-      keyBuffer = Buffer.from(secret, 'utf8');
-    }
-  } else {
-    keyBuffer = Buffer.from(secret, 'utf8');
-  }
+  // KEY DERIVATION: Polar SDK uses the full secret string as UTF-8 bytes
+  // (NOT base64-decoded). This matches @polar-sh/sdk/webhooks validateEvent().
+  const keyBuffer = Buffer.from(secret, 'utf8');
 
   let toSign;
   if (Buffer.isBuffer(rawBody)) {
@@ -51,32 +54,8 @@ function verifyPolarWebhook(rawBody, headers = {}, secret = POLAR_WEBHOOK_SECRET
     const rawPayloadString = String(rawBody || '');
     toSign = `${msgId}.${msgTimestamp}.${rawPayloadString}`;
   }
-  const computedSignature = crypto.createHmac('sha256', keyBuffer).update(toSign).digest('base64');
 
-  // DEBUG: log key values to diagnose signature mismatch
-  const debugBody = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(String(rawBody || ''));
-  console.log('[polar-webhook-debug] keyBuffer len=' + keyBuffer.length +
-    ' bodyLen=' + debugBody.length +
-    ' msgId=' + msgId +
-    ' msgTs=' + msgTimestamp +
-    ' computed=' + computedSignature +
-    ' received=' + msgSignature);
-  console.log('[polar-webhook-debug-hex]' +
-    ' msgId.hex=' + Buffer.from(msgId, 'utf8').toString('hex') +
-    ' msgTs.hex=' + Buffer.from(String(msgTimestamp), 'utf8').toString('hex') +
-    ' body.first30hex=' + debugBody.slice(0, 30).toString('hex'));
-  console.log('[polar-webhook-debug-headers] ' + JSON.stringify({
-    'webhook-id': headers['webhook-id'],
-    'Webhook-Id': headers['Webhook-Id'],
-    'webhook-timestamp': headers['webhook-timestamp'],
-    'webhook-signature': headers['webhook-signature'],
-    'content-type': headers['content-type'],
-    'content-encoding': headers['content-encoding'],
-    'transfer-encoding': headers['transfer-encoding'],
-  }));
-  // dump body sha256 and full base64 for exact reproduction
-  const bodySha256 = crypto.createHash('sha256').update(debugBody).digest('hex');
-  console.log('[polar-webhook-debug-body] sha256=' + bodySha256 + ' base64=' + debugBody.toString('base64'));
+  const computedSignature = crypto.createHmac('sha256', keyBuffer).update(toSign).digest('base64');
 
   const passedSignatures = msgSignature.split(' ').map((s) => {
     const parts = s.split(',');
@@ -93,6 +72,7 @@ function verifyPolarWebhook(rawBody, headers = {}, secret = POLAR_WEBHOOK_SECRET
     } catch (_) {}
   }
 
+  console.log('[polar-webhook] Signature verification failed');
   return false;
 }
 
