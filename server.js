@@ -2158,6 +2158,7 @@ function isProAccessActive(userRow, nowMs = Date.now()) {
   const tier = normalizePlanTier(userRow.plan_tier);
   const status = normalizePlanStatus(userRow.plan_status);
   if (tier !== PLAN_TIERS.PRO || status !== PLAN_STATUS.ACTIVE) return false;
+  if (!userRow.pro_expires_at) return true;
   const expiresMs = parseIsoTimeMs(userRow.pro_expires_at);
   if (!Number.isFinite(expiresMs)) return false;
   return expiresMs > nowMs;
@@ -2166,6 +2167,7 @@ function isProAccessActive(userRow, nowMs = Date.now()) {
 function isProExpired(userRow, nowMs = Date.now()) {
   if (!userRow) return false;
   if (normalizePlanTier(userRow.plan_tier) !== PLAN_TIERS.PRO) return false;
+  if (!userRow.pro_expires_at) return false;
   const expiresMs = parseIsoTimeMs(userRow.pro_expires_at);
   if (!Number.isFinite(expiresMs)) return true;
   return expiresMs <= nowMs;
