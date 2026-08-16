@@ -5638,8 +5638,9 @@ app.post('/api/polar/portal-session', async (req, res) => {
     }
 
     const sessionData = await response.json();
-    const portalUrl = sessionData.customerPortalUrl || sessionData.url;
+    const portalUrl = sessionData.customer_portal_url || sessionData.customerPortalUrl || sessionData.url;
     if (!portalUrl) {
+      console.error('[polar] Portal URL missing from response:', sessionData);
       return res.status(502).json({ error: 'Failed to create customer portal session.' });
     }
     return res.json({ url: portalUrl });
