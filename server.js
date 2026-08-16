@@ -5432,62 +5432,71 @@ db.run('ALTER TABLE urls ADD COLUMN android_url TEXT', () => {});
   )`, () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_bot_auth_codes_code ON bot_auth_codes(code)', () => {});
 
-  // Team workspaces (Pro-only): one workspace per Pro owner, members share
-  // link creation through the same account; SSO connections bind a corporate
-  // IdP to a workspace.
-  db.run(`CREATE TABLE IF NOT EXISTS workspaces (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
+	  // Team workspaces (Pro-only): one workspace per Pro owner, members share
+	  // link creation through the same account; SSO connections bind a corporate
+	  // IdP to a workspace.
+	  //
+	  // These tables have foreign-key dependencies on each other (members,
+	  // invitations, sso_connections → workspaces) so they must be created
+	  // sequentially.  PostgreSQL enforces FK existence at DDL time, and
+	  // db.run() is async, so parallel calls would race.
+	  db.run(`CREATE TABLE IF NOT EXISTS workspaces (
+	    id SERIAL PRIMARY KEY,
+	    name TEXT NOT NULL,
     owner_user_id INTEGER NOT NULL,
     created_at TEXT NOT NULL,
     UNIQUE(owner_user_id),
     FOREIGN KEY(owner_user_id) REFERENCES users(id)
-  )`, () => {});
-  db.run(`CREATE TABLE IF NOT EXISTS workspace_members (
-    id SERIAL PRIMARY KEY,
-    workspace_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    role TEXT NOT NULL DEFAULT 'member',
-    created_at TEXT NOT NULL,
-    UNIQUE(workspace_id, user_id),
-    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
-    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-  )`, () => {});
-  db.run(`CREATE TABLE IF NOT EXISTS workspace_invitations (
-    id SERIAL PRIMARY KEY,
-    workspace_id INTEGER NOT NULL,
-    email_encrypted TEXT NOT NULL,
-    email_hash TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'member',
-    token_hash TEXT NOT NULL UNIQUE,
-    invited_by_user_id INTEGER,
-    expires_at TEXT NOT NULL,
-    accepted_at TEXT,
-    revoked_at TEXT,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
-  )`, () => {});
-  db.run(`CREATE TABLE IF NOT EXISTS sso_connections (
-    id SERIAL PRIMARY KEY,
-    workspace_id INTEGER NOT NULL,
-    idp_entity_id TEXT NOT NULL,
-    idp_sso_url TEXT NOT NULL,
-    idp_certificate TEXT NOT NULL,
-    metadata_xml TEXT NOT NULL,
-    enabled INTEGER NOT NULL DEFAULT 1,
-    created_at TEXT NOT NULL,
-    updated_at TEXT,
-    UNIQUE(workspace_id),
-    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
-  )`, () => {});
-  db.run('ALTER TABLE urls ADD COLUMN workspace_id INTEGER', () => {});
-  db.run('CREATE INDEX IF NOT EXISTS idx_urls_workspace_id ON urls(workspace_id)', () => {});
-  db.run('CREATE INDEX IF NOT EXISTS idx_workspace_members_user_id ON workspace_members(user_id)', () => {});
-  db.run('CREATE INDEX IF NOT EXISTS idx_workspace_invitations_hash ON workspace_invitations(email_hash)', () => {});
-  db.run('ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY', () => {});
-  db.run('ALTER TABLE workspace_members ENABLE ROW LEVEL SECURITY', () => {});
-  db.run('ALTER TABLE workspace_invitations ENABLE ROW LEVEL SECURITY', () => {});
-  db.run('ALTER TABLE sso_connections ENABLE ROW LEVEL SECURITY', () => {});
+  )`, () => {
+    db.run(`CREATE TABLE IF NOT EXISTS workspace_members (
+      id SERIAL PRIMARY KEY,
+      workspace_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      role TEXT NOT NULL DEFAULT 'member',
+      created_at TEXT NOT NULL,
+      UNIQUE(workspace_id, user_id),
+      FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`, () => {
+      db.run(`CREATE TABLE IF NOT EXISTS workspace_invitations (
+        id SERIAL PRIMARY KEY,
+        workspace_id INTEGER NOT NULL,
+        email_encrypted TEXT NOT NULL,
+        email_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'member',
+        token_hash TEXT NOT NULL UNIQUE,
+        invited_by_user_id INTEGER,
+        expires_at TEXT NOT NULL,
+        accepted_at TEXT,
+        revoked_at TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+      )`, () => {
+        db.run(`CREATE TABLE IF NOT EXISTS sso_connections (
+          id SERIAL PRIMARY KEY,
+          workspace_id INTEGER NOT NULL,
+          idp_entity_id TEXT NOT NULL,
+          idp_sso_url TEXT NOT NULL,
+          idp_certificate TEXT NOT NULL,
+          metadata_xml TEXT NOT NULL,
+          enabled INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT NOT NULL,
+          updated_at TEXT,
+          UNIQUE(workspace_id),
+          FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+        )`, () => {
+          db.run('ALTER TABLE urls ADD COLUMN workspace_id INTEGER', () => {});
+          db.run('CREATE INDEX IF NOT EXISTS idx_urls_workspace_id ON urls(workspace_id)', () => {});
+          db.run('CREATE INDEX IF NOT EXISTS idx_workspace_members_user_id ON workspace_members(user_id)', () => {});
+          db.run('CREATE INDEX IF NOT EXISTS idx_workspace_invitations_hash ON workspace_invitations(email_hash)', () => {});
+          db.run('ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY', () => {});
+          db.run('ALTER TABLE workspace_members ENABLE ROW LEVEL SECURITY', () => {});
+          db.run('ALTER TABLE workspace_invitations ENABLE ROW LEVEL SECURITY', () => {});
+          db.run('ALTER TABLE sso_connections ENABLE ROW LEVEL SECURITY', () => {});
+        });
+      });
+    });
+  });
 
   db.run('CREATE INDEX IF NOT EXISTS idx_password_resets_user_id ON password_resets(user_id)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token_hash)', () => {});
