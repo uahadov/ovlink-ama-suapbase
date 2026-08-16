@@ -4213,3 +4213,362 @@ document.addEventListener("click", async (e) => {
     });
   }
 })();
+
+// =========================
+// Workspaces (Pro team accounts) — dashboard switcher + /workspaces management page
+// =========================
+(function initWorkspaces() {
+  const hasWorkspacePage = !!document.getElementById("wsLoading") || !!document.getElementById("wsCreateSection");
+  const hasDashboardScope = !!document.getElementById("workspaceScopeSelect");
+
+  function wsEscapeHtml(value) {
+    return (value || "").toString().replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[ch]);
+  }
+
+  async function wsRequest(method, url, body) {
+    const makeRequest = () => fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json", "Accept": "application/json", "x-csrf-token": getCsrfToken() },
+      credentials: "include",
+      body: body === undefined ? undefined : JSON.stringify(withCsrf(body || {})),
+    });
+    let res = await makeRequest();
+    if (res.status === 403) {
+      const peek = await res.clone().json().catch(() => ({}));
+      const msg = ((peek && (peek.error || peek.message)) || "").toString().toLowerCase();
+      if (msg.includes("csrf")) {
+        await refreshCsrfToken();
+        res = await makeRequest();
+      }
+    }
+    return res;
+  }
+
+  function setMsg(el, text, isError) {
+    if (!el) return;
+    el.textContent = text || "";
+    el.classList.remove("text-danger", "text-success");
+    if (text) el.classList.add(isError === false ? "text-success" : "text-danger");
+  }
+
+  function wsRoleLabel(role) {
+    if (role === "owner") return pickLang("Sahib", "Sahip", "Owner");
+    if (role === "admin") return pickLang("Admin", "Admin", "Admin");
+    return pickLang("Üzv", "Üye", "Member");
+  }
+
+  // --- Dashboard: workspace scope switcher + quick create ---
+  if (hasDashboardScope) {
+    const scopeSelect = document.getElementById("workspaceScopeSelect");
+    scopeSelect.addEventListener("change", () => {
+      const value = scopeSelect.value;
+      window.location.href = value ? `/dashboard?ws=${encodeURIComponent(value)}` : "/dashboard";
+    });
+
+    const quickForm = document.getElementById("dashboardQuickCreateForm");
+    if (quickForm) {
+      quickForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const msgEl = document.getElementById("dashboardQuickMsg");
+        const urlInput = document.getElementById("dashboardQuickUrl");
+        const aliasInput = document.getElementById("dashboardQuickAlias");
+        const original = (urlInput.value || "").trim();
+        if (!original) return;
+        const workspaceId = parseInt(quickForm.getAttribute("data-workspace-id"), 10) || 0;
+        const body = { original, lang: (typeof currentLang !== "undefined" ? currentLang : "az") };
+        if (workspaceId > 0) body.workspaceId = workspaceId;
+        const alias = (aliasInput.value || "").trim();
+        if (alias) body.customLink = alias;
+        setMsg(msgEl, pickLang("Yaradılır...", "Oluşturuluyor...", "Creating..."));
+        try {
+          const res = await postJsonWithCsrf("/api/shorten", body);
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            setMsg(msgEl, (data && data.error) || pickLang("Link qısaldıla bilmədi.", "Link kısaltılamadı.", "Link could not be shortened."), true);
+            return;
+          }
+          setMsg(msgEl, pickLang("Yaradıldı! Yenilənir...", "Oluşturuldu! Yenileniyor...", "Created! Reloading..."), false);
+          setTimeout(() => window.location.reload(), 700);
+        } catch {
+          setMsg(msgEl, pickLang("Şəbəkə xətası.", "Ağ hatası.", "Network error."), true);
+        }
+      });
+    }
+  }
+
+  if (!hasWorkspacePage) return;
+
+  const loadingEl = document.getElementById("wsLoading");
+  const upsellEl = document.getElementById("wsUpsellSection");
+  const createSection = document.getElementById("wsCreateSection");
+  const detailSection = document.getElementById("wsDetailSection");
+  let wsDetail = null;
+
+  async function loadWorkspaceState() {
+    let data = null;
+    try {
+      const res = await fetch("/api/workspaces", { credentials: "include" });
+      if (res.ok) data = await res.json();
+    } catch {}
+    loadingEl.classList.add("d-none");
+
+    const list = (data && data.workspaces) || [];
+    if (!list.length) {
+      const isPro = !!(window.__wsPlanIsPro);
+      if (isPro) {
+        createSection.classList.remove("d-none");
+      } else {
+        upsellEl.classList.remove("d-none");
+      }
+      return;
+    }
+    renderWorkspaceDetail(list[0].id);
+  }
+
+  async function renderWorkspaceDetail(workspaceId) {
+    let detail = null;
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}`, { credentials: "include" });
+      if (res.ok) detail = await res.json();
+    } catch {}
+    if (!detail) {
+      upsellEl.classList.remove("d-none");
+      return;
+    }
+    wsDetail = detail;
+    createSection.classList.add("d-none");
+    detailSection.classList.remove("d-none");
+
+    document.getElementById("wsDisplayName").textContent = detail.name;
+    document.getElementById("wsMyRole").textContent = wsRoleLabel(detail.my_role);
+    document.getElementById("wsOpenDashboardBtn").href = `/dashboard?ws=${detail.id}`;
+
+    const isOwner = detail.my_role === "owner";
+    const isAdmin = isOwner || detail.my_role === "admin";
+    document.getElementById("wsRenameBtn").classList.toggle("d-none", !isOwner);
+    document.getElementById("wsInviteCard").classList.toggle("d-none", !isAdmin);
+    document.getElementById("wsSsoCard").classList.toggle("d-none", !isAdmin);
+    document.getElementById("wsDangerCard").classList.toggle("d-none", !isOwner);
+    document.getElementById("wsProWarning").classList.toggle("d-none", !!detail.pro_active);
+
+    const membersBody = document.getElementById("wsMembersBody");
+    membersBody.innerHTML = "";
+    (detail.members || []).forEach((member) => {
+      const tr = document.createElement("tr");
+      const canManage = isAdmin && member.role !== "owner" && (isOwner || member.role !== "admin");
+      const roleControls = isOwner && member.role !== "owner"
+        ? `<select class="form-select form-select-sm w-auto" data-ws-member-role="${member.user_id}">
+             <option value="member" ${member.role === "member" ? "selected" : ""}>${wsEscapeHtml(wsRoleLabel("member"))}</option>
+             <option value="admin" ${member.role === "admin" ? "selected" : ""}>${wsEscapeHtml(wsRoleLabel("admin"))}</option>
+           </select>`
+        : wsEscapeHtml(wsRoleLabel(member.role));
+      tr.innerHTML = `
+        <td class="text-truncate" style="max-width:260px">${wsEscapeHtml(member.email)}</td>
+        <td>${roleControls}</td>
+        <td class="small text-muted">${member.joined_at ? wsEscapeHtml(new Date(member.joined_at).toLocaleDateString()) : "-"}</td>
+        <td class="text-end">${canManage ? `<button type="button" class="btn btn-outline-danger btn-sm rounded-pill" data-ws-remove-member="${member.user_id}">${wsEscapeHtml(pickLang("Çıxar", "Çıkar", "Remove"))}</button>` : "-"}</td>`;
+      membersBody.appendChild(tr);
+    });
+
+    membersBody.querySelectorAll("select[data-ws-member-role]").forEach((select) => {
+      select.addEventListener("change", async () => {
+        const targetUserId = select.getAttribute("data-ws-member-role");
+        const res = await wsRequest("PATCH", `/api/workspaces/${detail.id}/members/${targetUserId}`, { role: select.value });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert((err && err.error) || "Role update failed.");
+          loadWorkspaceState();
+          return;
+        }
+        renderWorkspaceDetail(detail.id);
+      });
+    });
+    membersBody.querySelectorAll("button[data-ws-remove-member]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const targetUserId = btn.getAttribute("data-ws-remove-member");
+        if (!confirm(pickLang("Bu üzvü workspace-dən çıxarmaq istədiyinizə əminsiniz?", "Bu üyeyi workspace'ten çıkarmak istediğinize emin misiniz?", "Remove this member from the workspace?"))) return;
+        const res = await wsRequest("DELETE", `/api/workspaces/${detail.id}/members/${targetUserId}`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert((err && err.error) || "Remove failed.");
+          return;
+        }
+        renderWorkspaceDetail(detail.id);
+      });
+    });
+
+    const pendingWrap = document.getElementById("wsPendingInvitesWrap");
+    const pendingList = document.getElementById("wsPendingInvitesList");
+    const pending = (detail.invitations || []).filter((inv) => !inv.accepted_at && !inv.revoked_at);
+    pendingWrap.classList.toggle("d-none", !pending.length || !isAdmin);
+    pendingList.innerHTML = "";
+    pending.forEach((inv) => {
+      if (new Date(inv.expires_at).getTime() < Date.now()) return;
+      const li = document.createElement("li");
+      li.className = "list-group-item d-flex justify-content-between align-items-center px-0 py-2";
+      li.innerHTML = `
+        <span class="text-truncate" style="max-width:280px">${wsEscapeHtml(inv.email)} <span class="badge text-bg-light border ms-1">${wsEscapeHtml(wsRoleLabel(inv.role))}</span></span>
+        <button type="button" class="btn btn-outline-danger btn-sm rounded-pill" data-ws-revoke-invite="${inv.id}">${wsEscapeHtml(pickLang("Ləğv et", "İptal et", "Revoke"))}</button>`;
+      pendingList.appendChild(li);
+    });
+    pendingList.querySelectorAll("button[data-ws-revoke-invite]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const inviteId = btn.getAttribute("data-ws-revoke-invite");
+        const res = await wsRequest("DELETE", `/api/workspaces/${detail.id}/invitations/${inviteId}`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert((err && err.error) || "Revoke failed.");
+          return;
+        }
+        renderWorkspaceDetail(detail.id);
+      });
+    });
+
+    const ssoStatusWrap = document.getElementById("wsSsoStatusWrap");
+    const ssoForm = document.getElementById("wsSsoForm");
+    const ssoRemoveBtn = document.getElementById("wsSsoRemoveBtn");
+    const sso = detail.sso;
+    if (sso && sso.configured) {
+      ssoStatusWrap.innerHTML = `
+        <div class="alert alert-success py-2 px-3 small mb-2">${wsEscapeHtml(pickLang("SSO konfiqurasiya edilib.", "SSO yapılandırıldı.", "SSO is configured."))}</div>
+        <div class="small"><strong>ACS URL:</strong> <code class="text-break">${wsEscapeHtml(sso.acs_url)}</code></div>
+        <div class="small"><strong>Entity ID:</strong> <code class="text-break">${wsEscapeHtml(sso.sp_entity_id)}</code></div>
+        <div class="small"><strong>Metadata:</strong> <a href="${wsEscapeHtml(sso.metadata_url)}" target="_blank" rel="noopener">${wsEscapeHtml(pickLang("SP metadata XML", "SP metadata XML", "SP metadata XML"))}</a></div>
+        <div class="small"><strong>Okta test:</strong> <a href="${wsEscapeHtml(sso.login_url)}">${wsEscapeHtml(pickLang("SSO girişini sına", "SSO girişini test et", "Test SSO login"))}</a></div>`;
+      ssoForm.classList.remove("d-none");
+      ssoRemoveBtn.classList.remove("d-none");
+    } else {
+      ssoStatusWrap.innerHTML = `<div class="alert alert-secondary py-2 px-3 small mb-2">${wsEscapeHtml(pickLang("SSO hələ konfiqurasiya edilməyib.", "SSO henüz yapılandırılmadı.", "SSO is not configured yet."))}</div>`;
+      ssoForm.classList.remove("d-none");
+      ssoRemoveBtn.classList.add("d-none");
+    }
+  }
+
+  // The plan flag is embedded by the page for the create-vs-upsell decision.
+  window.__wsPlanIsPro = window.__wsPlanIsPro || false;
+
+  const createForm = document.getElementById("wsCreateForm");
+  if (createForm) {
+    createForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msgEl = document.getElementById("wsCreateMsg");
+      const name = (document.getElementById("wsCreateName").value || "").trim();
+      if (name.length < 3) {
+        setMsg(msgEl, pickLang("Ad ən azı 3 simvol olmalıdır.", "Ad en az 3 karakter olmalıdır.", "Name must be at least 3 characters."), true);
+        return;
+      }
+      const res = await postJsonWithCsrf("/api/workspaces", { name, lang: (typeof currentLang !== "undefined" ? currentLang : "az") });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg(msgEl, (data && data.error) || "Error", true);
+        return;
+      }
+      createSection.classList.add("d-none");
+      renderWorkspaceDetail(data.id);
+    });
+  }
+
+  const renameBtn = document.getElementById("wsRenameBtn");
+  if (renameBtn) {
+    renameBtn.addEventListener("click", () => {
+      const form = document.getElementById("wsRenameForm");
+      const input = document.getElementById("wsRenameInput");
+      input.value = wsDetail ? wsDetail.name : "";
+      form.classList.toggle("d-none");
+    });
+    document.getElementById("wsRenameForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!wsDetail) return;
+      const name = (document.getElementById("wsRenameInput").value || "").trim();
+      const res = await wsRequest("PATCH", `/api/workspaces/${wsDetail.id}`, { name });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert((data && data.error) || "Rename failed.");
+        return;
+      }
+      renderWorkspaceDetail(wsDetail.id);
+    });
+  }
+
+  const inviteForm = document.getElementById("wsInviteForm");
+  if (inviteForm) {
+    inviteForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msgEl = document.getElementById("wsInviteMsg");
+      if (!wsDetail) return;
+      const email = (document.getElementById("wsInviteEmail").value || "").trim();
+      const role = document.getElementById("wsInviteRole").value || "member";
+      const res = await postJsonWithCsrf(`/api/workspaces/${wsDetail.id}/invitations`, { email, role, lang: (typeof currentLang !== "undefined" ? currentLang : "az") });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg(msgEl, (data && data.error) || "Error", true);
+        return;
+      }
+      const inviteUrl = (data && data.invite_url) || "";
+      msgEl.classList.remove("text-danger");
+      msgEl.classList.add("text-success");
+      msgEl.innerHTML = "";
+      const copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.className = "btn btn-outline-secondary btn-sm rounded-pill ms-2";
+      copyBtn.textContent = pickLang("Dəvət linkini köçür", "Davet linkini kopyala", "Copy invite link");
+      copyBtn.addEventListener("click", () => {
+        try { navigator.clipboard.writeText(inviteUrl); copyBtn.textContent = pickLang("Köçürüldü", "Kopyalandı", "Copied"); } catch {}
+      });
+      msgEl.appendChild(document.createTextNode(pickLang("Dəvət göndərildi. ", "Davet gönderildi. ", "Invitation sent. ")));
+      msgEl.appendChild(copyBtn);
+      document.getElementById("wsInviteEmail").value = "";
+      setTimeout(() => renderWorkspaceDetail(wsDetail.id), 1500);
+    });
+  }
+
+  const ssoForm = document.getElementById("wsSsoForm");
+  if (ssoForm) {
+    ssoForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msgEl = document.getElementById("wsSsoMsg");
+      if (!wsDetail) return;
+      const metadataXml = (document.getElementById("wsSsoMetadata").value || "").toString();
+      setMsg(msgEl, pickLang("Yoxlanılır...", "Doğrulanıyor...", "Validating..."));
+      const res = await wsRequest("PUT", `/api/workspaces/${wsDetail.id}/sso`, { metadataXml });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg(msgEl, (data && data.error) || "Error", true);
+        return;
+      }
+      setMsg(msgEl, pickLang("SSO konfiqurasiya edildi.", "SSO yapılandırıldı.", "SSO configured."), false);
+      renderWorkspaceDetail(wsDetail.id);
+    });
+    const ssoRemoveBtn = document.getElementById("wsSsoRemoveBtn");
+    ssoRemoveBtn.addEventListener("click", async () => {
+      if (!wsDetail) return;
+      if (!confirm(pickLang("SSO konfiqurasiyası silinsin?", "SSO yapılandırması silinsin?", "Delete SSO configuration?"))) return;
+      const res = await wsRequest("DELETE", `/api/workspaces/${wsDetail.id}/sso`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert((err && err.error) || "Delete failed.");
+        return;
+      }
+      renderWorkspaceDetail(wsDetail.id);
+    });
+  }
+
+  const deleteBtn = document.getElementById("wsDeleteBtn");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", async () => {
+      if (!wsDetail) return;
+      if (!confirm(pickLang("Workspace silinsin? Bu geri qaytarıla bilməz.", "Workspace silinsin? Bu geri alınamaz.", "Delete this workspace? This cannot be undone."))) return;
+      const res = await wsRequest("DELETE", `/api/workspaces/${wsDetail.id}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert((err && err.error) || "Delete failed.");
+        return;
+      }
+      window.location.href = "/workspaces";
+    });
+  }
+
+  loadWorkspaceState();
+})();

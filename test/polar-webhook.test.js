@@ -43,7 +43,10 @@ function signPayload(payloadObj, secret) {
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const msgId = `evt_${Date.now()}`;
   const rawBody = JSON.stringify(payloadObj);
-  const keyBuffer = Buffer.from(secret, 'utf8');
+  // Key derivation must match utils/polar.js and @polar-sh/sdk: the FULL
+  // secret string (including the whsec_ prefix) as UTF-8 bytes — no base64
+  // decoding of the post-prefix part.
+  const keyBuffer = Buffer.from(secret, 'utf-8');
   const toSign = `${msgId}.${timestamp}.${rawBody}`;
   const computedSignature = crypto.createHmac('sha256', keyBuffer).update(toSign).digest('base64');
   return {

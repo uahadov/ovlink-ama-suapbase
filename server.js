@@ -22,6 +22,7 @@ const lusca = require('lusca');
 const { body, validationResult } = require('express-validator');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('./utils/crypto.js');
 const { verifyPolarWebhook, resolvePolarProductPolicy } = require('./utils/polar.js');
+const { parseIdpMetadataXml, createWorkspaceSamlInstance, extractProfileEmail } = require('./utils/sso.js');
 const speakeasy = require('speakeasy');
 // POLAR_WEBHOOK_SECRET is read from process.env inside the webhook handler (not cached at startup)
 // so that dotenv-loaded values are always visible.
@@ -1023,6 +1024,7 @@ const PRO_FEATURES = Object.freeze({
   api: true,
   webhooks: true,
   ip_security: true,
+  workspaces: true,
 });
 
 const PRO_API_KEY_MAX_ACTIVE = 2;
@@ -1032,6 +1034,16 @@ const WEBHOOK_RETRY_BASE_MS = 60 * 1000;
 const SECURITY_EVENT_RETENTION_DAYS = 30;
 const API_IDEMPOTENCY_RETENTION_HOURS = 24;
 const PRO_API_USAGE_RETENTION_DAYS = 30;
+
+// Team workspaces (Pro-only): role model and limits.
+const WORKSPACE_ROLES = Object.freeze({
+  OWNER: 'owner',
+  ADMIN: 'admin',
+  MEMBER: 'member',
+});
+const WORKSPACE_NAME_MAX_LENGTH = 64;
+const WORKSPACE_INVITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+const WORKSPACE_MAX_MEMBERS = 25;
 const PRO_API_READ_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const PRO_API_READ_RATE_LIMIT_MAX = 120;
 const PRO_API_WRITE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -2175,7 +2187,7 @@ function buildPlanPayload(userRow, nowMs = Date.now()) {
     is_active: active,
     remaining_ms: remainingMs,
     polar_linked: !!(userRow && userRow.polar_customer_id),
-    features: active ? { ...PRO_FEATURES } : { api: false, webhooks: false, ip_security: false },
+    features: active ? { ...PRO_FEATURES } : { api: false, webhooks: false, ip_security: false, workspaces: false },
   };
 }
 
@@ -3880,12 +3892,21 @@ function isServerWebhookRoute(pathname) {
          path === '/api/polar/webhook';
 }
 
+// The SAML Assertion Consumer Service receives a form POST from the corporate
+// IdP (Okta etc.) which cannot carry our session-bound CSRF token; the payload
+// is instead authenticated by the XML signature validated against the
+// certificate stored in sso_connections.
+function isSamlAcsRoute(pathname) {
+  return /^\/sso\/\d+\/acs$/.test((pathname || '').toString());
+}
+
 app.use((req, res, next) => {
   const isStaticLike = /\.(css|js|png|jpg|jpeg|webp|svg|ico|woff2?|ttf|map|txt|xml|webmanifest)$/i.test(req.path);
   const skipStaticPath = req.path === '/robots.txt' || req.path === '/sitemap.xml' || req.path === '/favicon.ico';
   if (req.method === 'GET' && (isStaticLike || skipStaticPath)) return next();
   if (req.path.startsWith('/consent/redirect/')) return next();
   if (req.method === 'POST' && isServerWebhookRoute(req.path)) return next();
+  if (req.method === 'POST' && isSamlAcsRoute(req.path)) return next();
   const hasApiKeyHeader = hasApiKeyAuthHeader(req);
   if (hasApiKeyHeader) return next();
   return csrfProtection(req, res, next);
@@ -4516,6 +4537,85 @@ function requireProAccess(feature) {
       return res.status(500).json({ error: 'Server error.' });
     }
   };
+}
+
+/* -------------------------
+   WORKSPACES (Pro-only team accounts)
+   One workspace per Pro user; links gain an optional workspace_id so every
+   member can create/manage links through the same account and domain.
+------------------------- */
+
+function normalizeWorkspaceName(raw) {
+  return (raw || '').toString().replace(/\s+/g, ' ').trim().slice(0, WORKSPACE_NAME_MAX_LENGTH);
+}
+
+function normalizeWorkspaceRole(raw) {
+  const role = (raw || '').toString().trim().toLowerCase();
+  if (role === WORKSPACE_ROLES.ADMIN) return WORKSPACE_ROLES.ADMIN;
+  if (role === WORKSPACE_ROLES.MEMBER) return WORKSPACE_ROLES.MEMBER;
+  return '';
+}
+
+async function getWorkspaceById(workspaceId) {
+  const id = Number.parseInt(workspaceId, 10);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  return dbGetAsync('SELECT id, name, owner_user_id, created_at FROM workspaces WHERE id = ?', [id]);
+}
+
+async function getWorkspaceMemberRole(userId, workspaceId) {
+  if (!Number.isInteger(userId) || userId <= 0) return null;
+  const row = await dbGetAsync(
+    'SELECT role FROM workspace_members WHERE user_id = ? AND workspace_id = ?',
+    [userId, Number.parseInt(workspaceId, 10) || 0]
+  );
+  return row ? row.role : null;
+}
+
+// A workspace stays usable only while its owner keeps an active Pro plan.
+// Lapsed workspaces become read-only: redirects keep working but new links,
+// invitations and SSO logins are rejected.
+async function isWorkspaceProActive(workspace) {
+  if (!workspace || !workspace.owner_user_id) return false;
+  const ownerPlanRow = await loadUserPlanRow(workspace.owner_user_id);
+  return isProAccessActive(ownerPlanRow);
+}
+
+async function getUserWorkspaceMemberships(userId) {
+  if (!Number.isInteger(userId) || userId <= 0) return [];
+  return dbAllAsync(
+    `SELECT w.id, w.name, w.owner_user_id, wm.role, wm.created_at AS joined_at
+     FROM workspace_members wm
+     JOIN workspaces w ON w.id = wm.workspace_id
+     WHERE wm.user_id = ?
+     ORDER BY w.created_at ASC`,
+    [userId]
+  );
+}
+
+// SQL fragment for "link is owned by me OR lives in one of my workspaces".
+// Used by delete/update/meta routes so workspace members can manage shared links.
+const WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL = '(user_id = ? OR workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = ?))';
+
+function workspaceRoleAtLeast(role, minimum) {
+  if (role === WORKSPACE_ROLES.OWNER) return true;
+  if (role === WORKSPACE_ROLES.ADMIN) return minimum !== WORKSPACE_ROLES.OWNER;
+  if (role === WORKSPACE_ROLES.MEMBER) return minimum === WORKSPACE_ROLES.MEMBER;
+  return false;
+}
+
+async function sendWorkspaceInviteEmail(toEmail, workspaceName, inviteUrl) {
+  const subject = `Ovlink: "${workspaceName}" workspace invitation`;
+  const text = `You have been invited to the "${workspaceName}" workspace on Ovlink.\n\nOpen this link while signed in to your Ovlink account to accept:\n${inviteUrl}\n\nThe invitation expires in 7 days.`;
+  const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto">
+      <h2 style="color:#1f2b45">Ovlink workspace invitation</h2>
+      <p>You have been invited to the <strong>${escapeHtml(workspaceName)}</strong> workspace on Ovlink.</p>
+      <p style="margin:28px 0">
+        <a href="${escapeHtml(inviteUrl)}" style="background:#2563eb;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Accept invitation</a>
+      </p>
+      <p style="color:#66748c;font-size:13px">The invitation expires in 7 days. If the button does not work, open this link while signed in:<br>${escapeHtml(inviteUrl)}</p>
+    </div>`;
+  await sendMail({ to: toEmail, subject, text, html });
 }
 
 function scheduleWebhookProcessing(deliveryId, delayMs = 0) {
@@ -5331,6 +5431,63 @@ db.run('ALTER TABLE urls ADD COLUMN android_url TEXT', () => {});
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`, () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_bot_auth_codes_code ON bot_auth_codes(code)', () => {});
+
+  // Team workspaces (Pro-only): one workspace per Pro owner, members share
+  // link creation through the same account; SSO connections bind a corporate
+  // IdP to a workspace.
+  db.run(`CREATE TABLE IF NOT EXISTS workspaces (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    owner_user_id INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(owner_user_id),
+    FOREIGN KEY(owner_user_id) REFERENCES users(id)
+  )`, () => {});
+  db.run(`CREATE TABLE IF NOT EXISTS workspace_members (
+    id SERIAL PRIMARY KEY,
+    workspace_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member',
+    created_at TEXT NOT NULL,
+    UNIQUE(workspace_id, user_id),
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`, () => {});
+  db.run(`CREATE TABLE IF NOT EXISTS workspace_invitations (
+    id SERIAL PRIMARY KEY,
+    workspace_id INTEGER NOT NULL,
+    email_encrypted TEXT NOT NULL,
+    email_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member',
+    token_hash TEXT NOT NULL UNIQUE,
+    invited_by_user_id INTEGER,
+    expires_at TEXT NOT NULL,
+    accepted_at TEXT,
+    revoked_at TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+  )`, () => {});
+  db.run(`CREATE TABLE IF NOT EXISTS sso_connections (
+    id SERIAL PRIMARY KEY,
+    workspace_id INTEGER NOT NULL,
+    idp_entity_id TEXT NOT NULL,
+    idp_sso_url TEXT NOT NULL,
+    idp_certificate TEXT NOT NULL,
+    metadata_xml TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT,
+    UNIQUE(workspace_id),
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+  )`, () => {});
+  db.run('ALTER TABLE urls ADD COLUMN workspace_id INTEGER', () => {});
+  db.run('CREATE INDEX IF NOT EXISTS idx_urls_workspace_id ON urls(workspace_id)', () => {});
+  db.run('CREATE INDEX IF NOT EXISTS idx_workspace_members_user_id ON workspace_members(user_id)', () => {});
+  db.run('CREATE INDEX IF NOT EXISTS idx_workspace_invitations_hash ON workspace_invitations(email_hash)', () => {});
+  db.run('ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY', () => {});
+  db.run('ALTER TABLE workspace_members ENABLE ROW LEVEL SECURITY', () => {});
+  db.run('ALTER TABLE workspace_invitations ENABLE ROW LEVEL SECURITY', () => {});
+  db.run('ALTER TABLE sso_connections ENABLE ROW LEVEL SECURITY', () => {});
 
   db.run('CREATE INDEX IF NOT EXISTS idx_password_resets_user_id ON password_resets(user_id)', () => {});
   db.run('CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token_hash)', () => {});
@@ -8703,7 +8860,10 @@ app.post('/api/shorten',
       .custom((value) => !!normalizeCustomDomainInput(value)).withMessage('Düzgün domen daxil edin.'),
     body('max_clicks')
       .optional({ checkFalsy: true })
-      .isInt({ min: 1 }).withMessage('Maksimum klik sayı 1 və ya daha çox olmalıdır.')
+      .isInt({ min: 1 }).withMessage('Maksimum klik sayı 1 və ya daha çox olmalıdır.'),
+    body('workspaceId')
+      .optional({ checkFalsy: true })
+      .isInt({ min: 1 }).withMessage('Yanlış workspace identifikatoru.')
   ],
   (req, res) => {
     const errors = validationResult(req);
@@ -8734,6 +8894,7 @@ app.post('/api/shorten',
     const ownerId = req.session.userId || null;
 
     const { original, link_password, customLink, custom_domain, expires_at, max_clicks, original_b, ab_split_percent, ios_url, android_url } = req.body;
+    const requestedWorkspaceId = Number.parseInt(req.body && req.body.workspaceId, 10) || 0;
     const requestedDomain = normalizeCustomDomainInput(custom_domain);
     const originalAbs = ensureAbsoluteUrl(original);
     if (!originalAbs) {
@@ -8948,6 +9109,23 @@ const checkCustomDomain = (cb) => {
           }
 
           async function insertLink(selectedDomainHost) {
+            // Workspace-scoped creation: the actor must be a member and the
+            // workspace owner must keep an active Pro plan.
+            let workspaceLinkScopeId = null;
+            if (requestedWorkspaceId > 0) {
+              if (!ownerId) {
+                return res.status(401).json({ error: pickLang(uiLang, 'Workspace linki yaratmaq üçün daxil olun.', 'Workspace linki oluşturmak için giriş yapın.', 'Sign in to create workspace links.') });
+              }
+              const membershipRole = await getWorkspaceMemberRole(ownerId, requestedWorkspaceId);
+              if (!membershipRole) {
+                return res.status(403).json({ error: pickLang(uiLang, 'Bu workspace-ə çıxışınız yoxdur.', 'Bu workspace\'e erişiminiz yok.', 'You do not have access to this workspace.') });
+              }
+              const workspaceRow = await getWorkspaceById(requestedWorkspaceId);
+              if (!workspaceRow || !(await isWorkspaceProActive(workspaceRow))) {
+                return res.status(403).json({ error: pickLang(uiLang, 'Workspace Pro aboneliyi aktiv deyil.', 'Workspace Pro aboneliği aktif değil.', 'Workspace Pro subscription is not active.') });
+              }
+              workspaceLinkScopeId = workspaceRow.id;
+            }
             const createdAt = new Date().toISOString();
             const linkPasswordRaw = (link_password || '').toString();
             const shortUrl = buildShortUrl(req, short, selectedDomainHost);
@@ -8967,8 +9145,8 @@ const checkCustomDomain = (cb) => {
             const androidUrlAbs = android_url ? ensureAbsoluteUrl(android_url) : null;
 
             db.run(
-              'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host, original_b, ab_split_percent, ios_url, android_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-              [originalAbs, short, createdAt, ownerId, storedLinkPassword, expiresAtValue, maxClicksValue, selectedDomainHost || null, originalBAbs, splitPercentValue, iosUrlAbs, androidUrlAbs],
+              'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host, original_b, ab_split_percent, ios_url, android_url, workspace_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [originalAbs, short, createdAt, ownerId, storedLinkPassword, expiresAtValue, maxClicksValue, selectedDomainHost || null, originalBAbs, splitPercentValue, iosUrlAbs, androidUrlAbs, workspaceLinkScopeId],
               function (err) {
                 if (err) return res.status(500).json({ error: pickLang(uiLang, 'Link qısaldıla bilmədi.', 'Link kısaltılamadı.', 'Link could not be shortened.') });
 
@@ -9619,10 +9797,13 @@ app.get('/stats-page/:short', (req, res) => {
   const short = normalizeShortCode(req.params.short);
   if (!short) return res.status(404).send('Link bulunamadı.');
 
-  // Güvenlik: Sadece link sahibi görebilir
-  db.get('SELECT user_id FROM urls WHERE short = ?', [short], (err, row) => {
+  // Güvenlik: Sadece link sahibi veya aynı workspace üyesi görebilir
+  db.get(
+    `SELECT user_id, workspace_id FROM urls WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`,
+    [short, req.session.userId, req.session.userId],
+    (err, row) => {
     if (err || !row) return res.status(404).send('Link bulunamadı.');
-    if (row.user_id !== req.session.userId) {
+    if (row.user_id !== req.session.userId && !row.workspace_id) {
       return res.status(403).render('error-unauthorized', {
         csrfToken: res.locals._csrf,
         shortCode: short
@@ -9643,11 +9824,11 @@ app.post('/api/user/delete', (req, res) => {
   if (!req.session.userId) return res.status(401).send('Giriş yapmalısınız.');
   const safeShort = normalizeShortCode(req.body && req.body.short);
   if (!safeShort) return res.status(400).send('Geçersiz kısa kod.');
-  db.get('SELECT short, original, domain_host FROM urls WHERE short = ? AND user_id = ?', [safeShort, req.session.userId], (findErr, foundRow) => {
+  db.get(`SELECT short, original, domain_host FROM urls WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`, [safeShort, req.session.userId, req.session.userId], (findErr, foundRow) => {
     if (findErr) return res.status(500).send('Link silinemedi.');
     if (!foundRow) return res.status(404).send('Link tapılmadı və ya səlahiyyətiniz yoxdur.');
 
-    db.run('DELETE FROM urls WHERE short = ? AND user_id = ?', [safeShort, req.session.userId], function (err) {
+    db.run(`DELETE FROM urls WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`, [safeShort, req.session.userId, req.session.userId], function (err) {
       if (err) return res.status(500).send('Link silinemedi.');
       if (this.changes === 0) return res.status(404).send('Link tapılmadı və ya səlahiyyətiniz yoxdur.');
 
@@ -9696,14 +9877,14 @@ app.post('/api/user/delete-bulk',
 
   const placeholders = valid.map(() => '?').join(',');
   db.all(
-    `SELECT short, original, domain_host FROM urls WHERE user_id = ? AND short IN (${placeholders})`,
-    [req.session.userId, ...valid],
+    `SELECT short, original, domain_host FROM urls WHERE ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL} AND short IN (${placeholders})`,
+    [req.session.userId, req.session.userId, ...valid],
     (findErr, foundRows) => {
       if (findErr) return res.status(500).json({ error: 'Server error.' });
 
       db.run(
-        `DELETE FROM urls WHERE user_id = ? AND short IN (${placeholders})`,
-        [req.session.userId, ...valid],
+        `DELETE FROM urls WHERE ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL} AND short IN (${placeholders})`,
+        [req.session.userId, req.session.userId, ...valid],
         function (err) {
           if (err) return res.status(500).json({ error: 'Server error.' });
 
@@ -9745,7 +9926,7 @@ app.post('/api/user/link/update', (req, res) => {
     });
   }
 
-  db.get('SELECT short, original, domain_host FROM urls WHERE short = ? AND user_id = ?', [short, req.session.userId], (findErr, currentRow) => {
+  db.get(`SELECT short, original, domain_host FROM urls WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`, [short, req.session.userId, req.session.userId], (findErr, currentRow) => {
     if (findErr) return res.status(500).json({ error: 'Server error.' });
     if (!currentRow) {
       return res.status(404).json({ error: pickLang(uiLang, 'Link tapılmadı.', 'Link bulunamadı.', 'Link not found.') });
@@ -9756,8 +9937,8 @@ app.post('/api/user/link/update', (req, res) => {
 
     const updateRow = () => {
       db.run(
-        'UPDATE urls SET original = ? WHERE short = ? AND user_id = ?',
-        [originalAbs, short, req.session.userId],
+        `UPDATE urls SET original = ? WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`,
+        [originalAbs, short, req.session.userId, req.session.userId],
         function (err) {
           if (err) {
             return res.status(500).json({ error: pickLang(uiLang, 'Link yenilənə bilmədi.', 'Link güncellenemedi.', 'Link could not be updated.') });
@@ -9818,8 +9999,8 @@ app.post('/api/user/link/meta', (req, res) => {
   const tagsJson = tags.length ? JSON.stringify(tags) : null;
 
   db.get(
-    'SELECT short, original, domain_host, folder_name, tags_json FROM urls WHERE short = ? AND user_id = ?',
-    [short, req.session.userId],
+    `SELECT short, original, domain_host, folder_name, tags_json FROM urls WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`,
+    [short, req.session.userId, req.session.userId],
     (findErr, currentRow) => {
       if (findErr) {
         return res.status(500).json({ error: pickLang(uiLang, 'Metadata yenilənmədi.', 'Metadata güncellenemedi.', 'Metadata could not be updated.') });
@@ -9829,8 +10010,8 @@ app.post('/api/user/link/meta', (req, res) => {
       }
 
       db.run(
-        'UPDATE urls SET folder_name = ?, tags_json = ? WHERE short = ? AND user_id = ?',
-        [folderName || null, tagsJson, short, req.session.userId],
+        `UPDATE urls SET folder_name = ?, tags_json = ? WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`,
+        [folderName || null, tagsJson, short, req.session.userId, req.session.userId],
         function (err) {
           if (err) {
             return res.status(500).json({ error: pickLang(uiLang, 'Metadata yenilənmədi.', 'Metadata güncellenemedi.', 'Metadata could not be updated.') });
@@ -10088,6 +10269,532 @@ app.post('/api/user/import',
 
 
 // Kullanıcı Dashboard (GET /dashboard)
+/* =========================================================
+   WORKSPACE (PRO) — pages, API and SAML SSO endpoints
+   ========================================================= */
+
+app.get('/workspaces', async (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+  const plan = await getEffectivePlanForUser(req.session.userId).catch(() => null);
+  return res.render('workspaces', { csrfToken: res.locals._csrf, plan: plan || {} });
+});
+
+// Resolve + validate an invitation token into everything the accept flow needs.
+async function loadValidWorkspaceInvitation(token) {
+  const rawToken = (token || '').toString().trim();
+  if (!rawToken || rawToken.length > 200) return { error: 'invalid' };
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const invitation = await dbGetAsync('SELECT * FROM workspace_invitations WHERE token_hash = ?', [tokenHash]);
+  if (!invitation) return { error: 'invalid' };
+  if (invitation.revoked_at) return { error: 'revoked' };
+  if (invitation.accepted_at) return { error: 'accepted', invitation };
+  if (isIsoTimeExpired(invitation.expires_at)) return { error: 'expired', invitation };
+  const workspace = await getWorkspaceById(invitation.workspace_id);
+  if (!workspace) return { error: 'invalid' };
+  return { invitation, workspace };
+}
+
+function maskEmailForDisplay(email) {
+  const text = (email || '').toString();
+  const at = text.indexOf('@');
+  if (at <= 0) return text ? text.slice(0, 1) + '***' : '';
+  const local = text.slice(0, at);
+  const domain = text.slice(at + 1);
+  const visible = local.slice(0, 2);
+  return `${visible}${'*'.repeat(Math.max(1, local.length - 2))}@${domain}`;
+}
+
+app.get('/workspaces/accept', async (req, res) => {
+  const uiLang = normalizeLang(req.query && req.query.lang, 'az');
+  const token = (req.query && req.query.token || '').toString();
+  const renderAccept = (state, extra = {}) => res.render('workspaces-accept', {
+    csrfToken: res.locals._csrf,
+    state,
+    token,
+    workspaceName: extra.workspaceName || '',
+    invitedEmailMasked: extra.invitedEmailMasked || '',
+    ...extra,
+  });
+
+  if (!req.session.userId) return renderAccept('login_required');
+
+  const loaded = await loadValidWorkspaceInvitation(token).catch(() => ({ error: 'invalid' }));
+  if (loaded.error === 'accepted') return renderAccept('accepted', { workspaceName: (await getWorkspaceById(loaded.invitation.workspace_id) || {}).name || '' });
+  if (loaded.error) return renderAccept(loaded.error);
+
+  const { invitation, workspace } = loaded;
+  if (!(await isWorkspaceProActive(workspace))) return renderAccept('pro_expired', { workspaceName: workspace.name });
+
+  const user = await dbGetAsync('SELECT id, email_hash, email FROM users WHERE id = ?', [req.session.userId]);
+  if (!user || user.email_hash !== invitation.email_hash) {
+    const invitedEmail = (() => { try { return decryptAES256GCM(invitation.email_encrypted); } catch { return ''; } })();
+    return renderAccept('wrong_email', { workspaceName: workspace.name, invitedEmailMasked: maskEmailForDisplay(invitedEmail) });
+  }
+
+  const existingMember = await dbGetAsync('SELECT id FROM workspace_members WHERE workspace_id = ? AND user_id = ?', [workspace.id, user.id]);
+  if (existingMember) return renderAccept('already_member', { workspaceName: workspace.name });
+
+  return renderAccept('ready', { workspaceName: workspace.name });
+});
+
+app.post('/workspaces/accept', async (req, res) => {
+  if (!req.session.userId) return res.redirect(`/workspaces/accept?token=${encodeURIComponent((req.body && req.body.token || '').toString())}`);
+  const token = (req.body && req.body.token || '').toString();
+  const loaded = await loadValidWorkspaceInvitation(token).catch(() => ({ error: 'invalid' }));
+  if (loaded.error) return res.redirect(`/workspaces/accept?token=${encodeURIComponent(token)}`);
+
+  const { invitation, workspace } = loaded;
+  if (!(await isWorkspaceProActive(workspace))) return res.redirect(`/workspaces/accept?token=${encodeURIComponent(token)}`);
+
+  const user = await dbGetAsync('SELECT id, email_hash, banned FROM users WHERE id = ?', [req.session.userId]);
+  if (!user || user.email_hash !== invitation.email_hash) return res.redirect(`/workspaces/accept?token=${encodeURIComponent(token)}`);
+
+  const existingMember = await dbGetAsync('SELECT id FROM workspace_members WHERE workspace_id = ? AND user_id = ?', [workspace.id, user.id]);
+  if (!existingMember) {
+    await dbRunAsync(
+      'INSERT INTO workspace_members (workspace_id, user_id, role, created_at) VALUES (?, ?, ?, ?)',
+      [workspace.id, user.id, normalizeWorkspaceRole(invitation.role) || WORKSPACE_ROLES.MEMBER, new Date().toISOString()]
+    );
+  }
+  await dbRunAsync('UPDATE workspace_invitations SET accepted_at = ? WHERE id = ?', [new Date().toISOString(), invitation.id]);
+  logSecurityEvent(req, 'workspace.invite.accepted', 'success', { workspace_id: workspace.id, invitation_id: invitation.id });
+  return res.redirect(`/dashboard?ws=${workspace.id}`);
+});
+
+app.get('/api/workspaces', requireSignedIn, async (req, res) => {
+  const memberships = await getUserWorkspaceMemberships(req.session.userId);
+  const enriched = [];
+  for (const m of memberships) {
+    enriched.push({
+      id: m.id,
+      name: m.name,
+      role: m.role,
+      owner_user_id: m.owner_user_id,
+      is_owner: m.owner_user_id === req.session.userId,
+      pro_active: await isWorkspaceProActive(m),
+    });
+  }
+  return res.json({ workspaces: enriched });
+});
+
+app.post('/api/workspaces',
+  requireSignedIn,
+  requireProAccess('workspaces'),
+  async (req, res) => {
+    const uiLang = normalizeLang(req.body && req.body.lang, 'az');
+    const name = normalizeWorkspaceName(req.body && req.body.name);
+    if (name.length < 3) {
+      return res.status(400).json({ error: pickLang(uiLang, 'Workspace adı ən azı 3 simvol olmalıdır.', 'Workspace adı en az 3 karakter olmalıdır.', 'Workspace name must be at least 3 characters.') });
+    }
+    const existing = await dbGetAsync('SELECT id, name FROM workspaces WHERE owner_user_id = ?', [req.session.userId]);
+    if (existing) {
+      return res.status(409).json({
+        error: pickLang(uiLang, 'Sizin artıq bir workspace-iniz var.', 'Zaten bir workspace\'iniz var.', 'You already have a workspace.'),
+        workspace: { id: existing.id, name: existing.name },
+      });
+    }
+    const nowIso = new Date().toISOString();
+    const inserted = await dbRunAsync(
+      'INSERT INTO workspaces (name, owner_user_id, created_at) VALUES (?, ?, ?) RETURNING id',
+      [name, req.session.userId, nowIso]
+    );
+    const workspaceId = inserted.lastID;
+    await dbRunAsync(
+      'INSERT INTO workspace_members (workspace_id, user_id, role, created_at) VALUES (?, ?, ?, ?)',
+      [workspaceId, req.session.userId, WORKSPACE_ROLES.OWNER, nowIso]
+    );
+    logSecurityEvent(req, 'workspace.created', 'success', { workspace_id: workspaceId });
+    return res.json({ id: workspaceId, name });
+  });
+
+async function requireWorkspaceMembership(req, res, minimumRole) {
+  const workspace = await getWorkspaceById(req.params.id);
+  if (!workspace) {
+    res.status(404).json({ error: 'Workspace not found.' });
+    return null;
+  }
+  const role = await getWorkspaceMemberRole(req.session.userId, workspace.id);
+  if (!role || !workspaceRoleAtLeast(role, minimumRole)) {
+    res.status(403).json({ error: 'Workspace access denied.' });
+    return null;
+  }
+  return { workspace, role };
+}
+
+app.get('/api/workspaces/:id', requireSignedIn, async (req, res) => {
+  const ctx = await requireWorkspaceMembership(req, res, WORKSPACE_ROLES.MEMBER);
+  if (!ctx) return;
+  const { workspace, role } = ctx;
+
+  const memberRows = await dbAllAsync(
+    `SELECT u.id AS user_id, u.email, wm.role, wm.created_at AS joined_at
+     FROM workspace_members wm JOIN users u ON u.id = wm.user_id
+     WHERE wm.workspace_id = ? ORDER BY wm.created_at ASC`,
+    [workspace.id]
+  );
+  const members = memberRows.map((row) => ({
+    user_id: row.user_id,
+    email: (() => { try { return decryptAES256GCM(row.email); } catch { return ''; } })(),
+    role: row.role,
+    joined_at: row.joined_at,
+  }));
+
+  let invitations = [];
+  let sso = null;
+  if (workspaceRoleAtLeast(role, WORKSPACE_ROLES.ADMIN)) {
+    const inviteRows = await dbAllAsync(
+      'SELECT id, email_encrypted, role, expires_at, accepted_at, revoked_at, created_at FROM workspace_invitations WHERE workspace_id = ? ORDER BY created_at DESC',
+      [workspace.id]
+    );
+    invitations = inviteRows.map((row) => ({
+      id: row.id,
+      email: (() => { try { return decryptAES256GCM(row.email_encrypted); } catch { return ''; } })(),
+      role: row.role,
+      expires_at: row.expires_at,
+      accepted_at: row.accepted_at,
+      revoked_at: row.revoked_at,
+      created_at: row.created_at,
+    }));
+    const ssoRow = await dbGetAsync('SELECT id, idp_entity_id, idp_sso_url, enabled, created_at, updated_at FROM sso_connections WHERE workspace_id = ?', [workspace.id]);
+    const baseUrl = getPublicBaseUrl(req).replace(/\/+$/, '');
+    sso = {
+      configured: !!ssoRow,
+      enabled: ssoRow ? ssoRow.enabled == 1 : false,
+      idp_entity_id: ssoRow ? ssoRow.idp_entity_id : '',
+      idp_sso_url: ssoRow ? ssoRow.idp_sso_url : '',
+      sp_entity_id: `${baseUrl}/sso/${workspace.id}/metadata`,
+      acs_url: `${baseUrl}/sso/${workspace.id}/acs`,
+      metadata_url: `${baseUrl}/sso/${workspace.id}/metadata`,
+      login_url: `${baseUrl}/sso/${workspace.id}/login`,
+    };
+  }
+
+  return res.json({
+    id: workspace.id,
+    name: workspace.name,
+    owner_user_id: workspace.owner_user_id,
+    created_at: workspace.created_at,
+    my_role: role,
+    pro_active: await isWorkspaceProActive(workspace),
+    members,
+    invitations,
+    sso,
+  });
+});
+
+app.patch('/api/workspaces/:id', requireSignedIn, async (req, res) => {
+  const uiLang = normalizeLang(req.body && req.body.lang, 'az');
+  const ctx = await requireWorkspaceMembership(req, res, WORKSPACE_ROLES.OWNER);
+  if (!ctx) return;
+  const name = normalizeWorkspaceName(req.body && req.body.name);
+  if (name.length < 3) {
+    return res.status(400).json({ error: pickLang(uiLang, 'Workspace adı ən azı 3 simvol olmalıdır.', 'Workspace adı en az 3 karakter olmalıdır.', 'Workspace name must be at least 3 characters.') });
+  }
+  await dbRunAsync('UPDATE workspaces SET name = ? WHERE id = ?', [name, ctx.workspace.id]);
+  return res.json({ id: ctx.workspace.id, name });
+});
+
+app.delete('/api/workspaces/:id', requireSignedIn, async (req, res) => {
+  const ctx = await requireWorkspaceMembership(req, res, WORKSPACE_ROLES.OWNER);
+  if (!ctx) return;
+  const workspaceId = ctx.workspace.id;
+  // Workspace links fall back to their creator's personal scope; redirects
+  // never break.
+  await dbRunAsync('UPDATE urls SET workspace_id = NULL WHERE workspace_id = ?', [workspaceId]);
+  await dbRunAsync('DELETE FROM sso_connections WHERE workspace_id = ?', [workspaceId]);
+  await dbRunAsync('DELETE FROM workspace_invitations WHERE workspace_id = ?', [workspaceId]);
+  await dbRunAsync('DELETE FROM workspace_members WHERE workspace_id = ?', [workspaceId]);
+  await dbRunAsync('DELETE FROM workspaces WHERE id = ?', [workspaceId]);
+  logSecurityEvent(req, 'workspace.deleted', 'success', { workspace_id: workspaceId });
+  return res.json({ deleted: true });
+});
+
+app.post('/api/workspaces/:id/invitations',
+  requireSignedIn,
+  sensitiveActionLimiter,
+  async (req, res) => {
+    const uiLang = normalizeLang(req.body && req.body.lang, 'az');
+    const ctx = await requireWorkspaceMembership(req, res, WORKSPACE_ROLES.ADMIN);
+    if (!ctx) return;
+    const { workspace, role: actorRole } = ctx;
+
+    if (!(await isWorkspaceProActive(workspace))) {
+      return res.status(403).json({ error: pickLang(uiLang, 'Workspace Pro aboneliyi aktiv deyil.', 'Workspace Pro aboneliği aktif değil.', 'Workspace Pro subscription is not active.') });
+    }
+
+    const email = (req.body && req.body.email || '').toString().trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      return res.status(400).json({ error: pickLang(uiLang, 'Düzgün e-poçt ünvanı daxil edin.', 'Geçerli bir e-posta adresi girin.', 'Enter a valid email address.') });
+    }
+    const inviteRole = normalizeWorkspaceRole(req.body && req.body.role) || WORKSPACE_ROLES.MEMBER;
+    if (inviteRole === WORKSPACE_ROLES.ADMIN && actorRole !== WORKSPACE_ROLES.OWNER) {
+      return res.status(403).json({ error: pickLang(uiLang, 'Yalnız sahib admin dəvət edə bilər.', 'Sadece sahip admin davet edebilir.', 'Only the owner can invite admins.') });
+    }
+
+    const existingMember = await dbGetAsync('SELECT id FROM workspace_members WHERE workspace_id = ? AND user_id = (SELECT id FROM users WHERE email_hash = ?)', [workspace.id, blindIndex(email)]);
+    if (existingMember) {
+      return res.status(409).json({ error: pickLang(uiLang, 'Bu istifadəçi artıq üzvdür.', 'Bu kullanıcı zaten üye.', 'This user is already a member.') });
+    }
+    const memberCount = await dbGetAsync('SELECT COUNT(*)::int AS c FROM workspace_members WHERE workspace_id = ?', [workspace.id]);
+    const pendingCount = await dbGetAsync("SELECT COUNT(*)::int AS c FROM workspace_invitations WHERE workspace_id = ? AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > ?", [workspace.id, new Date().toISOString()]);
+    if (Number(memberCount.c) + Number(pendingCount.c) >= WORKSPACE_MAX_MEMBERS) {
+      return res.status(409).json({ error: pickLang(uiLang, `Workspace üzv limiti (${WORKSPACE_MAX_MEMBERS}) dolub.`, `Workspace üye limiti (${WORKSPACE_MAX_MEMBERS}) doldu.`, `Workspace member limit (${WORKSPACE_MAX_MEMBERS}) reached.`) });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('base64url');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + WORKSPACE_INVITE_EXPIRY_MS).toISOString();
+    const nowIso = new Date().toISOString();
+    const inserted = await dbRunAsync(
+      'INSERT INTO workspace_invitations (workspace_id, email_encrypted, email_hash, role, token_hash, invited_by_user_id, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id',
+      [workspace.id, encryptAES256GCM(email), blindIndex(email), inviteRole, tokenHash, req.session.userId, expiresAt, nowIso]
+    );
+
+    const inviteUrl = buildAbsoluteUrl(req, `/workspaces/accept?token=${encodeURIComponent(rawToken)}`);
+    sendWorkspaceInviteEmail(email, workspace.name, inviteUrl).catch(() => {});
+
+    return res.json({
+      invitation: { id: inserted.lastID, email, role: inviteRole, expires_at: expiresAt },
+      invite_url: inviteUrl,
+      email_sent: true,
+    });
+  });
+
+app.delete('/api/workspaces/:id/invitations/:invitationId', requireSignedIn, async (req, res) => {
+  const ctx = await requireWorkspaceMembership(req, res, WORKSPACE_ROLES.ADMIN);
+  if (!ctx) return;
+  const invitationId = Number.parseInt(req.params.invitationId, 10);
+  if (!Number.isInteger(invitationId) || invitationId <= 0) return res.status(400).json({ error: 'Invalid invitation id.' });
+  const result = await dbRunAsync(
+    'UPDATE workspace_invitations SET revoked_at = ? WHERE id = ? AND workspace_id = ? AND accepted_at IS NULL AND revoked_at IS NULL',
+    [new Date().toISOString(), invitationId, ctx.workspace.id]
+  );
+  if (!result.changes) return res.status(404).json({ error: 'Invitation not found.' });
+  return res.json({ revoked: true });
+});
+
+app.delete('/api/workspaces/:id/members/:userId', requireSignedIn, async (req, res) => {
+  const ctx = await requireWorkspaceMembership(req, res, WORKSPACE_ROLES.ADMIN);
+  if (!ctx) return;
+  const targetUserId = Number.parseInt(req.params.userId, 10);
+  if (!Number.isInteger(targetUserId) || targetUserId <= 0) return res.status(400).json({ error: 'Invalid user id.' });
+
+  const target = await dbGetAsync('SELECT user_id, role FROM workspace_members WHERE workspace_id = ? AND user_id = ?', [ctx.workspace.id, targetUserId]);
+  if (!target) return res.status(404).json({ error: 'Member not found.' });
+  if (target.role === WORKSPACE_ROLES.OWNER) {
+    return res.status(403).json({ error: 'The workspace owner cannot be removed.' });
+  }
+  if (target.role === WORKSPACE_ROLES.ADMIN && ctx.role !== WORKSPACE_ROLES.OWNER) {
+    return res.status(403).json({ error: 'Only the owner can remove admins.' });
+  }
+  await dbRunAsync('DELETE FROM workspace_members WHERE workspace_id = ? AND user_id = ?', [ctx.workspace.id, targetUserId]);
+  logSecurityEvent(req, 'workspace.member.removed', 'success', { workspace_id: ctx.workspace.id, target_user_id: targetUserId });
+  return res.json({ removed: true });
+});
+
+app.patch('/api/workspaces/:id/members/:userId', requireSignedIn, async (req, res) => {
+  const ctx = await requireWorkspaceMembership(req, res, WORKSPACE_ROLES.OWNER);
+  if (!ctx) return;
+  const targetUserId = Number.parseInt(req.params.userId, 10);
+  if (!Number.isInteger(targetUserId) || targetUserId <= 0) return res.status(400).json({ error: 'Invalid user id.' });
+  const newRole = normalizeWorkspaceRole(req.body && req.body.role);
+  if (!newRole) return res.status(400).json({ error: 'Role must be "admin" or "member".' });
+
+  const target = await dbGetAsync('SELECT user_id, role FROM workspace_members WHERE workspace_id = ? AND user_id = ?', [ctx.workspace.id, targetUserId]);
+  if (!target) return res.status(404).json({ error: 'Member not found.' });
+  if (target.role === WORKSPACE_ROLES.OWNER) return res.status(403).json({ error: 'The owner role cannot be changed.' });
+
+  await dbRunAsync('UPDATE workspace_members SET role = ? WHERE workspace_id = ? AND user_id = ?', [newRole, ctx.workspace.id, targetUserId]);
+  return res.json({ updated: true, role: newRole });
+});
+
+app.get('/api/workspaces/:id/sso', requireSignedIn, async (req, res) => {
+  const ctx = await requireWorkspaceMembership(req, res, WORKSPACE_ROLES.ADMIN);
+  if (!ctx) return;
+  const ssoRow = await dbGetAsync('SELECT idp_entity_id, idp_sso_url, enabled FROM sso_connections WHERE workspace_id = ?', [ctx.workspace.id]);
+  const baseUrl = getPublicBaseUrl(req).replace(/\/+$/, '');
+  return res.json({
+    configured: !!ssoRow,
+    enabled: ssoRow ? ssoRow.enabled == 1 : false,
+    idp_entity_id: ssoRow ? ssoRow.idp_entity_id : '',
+    idp_sso_url: ssoRow ? ssoRow.idp_sso_url : '',
+    sp_entity_id: `${baseUrl}/sso/${ctx.workspace.id}/metadata`,
+    acs_url: `${baseUrl}/sso/${ctx.workspace.id}/acs`,
+    metadata_url: `${baseUrl}/sso/${ctx.workspace.id}/metadata`,
+    login_url: `${baseUrl}/sso/${ctx.workspace.id}/login`,
+  });
+});
+
+app.put('/api/workspaces/:id/sso',
+  requireSignedIn,
+  sensitiveActionLimiter,
+  async (req, res) => {
+    const uiLang = normalizeLang(req.body && req.body.lang, 'az');
+    const ctx = await requireWorkspaceMembership(req, res, WORKSPACE_ROLES.OWNER);
+    if (!ctx) return;
+    if (!(await isWorkspaceProActive(ctx.workspace))) {
+      return res.status(403).json({ error: pickLang(uiLang, 'Workspace Pro aboneliyi aktiv deyil.', 'Workspace Pro aboneliği aktif değil.', 'Workspace Pro subscription is not active.') });
+    }
+
+    const metadataXml = (req.body && req.body.metadataXml || '').toString();
+    let parsed;
+    try {
+      parsed = await parseIdpMetadataXml(metadataXml);
+    } catch (err) {
+      return res.status(400).json({ error: (err && err.message || 'Invalid metadata.').toString().slice(0, 200) });
+    }
+
+    const nowIso = new Date().toISOString();
+    const existing = await dbGetAsync('SELECT id FROM sso_connections WHERE workspace_id = ?', [ctx.workspace.id]);
+    if (existing) {
+      await dbRunAsync(
+        'UPDATE sso_connections SET idp_entity_id = ?, idp_sso_url = ?, idp_certificate = ?, metadata_xml = ?, enabled = 1, updated_at = ? WHERE workspace_id = ?',
+        [parsed.entityId, parsed.ssoLoginUrl, parsed.certificate, metadataXml, nowIso, ctx.workspace.id]
+      );
+    } else {
+      await dbRunAsync(
+        'INSERT INTO sso_connections (workspace_id, idp_entity_id, idp_sso_url, idp_certificate, metadata_xml, enabled, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)',
+        [ctx.workspace.id, parsed.entityId, parsed.ssoLoginUrl, parsed.certificate, metadataXml, nowIso]
+      );
+    }
+    logSecurityEvent(req, 'workspace.sso.configured', 'success', { workspace_id: ctx.workspace.id, idp_entity_id: parsed.entityId.slice(0, 128) });
+    return res.json({ configured: true, enabled: true, idp_entity_id: parsed.entityId, idp_sso_url: parsed.ssoLoginUrl });
+  });
+
+app.delete('/api/workspaces/:id/sso', requireSignedIn, async (req, res) => {
+  const ctx = await requireWorkspaceMembership(req, res, WORKSPACE_ROLES.OWNER);
+  if (!ctx) return;
+  await dbRunAsync('DELETE FROM sso_connections WHERE workspace_id = ?', [ctx.workspace.id]);
+  logSecurityEvent(req, 'workspace.sso.removed', 'success', { workspace_id: ctx.workspace.id });
+  return res.json({ removed: true });
+});
+
+// Resolve the SSO connection for login/ACS/metadata flows: the workspace must
+// exist, its owner must be on an active Pro plan and SSO must be configured
+// and enabled.
+async function loadActiveWorkspaceSso(workspaceId) {
+  const workspace = await getWorkspaceById(workspaceId);
+  if (!workspace) return null;
+  if (!(await isWorkspaceProActive(workspace))) return null;
+  const ssoRow = await dbGetAsync(
+    'SELECT idp_entity_id, idp_sso_url, idp_certificate, enabled FROM sso_connections WHERE workspace_id = ?',
+    [workspace.id]
+  );
+  if (!ssoRow || ssoRow.enabled != 1) return null;
+  return { workspace, sso: ssoRow };
+}
+
+app.get('/sso/:workspaceId/metadata', async (req, res) => {
+  const loaded = await loadActiveWorkspaceSso(req.params.workspaceId).catch(() => null);
+  if (!loaded) return res.status(404).send('SSO is not configured for this workspace.');
+  try {
+    const saml = createWorkspaceSamlInstance({
+      baseUrl: getPublicBaseUrl(req),
+      workspaceId: loaded.workspace.id,
+      entityId: loaded.sso.idp_entity_id,
+      ssoLoginUrl: loaded.sso.idp_sso_url,
+      certificate: loaded.sso.idp_certificate,
+    });
+    const metadata = saml.generateServiceProviderMetadata();
+    res.set('Content-Type', 'application/samlmetadata+xml');
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.send(metadata);
+  } catch (err) {
+    console.error('[sso] metadata generation failed:', err && err.message);
+    return res.status(500).send('SSO metadata error.');
+  }
+});
+
+app.get('/sso/:workspaceId/login', async (req, res) => {
+  const loaded = await loadActiveWorkspaceSso(req.params.workspaceId).catch(() => null);
+  if (!loaded) return res.redirect('/login?sso=error');
+  try {
+    const saml = createWorkspaceSamlInstance({
+      baseUrl: getPublicBaseUrl(req),
+      workspaceId: loaded.workspace.id,
+      entityId: loaded.sso.idp_entity_id,
+      ssoLoginUrl: loaded.sso.idp_sso_url,
+      certificate: loaded.sso.idp_certificate,
+    });
+    const authorizeUrl = await saml.getAuthorizeUrlAsync({ ...req, headers: req.headers });
+    return res.redirect(authorizeUrl);
+  } catch (err) {
+    console.error('[sso] login request failed:', err && err.message);
+    return res.redirect('/login?sso=error');
+  }
+});
+
+app.post('/sso/:workspaceId/acs', async (req, res) => {
+  const redirectError = () => res.redirect('/login?sso=error');
+  const loaded = await loadActiveWorkspaceSso(req.params.workspaceId).catch(() => null);
+  if (!loaded) return redirectError();
+
+  const samlResponse = req.body && req.body.SAMLResponse;
+  if (!samlResponse || typeof samlResponse !== 'string') {
+    logSecurityEvent(req, 'sso.acs', 'failure', { reason: 'missing_response', workspace_id: loaded.workspace.id });
+    return redirectError();
+  }
+
+  let profile;
+  try {
+    const saml = createWorkspaceSamlInstance({
+      baseUrl: getPublicBaseUrl(req),
+      workspaceId: loaded.workspace.id,
+      entityId: loaded.sso.idp_entity_id,
+      ssoLoginUrl: loaded.sso.idp_sso_url,
+      certificate: loaded.sso.idp_certificate,
+    });
+    profile = await saml.validatePostResponseAsync({ SAMLResponse: samlResponse });
+  } catch (err) {
+    logSecurityEvent(req, 'sso.acs', 'failure', { reason: 'invalid_assertion', workspace_id: loaded.workspace.id, detail: (err && err.message || '').slice(0, 128) });
+    return redirectError();
+  }
+
+  const email = extractProfileEmail(profile);
+  if (!email) {
+    logSecurityEvent(req, 'sso.acs', 'failure', { reason: 'no_email_in_assertion', workspace_id: loaded.workspace.id });
+    return redirectError();
+  }
+
+  let user = await dbGetAsync('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(email)]);
+  if (user && user.banned == 1 && (!user.ban_until || Date.parse(user.ban_until) > Date.now())) {
+    logSecurityEvent(req, 'sso.acs', 'blocked', { reason: 'banned', workspace_id: loaded.workspace.id });
+    return redirectError();
+  }
+
+  if (!user) {
+    // JIT provisioning: the corporate IdP vouches for the email address, so
+    // the account starts verified with a random local password (SSO-only).
+    const hashedPassword = await bcrypt.hash(crypto.randomBytes(24).toString('base64url'), 12);
+    const inserted = await dbRunAsync(
+      "INSERT INTO users (email, email_hash, password, email_verified, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled, plan_tier, plan_status) VALUES (?, ?, ?, 1, 'sso', ?, 'az', 'light', 1, 1, 1, 'free', 'active') RETURNING id",
+      [encryptAES256GCM(email), blindIndex(email), hashedPassword, new Date().toISOString()]
+    );
+    user = { id: inserted.lastID, email_verified: 1 };
+  }
+
+  const existingMembership = await dbGetAsync('SELECT id FROM workspace_members WHERE workspace_id = ? AND user_id = ?', [loaded.workspace.id, user.id]);
+  if (!existingMembership) {
+    await dbRunAsync(
+      'INSERT INTO workspace_members (workspace_id, user_id, role, created_at) VALUES (?, ?, ?, ?)',
+      [loaded.workspace.id, user.id, WORKSPACE_ROLES.MEMBER, new Date().toISOString()]
+    );
+  }
+
+  return req.session.regenerate((regenErr) => {
+    if (regenErr) return redirectError();
+    req.session.userId = user.id;
+    req.session.username = email;
+    dbRunAsync('UPDATE users SET last_login_at = ? WHERE id = ?', [new Date().toISOString(), user.id]).catch(() => {});
+    return upsertUserSessionRecord(req, user.id, { loginMethod: 'sso' }, () => {
+      return req.session.save(() => {
+        logSecurityEvent(req, 'sso.acs', 'success', { workspace_id: loaded.workspace.id, user_id: user.id });
+        return res.redirect('/dashboard');
+      });
+    });
+  });
+});
+
 app.get('/dashboard', (req, res) => {
   if (!req.session.userId) return res.redirect('/');
 
@@ -10120,7 +10827,21 @@ app.get('/dashboard', (req, res) => {
       });
     }
 
-    db.all('SELECT short, original, created_at, reports, link_password, disabled, domain_host, folder_name, tags_json FROM urls WHERE user_id = ? ORDER BY created_at DESC', [req.session.userId], (err, rows) => {
+    db.all(
+      'SELECT w.id, w.name, wm.role FROM workspace_members wm JOIN workspaces w ON w.id = wm.workspace_id WHERE wm.user_id = ? ORDER BY w.created_at ASC',
+      [req.session.userId],
+      (wsErr, membershipRows) => {
+      const memberships = wsErr || !Array.isArray(membershipRows) ? [] : membershipRows;
+      const requestedWsId = Number.parseInt(req.query && req.query.ws, 10) || 0;
+      const activeMembership = requestedWsId > 0 ? memberships.find((m) => m.id === requestedWsId) : null;
+      const activeWorkspace = activeMembership
+        ? { id: activeMembership.id, name: activeMembership.name, role: activeMembership.role }
+        : null;
+      const linksSql = activeWorkspace
+        ? 'SELECT short, original, created_at, reports, link_password, disabled, domain_host, folder_name, tags_json FROM urls WHERE workspace_id = ? ORDER BY created_at DESC'
+        : 'SELECT short, original, created_at, reports, link_password, disabled, domain_host, folder_name, tags_json FROM urls WHERE user_id = ? AND workspace_id IS NULL ORDER BY created_at DESC';
+
+    db.all(linksSql, [activeWorkspace ? activeWorkspace.id : req.session.userId], (err, rows) => {
     if (err) return res.status(500).send('Veritabanı hatası.');
 
     // Özet İstatistikler Hesapla
@@ -10238,15 +10959,38 @@ ${announcementHtml}
               </div>
             </div>
 
+            <!-- Hızlı link oluşturma (aktif kapsama göre) -->
+            <div class="policy-card app-card shadow-sm border-0 mb-4">
+              <div class="card-body">
+                <form id="dashboardQuickCreateForm" class="row g-2 align-items-end" onsubmit="return false;" data-workspace-id="${activeWorkspace ? activeWorkspace.id : ''}">
+                  <div class="col-12 col-md-6">
+                    <label class="form-label small fw-bold text-muted" for="dashboardQuickUrl" data-i18n="ws_quick_url_label">Hədəf URL</label>
+                    <input id="dashboardQuickUrl" class="form-control form-control-sm" type="url" placeholder="https://example.com" data-i18n-placeholder="ws_quick_url_placeholder" required />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="dashboardQuickAlias" data-i18n="ws_quick_alias_label">Xüsusi alias (optional)</label>
+                    <input id="dashboardQuickAlias" class="form-control form-control-sm" type="text" maxlength="50" placeholder="kampaniya-2026" data-i18n-placeholder="ws_quick_alias_placeholder" />
+                  </div>
+                  <div class="col-6 col-md-3 d-grid">
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill" data-i18n="ws_quick_create_btn">Qısalt</button>
+                  </div>
+                  <div class="col-12"><div id="dashboardQuickMsg" class="small"></div></div>
+                </form>
+              </div>
+            </div>
             <!-- Link Tablosu -->
             <div class="policy-card app-card shadow-sm border-0">
-              <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-bold"><i class="fa-solid fa-list me-2"></i><span data-i18n="dashboard_my_links">Linklərim</span></h5>
+              <div class="card-header py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0 fw-bold"><i class="fa-solid fa-list me-2"></i><span data-i18n="dashboard_my_links">Linklərim</span>${activeWorkspace ? ` <span class="badge text-bg-primary ms-2"><i class="fa-solid fa-users me-1"></i>${escapeHtml(activeWorkspace.name)}</span>` : ''}</h5>
                 <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+                  <select id="workspaceScopeSelect" class="form-select form-select-sm w-auto" aria-label="Workspace" title="Workspace">
+                    <option value="" data-i18n="ws_scope_personal">Şəxsi linklər</option>
+                    ${memberships.map((m) => `<option value="${m.id}" ${activeWorkspace && activeWorkspace.id === m.id ? 'selected' : ''}>${escapeHtml((m.name || '').toString())}</option>`).join('')}
+                  </select>
+                  <a href="/workspaces" class="btn btn-outline-primary btn-sm rounded-pill"><i class="fa-solid fa-users-gear"></i> <span data-i18n="ws_manage_btn">Workspace</span></a>
                   <a href="/api/user/export?format=csv" class="btn btn-outline-secondary btn-sm rounded-pill" data-i18n="dashboard_export_csv">CSV export</a>
                   <button id="bulkImportBtn" type="button" class="btn btn-outline-secondary btn-sm rounded-pill" data-i18n="dashboard_import_btn">Toplu import</button>
                   <button id="bulkDeleteBtn" type="button" class="btn btn-outline-danger btn-sm rounded-pill" data-i18n="bulk_delete_btn">Seçilənləri sil</button>
-                  <a href="/" class="btn btn-primary btn-sm rounded-pill"><i class="fa-solid fa-plus"></i> <span data-i18n="dashboard_new_add">Yeni Əlavə Et</span></a>
                 </div>
               </div>
               <div class="card-body border-bottom">
@@ -10500,6 +11244,7 @@ https://example.com/page-2"></textarea>
       </html>
     `;
     res.send(html);
+  });
   });
   });
 });
