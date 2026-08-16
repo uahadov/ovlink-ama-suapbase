@@ -994,7 +994,7 @@ const RESERVED_SHORT_ALIASES = new Set([
   'about', 'abuse-safety', 'account', 'contact', 'cookie-policy', 'dashboard',
   'docs', 'faq', 'forgot-password', 'help', 'how-it-works', 'login', 'notifications',
   'privacy', 'pricing', 'pro', 'register', 'reset-password', 'stats', 'stats-page', 'sss', 'terms',
-  'updates', 'verify', 'why-ovlink', 'api-guide',
+  'updates', 'verify', 'why-ovlink', 'api-guide', 'workspaces',
   // System and route namespaces
   'admin', 'api', 'auth', 'consent', 'proceed', 'qrcode', 'verify-email', 'logout',
   // Reserved root-like names
@@ -9429,7 +9429,8 @@ app.get(/^\/AGENTS(\.md)?$/i, (_req, res) => {
 // Yönlendirme (GET /:short)
 app.get('/:short', (req, res, next) => {
   const rawShort = (req.params.short || '').toString();
-  if (rawShort === 'dashboard')
+  // These app pages live below this resolver in route order; pass them through.
+  if (rawShort === 'dashboard' || rawShort === 'workspaces')
     return next();
 
   const short = normalizeShortCode(rawShort);
