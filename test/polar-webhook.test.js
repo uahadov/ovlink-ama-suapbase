@@ -43,7 +43,7 @@ function signPayload(payloadObj, secret) {
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const msgId = `evt_${Date.now()}`;
   const rawBody = JSON.stringify(payloadObj);
-  const keyBuffer = Buffer.from(secret.replace(/^whsec_/, ''), 'base64');
+  const keyBuffer = Buffer.from(secret, 'utf8');
   const toSign = `${msgId}.${timestamp}.${rawBody}`;
   const computedSignature = crypto.createHmac('sha256', keyBuffer).update(toSign).digest('base64');
   return {

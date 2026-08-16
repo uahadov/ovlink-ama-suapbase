@@ -3693,13 +3693,113 @@ if (customDomainList) {
   const form = document.getElementById("shortenForm");
   if (!form) return;
 
+  // --- UTM Templates Logic ---
+  const utmSelect = document.getElementById("utmTemplateSelect");
+  const saveUtmBtn = document.getElementById("saveUtmTemplateBtn");
+  
+  const loadUtmTemplates = () => {
+    if (!utmSelect) return;
+    try {
+      const stored = JSON.parse(localStorage.getItem("ovlink_utm_templates") || "[]");
+      while (utmSelect.options.length > 1) {
+        utmSelect.remove(1);
+      }
+      stored.forEach((tpl, idx) => {
+        const opt = document.createElement("option");
+        opt.value = idx;
+        opt.textContent = tpl.name;
+        utmSelect.appendChild(opt);
+      });
+    } catch (e) {}
+  };
+
+  if (utmSelect) {
+    loadUtmTemplates();
+    utmSelect.addEventListener("change", (e) => {
+      const idx = e.target.value;
+      if (idx === "") {
+        document.getElementById("utmSource").value = "";
+        document.getElementById("utmMedium").value = "";
+        document.getElementById("utmCampaign").value = "";
+        return;
+      }
+      try {
+        const stored = JSON.parse(localStorage.getItem("ovlink_utm_templates") || "[]");
+        const tpl = stored[idx];
+        if (tpl) {
+          document.getElementById("utmSource").value = tpl.source || "";
+          document.getElementById("utmMedium").value = tpl.medium || "";
+          document.getElementById("utmCampaign").value = tpl.campaign || "";
+        }
+      } catch (e) {}
+    });
+  }
+
+  if (saveUtmBtn) {
+    saveUtmBtn.addEventListener("click", () => {
+      const source = document.getElementById("utmSource")?.value?.trim() || "";
+      const medium = document.getElementById("utmMedium")?.value?.trim() || "";
+      const campaign = document.getElementById("utmCampaign")?.value?.trim() || "";
+      if (!source && !medium && !campaign) {
+        alert("Kaydedilecek bir UTM parametresi bulunamadı!");
+        return;
+      }
+      const name = prompt("Bu şablon için bir isim girin (Örn: Yaz İndirimi):");
+      if (!name) return;
+      try {
+        const stored = JSON.parse(localStorage.getItem("ovlink_utm_templates") || "[]");
+        stored.push({ name, source, medium, campaign });
+        localStorage.setItem("ovlink_utm_templates", JSON.stringify(stored));
+        loadUtmTemplates();
+        utmSelect.value = stored.length - 1;
+      } catch (e) {
+        alert("Şablon kaydedilirken bir hata oluştu.");
+      }
+    });
+  }
+
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
 
-    const originalUrl = document.getElementById("originalUrl")?.value?.trim();
+    let originalUrl = document.getElementById("originalUrl")?.value?.trim();
     const customAlias = document.getElementById("customAlias")?.value?.trim();
     const linkPassword = document.getElementById("linkPassword")?.value?.trim();
     const selectedCustomDomain = document.getElementById("customDomainSelect")?.value?.trim();
+
+    const utmSource = document.getElementById("utmSource")?.value?.trim();
+    const utmMedium = document.getElementById("utmMedium")?.value?.trim();
+    const utmCampaign = document.getElementById("utmCampaign")?.value?.trim();
+    
+    let original_b = document.getElementById("originalB")?.value?.trim() || undefined;
+    const ab_split_percent = document.getElementById("abSplitPercent")?.value?.trim() || undefined;
+
+    let ios_url = document.getElementById("iosUrl")?.value?.trim() || undefined;
+    let android_url = document.getElementById("androidUrl")?.value?.trim() || undefined;
+
+    const appendUtm = (urlStr) => {
+      if (!urlStr) return urlStr;
+      if (!utmSource && !utmMedium && !utmCampaign) return urlStr;
+      try {
+        const u = new URL(urlStr.startsWith('http') ? urlStr : 'http://' + urlStr);
+        if (utmSource) u.searchParams.set('utm_source', utmSource);
+        if (utmMedium) u.searchParams.set('utm_medium', utmMedium);
+        if (utmCampaign) u.searchParams.set('utm_campaign', utmCampaign);
+        return u.toString();
+      } catch {
+        return urlStr;
+      }
+    };
+
+    originalUrl = appendUtm(originalUrl);
+    if (original_b) {
+      original_b = appendUtm(original_b);
+    }
+    if (ios_url) {
+      ios_url = appendUtm(ios_url);
+    }
+    if (android_url) {
+      android_url = appendUtm(android_url);
+    }
 
     const resultDiv = document.getElementById("result");
     const shortUrlEl = document.getElementById("shortUrl");
@@ -3713,7 +3813,11 @@ if (customDomainList) {
         custom_domain: selectedCustomDomain || undefined,
         link_password: linkPassword || undefined,
         expires_at: normalizeExpiryInput(document.getElementById("expiresAt")?.value),
-        max_clicks: document.getElementById("maxClicks")?.value || undefined
+        max_clicks: document.getElementById("maxClicks")?.value || undefined,
+        original_b,
+        ab_split_percent,
+        ios_url,
+        android_url
       });
 
       const data = await response.json().catch(() => ({}));
