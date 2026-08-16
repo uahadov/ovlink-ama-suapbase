@@ -4758,6 +4758,10 @@ db.serialize(() => {
     dangerous INTEGER DEFAULT 0,
     expires_at TEXT,
     max_clicks INTEGER,
+    original_b TEXT,
+    ab_split_percent INTEGER DEFAULT 50,
+    ios_url TEXT,
+    android_url TEXT,
     FOREIGN KEY(user_id) REFERENCES users(id)
   )`);
 
@@ -5014,6 +5018,10 @@ db.run(`CREATE TABLE IF NOT EXISTS custom_domains (
 
 // Domain-aware short links
 db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});
+db.run('ALTER TABLE urls ADD COLUMN original_b TEXT', () => {});
+db.run('ALTER TABLE urls ADD COLUMN ab_split_percent INTEGER DEFAULT 50', () => {});
+db.run('ALTER TABLE urls ADD COLUMN ios_url TEXT', () => {});
+db.run('ALTER TABLE urls ADD COLUMN android_url TEXT', () => {});
 
   // Privacy scrub: remove legacy full IPs from public analytics/audit tables
   db.run("UPDATE clicks SET ip = NULL WHERE ip IS NOT NULL");
@@ -7855,6 +7863,22 @@ app.post('/api/pro/v1/shorten', authenticateProApiKey, trackProApiUsage, proWrit
       maxClicksValue = parsedMax;
     }
 
+    const originalBInput = pickFirstInputValue(body.original_b, body.originalB, body.target_b);
+    let splitPercentValue = 50;
+    const splitInput = body.ab_split_percent ?? body.abSplitPercent;
+    if (splitInput !== undefined && splitInput !== null && `${splitInput}`.trim() !== '') {
+      const parsedPercent = Number.parseInt(`${splitInput}`, 10);
+      if (Number.isInteger(parsedPercent) && parsedPercent >= 0 && parsedPercent <= 100) {
+        splitPercentValue = parsedPercent;
+      }
+    }
+    const originalBAbs = originalBInput ? ensureAbsoluteUrl(originalBInput) : null;
+
+    const iosUrlInput = pickFirstInputValue(body.ios_url, body.iosUrl, body.target_ios);
+    const androidUrlInput = pickFirstInputValue(body.android_url, body.androidUrl, body.target_android);
+    const iosUrlAbs = iosUrlInput ? ensureAbsoluteUrl(iosUrlInput) : null;
+    const androidUrlAbs = androidUrlInput ? ensureAbsoluteUrl(androidUrlInput) : null;
+
     const createdAt = new Date().toISOString();
     const shortUrl = buildShortUrl(req, short, selectedDomainHost);
     const requestHash = buildShortenIdempotencyRequestHash({
@@ -7881,8 +7905,8 @@ app.post('/api/pro/v1/shorten', authenticateProApiKey, trackProApiUsage, proWrit
     }
 
     const inserted = await dbRunAsync(
-      'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [originalAbs, short, createdAt, ownerId, '', expiresAtValue, maxClicksValue, selectedDomainHost || null]
+      'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host, original_b, ab_split_percent, ios_url, android_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [originalAbs, short, createdAt, ownerId, '', expiresAtValue, maxClicksValue, selectedDomainHost || null, originalBAbs, splitPercentValue, iosUrlAbs, androidUrlAbs]
     ).catch((insertErr) => {
       const msg = (insertErr && insertErr.message ? insertErr.message : '').toLowerCase();
       if (msg.includes('unique') && msg.includes('urls.short')) return null;
@@ -8709,7 +8733,7 @@ app.post('/api/shorten',
     const isGuest = !req.session.userId;
     const ownerId = req.session.userId || null;
 
-    const { original, link_password, customLink, custom_domain, expires_at, max_clicks } = req.body;
+    const { original, link_password, customLink, custom_domain, expires_at, max_clicks, original_b, ab_split_percent, ios_url, android_url } = req.body;
     const requestedDomain = normalizeCustomDomainInput(custom_domain);
     const originalAbs = ensureAbsoluteUrl(original);
     if (!originalAbs) {
@@ -8850,20 +8874,24 @@ const checkCustomDomain = (cb) => {
       // Run user ban and blocked domain checks in parallel
       Promise.all([
         new Promise((resolve) => {
-          if (isGuest || !ownerId) return resolve(null);
-          db.get('SELECT banned, ban_until, ban_reason FROM users WHERE id = ?', [ownerId], (uErr, uRow) => {
-            if (uErr || !uRow) return resolve(null);
+          if (isGuest || !ownerId) return resolve({ isGuest: true });
+          db.get('SELECT banned, ban_until, ban_reason, plan_tier, plan_status, pro_expires_at FROM users WHERE id = ?', [ownerId], (uErr, uRow) => {
+            if (uErr || !uRow) return resolve({ isGuest: true });
+            let banActive = false;
             if (uRow.banned == 1 && uRow.ban_until) {
               const untilMs = Date.parse(uRow.ban_until);
               if (!Number.isNaN(untilMs) && untilMs <= Date.now()) {
                 db.run('UPDATE users SET banned = 0, ban_until = NULL, ban_reason = NULL, ban_set_at = NULL, ban_set_by_admin_id = NULL WHERE id = ?', [req.session.userId], () => {});
                 uRow.banned = 0;
+              } else {
+                banActive = true;
               }
+            } else if (uRow.banned == 1) {
+              banActive = true;
             }
-            const banActive = (uRow.banned == 1) && (!uRow.ban_until || (Date.parse(uRow.ban_until) > Date.now()));
-            if (!banActive) return resolve(null);
+            if (!banActive) return resolve({ uRow });
             const msg = buildBanMessage(uiLang, uRow.ban_until, uRow.ban_reason);
-            resolve(msg);
+            resolve({ banError: msg });
           });
         }),
         new Promise((resolve) => {
@@ -8873,8 +8901,11 @@ const checkCustomDomain = (cb) => {
           });
         })
       ]).then(([banResult, blockedResult]) => {
-        if (banResult) {
-          return res.status(403).json({ error: banResult });
+        if (banResult && banResult.banError) {
+          return res.status(403).json({ error: banResult.banError });
+        }
+        if ((original_b || ios_url || android_url) && (!banResult || !banResult.uRow || !isProAccessActive(banResult.uRow))) {
+          return res.status(403).json({ error: pickLang(uiLang, 'Bu inkişaf etmiş xüsusiyyətlər (A/B, Cihaz) yalnız PRO istifadəçilər üçündür.', 'Bu gelişmiş özellikler (A/B, Cihaz) yalnızca PRO kullanıcılar içindir.', 'These advanced features (A/B, Device Targeting) are only available for PRO users.') });
         }
         if (blockedResult) {
           return res.status(403).json({
@@ -8924,9 +8955,20 @@ const checkCustomDomain = (cb) => {
             if (linkPasswordRaw && !storedLinkPassword) {
               return res.status(500).json({ error: pickLang(uiLang, 'Link qısaldıla bilmədi.', 'Link kısaltılamadı.', 'Link could not be shortened.') });
             }
+            let splitPercentValue = 50;
+            if (ab_split_percent !== undefined && ab_split_percent !== null && `${ab_split_percent}`.trim() !== '') {
+              const parsedPercent = Number.parseInt(`${ab_split_percent}`, 10);
+              if (Number.isInteger(parsedPercent) && parsedPercent >= 0 && parsedPercent <= 100) {
+                splitPercentValue = parsedPercent;
+              }
+            }
+            const originalBAbs = original_b ? ensureAbsoluteUrl(original_b) : null;
+            const iosUrlAbs = ios_url ? ensureAbsoluteUrl(ios_url) : null;
+            const androidUrlAbs = android_url ? ensureAbsoluteUrl(android_url) : null;
+
             db.run(
-              'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-              [originalAbs, short, createdAt, ownerId, storedLinkPassword, expiresAtValue, maxClicksValue, selectedDomainHost || null],
+              'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host, original_b, ab_split_percent, ios_url, android_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [originalAbs, short, createdAt, ownerId, storedLinkPassword, expiresAtValue, maxClicksValue, selectedDomainHost || null, originalBAbs, splitPercentValue, iosUrlAbs, androidUrlAbs],
               function (err) {
                 if (err) return res.status(500).json({ error: pickLang(uiLang, 'Link qısaldıla bilmədi.', 'Link kısaltılamadı.', 'Link could not be shortened.') });
 
@@ -9063,8 +9105,23 @@ ${announcementHtml}
     // 5. Tracking (Klik qeydiyyatı) — analytics mode by default
     recordClickEvent(req, row, REDIRECT_CONSENT_MODES.ANALYTICS);
 
-    // 6. Final Yönlendirmə
-    const targetUrl = ensureAbsoluteUrl(row.original);
+    // 6. Final Yönlendirmə (Cihaz Hedefleme ve A/B Testi)
+    let finalTargetUrl = row.original;
+    const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+    
+    // Cihaz Hedefleme Önceliği
+    if (row.ios_url && /iphone|ipad|ipod/.test(userAgent)) {
+      finalTargetUrl = row.ios_url;
+    } else if (row.android_url && /android/.test(userAgent)) {
+      finalTargetUrl = row.android_url;
+    } else if (row.original_b && typeof row.ab_split_percent === 'number') {
+      const rand = Math.random() * 100;
+      if (rand >= row.ab_split_percent) {
+        finalTargetUrl = row.original_b;
+      }
+    }
+
+    const targetUrl = ensureAbsoluteUrl(finalTargetUrl);
     if (!targetUrl) return send404(res);
     res.redirect(targetUrl);
   });

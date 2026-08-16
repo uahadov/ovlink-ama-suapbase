@@ -139,6 +139,76 @@
                               <a href="/account#customDomainSection" class="small fw-semibold text-decoration-none custom-domain-manage-link" data-i18n="shorten_domain_manage_link">Xüsusi domen əlavə et</a>
                             </div>
                           </div>
+
+                          <hr class="my-4 text-muted opacity-25">
+                          
+                          <!-- UTM Builder -->
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0"><i class="fa-solid fa-bullhorn me-2 text-primary"></i>UTM Parametreleri</h6>
+                            <div class="d-flex gap-2">
+                              <select id="utmTemplateSelect" class="form-select form-select-sm" style="width: auto;">
+                                <option value="">Şablon Seç</option>
+                              </select>
+                              <button type="button" id="saveUtmTemplateBtn" class="btn btn-sm btn-outline-primary" title="Mevcut UTM ayarlarını kaydet"><i class="fa-solid fa-floppy-disk"></i></button>
+                            </div>
+                          </div>
+                          <div class="row g-3 mb-2">
+                            <div class="col-md-4">
+                              <label for="utmSource" class="form-label small text-muted">Source (Kaynak)</label>
+                              <input type="text" id="utmSource" class="form-control form-control-sm" placeholder="örn. instagram">
+                            </div>
+                            <div class="col-md-4">
+                              <label for="utmMedium" class="form-label small text-muted">Medium (Araç)</label>
+                              <input type="text" id="utmMedium" class="form-control form-control-sm" placeholder="örn. social">
+                            </div>
+                            <div class="col-md-4">
+                              <label for="utmCampaign" class="form-label small text-muted">Campaign (Kampanya)</label>
+                              <input type="text" id="utmCampaign" class="form-control form-control-sm" placeholder="örn. yaz_indirimi">
+                            </div>
+                          </div>
+
+                          <hr class="my-4 text-muted opacity-25">
+
+                          <!-- A/B Test (Rotator) -->
+                          <h6 class="fw-bold mb-3 d-flex align-items-center">
+                            <i class="fa-solid fa-shuffle me-2 text-primary"></i>
+                            <span class="me-2">A/B Testi (Link Rotatör)</span>
+                            <span class="badge bg-warning text-dark px-2 py-1 rounded-pill" style="font-size: 0.65rem;" data-i18n="pro_badge"><i class="fa-solid fa-crown me-1"></i>PRO</span>
+                          </h6>
+                          <div class="row g-3">
+                            <div class="col-md-8">
+                              <label for="originalB" class="form-label small text-muted">Hedef URL B (İkinci Link)</label>
+                              <input type="url" id="originalB" class="form-control form-control-sm" placeholder="https://...">
+                            </div>
+                            <div class="col-md-4">
+                              <label for="abSplitPercent" class="form-label small text-muted">Link A Trafiği</label>
+                              <div class="input-group input-group-sm">
+                                <input type="number" id="abSplitPercent" class="form-control" placeholder="50" min="0" max="100" value="50">
+                                <span class="input-group-text">%</span>
+                              </div>
+                              <div class="form-text small" style="font-size: 0.75rem;">Kalan trafik Link B'ye gider.</div>
+                            </div>
+                          </div>
+
+                          <hr class="my-4 text-muted opacity-25">
+
+                          <!-- Device Targeting (PRO) -->
+                          <h6 class="fw-bold mb-3 d-flex align-items-center">
+                            <i class="fa-solid fa-mobile-screen-button me-2 text-primary"></i>
+                            <span class="me-2">Cihaz Hedefleme</span>
+                            <span class="badge bg-warning text-dark px-2 py-1 rounded-pill" style="font-size: 0.65rem;" data-i18n="pro_badge"><i class="fa-solid fa-crown me-1"></i>PRO</span>
+                          </h6>
+                          <div class="row g-3">
+                            <div class="col-md-6">
+                              <label for="iosUrl" class="form-label small text-muted"><i class="fa-brands fa-apple me-1"></i>iOS Yönlendirme (iPhone/iPad)</label>
+                              <input type="url" id="iosUrl" class="form-control form-control-sm" placeholder="https://apps.apple.com/...">
+                            </div>
+                            <div class="col-md-6">
+                              <label for="androidUrl" class="form-label small text-muted"><i class="fa-brands fa-android me-1 text-success"></i>Android Yönlendirme</label>
+                              <input type="url" id="androidUrl" class="form-control form-control-sm" placeholder="https://play.google.com/...">
+                            </div>
+                          </div>
+
                         </div>
                       </div>
                     </div>
