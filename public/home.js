@@ -539,9 +539,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
       if (!response.ok || data.error) {
         let errorMsg = data.error || pickLang("Əməliyyat alınmadı", "İşlem başarısız", "Request failed");
-        if (errorMsg === "Bu xüsusi link istifadə olunub") {
+        if (errorMsg === pickLang("Bu xüsusi link istifadə olunub", "Bu özel link kullanımda", "This custom link is already in use")) {
           errorMsg = tKey("error_alias_taken", errorMsg);
-        } else if (errorMsg === "Zəhmət olmasa düzgün bir URL daxil edin.") {
+        } else if (errorMsg === pickLang("Zəhmət olmasa düzgün bir URL daxil edin.", "Lütfen geçerli bir URL girin.", "Please enter a valid URL.")) {
           errorMsg = tKey("error_invalid_url", errorMsg);
         }
         showFeedback(errorMsg);
@@ -741,8 +741,8 @@ document.addEventListener("click", async (e) => {
         let displayMsg = data.message || data.error || pickLang("Bilinməyən cavab", "Bilinmeyen yanıt", "Unknown response");
         if (displayMsg === "Belə Bir Link Tapılmadı") {
           displayMsg = tKey("error_link_not_found", displayMsg);
-        } else if (displayMsg === "Raporunuz gönderildi.") {
-          displayMsg = pickLang("Şikayətiniz göndərildi.", "Raporunuz gönderildi.", "Your report has been submitted.");
+        } else if (displayMsg === pickLang("Raporunuz göndərildi.", "Raporunuz gönderildi.", "Your report has been sent.")) {
+          displayMsg = pickLang("Şikayətiniz göndərildi.", pickLang("Raporunuz göndərildi.", "Raporunuz gönderildi.", "Your report has been sent."), "Your report has been submitted.");
         }
         reportMessage.textContent = displayMsg;
         reportMessage.style.color = data.error ? "red" : "green";

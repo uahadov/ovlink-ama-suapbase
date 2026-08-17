@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title>Bot Bağlantısı - Ovlink</title>
+  <title data-i18n="bot_auth_title">Bot Bağlantısı - Ovlink</title>
   <link rel="icon" href="/logo.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -233,7 +233,7 @@
         <img src="/logo.png" alt="Ovlink" class="home-brand-logo" />
       </a>
       <div class="ms-auto d-flex align-items-center gap-2">
-        <button class="theme-toggle home-theme-btn theme-toggle-animated" aria-label="Temanı Dəyiş">
+        <button class="theme-toggle home-theme-btn theme-toggle-animated" aria-label="Temanı Dəyiş" data-i18n-title="theme_toggle_aria">
           <i class="fa-solid fa-sun"></i>
         </button>
       </div>
@@ -294,7 +294,7 @@
               </p>
               
               <div class="p-3 bg-light rounded-4 mb-4 text-center dark-bg-opacity mx-auto" style="max-width: 300px; border: 1px solid rgba(0,0,0,0.05);">
-                <div class="small text-muted mb-1">Ovlink Hesabınız</div>
+                <div class="small text-muted mb-1" data-i18n="bot_auth_your_account">Ovlink Hesabınız</div>
                 <div class="fw-bold fs-6"><%= user.email %></div>
               </div>
 
@@ -321,7 +321,7 @@
 
               <h3 class="fw-bold mb-3">Bağlantı Xətası</h3>
               <p class="mb-4 opacity-75">
-                <%= errorMessage || 'Gözlənilməz xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.' %>
+                <%= errorMessage || '' %> <span data-i18n="bot_auth_error_fallback" class="<%= errorMessage ? 'd-none' : '' %>">Gözlənilməz xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.</span>
               </p>
 
               <a href="/" class="btn btn-secondary w-100 action-btn">
@@ -396,6 +396,7 @@
 
   <!-- Script for Theme Toggle -->
   <script src="/script.js?v=<%= assetVersion %>"></script>
+  <script src="/lang.js"></script>
 </body>
 
 </html>

@@ -264,7 +264,7 @@
                           <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-webhook-event-option="webhook.test">webhook.test</button>
                           <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-webhook-event-option="*">*</button>
                         </div>
-                        <input id="proWebhookEvents" type="text" class="form-control" data-i18n="pro_webhook_events_placeholder" placeholder="link.created, webhook.test" readonly>
+                        <input id="proWebhookEvents" type="text" class="form-control" data-i18n-placeholder="pro_webhook_events_placeholder" placeholder="link.created, webhook.test" readonly>
                         <p class="small text-muted mb-0 mt-1" data-i18n="pro_webhook_events_help">Eventləri butonlardan seçin. * seçilərsə bütün eventlər göndərilir.</p>
                       </div>
                       <div class="col-12">
@@ -375,9 +375,9 @@
 
           <h6 class="fw-bold mb-3"><i class="fa-solid fa-key me-2"></i><span id="passwordSectionTitle" data-i18n="profile_password_title">Şifrə Dəyişdir</span></h6>
           <form id="passwordChangeForm" class="d-grid gap-2">
-            <div id="currentPasswordGroup"><input type="password" id="currentPassword" class="form-control" data-i18n="profile_current_password" placeholder="Cari şifrə"></div>
-            <input type="password" id="newPassword" class="form-control" data-i18n="profile_new_password" placeholder="Yeni şifrə">
-            <input type="password" id="newPasswordConfirm" class="form-control" data-i18n="profile_new_password_confirm" placeholder="Yeni şifrə (təkrar)">
+            <div id="currentPasswordGroup"><input type="password" id="currentPassword" class="form-control" data-i18n-placeholder="profile_current_password" placeholder="Cari şifrə"></div>
+            <input type="password" id="newPassword" class="form-control" data-i18n-placeholder="profile_new_password" placeholder="Yeni şifrə">
+            <input type="password" id="newPasswordConfirm" class="form-control" data-i18n-placeholder="profile_new_password_confirm" placeholder="Yeni şifrə (təkrar)">
             <button id="passwordActionBtn" class="btn btn-outline-primary rounded-pill" type="submit" data-i18n="profile_password_save">Şifrəni yenilə</button>
             <a href="/forgot-password" class="text-decoration-none small" data-i18n="forgot_password_link">Şifrəni unutmusunuz?</a>
             <div id="passwordChangeMsg" class="small"></div>
@@ -435,6 +435,7 @@
       var disableWrap = document.getElementById('twofaDisableWrap');
 
       function render2faState(enabled) {
+        statusEl.removeAttribute('data-i18n');
         if (enabled) {
           statusEl.textContent = tr('2FA aktivdir. ✅', '2FA is enabled. ✅', '2FA etkin. ✅');
           disableWrap.classList.remove('d-none');

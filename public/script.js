@@ -276,12 +276,12 @@ function updatePricingBuyCta() {
       } else if (res.status === 401 || (data && data.error === "unauthorized")) {
         window.location.href = "/login?next=/pricing";
       } else {
-        alert("Xəta baş verdi: " + (data && data.error ? data.error : "Bilinməyən xəta"));
+        alert(pickLang("Xəta baş verdi: ", "Hata oluştu: ", "Error occurred: ") + (data && data.error ? data.error : pickLang("Bilinməyən xəta", "Bilinmeyen hata", "Unknown error")));
         btn.disabled = false;
         btn.textContent = originalText;
       }
     } catch (err) {
-      alert("Xəta baş verdi. Lütfən yenidən yoxlayın.");
+      alert(pickLang("Xəta baş verdi. Lütfən yenidən yoxlayın.", "Hata oluştu. Lütfen tekrar deneyin.", "An error occurred. Please try again."));
       btn.disabled = false;
       btn.textContent = originalText;
     }
@@ -311,12 +311,12 @@ function updateProManageCta() {
         return;
       }
       if (data && data.error === "no_subscription") {
-        alert("Aktiv abunəlik tapılmadı.");
+        alert(pickLang("Aktiv abunəlik tapılmadı.", "Aktif abonelik bulunamadı.", "No active subscription found."));
       } else {
-        alert("Xəta baş verdi: " + (data && data.error ? data.error : "Bilinməyən xəta"));
+        alert(pickLang("Xəta baş verdi: ", "Hata oluştu: ", "Error occurred: ") + (data && data.error ? data.error : pickLang("Bilinməyən xəta", "Bilinmeyen hata", "Unknown error")));
       }
     } catch (err) {
-      alert("Xəta baş verdi. Lütfən yenidən yoxlayın.");
+      alert(pickLang("Xəta baş verdi. Lütfən yenidən yoxlayın.", "Hata oluştu. Lütfen tekrar deneyin.", "An error occurred. Please try again."));
     }
     btn.disabled = false;
     btn.textContent = originalText;
@@ -3553,6 +3553,11 @@ if (customDomainList) {
   }
 
   if (bulkImportSubmit && bulkImportInput) {
+    bulkImportInput.addEventListener("input", () => {
+      bulkImportSubmit.disabled = false;
+      if (bulkImportMsg) bulkImportMsg.textContent = "";
+      if (bulkImportResults) bulkImportResults.classList.add("d-none");
+    });
     bulkImportSubmit.addEventListener("click", async () => {
       const rows = (bulkImportInput.value || "").trim();
       if (!rows) {
@@ -3582,6 +3587,8 @@ if (customDomainList) {
         }
 
         const okMsg = data.message || pickLang("Import tamamlandı.", "İçe aktarma tamamlandı.", "Import completed.");
+        bulkImportInput.value = "";
+        bulkImportSubmit.disabled = true;
         if (bulkImportMsg) {
           bulkImportMsg.className = "small text-success mt-2";
           bulkImportMsg.textContent = okMsg;
@@ -3825,10 +3832,10 @@ if (customDomainList) {
       const medium = document.getElementById("utmMedium")?.value?.trim() || "";
       const campaign = document.getElementById("utmCampaign")?.value?.trim() || "";
       if (!source && !medium && !campaign) {
-        alert("Kaydedilecek bir UTM parametresi bulunamadı!");
+        alert(pickLang("Yadda saxlanılacaq UTM parametri tapılmadı!", "Kaydedilecek bir UTM parametresi bulunamadı!", "No UTM parameter found to save!"));
         return;
       }
-      const name = prompt("Bu şablon için bir isim girin (Örn: Yaz İndirimi):");
+      const name = prompt(pickLang("Bu şablon üçün ad daxil edin (Məs: Yay Endirimi):", "Bu şablon için bir isim girin (Örn: Yaz İndirimi):", "Enter a name for this template (e.g., Summer Sale):"));
       if (!name) return;
       try {
         const stored = JSON.parse(localStorage.getItem("ovlink_utm_templates") || "[]");
@@ -3837,7 +3844,7 @@ if (customDomainList) {
         loadUtmTemplates();
         utmSelect.value = stored.length - 1;
       } catch (e) {
-        alert("Şablon kaydedilirken bir hata oluştu.");
+        alert(pickLang("Şablon yadda saxlanılarkən xəta baş verdi.", "Şablon kaydedilirken bir hata oluştu.", "Error occurred while saving the template."));
       }
     });
   }
@@ -4484,7 +4491,7 @@ document.addEventListener("click", async (e) => {
         const res = await wsRequest("DELETE", `/api/workspaces/${detail.id}/members/me`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          alert((err && err.error) || "Leave failed.");
+          alert((err && err.error) || pickLang("Ayrılmaq mümkün olmadı.", "Ayrılma başarısız oldu.", "Leave failed."));
           return;
         }
         window.location.href = "/dashboard";
@@ -4514,7 +4521,7 @@ document.addEventListener("click", async (e) => {
         const res = await wsRequest("PATCH", `/api/workspaces/${detail.id}/members/${targetUserId}`, { role: select.value });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          alert((err && err.error) || "Role update failed.");
+          alert((err && err.error) || pickLang("Rol dəyişdirilə bilmədi.", "Rol güncellenemedi.", "Role update failed."));
           loadWorkspaceState();
           return;
         }
@@ -4528,7 +4535,7 @@ document.addEventListener("click", async (e) => {
         const res = await wsRequest("DELETE", `/api/workspaces/${detail.id}/members/${targetUserId}`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          alert((err && err.error) || "Remove failed.");
+          alert((err && err.error) || pickLang("Çıxarmaq mümkün olmadı.", "Kaldırma başarısız oldu.", "Remove failed."));
           return;
         }
         renderWorkspaceDetail(detail.id);
@@ -4555,7 +4562,7 @@ document.addEventListener("click", async (e) => {
         const res = await wsRequest("DELETE", `/api/workspaces/${detail.id}/invitations/${inviteId}`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          alert((err && err.error) || "Revoke failed.");
+          alert((err && err.error) || pickLang("Ləğv etmək mümkün olmadı.", "İptal başarısız oldu.", "Revoke failed."));
           return;
         }
         renderWorkspaceDetail(detail.id);
@@ -4621,7 +4628,7 @@ document.addEventListener("click", async (e) => {
       const res = await wsRequest("PATCH", `/api/workspaces/${wsDetail.id}`, { name });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert((data && data.error) || "Rename failed.");
+        alert((data && data.error) || pickLang("Ad dəyişmək mümkün olmadı.", "Yeniden adlandırma başarısız.", "Rename failed."));
         return;
       }
       renderWorkspaceDetail(wsDetail.id);
@@ -4684,7 +4691,7 @@ document.addEventListener("click", async (e) => {
       const res = await wsRequest("DELETE", `/api/workspaces/${wsDetail.id}/sso`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert((err && err.error) || "Delete failed.");
+        alert((err && err.error) || pickLang("Silmək mümkün olmadı.", "Silme işlemi başarısız.", "Delete failed."));
         return;
       }
       renderWorkspaceDetail(wsDetail.id);
@@ -4699,7 +4706,7 @@ document.addEventListener("click", async (e) => {
       const res = await wsRequest("DELETE", `/api/workspaces/${wsDetail.id}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert((err && err.error) || "Delete failed.");
+        alert((err && err.error) || pickLang("Silmək mümkün olmadı.", "Silme işlemi başarısız.", "Delete failed."));
         return;
       }
       window.location.href = "/workspaces";

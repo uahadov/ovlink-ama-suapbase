@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
   <link rel="icon" href="/logo.ico" />
-  <title>Link Statistikası</title>
+  <title data-i18n="stats_page_title">Link Statistikası</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -35,24 +35,24 @@
     <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h1 class="m-0">Statistika</h1>
-      <a class="btn btn-outline-secondary btn-sm" href="/dashboard">Geri</a>
+      <a class="btn btn-outline-secondary btn-sm" href="/dashboard"><span data-i18n="stats_back">Geri</span></a>
     </div>
 
     <div class="card p-3 mb-3">
       <div class="row g-2">
         <div class="col-md-6">
-          <div class="small text-muted">Qısaldılmış</div>
+          <div class="small text-muted" data-i18n="stats_shortened">Qısaldılmış</div>
           <div class="fw-bold" id="shortText">-</div>
         </div>
         <div class="col-md-6">
-          <div class="small text-muted">Orijinal</div>
+          <div class="small text-muted" data-i18n="stats_original">Orijinal</div>
           <div class="text-break" id="origText">-</div>
         </div>
       </div>
       <hr />
       <div class="d-flex gap-2 flex-wrap">
-        <span class="badge text-bg-primary" id="totalClicks">Ümumi: 0</span>
-        <span class="badge text-bg-secondary" id="createdAt">Yaradılma: -</span>
+        <span class="badge text-bg-primary"><span data-i18n="stats_total">Ümumi</span>: <span id="totalClicksValue">0</span></span>
+        <span class="badge text-bg-secondary"><span data-i18n="stats_created">Yaradılma</span>: <span id="createdAtValue">-</span></span>
       </div>
       <div class="alert alert-warning mt-3 mb-0 d-none" id="statsHint">
         Bu səhifənin işləməsi üçün backend-də <code>GET /api/stats/:short</code> endpoint-i olmalıdır.
@@ -131,8 +131,8 @@
         const shortFull = `${location.protocol}//${location.host}/${data.short || short}`;
         document.getElementById("shortText").innerText = shortFull;
         document.getElementById("origText").innerText = data.original || "-";
-        document.getElementById("totalClicks").innerText = `Ümumi: ${data.clicks_total ?? 0}`;
-        document.getElementById("createdAt").innerText = `Yaradılma: ${data.created_at ? new Date(data.created_at).toLocaleString() : "-"}`;
+        document.getElementById("totalClicksValue").innerText = data.clicks_total ?? 0;
+        document.getElementById("createdAtValue").innerText = data.created_at ? new Date(data.created_at).toLocaleString() : "-";
 
         const points = Array.isArray(data.clicks_by_day) ? data.clicks_by_day : [];
         const labels = points.map((p) => p.date);
