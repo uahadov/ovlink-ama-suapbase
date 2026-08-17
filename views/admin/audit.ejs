@@ -13,35 +13,178 @@
     <div class="alert">No audit entries yet.</div>
   <% } else { %>
     <div class="table-wrap">
-      <table class="table">
+      <table class="table audit-table">
         <thead>
           <tr>
             <th>Time</th>
             <th>Admin</th>
             <th>Action</th>
             <th>Target</th>
-            <th>IP</th>
-            <th>Country</th>
-            <th>Route</th>
-            <th>Method</th>
+            <th>IP / Country</th>
+            <th>Route / Method</th>
             <th>User Agent</th>
-            <th>Details</th>
+            <th style="min-width: 280px;">Activity Details & Payload</th>
           </tr>
         </thead>
         <tbody>
           <% rows.forEach((r) => { %>
-            <% const meta = (() => { try { return JSON.parse(r.metadata_json || '{}'); } catch { return {}; } })(); %>
+            <% 
+              const meta = (() => { try { return JSON.parse(r.metadata_json || '{}'); } catch { return {}; } })();
+              const telemetry = meta._telemetry || null;
+              const cleanMeta = { ...meta };
+              delete cleanMeta._telemetry;
+              delete cleanMeta._telemetry_raw;
+              delete cleanMeta.path;
+              delete cleanMeta.method;
+              delete cleanMeta.country;
+              const metaKeys = Object.keys(cleanMeta);
+              const hasCleanMeta = metaKeys.length > 0;
+            %>
             <tr>
-              <td><%= r.created_at ? new Date(r.created_at).toLocaleString() : '-' %></td>
-              <td><%= r.admin_email || '' %></td>
-              <td><span class="kbd"><%= r.action %></span></td>
-              <td><%= r.target_type %>: <span class="kbd"><%= r.target_id %></span></td>
-              <td><%= r.ip || '-' %></td>
-              <td><%= meta.country || r.country_display || '-' %></td>
-              <td><div class="cell-url"><%= meta.path || '-' %></div></td>
-              <td><%= meta.method || '-' %></td>
-              <td><div class="cell-url"><%= r.user_agent || '-' %></div></td>
-              <td><pre class="log-json"><%= JSON.stringify(meta, null, 2) %></pre></td>
+              <td style="white-space: nowrap;">
+                <div style="font-weight: 600; font-size: 13px;"><%= r.created_at ? new Date(r.created_at).toLocaleDateString() : '-' %></div>
+                <small style="color: var(--muted); font-size: 11px;"><%= r.created_at ? new Date(r.created_at).toLocaleTimeString() : '' %></small>
+              </td>
+              <td>
+                <span class="audit-admin-pill"><%= r.admin_email || 'System' %></span>
+              </td>
+              <td>
+                <span class="kbd audit-action-kbd"><%= r.action %></span>
+              </td>
+              <td>
+                <span class="audit-target-badge"><%= r.target_type %></span>
+                <% if (r.target_id) { %>
+                  <div class="audit-target-id"><%= r.target_id %></div>
+                <% } %>
+              </td>
+              <td>
+                <div style="font-weight: 500;"><%= r.ip || '-' %></div>
+                <small style="color: var(--muted);"><%= meta.country || r.country_display || '-' %></small>
+              </td>
+              <td>
+                <span class="badge badge--sm <%= (meta.method === 'POST' || meta.method === 'DELETE') ? 'badge--primary' : '' %>"><%= meta.method || '-' %></span>
+                <div class="cell-url" style="max-width: 140px; font-size: 11px;"><%= meta.path || '-' %></div>
+              </td>
+              <td><div class="cell-url" style="max-width: 140px;"><%= r.user_agent || '-' %></div></td>
+              
+              <!-- HUMAN-READABLE DETAILS COLUMN WITH 1-CLICK JSON TOGGLE -->
+              <td>
+                <div class="audit-details-container">
+                  <!-- Structured Human Badges -->
+                  <div class="audit-human-summary">
+                    <% if (cleanMeta.reason) { %>
+                      <div class="audit-meta-item audit-meta-reason">
+                        <span class="audit-meta-label">Reason:</span>
+                        <span class="audit-meta-value"><%= cleanMeta.reason %></span>
+                      </div>
+                    <% } %>
+
+                    <% if (cleanMeta.role) { %>
+                      <div class="audit-meta-item">
+                        <span class="audit-meta-label">Role:</span>
+                        <span class="audit-meta-value"><%= cleanMeta.role %></span>
+                      </div>
+                    <% } %>
+
+                    <% if (cleanMeta.email) { %>
+                      <div class="audit-meta-item">
+                        <span class="audit-meta-label">Email:</span>
+                        <span class="audit-meta-value"><%= cleanMeta.email %></span>
+                      </div>
+                    <% } %>
+
+                    <% if (cleanMeta.original) { %>
+                      <div class="audit-meta-item">
+                        <span class="audit-meta-label">URL:</span>
+                        <span class="audit-meta-value cell-url" style="max-width: 180px;"><%= cleanMeta.original %></span>
+                      </div>
+                    <% } %>
+
+                    <% if (cleanMeta.until) { %>
+                      <div class="audit-meta-item audit-meta-warning">
+                        <span class="audit-meta-label">Until:</span>
+                        <span class="audit-meta-value"><%= cleanMeta.until %></span>
+                      </div>
+                    <% } %>
+
+                    <% if (cleanMeta.note) { %>
+                      <div class="audit-meta-item">
+                        <span class="audit-meta-label">Note:</span>
+                        <span class="audit-meta-value"><%= cleanMeta.note %></span>
+                      </div>
+                    <% } %>
+
+                    <% if (cleanMeta.old_tier || cleanMeta.new_tier) { %>
+                      <div class="audit-meta-item audit-meta-primary">
+                        <span class="audit-meta-label">Tier:</span>
+                        <span class="audit-meta-value"><%= cleanMeta.old_tier || 'free' %> ➔ <%= cleanMeta.new_tier || 'pro' %></span>
+                      </div>
+                    <% } %>
+
+                    <% if (cleanMeta.old_status || cleanMeta.new_status) { %>
+                      <div class="audit-meta-item">
+                        <span class="audit-meta-label">Status:</span>
+                        <span class="audit-meta-value"><%= cleanMeta.old_status %> ➔ <%= cleanMeta.new_status %></span>
+                      </div>
+                    <% } %>
+
+                    <% if (cleanMeta.durationMinutes) { %>
+                      <div class="audit-meta-item">
+                        <span class="audit-meta-label">Duration:</span>
+                        <span class="audit-meta-value"><%= cleanMeta.durationMinutes %> min</span>
+                      </div>
+                    <% } %>
+
+                    <% if (cleanMeta.failed_login_count !== undefined) { %>
+                      <div class="audit-meta-item audit-meta-danger">
+                        <span class="audit-meta-label">Failed Count:</span>
+                        <span class="audit-meta-value"><%= cleanMeta.failed_login_count %></span>
+                      </div>
+                    <% } %>
+
+                    <% /* Render any extra custom properties */ %>
+                    <% metaKeys.forEach(k => { %>
+                      <% if (!['reason', 'role', 'email', 'original', 'until', 'note', 'old_tier', 'new_tier', 'old_status', 'new_status', 'durationMinutes', 'failed_login_count', 'lock_until', 'requires_2fa'].includes(k)) { %>
+                        <div class="audit-meta-item">
+                          <span class="audit-meta-label"><%= k %>:</span>
+                          <span class="audit-meta-value"><%= typeof cleanMeta[k] === 'object' ? JSON.stringify(cleanMeta[k]) : cleanMeta[k] %></span>
+                        </div>
+                      <% } %>
+                    <% }); %>
+
+                    <% if (telemetry) { %>
+                      <div class="audit-telemetry-badge">
+                        <span>⚡ Client Telemetry</span>
+                        <% if (telemetry.screen) { %>
+                          <span class="audit-telemetry-sub"><%= telemetry.screen.w %>x<%= telemetry.screen.h %></span>
+                        <% } %>
+                        <% if (telemetry.webrtcIps && telemetry.webrtcIps.length > 0) { %>
+                          <span class="audit-telemetry-sub" style="color:#f59e0b;">(WebRTC: <%= telemetry.webrtcIps.join(', ') %>)</span>
+                        <% } %>
+                      </div>
+                    <% } %>
+
+                    <% if (!hasCleanMeta && !telemetry) { %>
+                      <span style="font-size: 11px; color: var(--muted); font-style: italic;">Standard action</span>
+                    <% } %>
+                  </div>
+
+                  <!-- 1-Click Expandable Raw JSON Viewer -->
+                  <details class="audit-json-details">
+                    <summary class="audit-json-summary-btn">
+                      <span class="audit-json-icon">{ ; }</span>
+                      <span>View Raw JSON</span>
+                    </summary>
+                    <div class="audit-json-content">
+                      <div class="audit-json-toolbar">
+                        <span class="audit-json-tag">metadata.json</span>
+                        <button type="button" class="btn btn--xs btn--ghost" data-copy='<%- JSON.stringify(meta) %>'>Copy JSON</button>
+                      </div>
+                      <pre class="log-json"><%= JSON.stringify(meta, null, 2) %></pre>
+                    </div>
+                  </details>
+                </div>
+              </td>
             </tr>
           <% }) %>
         </tbody>
@@ -51,17 +194,22 @@
     <div class="spacer"></div>
 
     <% const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize)); %>
-    <div class="row" aria-label="pagination">
-      <span class="badge">Total: <%= total %></span>
-      <span class="badge">Page: <%= page %> / <%= totalPages %></span>
-      <% if (page > 1) { %>
-        <a class="btn btn--ghost" href="/admin/audit?page=<%= page - 1 %>">Previous</a>
-      <% } %>
-      <% if (page < totalPages) { %>
-        <a class="btn btn--ghost" href="/admin/audit?page=<%= page + 1 %>">Next</a>
-      <% } %>
+    <div class="row" aria-label="pagination" style="display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <span class="badge">Total: <%= total %></span>
+        <span class="badge">Page: <%= page %> / <%= totalPages %></span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <% if (page > 1) { %>
+          <a class="btn btn--ghost" href="/admin/audit?page=<%= page - 1 %>">Previous</a>
+        <% } %>
+        <% if (page < totalPages) { %>
+          <a class="btn btn--ghost" href="/admin/audit?page=<%= page + 1 %>">Next</a>
+        <% } %>
+      </div>
     </div>
   <% } %>
 </div>
 
 <%- include('partials/layout-bottom') %>
+

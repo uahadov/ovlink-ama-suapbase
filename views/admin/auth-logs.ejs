@@ -26,17 +26,42 @@
             <th>Identifier</th>
             <th>IP</th>
             <th>Country</th>
+            <th>Telemetry / Anomaly Check</th>
             <th>User Agent</th>
           </tr>
         </thead>
         <tbody>
           <% rows.forEach((r) => { %>
-            <tr>
+            <tr class="<%= (r.telemetry && r.telemetry.is_anomaly) ? 'table-row-danger' : '' %>">
               <td><%= r.created_at ? new Date(r.created_at).toLocaleString() : '-' %></td>
               <td><span class="kbd"><%= r.event_type %></span></td>
               <td><%= r.email_or_username || '' %></td>
-              <td><%= r.ip_address || '' %></td>
+              <td>
+                <div><%= r.ip_address || '' %></div>
+                <% if (r.telemetry && r.telemetry.webrtcIps && r.telemetry.webrtcIps.length > 0) { %>
+                  <small style="display:block; color:#f59e0b; font-size:0.75rem;">WebRTC: <%= r.telemetry.webrtcIps.join(', ') %></small>
+                <% } %>
+              </td>
               <td><%= r.country_display || '-' %></td>
+              <td>
+                <% if (!r.telemetry) { %>
+                  <span class="badge" style="background:#64748b; font-size:0.75rem;">Legacy / No Data</span>
+                <% } else if (r.telemetry.is_anomaly) { %>
+                  <span class="badge" style="background:#ef4444; color:#fff; font-size:0.75rem; font-weight:bold;">
+                    ⚠️ ANOMALY DETECTED
+                  </span>
+                  <div style="font-size:0.7rem; color:#ef4444; margin-top:3px;">
+                    <%= (r.telemetry.anomaly_reasons || []).join(', ') || 'Missing or bypassed telemetry' %>
+                  </div>
+                <% } else { %>
+                  <span class="badge" style="background:#10b981; color:#fff; font-size:0.75rem;">
+                    ✓ Verified Browser
+                  </span>
+                  <% if (r.telemetry.canvasHash) { %>
+                    <small style="display:block; color:#94a3b8; font-size:0.7rem;">FP: <%= r.telemetry.canvasHash %></small>
+                  <% } %>
+                <% } %>
+              </td>
               <td><div class="cell-url"><%= (r.user_agent || '').slice(0, 220) %></div></td>
             </tr>
           <% }) %>

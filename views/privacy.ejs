@@ -62,7 +62,7 @@
         <div class="policy-list">
           <article class="policy-card">
             <h3 class="fw-bold"><i class="fa-solid fa-database me-2"></i><span data-i18n="privacy_data_collection_title">Topladığımız məlumatlar</span></h3>
-            <p data-i18n="privacy_data_collection_text">Ovlink istifadə edilərkən emal olunan məlumatlar: hesab məlumatları (e-poçt, şifrə hash-i, auth provider, hesab/giriş vaxtları), link məlumatları (hədəf URL, qısa kod, alias, bitmə tarixi, klik limiti, seçilmiş domen, link şifrəsinin hash-i), klik statistikası (klik vaxtı, brauzer, əməliyyat sistemi, ölkə), təhlükəsizlik/sessiya qeydləri (session token, user-agent, cihaz etiketi, country, device fingerprint, IP hash) və şikayət/moderasiya məlumatları.</p>
+            <p data-i18n="privacy_data_collection_text">Ovlink istifadə edilərkən emal olunan məlumatlar: hesab məlumatları (e-poçt, şifrə hash-i, auth provider, hesab/giriş vaxtları), link məlumatları (hədəf URL, qısa kod, alias, bitmə tarixi, klik limiti, seçilmiş domen, link şifrəsinin hash-i), klik statistikası (klik vaxtı, tam IP ünvanı, brauzer, əməliyyat sistemi, ölkə, şəhər), təhlükəsizlik/sessiya qeydləri (session token, user-agent, cihaz etiketi, country, device fingerprint, IP hash), Pro funksiyalar üçün API açarı meta-məlumatları (ad, prefix, last4, istifadə vaxtı), webhook konfiqurasiyaları (URL, event siyahısı, aktivlik statusu, failure sayğacı) və webhook çatdırılma logları (status, cəhd sayı, HTTP kodu, retry vaxtı), həmçinin şikayət/moderasiya məlumatları.</p>
           </article>
 
           <article class="policy-card">
@@ -77,7 +77,7 @@
 
           <article class="policy-card">
             <h3 class="fw-bold"><i class="fa-solid fa-network-wired me-2"></i><span data-i18n="privacy_ip_handling_title">IP məlumatlarının idarəsi</span></h3>
-            <p data-i18n="privacy_ip_handling_text">Sorğu zamanı IP məlumatı geolokasiya və təhlükəsizlik yoxlamaları üçün emal oluna bilər. Yeni cihaz bildiriş e-poçtlarında tam IP göstərilmir və cihaz sessiyalarında tam IP əvəzinə IP hash saxlanılır. Klik cədvəlində legacy tam IP/şəhər sahələri scrub edilib və aktiv analitika kimi istifadə edilmir.</p>
+            <p data-i18n="privacy_ip_handling_text">Sorğu zamanı IP məlumatı geolokasiya və təhlükəsizlik yoxlamaları üçün emal olunur. Yeni cihaz bildiriş e-poçtlarında tam IP göstərilmir və cihaz sessiyalarında tam IP əvəzinə IP hash saxlanılır. Klik qeydlərində isə təhlükəsizlik və analitika məqsədi ilə tam IP ünvanı və şəhər məlumatları saxlanılır.</p>
           </article>
 
           <article class="policy-card">
@@ -92,7 +92,7 @@
 
           <article class="policy-card">
             <h3 class="fw-bold"><i class="fa-solid fa-handshake me-2"></i><span data-i18n="privacy_third_party_title">Üçüncü tərəflər</span></h3>
-            <p data-i18n="privacy_third_party_text">Xidmət Resend (e-poçt), Google OAuth (aktivdirsə), CDN kitabxanaları və reklam vendorları (effectivegatecpm.com, highperformanceformat.com və infrastruktur tərəfdaşları) kimi üçüncü tərəflərdən istifadə edir. Bu tərəflər öz siyasətlərinə uyğun olaraq məlumat emal edə bilər.</p>
+            <p data-i18n="privacy_third_party_text">Xidmət Resend (e-poçt), Google OAuth (qeydiyyat üçün), Telegram (bot inteqrasiyası), CDN kitabxanaları və reklam vendorları (infrastruktur tərəfdaşları) kimi üçüncü tərəflərdən istifadə edir. Telegram botla əlaqələndirmə üçün sizin Telegram ID-niz bazada istifadəçi ID-nizlə əlaqələndirilir.</p>
           </article>
 
           <article class="policy-card">

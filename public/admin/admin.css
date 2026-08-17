@@ -637,3 +637,302 @@ body.admin-page.admin-dark {
   border-color: #334155;
   color: #cbd5e1;
 }
+
+/* ==========================================================================
+   AUDIT LOG MODERN HUMAN-READABLE UI & JSON TOGGLE
+   ========================================================================== */
+.audit-table th,
+.audit-table td {
+  vertical-align: top;
+  padding: 12px 10px;
+}
+
+.audit-admin-pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 6px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audit-action-kbd {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+
+.audit-target-badge {
+  display: inline-block;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.audit-target-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.audit-details-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.audit-human-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.audit-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  padding: 3px 8px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.audit-meta-label {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.audit-meta-value {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.audit-meta-reason {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+.audit-meta-reason .audit-meta-label { color: #b45309; }
+.audit-meta-reason .audit-meta-value { color: #92400e; }
+
+.audit-meta-warning {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+.audit-meta-warning .audit-meta-label { color: #b91c1c; }
+.audit-meta-warning .audit-meta-value { color: #991b1b; }
+
+.audit-meta-primary {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.25);
+}
+.audit-meta-primary .audit-meta-label { color: #1d4ed8; }
+.audit-meta-primary .audit-meta-value { color: #1e40af; }
+
+.audit-meta-danger {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.25);
+}
+.audit-meta-danger .audit-meta-label { color: #dc2626; }
+.audit-meta-danger .audit-meta-value { color: #991b1b; }
+
+.audit-telemetry-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(14, 165, 233, 0.08));
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 8px;
+  color: #4338ca;
+}
+
+.audit-telemetry-sub {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+/* 1-Click JSON Details Collapsible */
+.audit-json-details {
+  margin-top: 4px;
+}
+
+.audit-json-summary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 3px 8px;
+  transition: all 0.15s ease;
+  width: fit-content;
+  list-style: none;
+}
+
+.audit-json-summary-btn::-webkit-details-marker {
+  display: none;
+}
+
+.audit-json-summary-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.audit-json-icon {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.audit-json-details[open] .audit-json-summary-btn {
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  border-color: rgba(37, 99, 235, 0.3);
+  margin-bottom: 6px;
+}
+
+.audit-json-content {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f8fafc;
+  overflow: hidden;
+  max-width: 480px;
+}
+
+.audit-json-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: #edf2f7;
+  border-bottom: 1px solid var(--border);
+}
+
+.audit-json-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.audit-json-content .log-json {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 11px;
+}
+
+/* Dark mode support */
+.admin-page.admin-dark .audit-admin-pill {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.admin-page.admin-dark .audit-action-kbd {
+  background: #1e293b;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+.admin-page.admin-dark .audit-target-id {
+  color: #f1f5f9;
+}
+
+.admin-page.admin-dark .audit-meta-item {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.admin-page.admin-dark .audit-meta-value {
+  color: #e2e8f0;
+}
+
+.admin-page.admin-dark .audit-meta-reason {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.admin-page.admin-dark .audit-meta-reason .audit-meta-label { color: #fde68a; }
+.admin-page.admin-dark .audit-meta-reason .audit-meta-value { color: #fef3c7; }
+
+.admin-page.admin-dark .audit-meta-warning {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+.admin-page.admin-dark .audit-meta-warning .audit-meta-label { color: #fca5a5; }
+.admin-page.admin-dark .audit-meta-warning .audit-meta-value { color: #fee2e2; }
+
+.admin-page.admin-dark .audit-meta-primary {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+.admin-page.admin-dark .audit-meta-primary .audit-meta-label { color: #93c5fd; }
+.admin-page.admin-dark .audit-meta-primary .audit-meta-value { color: #bfdbfe; }
+
+.admin-page.admin-dark .audit-meta-danger {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+.admin-page.admin-dark .audit-meta-danger .audit-meta-label { color: #fca5a5; }
+.admin-page.admin-dark .audit-meta-danger .audit-meta-value { color: #fee2e2; }
+
+.admin-page.admin-dark .audit-telemetry-badge {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #a5b4fc;
+}
+
+.admin-page.admin-dark .audit-json-summary-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+.admin-page.admin-dark .audit-json-summary-btn:hover {
+  background: #334155;
+  color: #f8fafc;
+}
+
+.admin-page.admin-dark .audit-json-content {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.admin-page.admin-dark .audit-json-toolbar {
+  background: #1e293b;
+  border-color: #334155;
+}
+

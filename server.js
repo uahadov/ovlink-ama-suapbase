@@ -4976,6 +4976,7 @@ db.serialize(() => {
     created_at TEXT
   )`);
   db.run('ALTER TABLE admin_auth_audit ADD COLUMN country TEXT', () => {});
+  db.run('ALTER TABLE admin_auth_audit ADD COLUMN metadata_json TEXT', () => {});
 
   db.run('CREATE INDEX IF NOT EXISTS idx_admin_auth_audit_created_at ON admin_auth_audit(created_at)', () => {});
 

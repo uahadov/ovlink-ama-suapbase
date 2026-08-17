@@ -773,6 +773,15 @@ module.exports = function createAdminRouter(db, options = {}) {
     try {
       const geoMeta = getGeoMetaForAdminRequest(req);
       const auditMetadata = buildAuditContext(req, metadata || {});
+      
+      if (req.body && req.body.client_telemetry) {
+        try {
+          auditMetadata._telemetry = JSON.parse(req.body.client_telemetry);
+        } catch {
+          auditMetadata._telemetry_raw = req.body.client_telemetry;
+        }
+      }
+
       await run(
         'INSERT INTO admin_audit_log (created_at, admin_user_id, action, target_type, target_id, metadata_json, ip, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         [
@@ -818,9 +827,68 @@ module.exports = function createAdminRouter(db, options = {}) {
 
   async function logAdminAuthEvent(req, eventType, emailOrUser) {
     const geoMeta = getGeoMetaForAdminRequest(req);
+    
+    let telemetryData = null;
+    let isAnomaly = false;
+    const anomalyReasons = [];
+
+    if (req.body && req.body.client_telemetry) {
+      try {
+        const parsed = typeof req.body.client_telemetry === 'string'
+          ? JSON.parse(req.body.client_telemetry)
+          : req.body.client_telemetry;
+
+        // Validation checks
+        if (!parsed.userAgent || !parsed.screen) {
+          isAnomaly = true;
+          anomalyReasons.push('INCOMPLETE_BROWSER_TELEMETRY');
+        }
+        if (parsed.userAgent && req.headers['user-agent'] && parsed.userAgent !== req.headers['user-agent']) {
+          isAnomaly = true;
+          anomalyReasons.push('USER_AGENT_MISMATCH_SPOOFING_SUSPECTED');
+        }
+
+        telemetryData = {
+          ...parsed,
+          is_anomaly: isAnomaly,
+          anomaly_reasons: anomalyReasons,
+          verified_browser: !isAnomaly
+        };
+      } catch {
+        isAnomaly = true;
+        anomalyReasons.push('MALFORMED_TELEMETRY_PAYLOAD');
+        telemetryData = {
+          raw: req.body.client_telemetry,
+          is_anomaly: true,
+          anomaly_reasons: anomalyReasons
+        };
+      }
+    } else {
+      // Missing client telemetry! This happens when using curl, python script, Postman, headless bot, or disabled JS.
+      isAnomaly = true;
+      anomalyReasons.push('MISSING_CLIENT_TELEMETRY_BOT_OR_SCRIPT_SUSPECTED');
+      telemetryData = {
+        is_anomaly: true,
+        anomaly_reasons: anomalyReasons,
+        suspicion_level: 'HIGH',
+        detected_origin: 'Direct API / Script / Headless Agent (Bypassed admin.js)',
+        headers_snapshot: {
+          'user-agent': (req.headers['user-agent'] || '').slice(0, 200),
+          'accept': (req.headers['accept'] || '').slice(0, 100),
+          'sec-ch-ua': (req.headers['sec-ch-ua'] || '').slice(0, 100),
+        }
+      };
+    }
+
+    if (isAnomaly) {
+      console.warn(`[ADMIN SECURITY ANOMALY] Event=${eventType} IP=${geoMeta.ip || 'unknown'} Target=${emailOrUser || 'none'} Reasons=${anomalyReasons.join(', ')}`);
+    }
+
+    const telemetryJson = JSON.stringify(telemetryData);
+
     try {
       await run(
-        'INSERT INTO admin_auth_audit (event_type, email_or_username, ip_address, country, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO admin_auth_audit (event_type, email_or_username, ip_address, country, user_agent, created_at, metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
           eventType,
           (emailOrUser || '').toString().slice(0, 255),
@@ -828,19 +896,21 @@ module.exports = function createAdminRouter(db, options = {}) {
           geoMeta.country || 'Unknown',
           (req.headers['user-agent'] || '').toString().slice(0, 512),
           nowIso(),
+          telemetryJson,
         ],
       );
     } catch {
       // Backward-compatibility for instances that have not added admin_auth_audit.country yet.
       try {
         await run(
-          'INSERT INTO admin_auth_audit (event_type, email_or_username, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?)',
+          'INSERT INTO admin_auth_audit (event_type, email_or_username, ip_address, user_agent, created_at, metadata_json) VALUES (?, ?, ?, ?, ?, ?)',
           [
             eventType,
             (emailOrUser || '').toString().slice(0, 255),
             geoMeta.ip || null,
             (req.headers['user-agent'] || '').toString().slice(0, 512),
             nowIso(),
+            telemetryJson,
           ],
         );
       } catch {}
@@ -1731,9 +1801,16 @@ module.exports = function createAdminRouter(db, options = {}) {
         const explicitCountry = (row && row.country && row.country.toString().trim() === 'Local Dev')
           ? 'Local Dev'
           : normalizeCountryCode(row && row.country);
+        
+        let telemetry = null;
+        try {
+          if (row.metadata_json) telemetry = JSON.parse(row.metadata_json);
+        } catch {}
+
         return {
           ...row,
           country_display: explicitCountry || getCountryCodeFromIp(row && row.ip_address),
+          telemetry,
         };
       });
       return res.render('admin/auth-logs', {
