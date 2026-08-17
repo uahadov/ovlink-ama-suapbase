@@ -3715,6 +3715,65 @@ if (customDomainList) {
   const form = document.getElementById("shortenForm");
   if (!form) return;
 
+  // --- Home Workspace Selector Logic ---
+  const hwBtn = document.getElementById("homeWorkspaceDropdownBtn");
+  const hwMenu = document.getElementById("homeWorkspaceDropdownMenu");
+  let selectedHomeWorkspaceId = 0;
+
+  if (hwBtn && hwMenu) {
+    const updateHwBtn = (id, name) => {
+      hwBtn.innerHTML = id === 0 ? '<i class="fa-solid fa-user text-muted"></i>' : '<i class="fa-solid fa-users text-primary"></i>';
+      hwBtn.title = name;
+      selectedHomeWorkspaceId = id;
+      localStorage.setItem("ovlink_home_workspace", id);
+    };
+
+    (async () => {
+      try {
+        const res = await fetch("/api/workspaces", { credentials: "include" });
+        if (!res.ok) return; // not logged in or error
+        const data = await res.json();
+        const workspaces = data.workspaces || [];
+        if (workspaces.length === 0) return; // no workspaces, keep link icon
+
+        hwBtn.disabled = false;
+        
+        // Populate menu
+        const personalName = pickLang("Şəxsi hesab", "Kişisel hesap", "Personal account");
+        hwMenu.innerHTML = `
+          <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" data-ws-id="0"><i class="fa-solid fa-user text-muted"></i> <span>${personalName}</span></a></li>
+          <li><hr class="dropdown-divider"></li>
+        `;
+        
+        workspaces.forEach(ws => {
+          hwMenu.innerHTML += `<li><a class="dropdown-item d-flex align-items-center gap-2" href="#" data-ws-id="${ws.id}"><i class="fa-solid fa-users text-primary"></i> <span>${escapeHtml(ws.name)}</span></a></li>`;
+        });
+
+        // Set initial selection
+        const storedId = parseInt(localStorage.getItem("ovlink_home_workspace") || "0", 10);
+        const activeWs = workspaces.find(w => w.id === storedId);
+        if (activeWs) {
+          updateHwBtn(activeWs.id, activeWs.name);
+        } else {
+          updateHwBtn(0, personalName);
+        }
+
+        // Handle clicks
+        hwMenu.addEventListener("click", (e) => {
+          const a = e.target.closest("a.dropdown-item");
+          if (!a) return;
+          e.preventDefault();
+          const id = parseInt(a.getAttribute("data-ws-id"), 10) || 0;
+          const name = a.querySelector("span").textContent;
+          updateHwBtn(id, name);
+        });
+
+      } catch (err) {
+        // ignore errors
+      }
+    })();
+  }
+
   // --- UTM Templates Logic ---
   const utmSelect = document.getElementById("utmTemplateSelect");
   const saveUtmBtn = document.getElementById("saveUtmTemplateBtn");
@@ -3828,7 +3887,7 @@ if (customDomainList) {
     const hintEl = document.getElementById("shortenHint");
 
     try {
-      const response = await postJsonWithCsrf("/api/shorten", {
+      const payload = {
         lang: currentLang,
         original: originalUrl,
         customLink: customAlias || undefined,
@@ -3840,7 +3899,13 @@ if (customDomainList) {
         ab_split_percent,
         ios_url,
         android_url
-      });
+      };
+
+      if (typeof selectedHomeWorkspaceId !== 'undefined' && selectedHomeWorkspaceId > 0) {
+        payload.workspaceId = selectedHomeWorkspaceId;
+      }
+
+      const response = await postJsonWithCsrf("/api/shorten", payload);
 
       const data = await response.json().catch(() => ({}));
 
