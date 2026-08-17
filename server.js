@@ -6355,11 +6355,11 @@ app.post('/api/register',
     // One account per email identity. The unique index on users(email_hash)
     // is the hard backstop; this check keeps the error friendly and avoids
     // creating a row that would shadow an existing account.
-    db.get('SELECT id FROM users WHERE email_hash = ?', [blindIndex(email)], (chkErr, existingUser) => {
+    db.get('SELECT id, email_verified FROM users WHERE email_hash = ?', [blindIndex(email)], (chkErr, existingUser) => {
       if (chkErr) {
         return res.status(500).json({ error: accountCreateFailedMsg });
       }
-      if (existingUser) {
+      if (existingUser && existingUser.email_verified == 1) {
         return res.status(400).json({ error: emailInUseMsg });
       }
 
@@ -6368,10 +6368,7 @@ app.post('/api/register',
           return res.status(500).json({ error: accountCreateFailedMsg });
         }
 
-        db.run('INSERT INTO users (email, email_hash, password, verification_code, verification_expires_at, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1) RETURNING id', [encryptAES256GCM(email), blindIndex(email), hashed, verificationCode, verificationExpiresAt, 'local', new Date().toISOString(), initialLang, 'light'], function (err) {
-          if (err) return res.status(400).json({ error: emailInUseMsg });
-          const insertedUserId = this.lastID;
-
+        const proceedToSendEmail = (userId) => {
           sendVerificationEmail(email, rawVerificationCode, uiLang)
             .then(() => {
               req.session.tempEmail = email;
@@ -6379,22 +6376,33 @@ app.post('/api/register',
             })
             .catch((error) => {
               console.error("Mail gönderim hatası:", error);
-              console.error("Email send error details:", {
-                message: error.message || 'Unknown error',
-                statusCode: error.statusCode || 'N/A',
-                name: error.name || 'Error',
-                response: error.response || 'N/A'
-              });
-              // Delete only the row this request created (by id). Never delete
-              // by email_hash — that could destroy an unrelated account.
-              if (insertedUserId) {
-                db.run('DELETE FROM users WHERE id = ?', [insertedUserId], (delErr) => {
-                  if (delErr) console.error('Failed to cleanup user after email error:', delErr);
-                });
+              // Only delete if we just created the row (new user). If it's an existing unverified user, we don't delete them.
+              if (!existingUser && userId) {
+                db.run('DELETE FROM users WHERE id = ?', [userId], () => {});
               }
               res.status(500).json({ error: pickLang(uiLang, 'Təsdiqləmə e-poçtu göndərilə bilmədi. Zəhmət olmasa bir az sonra yenidən cəhd edin.', 'Doğrulama e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin.', 'Verification email could not be sent. Please try again later.') });
             });
-        });
+        };
+
+        if (existingUser) {
+          // Update existing unverified user
+          db.run('UPDATE users SET password = ?, verification_code = ?, verification_expires_at = ?, ui_lang = ? WHERE id = ?', 
+            [hashed, verificationCode, verificationExpiresAt, initialLang, existingUser.id], 
+            function (updateErr) {
+              if (updateErr) return res.status(500).json({ error: accountCreateFailedMsg });
+              proceedToSendEmail(existingUser.id);
+            }
+          );
+        } else {
+          // Insert new user
+          db.run('INSERT INTO users (email, email_hash, password, verification_code, verification_expires_at, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)', 
+            [encryptAES256GCM(email), blindIndex(email), hashed, verificationCode, verificationExpiresAt, 'local', new Date().toISOString(), initialLang, 'light'], 
+            function (insertErr) {
+              if (insertErr) return res.status(400).json({ error: emailInUseMsg });
+              proceedToSendEmail(this.lastID);
+            }
+          );
+        }
       });
     });
   });
