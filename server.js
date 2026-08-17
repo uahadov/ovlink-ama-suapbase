@@ -3180,7 +3180,8 @@ app.use(helmet({
       imgSrc: [
         "'self'",
         "data:",
-        "blob:"
+        "blob:",
+        "https://www.launchpact.io"
       ],
       connectSrc: [
         "'self'",

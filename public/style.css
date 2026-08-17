@@ -1795,6 +1795,25 @@ body.dark-mode,
   opacity: 1;
 }
 
+.site-footer .footer-badges {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.25rem 0 0.75rem;
+}
+
+.site-footer .footer-badges a {
+  display: inline-block;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  line-height: 0;
+}
+
+.site-footer .footer-badges a:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
 .site-footer .footer-copy {
   text-align: center;
   font-size: 0.75rem;
