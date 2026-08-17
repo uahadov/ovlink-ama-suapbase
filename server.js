@@ -10898,12 +10898,13 @@ app.get('/dashboard', (req, res) => {
     // veya join ile alabiliriz. Şimdilik elimizdeki veriyi kullanalım.
     // Dashboard'a girildiğinde "Hoşgeldin X" ve Premium Tasarım
 
+    const uiLang = (uRow && uRow.ui_lang) ? uRow.ui_lang : (req.cookies && req.cookies.lang_default ? req.cookies.lang_default : 'az');
     const announcementHtml = buildAnnouncementHtml();
     const csrfTokenSafe = escapeHtml(res.locals._csrf || '');
     const assetQuery = `?v=${encodeURIComponent(res.locals.assetVersion || ASSET_VERSION)}`;
     let html = `
       <!doctype html>
-      <html lang="az">
+      <html lang="${escapeHtml(uiLang)}">
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -10958,7 +10959,7 @@ ${announcementHtml}
                 </ul>
 
                 <div class="dropdown ms-2 me-2">
-                  <button id="langToggleBtn" class="btn btn-sm fw-bold dropdown-toggle lang-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false">AZ</button>
+                  <button id="langToggleBtn" class="btn btn-sm fw-bold dropdown-toggle lang-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false">${uiLang.toUpperCase()}</button>
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li><button class="dropdown-item lang-option" data-lang="az" type="button">AZ</button></li>
                     <li><button class="dropdown-item lang-option" data-lang="tr" type="button">TR</button></li>
@@ -11011,15 +11012,15 @@ ${announcementHtml}
               <div class="card-body">
                 <form id="dashboardQuickCreateForm" class="row g-2 align-items-end" onsubmit="return false;" data-workspace-id="${activeWorkspace ? activeWorkspace.id : ''}">
                   <div class="col-12 col-md-6">
-                    <label class="form-label small fw-bold text-muted" for="dashboardQuickUrl" data-i18n="ws_quick_url_label">Hədəf URL</label>
-                    <input id="dashboardQuickUrl" class="form-control form-control-sm" type="url" placeholder="https://example.com" data-i18n-placeholder="ws_quick_url_placeholder" required />
+                    <label class="form-label small fw-bold text-muted" for="dashboardQuickUrl" data-i18n="ws_quick_url_label">${escapeHtml(pickLang(uiLang, 'Hədəf URL', 'Hedef URL', 'Target URL'))}</label>
+                    <input id="dashboardQuickUrl" class="form-control form-control-sm" type="url" placeholder="https://example.com" data-i18n-placeholder="ws_quick_url_placeholder" data-i18n="ws_quick_url_placeholder" required />
                   </div>
                   <div class="col-6 col-md-3">
-                    <label class="form-label small fw-bold text-muted" for="dashboardQuickAlias" data-i18n="ws_quick_alias_label">Xüsusi alias (optional)</label>
-                    <input id="dashboardQuickAlias" class="form-control form-control-sm" type="text" maxlength="50" placeholder="kampaniya-2026" data-i18n-placeholder="ws_quick_alias_placeholder" />
+                    <label class="form-label small fw-bold text-muted" for="dashboardQuickAlias" data-i18n="ws_quick_alias_label">${escapeHtml(pickLang(uiLang, 'Xüsusi alias (optional)', 'Özel alias (isteğe bağlı)', 'Custom alias (optional)'))}</label>
+                    <input id="dashboardQuickAlias" class="form-control form-control-sm" type="text" maxlength="50" placeholder="${escapeHtml(pickLang(uiLang, 'kampaniya-2026', 'kampanya-2026', 'campaign-2026'))}" data-i18n-placeholder="ws_quick_alias_placeholder" data-i18n="ws_quick_alias_placeholder" />
                   </div>
                   <div class="col-6 col-md-3 d-grid">
-                    <button type="submit" class="btn btn-primary btn-sm rounded-pill" data-i18n="ws_quick_create_btn">Qısalt</button>
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill" data-i18n="ws_quick_create_btn">${escapeHtml(pickLang(uiLang, 'Qısalt', 'Kısalt', 'Shorten'))}</button>
                   </div>
                   <div class="col-12"><div id="dashboardQuickMsg" class="small"></div></div>
                 </form>

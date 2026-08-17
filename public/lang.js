@@ -2733,6 +2733,7 @@ function applyLanguage() {
         const key = el.getAttribute("data-i18n-placeholder");
         if (translations[currentLang] && translations[currentLang][key]) {
             el.placeholder = translations[currentLang][key];
+            el.setAttribute("placeholder", translations[currentLang][key]);
         }
     });
 
