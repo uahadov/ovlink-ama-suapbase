@@ -3644,8 +3644,9 @@ if (customDomainList) {
         } else {
           alert(msg);
         }
+        bulkImportSubmit.disabled = false; // Enable ONLY on error
       } finally {
-        bulkImportSubmit.disabled = false;
+        // success disables it, input change enables it.
       }
     });
   }
