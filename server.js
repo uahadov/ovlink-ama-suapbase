@@ -3506,7 +3506,10 @@ async function sendMail({ to, subject, html, text }) {
         html,
         text,
       });
-      console.log(`[email] Resend success: to=${to}, id=${resendRes && resendRes.id ? resendRes.id : 'unknown'}`);
+      if (resendRes.error) {
+        throw new Error(resendRes.error.message || JSON.stringify(resendRes.error));
+      }
+      console.log(`[email] Resend success: to=${to}, id=${resendRes.data ? resendRes.data.id : 'unknown'}`);
       return resendRes;
     } catch (resendErr) {
       console.error('[email] Resend failed, trying SMTP fallback:', resendErr.message);
