@@ -2753,6 +2753,171 @@ body.dark-mode,
   background: rgba(59, 130, 246, 0.2);
 }
 
+/* ==========================================================================
+   WORKSPACE & APP COMPREHENSIVE DARK MODE POLISH
+   ========================================================================== */
+
+/* Workspace Stat Cards (Light & Dark) */
+.ws-stat-card {
+  background: #f8fafc;
+  border-color: #e2e8f0 !important;
+  transition: all 0.2s ease;
+}
+
+.ws-stat-card .ws-stat-num {
+  color: #0f172a;
+}
+
+.dark-mode .ws-stat-card {
+  background: rgba(30, 41, 59, 0.75) !important;
+  border-color: rgba(51, 65, 85, 0.8) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .ws-stat-card .ws-stat-num {
+  color: #f8fafc !important;
+}
+
+.dark-mode .ws-stat-card .text-muted {
+  color: #94a3b8 !important;
+}
+
+/* Pending Invitations & List Groups in Dark Mode */
+.dark-mode .list-group {
+  background: transparent !important;
+  border-color: rgba(51, 65, 85, 0.8) !important;
+}
+
+.dark-mode .list-group-item {
+  background: rgba(15, 23, 42, 0.65) !important;
+  border-color: rgba(51, 65, 85, 0.6) !important;
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .list-group-item:first-child {
+  border-top-left-radius: 8px !important;
+  border-top-right-radius: 8px !important;
+}
+
+.dark-mode .list-group-item:last-child {
+  border-bottom-left-radius: 8px !important;
+  border-bottom-right-radius: 8px !important;
+}
+
+/* Badges & Role Pills in Dark Mode */
+.dark-mode #wsMyRole,
+.dark-mode .badge.bg-secondary,
+.dark-mode .badge.bg-opacity-25 {
+  background-color: rgba(148, 163, 184, 0.18) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+}
+
+.dark-mode .badge.text-bg-light,
+.dark-mode .badge.bg-light {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+.dark-mode .badge.text-bg-primary {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+/* Status / Alert Colors in Dark Mode */
+.dark-mode .text-success {
+  color: #34d399 !important;
+}
+
+.dark-mode .text-danger {
+  color: #f87171 !important;
+}
+
+.dark-mode .text-warning {
+  color: #fbbf24 !important;
+}
+
+.dark-mode .text-info {
+  color: #38bdf8 !important;
+}
+
+.dark-mode .text-muted {
+  color: #94a3b8 !important;
+}
+
+.dark-mode .bg-primary.bg-opacity-10 {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+.dark-mode .bg-success.bg-opacity-10 {
+  background-color: rgba(52, 211, 153, 0.2) !important;
+}
+
+.dark-mode .bg-danger.bg-opacity-10 {
+  background-color: rgba(248, 113, 113, 0.2) !important;
+}
+
+/* Modals & Dropdowns in Dark Mode */
+.dark-mode .modal-content {
+  background-color: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: #f8fafc !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .modal-header,
+.dark-mode .modal-footer {
+  border-color: #334155 !important;
+}
+
+.dark-mode .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.dark-mode .dropdown-menu {
+  background-color: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .dropdown-item {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .dropdown-item:hover,
+.dark-mode .dropdown-item:focus {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+.dark-mode .dropdown-divider {
+  border-top-color: #334155 !important;
+}
+
+/* Form Controls & Placeholders */
+.dark-mode .form-control,
+.dark-mode .form-select {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+.dark-mode .form-control:focus,
+.dark-mode .form-select:focus {
+  background-color: #0f172a !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25) !important;
+  color: #ffffff !important;
+}
+
+.dark-mode .form-control::placeholder {
+  color: #64748b !important;
+}
+
+
 @media (max-width: 576px) {
   .home-page.app-page .app-main {
     padding-top: 2rem;
