@@ -23,39 +23,42 @@
   <%- include('partials/public-navbar') %>
 
   <main class="app-main">
-    <section class="container">
-      <div class="app-shell">
-        <div class="policy-head">
-          <h1 class="policy-title" data-i18n="ws_accept_title">Workspace dəvəti</h1>
-        </div>
+    <section class="container d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 100px);">
+      <div class="app-shell" style="max-width: 500px; width: 100%;">
+        <div class="policy-card app-card text-center p-4 p-md-5">
+          <div class="mb-4">
+            <div class="d-inline-flex justify-content-center align-items-center bg-primary bg-opacity-10 text-primary rounded-circle mb-3" style="width: 72px; height: 72px;">
+              <i class="fa-solid fa-users fa-2x"></i>
+            </div>
+            <h2 class="fw-bold mb-2" data-i18n="ws_accept_title">Workspace dəvəti</h2>
+          </div>
 
-        <div class="policy-card app-card">
           <% if (state === 'ready') { %>
-            <p class="mb-1" data-i18n="ws_accept_desc">Siz workspace-ə dəvət olundunuz:</p>
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-users me-2"></i><%= workspaceName %></h5>
+            <p class="text-muted mb-2" data-i18n="ws_accept_desc">Siz workspace-ə dəvət olundunuz:</p>
+            <h4 class="fw-bold text-gradient mb-4"><%= workspaceName %></h4>
+            
             <form method="POST" action="/workspaces/accept">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <input type="hidden" name="token" value="<%= token %>">
-              <div class="d-flex gap-2 flex-wrap">
-                <button type="submit" class="btn btn-primary rounded-pill" data-i18n="ws_accept_btn">Dəvəti qəbul et</button>
-                <a href="/dashboard" class="btn btn-outline-secondary rounded-pill" data-i18n="ws_accept_decline">İmtina et</a>
+              <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap">
+                <button type="submit" class="btn btn-primary rounded-pill px-4 py-2" data-i18n="ws_accept_btn">Dəvəti qəbul et</button>
+                <a href="/dashboard" class="btn btn-outline-secondary rounded-pill px-4 py-2" data-i18n="ws_accept_decline">İmtina et</a>
               </div>
             </form>
           <% } else if (state === 'login_required') { %>
-            <p class="mb-3" data-i18n="ws_accept_login_first">Dəvəti qəbul etmək üçün əvvəlcə hesabınıza daxil olun, sonra bu linki yenidən açın.</p>
-            <a href="/login" class="btn btn-primary rounded-pill" data-i18n="nav_login">Giriş</a>
+            <p class="mb-4 text-muted" data-i18n="ws_accept_login_first">Dəvəti qəbul etmək üçün əvvəlcə hesabınıza daxil olun, sonra bu linki yenidən açın.</p>
+            <a href="/login" class="btn btn-primary rounded-pill px-4 py-2" data-i18n="nav_login">Giriş</a>
           <% } else if (state === 'wrong_email') { %>
-            <div class="alert alert-warning py-2 small" data-i18n="ws_accept_wrong_email">Bu dəvət başqa bir e-poçt ünvanı üçün göndərilib. Düzgün hesabla daxil olun.</div>
-            <p class="small text-muted mb-0"><span data-i18n="ws_accept_invited_email">Dəvət olunan ünvan:</span> <code><%= invitedEmailMasked %></code></p>
+            <div class="alert alert-warning py-3 mb-3 small" data-i18n="ws_accept_wrong_email">Bu dəvət başqa bir e-poçt ünvanı üçün göndərilib. Düzgün hesabla daxil olun.</div>
+            <p class="small text-muted mb-0"><span data-i18n="ws_accept_invited_email">Dəvət olunan ünvan:</span> <code class="fw-bold"><%= invitedEmailMasked %></code></p>
           <% } else if (state === 'already_member' || state === 'accepted') { %>
-            <div class="alert alert-success py-2 small" data-i18n="ws_accept_already">Siz bu workspace-in üzvüsünüz.</div>
-            <a href="/dashboard" class="btn btn-primary rounded-pill" data-i18n="ws_open_dashboard">Linklər</a>
+            <div class="alert alert-success py-3 mb-4" data-i18n="ws_accept_already"><i class="fa-solid fa-check-circle me-2"></i> Siz bu workspace-in üzvüsünüz.</div>
+            <a href="/dashboard" class="btn btn-primary rounded-pill px-4 py-2" data-i18n="ws_open_dashboard">Linklər</a>
           <% } else { %>
-            <div class="alert alert-danger py-2 small" data-i18n="ws_accept_invalid">Bu dəvət etibarsızdır, vaxtı bitib və ya ləğv edilib.</div>
-            <a href="/dashboard" class="btn btn-outline-secondary rounded-pill" data-i18n="ws_open_dashboard">Linklər</a>
+            <div class="alert alert-danger py-3 mb-4" data-i18n="ws_accept_invalid"><i class="fa-solid fa-circle-exclamation me-2"></i> Bu dəvət etibarsızdır, vaxtı bitib və ya ləğv edilib.</div>
+            <a href="/dashboard" class="btn btn-outline-secondary rounded-pill px-4 py-2" data-i18n="ws_open_dashboard">Linklər</a>
           <% } %>
         </div>
-
       </div>
     </section>
   </main>

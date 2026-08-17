@@ -115,100 +115,127 @@
                     <div id="collapseAdvanced" class="accordion-collapse collapse"
                       data-bs-parent="#advancedSettingsAccordion">
                       <div class="accordion-body mt-3 p-0">
-                        <div class="card border-0 shadow-sm p-3 rounded-4 bg-light bg-opacity-50">
-
-                          <div class="row g-3">
-                            <div class="col-md-4 mb-3">
-                              <label for="expiresAt" class="form-label small fw-bold text-muted"
-                                data-i18n="expiry_date">Son İstifadə Tarihi</label>
-                              <input type="datetime-local" id="expiresAt" class="form-control">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                              <label for="maxClicks" class="form-label small fw-bold text-muted"
-                                data-i18n="max_clicks">Limit</label>
-                              <input type="number" id="maxClicks" class="form-control" placeholder="100"
-                                aria-label="Maksimum Klik Sayı">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                              <label for="customDomainSelect" class="form-label small fw-bold text-muted"
-                                data-i18n="shorten_domain_label">Qısa link domeni</label>
-                              <select id="customDomainSelect" class="form-select">
-                                <option value="" data-i18n="shorten_domain_default">Default (ovlink.sbs)</option>
-                              </select>
-                              <div class="form-text custom-domain-hint" data-i18n="shorten_domain_hint">Aktiv etdiyiniz domenlər burada görünür.</div>
-                              <a href="/account#customDomainSection" class="small fw-semibold text-decoration-none custom-domain-manage-link" data-i18n="shorten_domain_manage_link">Xüsusi domen əlavə et</a>
-                            </div>
-                          </div>
-
-                          <hr class="my-4 text-muted opacity-25">
+                        <div class="card border-0 shadow-sm rounded-4 bg-light bg-opacity-50 overflow-hidden">
                           
-                          <!-- UTM Builder -->
-                          <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="fw-bold mb-0"><i class="fa-solid fa-bullhorn me-2 text-primary"></i>UTM Parametreleri</h6>
-                            <div class="d-flex gap-2">
-                              <select id="utmTemplateSelect" class="form-select form-select-sm" style="width: auto;">
-                                <option value="">Şablon Seç</option>
-                              </select>
-                              <button type="button" id="saveUtmTemplateBtn" class="btn btn-sm btn-outline-primary" title="Mevcut UTM ayarlarını kaydet"><i class="fa-solid fa-floppy-disk"></i></button>
-                            </div>
-                          </div>
-                          <div class="row g-3 mb-2">
-                            <div class="col-md-4">
-                              <label for="utmSource" class="form-label small text-muted">Source (Kaynak)</label>
-                              <input type="text" id="utmSource" class="form-control form-control-sm" placeholder="örn. instagram">
-                            </div>
-                            <div class="col-md-4">
-                              <label for="utmMedium" class="form-label small text-muted">Medium (Araç)</label>
-                              <input type="text" id="utmMedium" class="form-control form-control-sm" placeholder="örn. social">
-                            </div>
-                            <div class="col-md-4">
-                              <label for="utmCampaign" class="form-label small text-muted">Campaign (Kampanya)</label>
-                              <input type="text" id="utmCampaign" class="form-control form-control-sm" placeholder="örn. yaz_indirimi">
-                            </div>
-                          </div>
-
-                          <hr class="my-4 text-muted opacity-25">
-
-                          <!-- A/B Test (Rotator) -->
-                          <h6 class="fw-bold mb-3 d-flex align-items-center">
-                            <i class="fa-solid fa-shuffle me-2 text-primary"></i>
-                            <span class="me-2">A/B Testi (Link Rotatör)</span>
-                            <span class="badge bg-warning text-dark px-2 py-1 rounded-pill" style="font-size: 0.65rem;" data-i18n="pro_badge"><i class="fa-solid fa-crown me-1"></i>PRO</span>
-                          </h6>
-                          <div class="row g-3">
-                            <div class="col-md-8">
-                              <label for="originalB" class="form-label small text-muted">Hedef URL B (İkinci Link)</label>
-                              <input type="url" id="originalB" class="form-control form-control-sm" placeholder="https://...">
-                            </div>
-                            <div class="col-md-4">
-                              <label for="abSplitPercent" class="form-label small text-muted">Link A Trafiği</label>
-                              <div class="input-group input-group-sm">
-                                <input type="number" id="abSplitPercent" class="form-control" placeholder="50" min="0" max="100" value="50">
-                                <span class="input-group-text">%</span>
+                          <!-- Tabs Nav -->
+                          <ul class="nav nav-tabs nav-fill bg-white border-bottom" id="advancedTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                              <button class="nav-link active fw-semibold py-3 border-0 text-dark" id="general-tab" data-bs-toggle="tab" data-bs-target="#general-pane" type="button" role="tab" aria-controls="general-pane" aria-selected="true" data-i18n="adv_tab_general">Genel</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                              <button class="nav-link fw-semibold py-3 border-0 text-muted" id="utm-tab" data-bs-toggle="tab" data-bs-target="#utm-pane" type="button" role="tab" aria-controls="utm-pane" aria-selected="false">UTM</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                              <button class="nav-link fw-semibold py-3 border-0 text-muted" id="abtest-tab" data-bs-toggle="tab" data-bs-target="#abtest-pane" type="button" role="tab" aria-controls="abtest-pane" aria-selected="false">A/B Test</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                              <button class="nav-link fw-semibold py-3 border-0 text-muted" id="device-tab" data-bs-toggle="tab" data-bs-target="#device-pane" type="button" role="tab" aria-controls="device-pane" aria-selected="false" data-i18n="adv_tab_device">Cihaz</button>
+                            </li>
+                          </ul>
+                          
+                          <!-- Tabs Content -->
+                          <div class="tab-content p-4" id="advancedTabsContent">
+                            
+                            <!-- General Tab -->
+                            <div class="tab-pane fade show active" id="general-pane" role="tabpanel" aria-labelledby="general-tab" tabindex="0">
+                              <div class="row g-3">
+                                <div class="col-md-6 mb-3">
+                                  <label for="expiresAt" class="form-label small fw-bold text-muted"
+                                    data-i18n="expiry_date">Son İstifadə Tarihi</label>
+                                  <input type="datetime-local" id="expiresAt" class="form-control">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                  <label for="maxClicks" class="form-label small fw-bold text-muted"
+                                    data-i18n="max_clicks">Limit</label>
+                                  <input type="number" id="maxClicks" class="form-control" placeholder="100"
+                                    aria-label="Maksimum Klik Sayı">
+                                </div>
+                                <div class="col-md-12">
+                                  <label for="customDomainSelect" class="form-label small fw-bold text-muted"
+                                    data-i18n="shorten_domain_label">Qısa link domeni</label>
+                                  <select id="customDomainSelect" class="form-select">
+                                    <option value="" data-i18n="shorten_domain_default">Default (ovlink.sbs)</option>
+                                  </select>
+                                  <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div class="form-text custom-domain-hint mb-0" data-i18n="shorten_domain_hint">Aktiv etdiyiniz domenlər burada görünür.</div>
+                                    <a href="/account#customDomainSection" class="small fw-semibold text-decoration-none custom-domain-manage-link" data-i18n="shorten_domain_manage_link">Xüsusi domen əlavə et</a>
+                                  </div>
+                                </div>
                               </div>
-                              <div class="form-text small" style="font-size: 0.75rem;">Kalan trafik Link B'ye gider.</div>
                             </div>
+                            
+                            <!-- UTM Tab -->
+                            <div class="tab-pane fade" id="utm-pane" role="tabpanel" aria-labelledby="utm-tab" tabindex="0">
+                              <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold mb-0 text-primary"><i class="fa-solid fa-bullhorn me-2"></i>UTM Parameters</h6>
+                                <div class="d-flex gap-2">
+                                  <select id="utmTemplateSelect" class="form-select form-select-sm" style="width: auto;">
+                                    <option value="" data-i18n="adv_utm_template_select">Şablon Seç</option>
+                                  </select>
+                                  <button type="button" id="saveUtmTemplateBtn" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" data-i18n-title="adv_utm_save_tooltip" title="Mevcut UTM ayarlarını kaydet"><i class="fa-solid fa-floppy-disk"></i></button>
+                                </div>
+                              </div>
+                              <div class="row g-3">
+                                <div class="col-md-12">
+                                  <label for="utmSource" class="form-label small fw-semibold text-muted" data-i18n="adv_utm_source">Source (Kaynak)</label>
+                                  <input type="text" id="utmSource" class="form-control" data-i18n-placeholder="adv_utm_source_ph" placeholder="örn. instagram">
+                                </div>
+                                <div class="col-md-6">
+                                  <label for="utmMedium" class="form-label small fw-semibold text-muted" data-i18n="adv_utm_medium">Medium (Araç)</label>
+                                  <input type="text" id="utmMedium" class="form-control" data-i18n-placeholder="adv_utm_medium_ph" placeholder="örn. social">
+                                </div>
+                                <div class="col-md-6">
+                                  <label for="utmCampaign" class="form-label small fw-semibold text-muted" data-i18n="adv_utm_campaign">Campaign (Kampanya)</label>
+                                  <input type="text" id="utmCampaign" class="form-control" data-i18n-placeholder="adv_utm_campaign_ph" placeholder="örn. yaz_indirimi">
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <!-- A/B Test Tab -->
+                            <div class="tab-pane fade" id="abtest-pane" role="tabpanel" aria-labelledby="abtest-tab" tabindex="0">
+                              <h6 class="fw-bold mb-3 d-flex align-items-center text-primary">
+                                <i class="fa-solid fa-shuffle me-2"></i>
+                                <span class="me-2" data-i18n="adv_ab_title">A/B Testi (Link Rotatör)</span>
+                                <span class="badge bg-warning text-dark px-2 py-1 rounded-pill" style="font-size: 0.65rem;" data-i18n="pro_badge"><i class="fa-solid fa-crown me-1"></i>PRO</span>
+                              </h6>
+                              <div class="row g-3">
+                                <div class="col-12">
+                                  <label for="originalB" class="form-label small fw-semibold text-muted" data-i18n="adv_ab_url_b">Hedef URL B (İkinci Link)</label>
+                                  <input type="url" id="originalB" class="form-control" placeholder="https://...">
+                                </div>
+                                <div class="col-12">
+                                  <label for="abSplitPercent" class="form-label small fw-semibold text-muted" data-i18n="adv_ab_split">Link A Trafiği (%)</label>
+                                  <div class="input-group">
+                                    <input type="number" id="abSplitPercent" class="form-control" placeholder="50" min="0" max="100" value="50">
+                                    <span class="input-group-text">%</span>
+                                  </div>
+                                  <div class="form-text small" data-i18n="adv_ab_hint">Kalan trafik Link B'ye gider.</div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <!-- Device Targeting Tab -->
+                            <div class="tab-pane fade" id="device-pane" role="tabpanel" aria-labelledby="device-tab" tabindex="0">
+                              <h6 class="fw-bold mb-3 d-flex align-items-center text-primary">
+                                <i class="fa-solid fa-mobile-screen-button me-2"></i>
+                                <span class="me-2" data-i18n="adv_device_title">Cihaz Hedefleme</span>
+                                <span class="badge bg-warning text-dark px-2 py-1 rounded-pill" style="font-size: 0.65rem;" data-i18n="pro_badge"><i class="fa-solid fa-crown me-1"></i>PRO</span>
+                              </h6>
+                              <div class="row g-3">
+                                <div class="col-12">
+                                  <label for="iosUrl" class="form-label small fw-semibold text-muted" data-i18n="adv_device_ios"><i class="fa-brands fa-apple me-1"></i>iOS Yönlendirme</label>
+                                  <input type="url" id="iosUrl" class="form-control" placeholder="https://apps.apple.com/...">
+                                </div>
+                                <div class="col-12">
+                                  <label for="androidUrl" class="form-label small fw-semibold text-muted" data-i18n="adv_device_android"><i class="fa-brands fa-android me-1 text-success"></i>Android Yönlendirme</label>
+                                  <input type="url" id="androidUrl" class="form-control" placeholder="https://play.google.com/...">
+                                </div>
+                              </div>
+                            </div>
+
                           </div>
-
-                          <hr class="my-4 text-muted opacity-25">
-
-                          <!-- Device Targeting (PRO) -->
-                          <h6 class="fw-bold mb-3 d-flex align-items-center">
-                            <i class="fa-solid fa-mobile-screen-button me-2 text-primary"></i>
-                            <span class="me-2">Cihaz Hedefleme</span>
-                            <span class="badge bg-warning text-dark px-2 py-1 rounded-pill" style="font-size: 0.65rem;" data-i18n="pro_badge"><i class="fa-solid fa-crown me-1"></i>PRO</span>
-                          </h6>
-                          <div class="row g-3">
-                            <div class="col-md-6">
-                              <label for="iosUrl" class="form-label small text-muted"><i class="fa-brands fa-apple me-1"></i>iOS Yönlendirme (iPhone/iPad)</label>
-                              <input type="url" id="iosUrl" class="form-control form-control-sm" placeholder="https://apps.apple.com/...">
-                            </div>
-                            <div class="col-md-6">
-                              <label for="androidUrl" class="form-label small text-muted"><i class="fa-brands fa-android me-1 text-success"></i>Android Yönlendirme</label>
-                              <input type="url" id="androidUrl" class="form-control form-control-sm" placeholder="https://play.google.com/...">
-                            </div>
-                          </div>
-
+                          <!-- End Tabs Content -->
+                          
                         </div>
                       </div>
                     </div>

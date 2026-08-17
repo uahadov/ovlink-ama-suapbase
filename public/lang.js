@@ -22,10 +22,28 @@ const translations = {
         hero_pricing_cta: "Ovlink Pro planlarını gör",
         input_placeholder: "Qısaltmaq istədiyiniz uzun linki yapışdırın...",
         alias_placeholder: "Xüsusi ad (İstəyə bağlı)",
-        pass_placeholder: "Şifrə (İstəyə bağlı)",
-        advanced_settings: "Ətraflı Tənzimləmələr",
-        expiry_date: "Bitmə Tarixi",
-        max_clicks: "Maksimum Klik Sayı",
+        pass_placeholder: "Şifrə",
+        advanced_settings: "Ətraflı Parametrlər",
+        expiry_date: "Son İstifadə Tarixi",
+        max_clicks: "Limit",
+        adv_tab_general: "Ümumi",
+        adv_tab_device: "Cihaz",
+        adv_utm_template_select: "Şablon Seç",
+        adv_utm_save_tooltip: "Mövcud UTM ayarlarını yadda saxla",
+        adv_utm_source: "Source (Mənbə)",
+        adv_utm_source_ph: "məs. instagram",
+        adv_utm_medium: "Medium (Vasitə)",
+        adv_utm_medium_ph: "məs. social",
+        adv_utm_campaign: "Campaign (Kampaniya)",
+        adv_utm_campaign_ph: "məs. yay_endirimi",
+        adv_ab_title: "A/B Testi (Link Rotator)",
+        adv_ab_url_b: "Hədəf URL B (İkinci Link)",
+        adv_ab_split: "Link A Trafiki (%)",
+        adv_ab_hint: "Qalan trafik Link B-yə gedəcək.",
+        adv_device_title: "Cihaz Hədəfləmə",
+        adv_device_ios: "iOS Yönləndirmə",
+        adv_device_android: "Android Yönləndirmə",
+        shorten_domain_label: "Qısa link domeni",
         qr_alias_placeholder: "Qısaldılmış Link (məs: abc123)",
         qr_customize: "QR Kodu Fərdiləşdir",
         qr_fg_color: "QR Rəngi",
@@ -2701,6 +2719,23 @@ function applyLanguage() {
             } else {
                 el.textContent = translations[currentLang][key];
             }
+        }
+    });
+
+    const placeholders = document.querySelectorAll("[data-i18n-placeholder]");
+    placeholders.forEach(el => {
+        const key = el.getAttribute("data-i18n-placeholder");
+        if (translations[currentLang] && translations[currentLang][key]) {
+            el.placeholder = translations[currentLang][key];
+        }
+    });
+
+    const titles = document.querySelectorAll("[data-i18n-title]");
+    titles.forEach(el => {
+        const key = el.getAttribute("data-i18n-title");
+        if (translations[currentLang] && translations[currentLang][key]) {
+            el.title = translations[currentLang][key];
+            el.setAttribute("data-bs-original-title", translations[currentLang][key]);
         }
     });
 

@@ -447,13 +447,10 @@
         }
       }
 
-      if (typeof getClientSession === 'function') {
-        fetch('/api/me', { credentials: 'include' })
-          .then(function (res) { return res.json(); })
-          .then(function (data) { render2faState(!!(data && data.user && data.user.twofaEnabled)); })
-          .catch(function () { render2faState(false); });
-      }
-
+      fetch('/api/me', { credentials: 'include' })
+        .then(function (res) { return res.json(); })
+        .then(function (data) { render2faState(!!(data && data.user && data.user.twofaEnabled)); })
+        .catch(function () { render2faState(false); });
       if (setupBtn) setupBtn.addEventListener('click', function () {
         postJsonWithCsrf('/api/user/2fa/setup', {})
           .then(function (res) { return res.json(); })

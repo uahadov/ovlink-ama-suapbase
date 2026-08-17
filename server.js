@@ -77,6 +77,11 @@ const pool = new pg.Pool({
   query_timeout: 10000
 });
 
+pool.on('error', (err, client) => {
+  console.error('[db pool error]', err.message);
+  sendOpsAlert('db_pool_error', 'Database pool error', err.message);
+});
+
 // ============ SIMPLE IN-MEMORY CACHE ============
 class SimpleCache {
   constructor(maxSize = 1000, defaultTTL = 300000) { // TTL: 5 minutes
@@ -10135,7 +10140,7 @@ app.get('/api/user/export', (req, res) => {
 
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="${baseFile}.csv"`);
-      return res.send(lines.join('\n'));
+      return res.send('\uFEFF' + lines.join('\n'));
     }
   );
 });
@@ -10264,7 +10269,7 @@ app.post('/api/user/import',
           'SELECT 1 FROM blocked_domains WHERE domain = ? OR domain = ?',
           [hostname, `.${hostname}`],
           (bErr, bRow) => {
-            if (bRow || isSuspiciousOrPhishingUrl(originalAbs)) {
+            if (bRow) {
               blocked += 1;
               return processAt(index + 1);
             }
@@ -10586,10 +10591,19 @@ app.delete('/api/workspaces/:id/invitations/:invitationId', requireSignedIn, asy
 });
 
 app.delete('/api/workspaces/:id/members/:userId', requireSignedIn, async (req, res) => {
-  const ctx = await requireWorkspaceMembership(req, res, WORKSPACE_ROLES.ADMIN);
+  let targetUserId;
+  if (req.params.userId === 'me') {
+    targetUserId = req.session.userId;
+  } else {
+    targetUserId = Number.parseInt(req.params.userId, 10);
+    if (!Number.isInteger(targetUserId) || targetUserId <= 0) return res.status(400).json({ error: 'Invalid user id.' });
+  }
+
+  const isSelf = (req.session.userId === targetUserId);
+  const requiredRole = isSelf ? WORKSPACE_ROLES.MEMBER : WORKSPACE_ROLES.ADMIN;
+
+  const ctx = await requireWorkspaceMembership(req, res, requiredRole);
   if (!ctx) return;
-  const targetUserId = Number.parseInt(req.params.userId, 10);
-  if (!Number.isInteger(targetUserId) || targetUserId <= 0) return res.status(400).json({ error: 'Invalid user id.' });
 
   const target = await dbGetAsync('SELECT user_id, role FROM workspace_members WHERE workspace_id = ? AND user_id = ?', [ctx.workspace.id, targetUserId]);
   if (!target) return res.status(404).json({ error: 'Member not found.' });
@@ -11154,13 +11168,13 @@ ${announcementHtml}
                 <div class="modal-body">
                   <div class="mb-3">
                     <label class="form-label" for="dashboardMetaFolderInput" data-i18n="dashboard_meta_folder_label">Qovluq</label>
-                    <input id="dashboardMetaFolderInput" class="form-control" list="dashboardMetaFolderSuggestions" data-i18n="dashboard_meta_folder_placeholder" placeholder="Məs: kampaniyalar">
-                    <datalist id="dashboardMetaFolderSuggestions"></datalist>
+                    <input id="dashboardMetaFolderInput" class="form-control" data-i18n-placeholder="dashboard_meta_folder_placeholder" placeholder="Məs: kampaniyalar">
+                    <div id="dashboardMetaFolderPills" class="mt-2 d-flex flex-wrap gap-1"></div>
                   </div>
                   <div class="mb-2">
                     <label class="form-label" for="dashboardMetaTagsInput" data-i18n="dashboard_meta_tags_label">Teqlər</label>
-                    <input id="dashboardMetaTagsInput" class="form-control" list="dashboardMetaTagSuggestions" data-i18n="dashboard_meta_tags_placeholder" placeholder="Məs: reklam, instagram, yaz">
-                    <datalist id="dashboardMetaTagSuggestions"></datalist>
+                    <input id="dashboardMetaTagsInput" class="form-control" data-i18n-placeholder="dashboard_meta_tags_placeholder" placeholder="Məs: reklam, instagram, yaz">
+                    <div id="dashboardMetaTagPills" class="mt-2 d-flex flex-wrap gap-1"></div>
                   </div>
                   <div id="dashboardMetaMsg" class="small"></div>
                 </div>

@@ -2300,23 +2300,45 @@ if (document.readyState === "loading") {
   };
 
   const refreshDashboardMetaSuggestions = () => {
-    const folderList = document.getElementById("dashboardMetaFolderSuggestions");
-    const tagList = document.getElementById("dashboardMetaTagSuggestions");
-    if (!folderList || !tagList) return;
+    const folderPills = document.getElementById("dashboardMetaFolderPills");
+    const tagPills = document.getElementById("dashboardMetaTagPills");
+    const folderInput = document.getElementById("dashboardMetaFolderInput");
+    const tagsInput = document.getElementById("dashboardMetaTagsInput");
+
+    if (!folderPills || !tagPills) return;
     const { folders, tags } = collectDashboardMetaOptions();
 
-    folderList.innerHTML = "";
+    folderPills.innerHTML = "";
     folders.forEach(([, label]) => {
-      const option = document.createElement("option");
-      option.value = label;
-      folderList.appendChild(option);
+      const badge = document.createElement("span");
+      badge.className = "badge bg-secondary text-white cursor-pointer py-2 px-3 rounded-pill";
+      badge.style.cursor = "pointer";
+      badge.textContent = label;
+      badge.addEventListener("click", () => {
+        folderInput.value = label;
+      });
+      folderPills.appendChild(badge);
     });
 
-    tagList.innerHTML = "";
+    tagPills.innerHTML = "";
     tags.forEach(([, label]) => {
-      const option = document.createElement("option");
-      option.value = label;
-      tagList.appendChild(option);
+      const badge = document.createElement("span");
+      badge.className = "badge bg-secondary text-white cursor-pointer py-2 px-3 rounded-pill";
+      badge.style.cursor = "pointer";
+      badge.textContent = label;
+      badge.addEventListener("click", () => {
+        const current = tagsInput.value.trim();
+        if (!current) {
+          tagsInput.value = label;
+        } else {
+          const parts = current.split(",").map(s => s.trim()).filter(Boolean);
+          if (!parts.includes(label)) {
+            parts.push(label);
+            tagsInput.value = parts.join(", ");
+          }
+        }
+      });
+      tagPills.appendChild(badge);
     });
   };
 
@@ -4348,6 +4370,10 @@ document.addEventListener("click", async (e) => {
     const isOwner = detail.my_role === "owner";
     const isAdmin = isOwner || detail.my_role === "admin";
     document.getElementById("wsRenameBtn").classList.toggle("d-none", !isOwner);
+    
+    const wsLeaveBtn = document.getElementById("wsLeaveBtn");
+    if (wsLeaveBtn) wsLeaveBtn.classList.toggle("d-none", isOwner); // Only members/admins can leave
+    
     document.getElementById("wsInviteCard").classList.toggle("d-none", !isAdmin);
     document.getElementById("wsSsoCard").classList.toggle("d-none", !isAdmin);
     document.getElementById("wsDangerCard").classList.toggle("d-none", !isOwner);
@@ -4355,7 +4381,49 @@ document.addEventListener("click", async (e) => {
 
     const membersBody = document.getElementById("wsMembersBody");
     membersBody.innerHTML = "";
-    (detail.members || []).forEach((member) => {
+    
+    const members = detail.members || [];
+    const wsStatMembers = document.getElementById("wsStatMembers");
+    if (wsStatMembers) wsStatMembers.textContent = members.length;
+    
+    // Setup Leave Workspace Confirm Button
+    const wsLeaveConfirmBtn = document.getElementById("wsLeaveConfirmBtn");
+    if (wsLeaveConfirmBtn && !wsLeaveConfirmBtn.dataset.listenerAttached) {
+      wsLeaveConfirmBtn.dataset.listenerAttached = 'true';
+      let leaveCountdown;
+      document.getElementById("wsLeaveModal").addEventListener("show.bs.modal", () => {
+        wsLeaveConfirmBtn.disabled = true;
+        let count = 3;
+        document.getElementById("wsLeaveCountdown").textContent = count;
+        leaveCountdown = setInterval(() => {
+          count--;
+          if (count <= 0) {
+            clearInterval(leaveCountdown);
+            wsLeaveConfirmBtn.disabled = false;
+            document.getElementById("wsLeaveCountdown").textContent = ""; // Hide countdown
+          } else {
+            document.getElementById("wsLeaveCountdown").textContent = count;
+          }
+        }, 1000);
+      });
+      document.getElementById("wsLeaveModal").addEventListener("hide.bs.modal", () => {
+        clearInterval(leaveCountdown);
+      });
+      wsLeaveConfirmBtn.addEventListener("click", async () => {
+        if (!wsDetail) return;
+        const myMemberObj = wsDetail.members.find(m => m.role === wsDetail.my_role); // we need my user_id. We can find by matching email with logged in user, or just 'me' doesn't work since API expects ID. Wait, I can find the member where my_role matches, but what if multiple? Let's use window.USER_ID or similar. Actually, the members array has `user_id`. Is there a way to know MY user_id?
+        // Wait, script.js might not have my user_id globally. Let's just use "me" in the URL and fix backend to accept "me"!
+        const res = await wsRequest("DELETE", `/api/workspaces/${detail.id}/members/me`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert((err && err.error) || "Leave failed.");
+          return;
+        }
+        window.location.href = "/dashboard";
+      });
+    }
+
+    members.forEach((member) => {
       const tr = document.createElement("tr");
       const canManage = isAdmin && member.role !== "owner" && (isOwner || member.role !== "admin");
       const roleControls = isOwner && member.role !== "owner"
