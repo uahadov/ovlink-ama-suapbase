@@ -3499,25 +3499,34 @@ const RESEND_FROM = process.env.RESEND_FROM || 'Ovlink <verify@ovlink.sbs>';
 async function sendMail({ to, subject, html, text }) {
   if (resendClient) {
     try {
-      await resendClient.emails.send({
+      const resendRes = await resendClient.emails.send({
         from: RESEND_FROM,
         to: [to],
         subject,
         html,
         text,
       });
-      return;
+      console.log(`[email] Resend success: to=${to}, id=${resendRes && resendRes.id ? resendRes.id : 'unknown'}`);
+      return resendRes;
     } catch (resendErr) {
       console.error('[email] Resend failed, trying SMTP fallback:', resendErr.message);
     }
   }
-  return emailTransporter.sendMail({
-    from: SMTP_FROM,
-    to,
-    subject,
-    html,
-    text,
-  });
+  
+  try {
+    const smtpInfo = await emailTransporter.sendMail({
+      from: SMTP_FROM,
+      to,
+      subject,
+      html,
+      text,
+    });
+    console.log(`[email] SMTP success: to=${to}, response=${smtpInfo.response}, messageId=${smtpInfo.messageId}`);
+    return smtpInfo;
+  } catch (smtpErr) {
+    console.error(`[email] SMTP error: to=${to}, message=${smtpErr.message}`);
+    throw smtpErr;
+  }
 }
 
 
