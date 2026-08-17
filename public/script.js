@@ -3716,14 +3716,17 @@ if (customDomainList) {
   if (!form) return;
 
   // --- Home Workspace Selector Logic ---
+  const hwWrapper = document.getElementById("homeWorkspaceTopWrapper");
   const hwBtn = document.getElementById("homeWorkspaceDropdownBtn");
+  const hwIcon = document.getElementById("homeWorkspaceBtnIcon");
+  const hwText = document.getElementById("homeWorkspaceBtnText");
   const hwMenu = document.getElementById("homeWorkspaceDropdownMenu");
   let selectedHomeWorkspaceId = 0;
 
-  if (hwBtn && hwMenu) {
+  if (hwWrapper && hwBtn && hwMenu && hwIcon && hwText) {
     const updateHwBtn = (id, name) => {
-      hwBtn.innerHTML = id === 0 ? '<i class="fa-solid fa-user text-muted"></i>' : '<i class="fa-solid fa-users text-primary"></i>';
-      hwBtn.title = name;
+      hwIcon.className = id === 0 ? "fa-solid fa-user text-muted me-1" : "fa-solid fa-users text-primary me-1";
+      hwText.textContent = name;
       selectedHomeWorkspaceId = id;
       localStorage.setItem("ovlink_home_workspace", id);
     };
@@ -3734,19 +3737,19 @@ if (customDomainList) {
         if (!res.ok) return; // not logged in or error
         const data = await res.json();
         const workspaces = data.workspaces || [];
-        if (workspaces.length === 0) return; // no workspaces, keep link icon
+        if (workspaces.length === 0) return; // no workspaces, keep hidden
 
-        hwBtn.disabled = false;
+        hwWrapper.classList.remove("d-none");
         
         // Populate menu
         const personalName = pickLang("Şəxsi hesab", "Kişisel hesap", "Personal account");
         hwMenu.innerHTML = `
-          <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" data-ws-id="0"><i class="fa-solid fa-user text-muted"></i> <span>${personalName}</span></a></li>
+          <li><a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#" data-ws-id="0"><i class="fa-solid fa-user text-muted"></i> <span class="fw-medium">${personalName}</span></a></li>
           <li><hr class="dropdown-divider"></li>
         `;
         
         workspaces.forEach(ws => {
-          hwMenu.innerHTML += `<li><a class="dropdown-item d-flex align-items-center gap-2" href="#" data-ws-id="${ws.id}"><i class="fa-solid fa-users text-primary"></i> <span>${escapeHtml(ws.name)}</span></a></li>`;
+          hwMenu.innerHTML += `<li><a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#" data-ws-id="${ws.id}"><i class="fa-solid fa-users text-primary"></i> <span class="fw-medium">${escapeHtml(ws.name)}</span></a></li>`;
         });
 
         // Set initial selection

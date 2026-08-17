@@ -75,15 +75,18 @@
             </p>
             <div class="glass-card home-form-card shadow-lg text-start mx-auto hero-form">
               <form id="shortenForm">
+                <div class="mb-3 d-none" id="homeWorkspaceTopWrapper">
+                  <button class="btn btn-sm btn-light border dropdown-toggle rounded-pill fw-medium px-3 shadow-none" type="button" id="homeWorkspaceDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-user text-muted me-1" id="homeWorkspaceBtnIcon"></i>
+                    <span id="homeWorkspaceBtnText">Şəxsi hesab</span>
+                  </button>
+                  <ul class="dropdown-menu shadow-sm border-0" id="homeWorkspaceDropdownMenu" style="font-size: 0.9rem; border-radius: 12px;">
+                    <!-- Populated via JS -->
+                  </ul>
+                </div>
+
                 <div class="input-group input-group-lg mb-4 shadow-sm">
-                  <div class="input-group-text bg-white border-end-0 p-0" id="homeWorkspaceWrapper">
-                    <button class="btn btn-white border-0 text-primary dropdown-toggle shadow-none" type="button" id="homeWorkspaceDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 0.375rem 0 0 0.375rem;" disabled>
-                      <i class="fa-solid fa-link"></i>
-                    </button>
-                    <ul class="dropdown-menu shadow-sm" id="homeWorkspaceDropdownMenu" style="font-size: 0.9rem;">
-                      <!-- Populated via JS -->
-                    </ul>
-                  </div>
+                  <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-link"></i></span>
                   <input type="url" id="originalUrl" class="form-control border-start-0"
                     placeholder="Uzun linki bura yapışdırın..." data-i18n="input_placeholder" required
                     aria-label="Uzun Link URL" />
