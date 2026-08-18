@@ -21,8 +21,15 @@ const tsscmp = require('tsscmp');
 const lusca = require('lusca');
 const { body, validationResult } = require('express-validator');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('./utils/crypto.js');
-const { verifyPolarWebhook, resolvePolarProductPolicy } = require('./utils/polar.js');
-const { parseIdpMetadataXml, createWorkspaceSamlInstance, extractProfileEmail } = require('./utils/sso.js');
+const {
+  parseIdpMetadataXml,
+  createWorkspaceSamlInstance,
+  extractProfileEmail,
+  extractAssertionId,
+  isPublicConsumerEmailDomain,
+  createSignedRelayState,
+  verifySignedRelayState
+} = require('./utils/sso.js');
 const speakeasy = require('speakeasy');
 // POLAR_WEBHOOK_SECRET is read from process.env inside the webhook handler (not cached at startup)
 // so that dotenv-loaded values are always visible.
@@ -5514,6 +5521,14 @@ db.run('ALTER TABLE urls ADD COLUMN android_url TEXT', () => {});
           db.run('ALTER TABLE workspace_members ENABLE ROW LEVEL SECURITY', () => {});
           db.run('ALTER TABLE workspace_invitations ENABLE ROW LEVEL SECURITY', () => {});
           db.run('ALTER TABLE sso_connections ENABLE ROW LEVEL SECURITY', () => {});
+          db.run(`CREATE TABLE IF NOT EXISTS sso_replay_cache (
+            assertion_id TEXT PRIMARY KEY,
+            workspace_id INTEGER,
+            expires_at TEXT NOT NULL,
+            created_at TEXT NOT NULL
+          )`, () => {
+            db.run('CREATE INDEX IF NOT EXISTS idx_sso_replay_expires ON sso_replay_cache(expires_at)', () => {});
+          });
         });
       });
     });
@@ -10762,10 +10777,86 @@ app.get('/sso/:workspaceId/metadata', async (req, res) => {
   }
 });
 
+app.post('/api/auth/realm-lookup', async (req, res) => {
+  try {
+    const rawInput = (req.body && (req.body.email || req.body.domain || req.body.workspace)) || '';
+    const trimmed = rawInput.toString().trim().toLowerCase();
+    if (!trimmed || trimmed.length > 255) {
+      return res.json({ ssoAvailable: false });
+    }
+
+    if (isPublicConsumerEmailDomain(trimmed)) {
+      return res.json({ ssoAvailable: false });
+    }
+
+    const searchDomain = trimmed.includes('@') ? trimmed.split('@').pop() : trimmed;
+    const numericWsId = parseInt(searchDomain, 10);
+
+    let matchedWs = null;
+    if (!Number.isNaN(numericWsId) && numericWsId > 0) {
+      const loaded = await loadActiveWorkspaceSso(numericWsId).catch(() => null);
+      if (loaded) {
+        matchedWs = loaded.workspace;
+      }
+    }
+
+    if (!matchedWs) {
+      const rows = await dbAllAsync(
+        `SELECT w.id, w.name, s.idp_entity_id, s.idp_sso_url, s.enabled, u.email, u.plan_tier, u.plan_status, u.pro_expires_at
+         FROM workspaces w
+         JOIN sso_connections s ON s.workspace_id = w.id
+         JOIN users u ON u.id = w.owner_user_id
+         WHERE s.enabled = 1`
+      ).catch(() => []);
+
+      for (const r of rows) {
+        if (!isProAccessActive(r)) continue;
+        const wsName = (r.name || '').toLowerCase();
+        const entityId = (r.idp_entity_id || '').toLowerCase();
+        let ownerDomain = '';
+        try {
+          if (r.email) {
+            const dec = decryptAES256GCM(r.email);
+            if (dec && dec.includes('@')) {
+              ownerDomain = dec.split('@').pop().toLowerCase();
+            }
+          }
+        } catch {}
+
+        if (
+          wsName === searchDomain ||
+          entityId.includes(searchDomain) ||
+          searchDomain.includes(wsName) ||
+          (ownerDomain && ownerDomain === searchDomain)
+        ) {
+          matchedWs = { id: r.id, name: r.name };
+          break;
+        }
+      }
+    }
+
+    if (!matchedWs) {
+      return res.json({ ssoAvailable: false });
+    }
+
+    return res.json({
+      ssoAvailable: true,
+      workspaceId: matchedWs.id,
+      workspaceName: matchedWs.name,
+      ssoLoginUrl: `/sso/${matchedWs.id}/login`
+    });
+  } catch (err) {
+    console.error('[sso] realm-lookup error:', err && err.message);
+    return res.json({ ssoAvailable: false });
+  }
+});
+
 app.get('/sso/:workspaceId/login', async (req, res) => {
   const loaded = await loadActiveWorkspaceSso(req.params.workspaceId).catch(() => null);
   if (!loaded) return res.redirect('/login?sso=error');
   try {
+    const returnTo = req.query.returnTo || '/dashboard';
+    const relayState = createSignedRelayState(loaded.workspace.id, returnTo, process.env.SESSION_SECRET);
     const saml = createWorkspaceSamlInstance({
       baseUrl: getPublicBaseUrl(req),
       workspaceId: loaded.workspace.id,
@@ -10773,24 +10864,34 @@ app.get('/sso/:workspaceId/login', async (req, res) => {
       ssoLoginUrl: loaded.sso.idp_sso_url,
       certificate: loaded.sso.idp_certificate,
     });
-    const authorizeUrl = await saml.getAuthorizeUrlAsync({ ...req, headers: req.headers });
+    const authorizeUrl = await saml.getAuthorizeUrlAsync({
+      ...req,
+      headers: req.headers,
+      query: { RelayState: relayState }
+    });
+    logSecurityEvent(req, 'sso.login.initiated', 'success', { workspace_id: loaded.workspace.id });
     return res.redirect(authorizeUrl);
   } catch (err) {
     console.error('[sso] login request failed:', err && err.message);
+    logSecurityEvent(req, 'sso.login.initiated', 'failure', { workspace_id: loaded.workspace.id, detail: (err && err.message || '').slice(0, 128) });
     return res.redirect('/login?sso=error');
   }
 });
 
 app.post('/sso/:workspaceId/acs', async (req, res) => {
-  const redirectError = () => res.redirect('/login?sso=error');
+  const redirectError = (reason = 'error') => res.redirect(`/login?sso=${encodeURIComponent(reason)}`);
   const loaded = await loadActiveWorkspaceSso(req.params.workspaceId).catch(() => null);
-  if (!loaded) return redirectError();
+  if (!loaded) return redirectError('error');
 
   const samlResponse = req.body && req.body.SAMLResponse;
   if (!samlResponse || typeof samlResponse !== 'string') {
     logSecurityEvent(req, 'sso.acs', 'failure', { reason: 'missing_response', workspace_id: loaded.workspace.id });
-    return redirectError();
+    return redirectError('error');
   }
+
+  // Verify HMAC-signed RelayState
+  const rawRelayState = req.body && req.body.RelayState;
+  const { valid: isRelayValid, returnTo: safeDestination } = verifySignedRelayState(rawRelayState, loaded.workspace.id, process.env.SESSION_SECRET);
 
   let profile;
   try {
@@ -10804,25 +10905,44 @@ app.post('/sso/:workspaceId/acs', async (req, res) => {
     profile = await saml.validatePostResponseAsync({ SAMLResponse: samlResponse });
   } catch (err) {
     logSecurityEvent(req, 'sso.acs', 'failure', { reason: 'invalid_assertion', workspace_id: loaded.workspace.id, detail: (err && err.message || '').slice(0, 128) });
-    return redirectError();
+    return redirectError('error');
+  }
+
+  // Replay Attack Protection: Check assertion ID
+  const assertionId = extractAssertionId(profile);
+  if (assertionId) {
+    try {
+      const existingReplay = await dbGetAsync('SELECT assertion_id FROM sso_replay_cache WHERE assertion_id = ?', [assertionId]);
+      if (existingReplay) {
+        logSecurityEvent(req, 'sso.acs', 'blocked', { reason: 'replay_detected', workspace_id: loaded.workspace.id, assertion_id: assertionId });
+        return redirectError('replay');
+      }
+      const expiryIso = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+      await dbRunAsync(
+        'INSERT INTO sso_replay_cache (assertion_id, workspace_id, expires_at, created_at) VALUES (?, ?, ?, ?)',
+        [assertionId, loaded.workspace.id, expiryIso, new Date().toISOString()]
+      );
+    } catch (replayErr) {
+      console.error('[sso] replay cache error:', replayErr && replayErr.message);
+    }
   }
 
   const email = extractProfileEmail(profile);
   if (!email) {
     logSecurityEvent(req, 'sso.acs', 'failure', { reason: 'no_email_in_assertion', workspace_id: loaded.workspace.id });
-    return redirectError();
+    return redirectError('error');
   }
 
   let user = await dbGetAsync('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(email)]);
   if (user && user.banned == 1 && (!user.ban_until || Date.parse(user.ban_until) > Date.now())) {
     logSecurityEvent(req, 'sso.acs', 'blocked', { reason: 'banned', workspace_id: loaded.workspace.id });
-    return redirectError();
+    return redirectError('error');
   }
 
   if (!user) {
     // JIT provisioning: the corporate IdP vouches for the email address, so
     // the account starts verified with a random local password (SSO-only).
-    const hashedPassword = await bcrypt.hash(crypto.randomBytes(24).toString('base64url'), 12);
+    const hashedPassword = await bcrypt.hash(crypto.randomBytes(32).toString('base64url'), 12);
     const inserted = await dbRunAsync(
       "INSERT INTO users (email, email_hash, password, email_verified, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled, plan_tier, plan_status) VALUES (?, ?, ?, 1, 'sso', ?, 'az', 'light', 1, 1, 1, 'free', 'active') RETURNING id",
       [encryptAES256GCM(email), blindIndex(email), hashedPassword, new Date().toISOString()]
@@ -10839,14 +10959,14 @@ app.post('/sso/:workspaceId/acs', async (req, res) => {
   }
 
   return req.session.regenerate((regenErr) => {
-    if (regenErr) return redirectError();
+    if (regenErr) return redirectError('error');
     req.session.userId = user.id;
     req.session.username = email;
     dbRunAsync('UPDATE users SET last_login_at = ? WHERE id = ?', [new Date().toISOString(), user.id]).catch(() => {});
     return upsertUserSessionRecord(req, user.id, { loginMethod: 'sso' }, () => {
       return req.session.save(() => {
         logSecurityEvent(req, 'sso.acs', 'success', { workspace_id: loaded.workspace.id, user_id: user.id });
-        return res.redirect('/dashboard');
+        return res.redirect(safeDestination || '/dashboard');
       });
     });
   });

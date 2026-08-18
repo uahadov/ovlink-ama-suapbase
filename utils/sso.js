@@ -1,11 +1,120 @@
 'use strict';
 
+const crypto = require('crypto');
 const { SAML } = require('@node-saml/node-saml');
 const { parseStringPromise } = require('xml2js');
 
-// SAML clock skew tolerance for NotBefore/NotOnOrAfter condition validation.
-const SAML_ACCEPTED_CLOCK_SKEW_MS = 5 * 60 * 1000;
+// SAML clock skew tolerance for NotBefore/NotOnOrAfter condition validation (3 minutes).
+const SAML_ACCEPTED_CLOCK_SKEW_MS = 3 * 60 * 1000;
 const SAML_METADATA_MAX_LENGTH = 200 * 1024;
+const RELAY_STATE_MAX_AGE_MS = 15 * 60 * 1000; // 15 minutes
+
+/**
+ * Common consumer/free email domains that should never trigger corporate SSO realm discovery.
+ */
+const PUBLIC_CONSUMER_DOMAINS = new Set([
+  'gmail.com', 'googlemail.com', 'yahoo.com', 'ymail.com', 'outlook.com',
+  'hotmail.com', 'live.com', 'icloud.com', 'me.com', 'mail.ru', 'yandex.com',
+  'yandex.ru', 'proton.me', 'protonmail.com', 'aol.com', 'zoho.com', 'gmx.com',
+  'gmx.net', 'web.de', 'mail.com'
+]);
+
+/**
+ * Check if an email domain or full email address belongs to a public consumer provider.
+ * @param {string} input
+ * @returns {boolean}
+ */
+function isPublicConsumerEmailDomain(input) {
+  if (!input || typeof input !== 'string') return true;
+  const cleaned = input.trim().toLowerCase();
+  const domain = cleaned.includes('@') ? cleaned.split('@').pop() : cleaned;
+  return PUBLIC_CONSUMER_DOMAINS.has(domain);
+}
+
+/**
+ * Sanitize internal return URL to prevent Open Redirect vulnerabilities.
+ * Allows only relative paths starting with a single '/' and rejects protocols and scheme-relative slashes.
+ * @param {string} url
+ * @returns {string} safe relative path or '/dashboard'
+ */
+function sanitizeReturnUrl(url) {
+  if (!url || typeof url !== 'string') return '/dashboard';
+  const trimmed = url.trim();
+  if (!trimmed.startsWith('/') || trimmed.startsWith('//') || trimmed.startsWith('/\\')) {
+    return '/dashboard';
+  }
+  // Disallow ASCII control characters, newlines, and explicit protocol wrappers
+  if (/[\x00-\x1f\x7f]|^[a-zA-Z][a-zA-Z0-9+.-]*:/i.test(trimmed)) {
+    return '/dashboard';
+  }
+  return trimmed;
+}
+
+/**
+ * Generate a cryptographically signed RelayState token using HMAC-SHA256.
+ * @param {number|string} workspaceId
+ * @param {string} [returnTo='/dashboard']
+ * @param {string} secret
+ * @returns {string} base64url-encoded payload and HMAC signature
+ */
+function createSignedRelayState(workspaceId, returnTo, secret) {
+  if (!secret) throw new Error('Missing secret for RelayState HMAC generation.');
+  const safeReturn = sanitizeReturnUrl(returnTo);
+  const payload = JSON.stringify({
+    ws: Number(workspaceId),
+    ret: safeReturn,
+    nonce: crypto.randomBytes(16).toString('hex'),
+    ts: Date.now()
+  });
+  const encodedPayload = Buffer.from(payload, 'utf8').toString('base64url');
+  const hmac = crypto.createHmac('sha256', secret).update(encodedPayload).digest('base64url');
+  return `${encodedPayload}.${hmac}`;
+}
+
+/**
+ * Verify and decode an HMAC-signed RelayState token.
+ * @param {string} signedState
+ * @param {number|string} expectedWorkspaceId
+ * @param {string} secret
+ * @returns {{valid: boolean, returnTo: string}}
+ */
+function verifySignedRelayState(signedState, expectedWorkspaceId, secret) {
+  const fallback = { valid: false, returnTo: '/dashboard' };
+  if (!signedState || typeof signedState !== 'string' || !secret) return fallback;
+  const dotIdx = signedState.indexOf('.');
+  if (dotIdx <= 0 || dotIdx === signedState.length - 1) return fallback;
+
+  const encodedPayload = signedState.slice(0, dotIdx);
+  const receivedHmac = signedState.slice(dotIdx + 1);
+
+  const expectedHmac = crypto.createHmac('sha256', secret).update(encodedPayload).digest('base64url');
+  const receivedBuf = Buffer.from(receivedHmac, 'utf8');
+  const expectedBuf = Buffer.from(expectedHmac, 'utf8');
+
+  if (receivedBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(receivedBuf, expectedBuf)) {
+    return fallback;
+  }
+
+  try {
+    const rawJson = Buffer.from(encodedPayload, 'base64url').toString('utf8');
+    const data = JSON.parse(rawJson);
+    if (!data || typeof data !== 'object') return fallback;
+
+    // Check expiration (15 minutes)
+    if (!data.ts || typeof data.ts !== 'number' || (Date.now() - data.ts) > RELAY_STATE_MAX_AGE_MS || data.ts > (Date.now() + 60000)) {
+      return fallback;
+    }
+
+    // Check bound workspace ID
+    if (Number(data.ws) !== Number(expectedWorkspaceId)) {
+      return fallback;
+    }
+
+    return { valid: true, returnTo: sanitizeReturnUrl(data.ret) };
+  } catch {
+    return fallback;
+  }
+}
 
 /**
  * Parse an IdP (e.g. Okta) metadata XML document and extract the fields the
@@ -53,7 +162,7 @@ async function parseIdpMetadataXml(metadataXml) {
   const ssoServices = Array.isArray(idpDescriptor.SingleSignOnService) ? idpDescriptor.SingleSignOnService : [];
   let ssoLoginUrl = '';
   for (const svc of ssoServices) {
-    const binding = (svc.$ && svc.$ && svc.$.Binding || '').toString();
+    const binding = (svc.$ && svc.$.Binding || '').toString();
     const location = (svc.$ && svc.$.Location || '').toString().trim();
     // HTTP-Redirect is the binding we generate login requests with; fall back
     // to any HTTP POST binding if the IdP only offers that.
@@ -110,6 +219,8 @@ function buildSamlOptions(cfg) {
     // signature is validated against the IdP certificate.
     wantAuthnResponseSigned: true,
     wantAssertionsSigned: false,
+    signatureAlgorithm: 'sha256',
+    digestAlgorithm: 'sha256',
     // 'never' keeps the flow stateless: the ACS URL itself carries the
     // workspace binding and NotOnOrAfter conditions still bound the response.
     validateInResponseTo: 'never',
@@ -175,11 +286,41 @@ function extractProfileEmail(profile) {
   return '';
 }
 
+/**
+ * Extract Assertion ID or Response ID from a validated SAML profile to enable anti-replay caching.
+ * @param {object} profile
+ * @returns {string}
+ */
+function extractAssertionId(profile) {
+  if (!profile || typeof profile !== 'object') return '';
+  const idCandidates = [
+    profile.inResponseTo,
+    profile.id,
+    profile.assertionId,
+    profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'],
+    profile.nameID
+  ];
+  if (profile.attributes && typeof profile.attributes === 'object') {
+    idCandidates.push(profile.attributes.assertionId, profile.attributes.id);
+  }
+  for (const c of idCandidates) {
+    const val = (Array.isArray(c) ? c[0] : c || '').toString().trim();
+    if (val && val.length >= 8) return val;
+  }
+  return '';
+}
+
 module.exports = {
   SAML_ACCEPTED_CLOCK_SKEW_MS,
   SAML_METADATA_MAX_LENGTH,
+  PUBLIC_CONSUMER_DOMAINS,
+  isPublicConsumerEmailDomain,
+  sanitizeReturnUrl,
+  createSignedRelayState,
+  verifySignedRelayState,
   parseIdpMetadataXml,
   buildSamlOptions,
   createWorkspaceSamlInstance,
   extractProfileEmail,
+  extractAssertionId,
 };

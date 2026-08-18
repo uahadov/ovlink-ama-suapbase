@@ -87,6 +87,26 @@
             <i class="fa-brands fa-google me-2"></i><span data-i18n="login_google">Google ilə giriş</span>
           </a>
 
+          <button type="button" id="toggleSsoBtn" class="btn w-100 rounded-pill fw-semibold py-3 auth-google-btn btn-animated btn-stagger mt-2" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);">
+            <i class="fa-solid fa-building-shield me-2 text-primary"></i><span data-i18n="login_sso_btn">Korporativ SSO ilə Giriş</span>
+          </button>
+
+          <div id="ssoSection" class="d-none mt-3 p-3 rounded-4" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="fw-semibold small" data-i18n="login_sso_modal_title"><i class="fa-solid fa-key me-1"></i> Korporativ SSO Girişi</span>
+              <button type="button" id="closeSsoBtn" class="btn btn-sm btn-link text-muted p-0 text-decoration-none"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="small text-muted mb-2" data-i18n="login_sso_hint">Şirkət e-poçtunuzu və ya Workspace ID-ni daxil edin:</p>
+            <div class="input-group auth-input shadow-sm mb-2">
+              <span class="input-group-text"><i class="fa-solid fa-building"></i></span>
+              <input type="text" class="form-control form-control-animated" id="ssoTargetInput" placeholder="ad@sirket.com və ya workspace ID" data-i18n-placeholder="login_sso_email_ph">
+            </div>
+            <button type="button" id="submitSsoBtn" class="btn btn-primary btn-sm w-100 rounded-pill py-2 fw-semibold">
+              <span data-i18n="login_sso_continue_btn">SSO ilə Davam Et</span> <i class="fa-solid fa-arrow-right ms-1"></i>
+            </button>
+            <div id="ssoStatusMsg" class="small text-danger text-center mt-2 d-none"></div>
+          </div>
+
           <p id="loginMessage" class="text-center small mt-3 mb-0 auth-message"></p>
 
           <p class="auth-links mb-0 reveal" style="transition-delay: 0.4s">
@@ -106,6 +126,7 @@
     const loginMessageEl = document.getElementById('loginMessage');
     const params = new URLSearchParams(window.location.search);
     const errorKey = params.get('error');
+    const ssoParam = params.get('sso');
     const errorMsgParam = params.get('message');
     const t = (key, fallback) => {
       try {
@@ -114,9 +135,11 @@
         return fallback;
       }
     };
-    if (loginMessageEl && errorKey) {
+    if (loginMessageEl) {
       let msgText = '';
-      if (errorKey === 'google_unavailable') msgText = t('google_unavailable', 'Google giriş hazırda istifadə edilə bilmir.');
+      if (ssoParam === 'replay') msgText = t('error_sso_replay', 'Bu giriş sessiyası artıq istifadə olunub. Zəhmət olmasa yenidən daxil olun.');
+      else if (ssoParam === 'error') msgText = t('error_sso_failed', 'SSO girişi uğursuz oldu. Zəhmət olmasa təşkilat administratoru ilə əlaqə saxlayın.');
+      else if (errorKey === 'google_unavailable') msgText = t('google_unavailable', 'Google giriş hazırda istifadə edilə bilmir.');
       else if (errorKey === 'google_failed') msgText = t('google_failed', 'Google ilə giriş alınmadı.');
       else if (errorKey === 'google_unverified') msgText = t('google_unverified', 'Google hesabının e-poçtu təsdiqlənməyib.');
       else if (errorKey === 'ban' && errorMsgParam) msgText = decodeURIComponent(errorMsgParam);
@@ -124,6 +147,85 @@
         loginMessageEl.className = "text-center text-danger small";
         loginMessageEl.textContent = msgText;
       }
+    }
+
+    // SSO panel toggling & domain routing
+    const toggleSsoBtn = document.getElementById('toggleSsoBtn');
+    const ssoSection = document.getElementById('ssoSection');
+    const closeSsoBtn = document.getElementById('closeSsoBtn');
+    const submitSsoBtn = document.getElementById('submitSsoBtn');
+    const ssoTargetInput = document.getElementById('ssoTargetInput');
+    const ssoStatusMsg = document.getElementById('ssoStatusMsg');
+
+    if (toggleSsoBtn && ssoSection) {
+      toggleSsoBtn.addEventListener('click', () => {
+        ssoSection.classList.toggle('d-none');
+        if (!ssoSection.classList.contains('d-none')) {
+          ssoTargetInput.focus();
+        }
+      });
+    }
+
+    if (closeSsoBtn && ssoSection) {
+      closeSsoBtn.addEventListener('click', () => {
+        ssoSection.classList.add('d-none');
+        if (ssoStatusMsg) ssoStatusMsg.classList.add('d-none');
+      });
+    }
+
+    if (submitSsoBtn && ssoTargetInput) {
+      submitSsoBtn.addEventListener('click', async () => {
+        const target = ssoTargetInput.value.trim();
+        if (!target) {
+          if (ssoStatusMsg) {
+            ssoStatusMsg.className = "small text-danger text-center mt-2";
+            ssoStatusMsg.textContent = t('login_sso_hint', 'Şirkət e-poçtunuzu və ya Workspace ID-ni daxil edin');
+            ssoStatusMsg.classList.remove('d-none');
+          }
+          return;
+        }
+
+        if (ssoStatusMsg) {
+          ssoStatusMsg.className = "small text-muted text-center mt-2";
+          ssoStatusMsg.textContent = currentLang === 'az' ? "Yoxlanılır..." : (currentLang === 'en' ? "Checking..." : "Kontrol ediliyor...");
+          ssoStatusMsg.classList.remove('d-none');
+        }
+
+        try {
+          if (!getCsrfToken()) {
+            await refreshCsrfToken();
+          }
+          const res = await postJsonWithCsrf('/api/auth/realm-lookup', { email: target, lang: currentLang });
+          const data = await res.json().catch(() => ({}));
+
+          if (data && data.ssoAvailable && data.ssoLoginUrl) {
+            if (ssoStatusMsg) {
+              ssoStatusMsg.className = "small text-success text-center mt-2";
+              ssoStatusMsg.textContent = (currentLang === 'az' ? "SSO portalına yönləndirilirsiniz: " : (currentLang === 'en' ? "Redirecting to SSO: " : "SSO portalına yönlendiriliyorsunuz: ")) + (data.workspaceName || '');
+            }
+            setTimeout(() => {
+              window.location.href = data.ssoLoginUrl;
+            }, 500);
+          } else {
+            if (ssoStatusMsg) {
+              ssoStatusMsg.className = "small text-danger text-center mt-2";
+              ssoStatusMsg.textContent = t('error_sso_not_found', 'Bu e-poçt domeni və ya workspace üçün aktiv SSO tapılmadı.');
+            }
+          }
+        } catch (err) {
+          if (ssoStatusMsg) {
+            ssoStatusMsg.className = "small text-danger text-center mt-2";
+            ssoStatusMsg.textContent = t('error_sso_failed', 'SSO girişi uğursuz oldu.');
+          }
+        }
+      });
+
+      ssoTargetInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          submitSsoBtn.click();
+        }
+      });
     }
 
     document.getElementById('loginForm').addEventListener('submit', async (e) => {

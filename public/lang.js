@@ -912,6 +912,12 @@ const translations = {
         ws_accept_invited_email: "Dəvət olunan ünvan:",
         ws_accept_already: "Siz bu workspace-in üzvüsünüz.",
         ws_accept_invalid: "Bu dəvət etibarsızdır, vaxtı bitib və ya ləğv edilib.",
+        updates_release_20260818_sso_title: "Enterprise SSO Təhlükəsizlik Hardening və Domain Discovery",
+        updates_release_20260818_sso_badge: "18.08.2026",
+        updates_release_20260818_sso_desc: "Enterprise SAML 2.0 SSO sistemi ən yüksək təhlükəsizlik standartları və rahat giriş interfeysi ilə yeniləndi.",
+        updates_release_20260818_sso_item1: "Giriş səhifəsində avtomatik korporativ domen aşkarlaması (Domain Discovery) və 'SSO ilə Giriş' seçimi.",
+        updates_release_20260818_sso_item2: "Anti-Replay Attack qoruması (Assertion ID keşləmə) və HMAC-SHA256 imzalı RelayState təhlükəsizliyi.",
+        updates_release_20260818_sso_item3: "Kriptoqrafik SHA-256 məcburiyyəti, saat toleransı (±3 dəqiqə) və Session Fixation profilaktikası.",
         updates_release_20260818_adv_title: "Genişləndirilmiş UTM Şablonları, Çoxdilli Dəstək və A/B Test Təkmilləşdirmələri",
         updates_release_20260818_adv_badge: "18.08.2026",
         updates_release_20260818_adv_desc: "Ətraflı link tənzimləmələri, UTM şablonları və PRO xüsusiyyətləri üçün böyük yenilənmə təqdim edildi.",
@@ -924,7 +930,15 @@ const translations = {
         updates_release_20260816_ws_item1: "Pro istifadəçilər workspace yaradıb komanda yoldaşlarını dəvət edə bilər (üzv/admin rolları).",
         updates_release_20260816_ws_item2: "Workspace üzvləri eyni hesab üzərindən birgə link yaradır; dashboard-da workspace seçici var.",
         updates_release_20260816_ws_item3: "Okta və digər SAML 2.0 IdP-lər üçün SSO (metadata XML əsaslı) konfiqurasiyası.",
-        updates_release_20260816_ws_item4: "Pro abunəliyi bitərsə workspace oxuma rejiminə keçir; yönləndirmələr dayanmır."
+        updates_release_20260816_ws_item4: "Pro abunəliyi bitərsə workspace oxuma rejiminə keçir; yönləndirmələr dayanmır.",
+        login_sso_btn: "Korporativ SSO ilə Giriş",
+        login_sso_modal_title: "Korporativ SSO Girişi",
+        login_sso_hint: "Şirkət e-poçtunuzu və ya Workspace ID-ni daxil edin:",
+        login_sso_email_ph: "ad@sirket.com və ya workspace ID",
+        login_sso_continue_btn: "SSO ilə Davam Et",
+        error_sso_failed: "SSO girişi uğursuz oldu. Zəhmət olmasa təşkilat administratoru ilə əlaqə saxlayın.",
+        error_sso_replay: "Bu giriş sessiyası artıq istifadə olunub. Zəhmət olmasa yenidən daxil olun.",
+        error_sso_not_found: "Bu e-poçt domeni və ya workspace üçün aktiv SSO tapılmadı."
     },
     tr: {
         cancel_btn: "İptal",
@@ -1838,6 +1852,12 @@ const translations = {
         ws_accept_invited_email: "Davet edilen adres:",
         ws_accept_already: "Bu workspace'in üyesisiniz.",
         ws_accept_invalid: "Bu davet geçersiz, süresi dolmuş veya iptal edilmiş.",
+        updates_release_20260818_sso_title: "Kurumsal SSO Güvenlik Hardening ve Domain Discovery",
+        updates_release_20260818_sso_badge: "18.08.2026",
+        updates_release_20260818_sso_desc: "Kurumsal SAML 2.0 SSO sistemi en yüksek güvenlik standartları ve gelişmiş giriş arayüzü ile güncellendi.",
+        updates_release_20260818_sso_item1: "Giriş sayfasında otomatik kurumsal alan adı algılama (Domain Discovery) ve 'SSO ile Giriş' seçeneği.",
+        updates_release_20260818_sso_item2: "Anti-Replay Attack koruması (Assertion ID önbellekleme) ve HMAC-SHA256 imzalı RelayState güvenliği.",
+        updates_release_20260818_sso_item3: "Kriptografik SHA-256 zorunluluğu, saat toleransı (±3 dakika) ve Session Fixation önleme.",
         updates_release_20260818_adv_title: "Gelişmiş UTM Şablonları, Çok Dilli Destek ve A/B Test İyileştirmeleri",
         updates_release_20260818_adv_badge: "18.08.2026",
         updates_release_20260818_adv_desc: "Gelişmiş link ayarları, UTM şablonları ve PRO özellikleri için kapsamlı güncelleme yayınlandı.",
@@ -1850,7 +1870,15 @@ const translations = {
         updates_release_20260816_ws_item1: "Pro kullanıcılar workspace oluşturup ekip arkadaşlarını davet edebilir (üye/admin rolleri).",
         updates_release_20260816_ws_item2: "Workspace üyeleri aynı hesap üzerinden birlikte link oluşturur; dashboard'da workspace seçici var.",
         updates_release_20260816_ws_item3: "Okta ve diğer SAML 2.0 IdP'ler için SSO (metadata XML tabanlı) yapılandırması.",
-        updates_release_20260816_ws_item4: "Pro aboneliği bitirse workspace okuma moduna geçer; yönlendirmeler durmaz."
+        updates_release_20260816_ws_item4: "Pro aboneliği bitirse workspace okuma moduna geçer; yönlendirmeler durmaz.",
+        login_sso_btn: "Kurumsal SSO ile Giriş",
+        login_sso_modal_title: "Kurumsal SSO Girişi",
+        login_sso_hint: "Şirket e-postanızı veya Workspace ID'nizi girin:",
+        login_sso_email_ph: "isim@sirket.com veya workspace ID",
+        login_sso_continue_btn: "SSO ile Devam Et",
+        error_sso_failed: "SSO girişi başarısız oldu. Lütfen kurum yöneticinizle iletişime geçin.",
+        error_sso_replay: "Bu oturum açma isteği zaten kullanıldı. Lütfen tekrar giriş yapın.",
+        error_sso_not_found: "Bu e-posta alanı veya workspace için aktif SSO bulunamadı."
     },
 
     en: {
@@ -2815,6 +2843,12 @@ const translations = {
         ws_accept_invited_email: "Invited address:",
         ws_accept_already: "You are already a member of this workspace.",
         ws_accept_invalid: "This invitation is invalid, expired or revoked.",
+        updates_release_20260818_sso_title: "Enterprise SSO Security Hardening & Domain Discovery",
+        updates_release_20260818_sso_badge: "18.08.2026",
+        updates_release_20260818_sso_desc: "Enterprise SAML 2.0 SSO has been upgraded with top-tier security standards and seamless login flows.",
+        updates_release_20260818_sso_item1: "Automatic corporate Domain Discovery on the login view plus a dedicated 'Sign in with SSO' panel.",
+        updates_release_20260818_sso_item2: "Anti-Replay Attack defense (Assertion ID cache) and HMAC-SHA256 signed RelayState validation.",
+        updates_release_20260818_sso_item3: "Strict cryptographic SHA-256 enforcement, clock skew tolerance (±3 min), and Session Fixation defense.",
         updates_release_20260818_adv_title: "Advanced UTM Templates, Multi-Language Support & A/B Testing Enhancements",
         updates_release_20260818_adv_badge: "18.08.2026",
         updates_release_20260818_adv_desc: "Major updates delivered for advanced link settings, UTM presets, and PRO features.",
@@ -2827,7 +2861,15 @@ const translations = {
         updates_release_20260816_ws_item1: "Pro users can create a workspace and invite teammates (member/admin roles).",
         updates_release_20260816_ws_item2: "Workspace members shorten links together on the same account; the dashboard gained a workspace switcher.",
         updates_release_20260816_ws_item3: "SSO for Okta and other SAML 2.0 IdPs via metadata XML configuration.",
-        updates_release_20260816_ws_item4: "If the Pro subscription lapses the workspace becomes read-only; redirects keep working."
+        updates_release_20260816_ws_item4: "If the Pro subscription lapses the workspace becomes read-only; redirects keep working.",
+        login_sso_btn: "Sign in with Enterprise SSO",
+        login_sso_modal_title: "Enterprise SSO Login",
+        login_sso_hint: "Enter your work email or Workspace ID:",
+        login_sso_email_ph: "name@company.com or workspace ID",
+        login_sso_continue_btn: "Continue with SSO",
+        error_sso_failed: "SSO login failed. Please contact your organization administrator.",
+        error_sso_replay: "This login request has already been used. Please try signing in again.",
+        error_sso_not_found: "No active SSO configuration found for this domain or workspace."
     }
 };
 
