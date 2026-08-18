@@ -3719,9 +3719,10 @@ if (customDomainList) {
 // =========================
 // URL Shorten
 // =========================
-(function initShorten() {
+function initShorten() {
   const form = document.getElementById("shortenForm");
-  if (!form) return;
+  if (!form || form.dataset.shortenBound === "true") return;
+  form.dataset.shortenBound = "true";
 
   // --- Home Workspace Selector Logic ---
   const hwWrapper = document.getElementById("homeWorkspaceTopWrapper");
@@ -3948,15 +3949,6 @@ if (customDomainList) {
   loadUtmTemplates();
   setupUtmListeners();
 
-  if (typeof document !== "undefined") {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", () => {
-        loadUtmTemplates();
-        setupUtmListeners();
-      });
-    }
-  }
-
   if (typeof window !== "undefined") {
     window.addEventListener("ovlink:languageChanged", () => {
       loadUtmTemplates();
@@ -3964,7 +3956,31 @@ if (customDomainList) {
   }
 
   form.addEventListener("submit", async function (e) {
-    e.preventDefault();
+    try {
+      if (e && typeof e.preventDefault === "function") {
+        e.preventDefault();
+      }
+    } catch {}
+
+    const resultDiv = document.getElementById("result");
+    const shortUrlEl = document.getElementById("shortUrl");
+    const hintEl = document.getElementById("shortenHint");
+    const feedbackEl = document.getElementById("shortenFeedback");
+
+    const showFeedback = (msg, isError = true) => {
+      const el = document.getElementById("shortenFeedback") || feedbackEl;
+      if (!el) return;
+      el.textContent = msg;
+      el.className = `alert mt-3 py-2 mb-0 small fw-bold text-center rounded-pill ${isError ? 'alert-danger' : 'alert-success'}`;
+      el.classList.remove("d-none");
+      if (isError && resultDiv) {
+        resultDiv.classList.add("hidden", "d-none");
+        resultDiv.style.display = "none";
+      }
+      try {
+        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      } catch {}
+    };
 
     let originalUrl = document.getElementById("originalUrl")?.value?.trim();
     const customAlias = document.getElementById("customAlias")?.value?.trim();
@@ -4006,29 +4022,18 @@ if (customDomainList) {
       android_url = appendUtm(android_url);
     }
 
-    const resultDiv = document.getElementById("result");
-    const shortUrlEl = document.getElementById("shortUrl");
-    const hintEl = document.getElementById("shortenHint");
-    const feedbackEl = document.getElementById("shortenFeedback");
-
-    const showFeedback = (msg, isError = true) => {
-      if (!feedbackEl) return;
-      feedbackEl.textContent = msg;
-      feedbackEl.className = `alert mt-3 py-2 mb-0 small fw-bold text-center rounded-pill ${isError ? 'alert-danger' : 'alert-success'}`;
-      feedbackEl.classList.remove("d-none");
-      if (isError && resultDiv) {
-        resultDiv.classList.add("hidden", "d-none");
-        resultDiv.style.display = "none";
-      }
-    };
-
     // Client-side PRO check
+    const hasProFeature = Boolean(original_b || ios_url || android_url);
     const session = typeof getClientSession === "function" ? getClientSession() : { isLoggedIn: false };
-    if ((original_b || ios_url || android_url) && !session.isLoggedIn) {
-      const proMsg = typeof translations !== "undefined" && translations[currentLang] && translations[currentLang]["pro_feature_required"]
-        ? translations[currentLang]["pro_feature_required"]
-        : pickLang("A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.", "A/B Test ve Cihaz Hedefleme yalnızca PRO kullanıcılar içindir. Lütfen Pro plana yükseltin.", "A/B Testing and Device Targeting are only available for PRO users. Please upgrade to Pro.");
-      showFeedback(proMsg);
+    const isPro = typeof isProPlanActive === "function" && isProPlanActive();
+
+    if (hasProFeature && (!session.isLoggedIn || (window.__userPlan && !isPro))) {
+      const proMsg = typeof getText === "function"
+        ? getText("pro_feature_required", pickLang("A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.", "A/B Test ve Cihaz Hedefleme yalnızca PRO kullanıcılar içindir. Lütfen Pro plana yükseltin.", "A/B Testing and Device Targeting are only available for PRO users. Please upgrade to Pro."))
+        : (typeof translations !== "undefined" && translations[currentLang] && translations[currentLang]["pro_feature_required"]
+          ? translations[currentLang]["pro_feature_required"]
+          : pickLang("A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.", "A/B Test ve Cihaz Hedefleme yalnızca PRO kullanıcılar içindir. Lütfen Pro plana yükseltin.", "A/B Testing and Device Targeting are only available for PRO users. Please upgrade to Pro."));
+      showFeedback(proMsg, true);
       return;
     }
 
@@ -4052,56 +4057,36 @@ if (customDomainList) {
       }
 
       const response = await postJsonWithCsrf("/api/shorten", payload);
-
       const data = await response.json().catch(() => ({}));
 
-      const feedbackEl = document.getElementById("shortenFeedback");
-      const showFeedback = (msg, isError = true) => {
-        if (!feedbackEl) return;
-        feedbackEl.textContent = msg;
-        feedbackEl.className = `alert mt-3 py-2 mb-0 small fw-bold text-center rounded-pill ${isError ? 'alert-danger' : 'alert-success'}`;
-        feedbackEl.classList.remove("d-none");
-        // Hata durumunda sonuç alanını gizle
-        if (isError && resultDiv) {
-          resultDiv.classList.add("hidden", "d-none");
-          resultDiv.style.display = "none";
-        }
-      };
-
       if (!response.ok || data.error) {
-        let errorMsg = data.error || "İşlem başarısız";
+        let errorMsg = data.error || (response.status === 403
+          ? (typeof getText === "function" ? getText("pro_feature_required", "A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür.") : "A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür.")
+          : pickLang("Əməliyyat alınmadı", "İşlem başarısız", "Request failed"));
 
         // Sunucudan gelen sabit mesajları yakala ve tercüme et
         if (errorMsg === "Bu xüsusi link istifadə olunub") {
-          errorMsg = translations[currentLang]?.error_alias_taken || errorMsg;
+          errorMsg = (typeof getText === "function" ? getText("error_alias_taken", errorMsg) : (translations[currentLang]?.error_alias_taken || errorMsg));
         } else if (errorMsg === "Zəhmət olmasa düzgün bir URL daxil edin.") {
-          errorMsg = translations[currentLang]?.error_invalid_url || errorMsg;
+          errorMsg = (typeof getText === "function" ? getText("error_invalid_url", errorMsg) : (translations[currentLang]?.error_invalid_url || errorMsg));
         }
 
-        // Mesajı doğrudan göster (Xəta/Hata prefixi olmadan)
-        showFeedback(errorMsg);
+        showFeedback(errorMsg, true);
         return;
       }
 
-      // Her yeni başarılı işlemde hatayı gizle
       if (feedbackEl) feedbackEl.classList.add("d-none");
 
-      // 1) Tercih: backend shortUrl veya short alanlari
       let shortLink = data.shortUrl || data.short || null;
-
-      // 2) Eski cevap: message icinden URL yakala
       if (!shortLink && typeof data.message === "string") {
         const match = data.message.match(/https?:\/\/\S+/i);
         if (match) shortLink = match[0];
       }
-
-      // 3) code/alias varsa link uret
       if (!shortLink && data.code) {
         shortLink = `${location.protocol}//${location.host}/${data.code}`;
       }
-
       if (!shortLink) {
-        showFeedback(pickLang("Qısaltma nəticəsi alınmadı.", "Kısaltma sonucu alınamadı.", "Shortening failed."));
+        showFeedback(pickLang("Qısaltma nəticəsi alınmadı.", "Kısaltma sonucu alınamadı.", "Shortening failed."), true);
         return;
       }
 
@@ -4121,15 +4106,24 @@ if (customDomainList) {
         resultDiv.style.display = "block";
       }
     } catch (err) {
-      const feedbackEl = document.getElementById("shortenFeedback");
-      if (feedbackEl) {
-        feedbackEl.textContent = (currentLang === 'az' ? "Server xətası: " : (currentLang === 'en' ? "Server error: " : "Sunucu hatası: ")) + err.message;
-        feedbackEl.className = "alert alert-danger mt-3 py-2 mb-0 small fw-bold text-center rounded-pill";
-        feedbackEl.classList.remove("d-none");
+      const el = document.getElementById("shortenFeedback") || feedbackEl;
+      if (el) {
+        el.textContent = (currentLang === 'az' ? "Server xətası: " : (currentLang === 'en' ? "Server error: " : "Sunucu hatası: ")) + (err?.message || "");
+        el.className = "alert alert-danger mt-3 py-2 mb-0 small fw-bold text-center rounded-pill";
+        el.classList.remove("d-none");
+        try {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        } catch {}
       }
     }
   });
-})();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initShorten);
+} else {
+  initShorten();
+}
 
 // =========================
 // Copy + Send to QR (optional buttons)

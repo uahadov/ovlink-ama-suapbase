@@ -429,9 +429,10 @@ window.addEventListener("DOMContentLoaded", () => {
   syncFloatingPricingBanner();
 });
 
-(function initShorten() {
+function initShorten() {
   const form = document.getElementById("shortenForm");
-  if (!form) return;
+  if (!form || form.dataset.shortenBound === "true") return;
+  form.dataset.shortenBound = "true";
 
   // --- Home Workspace Selector Logic ---
   const hwWrapper = document.getElementById("homeWorkspaceTopWrapper");
@@ -659,15 +660,6 @@ window.addEventListener("DOMContentLoaded", () => {
   loadUtmTemplates();
   setupUtmListeners();
 
-  if (typeof document !== "undefined") {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", () => {
-        loadUtmTemplates();
-        setupUtmListeners();
-      });
-    }
-  }
-
   if (typeof window !== "undefined") {
     window.addEventListener("ovlink:languageChanged", () => {
       loadUtmTemplates();
@@ -675,16 +667,36 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   form.addEventListener("submit", async function (e) {
-    e.preventDefault();
+    try {
+      if (e && typeof e.preventDefault === "function") {
+        e.preventDefault();
+      }
+    } catch {}
+
+    const resultDiv = document.getElementById("result");
+    const shortUrlEl = document.getElementById("shortUrl");
+    const hintEl = document.getElementById("shortenHint");
+    const feedbackEl = document.getElementById("shortenFeedback");
+
+    const showFeedback = (msg, isError = true) => {
+      const el = document.getElementById("shortenFeedback") || feedbackEl;
+      if (!el) return;
+      el.textContent = msg;
+      el.className = `alert mt-3 py-2 mb-0 small fw-bold text-center rounded-pill ${isError ? "alert-danger" : "alert-success"}`;
+      el.classList.remove("d-none");
+      if (isError && resultDiv) {
+        resultDiv.classList.add("hidden", "d-none");
+        resultDiv.style.display = "none";
+      }
+      try {
+        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      } catch {}
+    };
 
     let originalUrl = document.getElementById("originalUrl")?.value?.trim();
     const customAlias = document.getElementById("customAlias")?.value?.trim();
     const linkPassword = document.getElementById("linkPassword")?.value?.trim();
     const selectedCustomDomain = document.getElementById("customDomainSelect")?.value?.trim();
-    const resultDiv = document.getElementById("result");
-    const shortUrlEl = document.getElementById("shortUrl");
-    const hintEl = document.getElementById("shortenHint");
-    const feedbackEl = document.getElementById("shortenFeedback");
 
     const utmSource = document.getElementById("utmSource")?.value?.trim();
     const utmMedium = document.getElementById("utmMedium")?.value?.trim();
@@ -715,21 +727,17 @@ window.addEventListener("DOMContentLoaded", () => {
     if (ios_url) ios_url = appendUtm(ios_url);
     if (android_url) android_url = appendUtm(android_url);
 
-    const showFeedback = (msg, isError = true) => {
-      if (!feedbackEl) return;
-      feedbackEl.textContent = msg;
-      feedbackEl.className = `alert mt-3 py-2 mb-0 small fw-bold text-center rounded-pill ${isError ? "alert-danger" : "alert-success"}`;
-      feedbackEl.classList.remove("d-none");
-      if (isError && resultDiv) {
-        resultDiv.classList.add("hidden", "d-none");
-        resultDiv.style.display = "none";
-      }
-    };
-
-    // Client-side PRO check
+    // Client-side PRO check for A/B testing or Device targeting
+    const hasProFeature = Boolean(original_b || ios_url || android_url);
     const session = typeof getClientSession === "function" ? getClientSession() : { isLoggedIn: false };
-    if ((original_b || ios_url || android_url) && !session.isLoggedIn) {
-      showFeedback(tKey("pro_feature_required", "A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin."));
+    const isPro = typeof isProPlanActive === "function" && isProPlanActive();
+
+    if (hasProFeature && (!session.isLoggedIn || (window.__userPlan && !isPro))) {
+      const proMsg = tKey(
+        "pro_feature_required",
+        "A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin."
+      );
+      showFeedback(proMsg, true);
       return;
     }
 
@@ -753,28 +761,19 @@ window.addEventListener("DOMContentLoaded", () => {
       }
 
       const response = await postJsonWithCsrf("/api/shorten", payload);
-
       const data = await response.json().catch(() => ({}));
-      const feedbackEl = document.getElementById("shortenFeedback");
-      const showFeedback = (msg, isError = true) => {
-        if (!feedbackEl) return;
-        feedbackEl.textContent = msg;
-        feedbackEl.className = `alert mt-3 py-2 mb-0 small fw-bold text-center rounded-pill ${isError ? "alert-danger" : "alert-success"}`;
-        feedbackEl.classList.remove("d-none");
-        if (isError && resultDiv) {
-          resultDiv.classList.add("hidden", "d-none");
-          resultDiv.style.display = "none";
-        }
-      };
 
       if (!response.ok || data.error) {
-        let errorMsg = data.error || pickLang("Əməliyyat alınmadı", "İşlem başarısız", "Request failed");
+        let errorMsg = data.error || (response.status === 403
+          ? tKey("pro_feature_required", "A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.")
+          : pickLang("Əməliyyat alınmadı", "İşlem başarısız", "Request failed"));
+
         if (errorMsg === pickLang("Bu xüsusi link istifadə olunub", "Bu özel link kullanımda", "This custom link is already in use")) {
           errorMsg = tKey("error_alias_taken", errorMsg);
         } else if (errorMsg === pickLang("Zəhmət olmasa düzgün bir URL daxil edin.", "Lütfen geçerli bir URL girin.", "Please enter a valid URL.")) {
           errorMsg = tKey("error_invalid_url", errorMsg);
         }
-        showFeedback(errorMsg);
+        showFeedback(errorMsg, true);
         return;
       }
 
@@ -789,7 +788,7 @@ window.addEventListener("DOMContentLoaded", () => {
         shortLink = `${location.protocol}//${location.host}/${data.code}`;
       }
       if (!shortLink) {
-        showFeedback(pickLang("Qısaltma nəticəsi alınmadı.", "Kısaltma sonucu alınamadı.", "Shortening failed."));
+        showFeedback(pickLang("Qısaltma nəticəsi alınmadı.", "Kısaltma sonucu alınamadı.", "Shortening failed."), true);
         return;
       }
 
@@ -809,15 +808,19 @@ window.addEventListener("DOMContentLoaded", () => {
         resultDiv.style.display = "block";
       }
     } catch (err) {
-      const feedbackEl = document.getElementById("shortenFeedback");
-      if (feedbackEl) {
-        feedbackEl.textContent = pickLang("Server xətası: ", "Sunucu hatası: ", "Server error: ") + (err?.message || "");
-        feedbackEl.className = "alert alert-danger mt-3 py-2 mb-0 small fw-bold text-center rounded-pill";
-        feedbackEl.classList.remove("d-none");
-      }
+      showFeedback(
+        pickLang("Server xətası: ", "Sunucu hatası: ", "Server error: ") + (err?.message || ""),
+        true
+      );
     }
   });
-})();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initShorten);
+} else {
+  initShorten();
+}
 
 document.addEventListener("click", async (e) => {
   const copyBtn = e.target.closest("#copyShortBtn");
