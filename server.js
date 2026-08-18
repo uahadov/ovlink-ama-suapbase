@@ -435,6 +435,10 @@ if (redisUrl) {
   redisClient.on('error', (err) => {
     console.error('[redis] client error', err && (err.message || err));
   });
+  // Initiate connection immediately so rate limiters can queue commands
+  redisClient.connect().catch((err) => {
+    console.error('[redis] immediate connection failed', err && (err.message || err));
+  });
 } else {
   // Redis not configured - using PostgreSQL session store as fallback (Vercel/Supabase deployment)
   console.log('[startup] REDIS_URL not set; using PostgreSQL session store (connect-pg-simple).');
