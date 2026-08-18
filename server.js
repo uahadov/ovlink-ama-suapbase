@@ -4057,6 +4057,8 @@ app.use((req, res, next) => {
 });
 
 app.get('/api/csrf', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
   try {
     const token = typeof req.csrfToken === 'function' ? req.csrfToken() : '';
     if (!token) return res.json({ csrfToken: '' });
@@ -4531,8 +4533,16 @@ app.get('/notifications', (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
   return res.render('notifications', { csrfToken: res.locals._csrf });
 });
-app.get('/forgot-password', (req, res) => res.render('forgot-password', { csrfToken: res.locals._csrf }));
-app.get('/reset-password', (req, res) => res.render('reset-password', { csrfToken: res.locals._csrf, token: req.query.token || '' }));
+app.get('/forgot-password', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.render('forgot-password', { csrfToken: res.locals._csrf });
+});
+app.get('/reset-password', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.render('reset-password', { csrfToken: res.locals._csrf, token: req.query.token || '' });
+});
 
 app.get('/logo.png', (req, res) => res.sendFile(path.join(publicDir, 'logo.png')));
 app.get('/logo.webp', (req, res) => res.sendFile(path.join(publicDir, 'logo.webp')));
