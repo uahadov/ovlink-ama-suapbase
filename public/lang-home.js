@@ -340,11 +340,22 @@ function getCookieLangHome() {
 }
 
 const isValidHomeLang = (v) => v === 'az' || v === 'tr' || v === 'en';
-const storedHomeLang = localStorage.getItem('lang');
+
+function detectBrowserLangHome() {
+  const navLangs = (typeof navigator !== 'undefined' && (navigator.languages || [navigator.language || ''])) || [];
+  for (const l of navLangs) {
+    if (!l) continue;
+    const prefix = l.toLowerCase().slice(0, 2);
+    if (isValidHomeLang(prefix)) return prefix;
+  }
+  return 'az';
+}
+
+const storedHomeLang = typeof localStorage !== 'undefined' ? localStorage.getItem('lang') : null;
 const cookieHomeLang = getCookieLangHome();
 let currentHomeLang = isValidHomeLang(storedHomeLang)
   ? storedHomeLang
-  : (isValidHomeLang(cookieHomeLang) ? cookieHomeLang : 'az');
+  : (isValidHomeLang(cookieHomeLang) ? cookieHomeLang : detectBrowserLangHome());
 
 function translateHome(lang, key) {
   return (homeTranslations[lang] && homeTranslations[lang][key]) || '';
@@ -384,8 +395,9 @@ function applyHomeLanguage() {
     }
   });
 
-  const banner = document.getElementById('siteAnnouncement');
-  const bannerText = document.getElementById('siteAnnouncementText');
+  const getEl = (id) => (typeof document !== 'undefined' && typeof document.getElementById === 'function' ? document.getElementById(id) : null);
+  const banner = getEl('siteAnnouncement');
+  const bannerText = getEl('siteAnnouncementText');
   if (banner && bannerText) {
     const az = banner.getAttribute('data-az') || '';
     const tr = banner.getAttribute('data-tr') || '';
@@ -395,10 +407,11 @@ function applyHomeLanguage() {
     banner.classList.toggle('d-none', !textValue);
   }
 
-  const toggleBtn = document.getElementById('langToggleBtn');
+  const toggleBtn = getEl('langToggleBtn');
   if (toggleBtn) toggleBtn.textContent = lang.toUpperCase();
 
-  document.querySelectorAll('.lang-option').forEach((option) => {
+  const langOptions = typeof document !== 'undefined' && typeof document.querySelectorAll === 'function' ? document.querySelectorAll('.lang-option') : [];
+  langOptions.forEach((option) => {
     const optionLang = option.getAttribute('data-lang') || '';
     option.textContent = optionLang.toUpperCase();
     const active = optionLang === lang;
@@ -407,13 +420,15 @@ function applyHomeLanguage() {
     else option.removeAttribute('aria-current');
   });
 
-  document.documentElement.lang = lang;
+  if (typeof document !== 'undefined' && document.documentElement) {
+    document.documentElement.lang = lang;
+  }
 
-  if (typeof window.refreshCustomDomainUi === 'function') {
+  if (typeof window !== 'undefined' && typeof window.refreshCustomDomainUi === 'function') {
     window.refreshCustomDomainUi();
   }
 
-  if (typeof window.loadUtmTemplatesUi === 'function') {
+  if (typeof window !== 'undefined' && typeof window.loadUtmTemplatesUi === 'function') {
     window.loadUtmTemplatesUi();
   }
 }
@@ -421,8 +436,14 @@ function applyHomeLanguage() {
 function setHomeLanguage(lang) {
   if (!isValidHomeLang(lang)) return;
   currentHomeLang = lang;
-  localStorage.setItem('lang', lang);
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.setItem('lang', lang);
+    if (typeof document !== 'undefined') document.cookie = 'lang_default=' + encodeURIComponent(lang) + '; path=/; max-age=31536000; SameSite=Lax';
+  } catch {}
   applyHomeLanguage();
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('ovlink:languageChanged', { detail: { lang: currentHomeLang } }));
+  }
 }
 
 window.ovlinkI18n = {
@@ -440,13 +461,22 @@ window.ovlinkI18n = {
   }
 };
 
-window.addEventListener('DOMContentLoaded', () => {
+function initHomeLangUi() {
   applyHomeLanguage();
-  document.querySelectorAll('.lang-option').forEach((option) => {
+  const langOptions = typeof document !== 'undefined' && typeof document.querySelectorAll === 'function' ? document.querySelectorAll('.lang-option') : [];
+  langOptions.forEach((option) => {
     option.addEventListener('click', (e) => {
       e.preventDefault();
       const selected = option.getAttribute('data-lang');
       setHomeLanguage(selected);
     });
   });
-});
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', initHomeLangUi);
+  } else {
+    initHomeLangUi();
+  }
+}
