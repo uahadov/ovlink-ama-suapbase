@@ -25,6 +25,37 @@ const homeTranslations = {
     shorten_domain_hint: "Aktiv etdiyiniz domenlər burada görünür.",
     shorten_domain_manage_link: "Xüsusi domen əlavə et",
 
+    // Advanced Tabs & Options
+    adv_tab_general: "Ümumi",
+    adv_tab_utm: "UTM",
+    adv_tab_ab: "A/B Test",
+    adv_tab_device: "Cihaz",
+
+    adv_utm_params_title: "UTM Parametrləri",
+    adv_utm_template_select: "Şablon Seç",
+    adv_utm_save_tooltip: "Mövcud UTM tənzimləmələrini saxla",
+    adv_utm_source: "Mənbə (Source)",
+    adv_utm_source_ph: "məs. instagram",
+    adv_utm_medium: "Kanal (Medium)",
+    adv_utm_medium_ph: "məs. social",
+    adv_utm_campaign: "Kampaniya (Campaign)",
+    adv_utm_campaign_ph: "məs. yay_endirimi",
+
+    adv_ab_title: "A/B Testi (Link Rotator)",
+    adv_ab_url_b: "Hədəf URL B (İkinci Link)",
+    adv_ab_url_b_ph: "https://...",
+    adv_ab_split: "Link A Trafiki (%)",
+    adv_ab_hint: "Qalan trafik Link B-yə yönləndiriləcək.",
+
+    adv_device_title: "Cihaz Hədəfləməsi",
+    adv_device_ios: "iOS Yönləndirməsi",
+    adv_device_ios_ph: "https://apps.apple.com/...",
+    adv_device_android: "Android Yönləndirməsi",
+    adv_device_android_ph: "https://play.google.com/...",
+
+    pro_badge: "PRO",
+    pro_feature_required: "A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.",
+
     shorten_btn: "Qısalt və QR Yarat",
     generated_title: "Linkiniz Hazırdır!",
     copy_btn: "Kopyala",
@@ -105,6 +136,37 @@ const homeTranslations = {
     shorten_domain_hint: "Aktifleştirdiğiniz alan adları burada görünür.",
     shorten_domain_manage_link: "Özel alan adı ekle",
 
+    // Advanced Tabs & Options
+    adv_tab_general: "Genel",
+    adv_tab_utm: "UTM",
+    adv_tab_ab: "A/B Test",
+    adv_tab_device: "Cihaz",
+
+    adv_utm_params_title: "UTM Parametreleri",
+    adv_utm_template_select: "Şablon Seç",
+    adv_utm_save_tooltip: "Mevcut UTM ayarlarını kaydet",
+    adv_utm_source: "Kaynak (Source)",
+    adv_utm_source_ph: "örn. instagram",
+    adv_utm_medium: "Araç (Medium)",
+    adv_utm_medium_ph: "örn. social",
+    adv_utm_campaign: "Kampanya (Campaign)",
+    adv_utm_campaign_ph: "örn. yaz_indirimi",
+
+    adv_ab_title: "A/B Testi (Link Rotatör)",
+    adv_ab_url_b: "Hedef URL B (İkinci Link)",
+    adv_ab_url_b_ph: "https://...",
+    adv_ab_split: "Link A Trafiği (%)",
+    adv_ab_hint: "Kalan trafik Link B'ye gider.",
+
+    adv_device_title: "Cihaz Hedefleme",
+    adv_device_ios: "iOS Yönlendirme",
+    adv_device_ios_ph: "https://apps.apple.com/...",
+    adv_device_android: "Android Yönlendirme",
+    adv_device_android_ph: "https://play.google.com/...",
+
+    pro_badge: "PRO",
+    pro_feature_required: "A/B Test ve Cihaz Hedefleme yalnızca PRO kullanıcılar içindir. Lütfen Pro plana yükseltin.",
+
     shorten_btn: "Kısalt ve QR Oluştur",
     generated_title: "Linkiniz hazır!",
     copy_btn: "Kopyala",
@@ -184,6 +246,37 @@ const homeTranslations = {
     shorten_domain_default: "Default (ovlink.sbs)",
     shorten_domain_hint: "Your active domains appear here.",
     shorten_domain_manage_link: "Add custom domain",
+
+    // Advanced Tabs & Options
+    adv_tab_general: "General",
+    adv_tab_utm: "UTM",
+    adv_tab_ab: "A/B Test",
+    adv_tab_device: "Device",
+
+    adv_utm_params_title: "UTM Parameters",
+    adv_utm_template_select: "Select Template",
+    adv_utm_save_tooltip: "Save current UTM settings",
+    adv_utm_source: "Source",
+    adv_utm_source_ph: "e.g. instagram",
+    adv_utm_medium: "Medium",
+    adv_utm_medium_ph: "e.g. social",
+    adv_utm_campaign: "Campaign",
+    adv_utm_campaign_ph: "e.g. summer_sale",
+
+    adv_ab_title: "A/B Testing (Link Rotator)",
+    adv_ab_url_b: "Target URL B (Second Link)",
+    adv_ab_url_b_ph: "https://...",
+    adv_ab_split: "Link A Traffic (%)",
+    adv_ab_hint: "Remaining traffic goes to Link B.",
+
+    adv_device_title: "Device Targeting",
+    adv_device_ios: "iOS Redirect",
+    adv_device_ios_ph: "https://apps.apple.com/...",
+    adv_device_android: "Android Redirect",
+    adv_device_android_ph: "https://play.google.com/...",
+
+    pro_badge: "PRO",
+    pro_feature_required: "A/B Testing and Device Targeting are only available for PRO users. Please upgrade to Pro.",
 
     shorten_btn: "Shorten & Create QR",
     generated_title: "Your link is ready!",
@@ -271,6 +364,26 @@ function applyHomeLanguage() {
     }
   });
 
+  const placeholders = document.querySelectorAll('[data-i18n-placeholder]');
+  placeholders.forEach((el) => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    const value = translateHome(lang, key);
+    if (value) {
+      el.placeholder = value;
+      el.setAttribute('placeholder', value);
+    }
+  });
+
+  const titles = document.querySelectorAll('[data-i18n-title]');
+  titles.forEach((el) => {
+    const key = el.getAttribute('data-i18n-title');
+    const value = translateHome(lang, key);
+    if (value) {
+      el.title = value;
+      el.setAttribute('data-bs-original-title', value);
+    }
+  });
+
   const banner = document.getElementById('siteAnnouncement');
   const bannerText = document.getElementById('siteAnnouncementText');
   if (banner && bannerText) {
@@ -298,6 +411,10 @@ function applyHomeLanguage() {
 
   if (typeof window.refreshCustomDomainUi === 'function') {
     window.refreshCustomDomainUi();
+  }
+
+  if (typeof window.loadUtmTemplatesUi === 'function') {
+    window.loadUtmTemplatesUi();
   }
 }
 

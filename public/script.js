@@ -3786,44 +3786,87 @@ if (customDomainList) {
   }
 
   // --- UTM Templates Logic ---
+  const BUILTIN_UTM_TEMPLATES = [
+    { name: "Facebook & Instagram Ads", source: "facebook", medium: "cpc", campaign: "promo_feed" },
+    { name: "Google Ads", source: "google", medium: "cpc", campaign: "search_ad" },
+    { name: "TikTok Ads", source: "tiktok", medium: "paid_video", campaign: "reels_campaign" },
+    { name: "Email Newsletter", source: "newsletter", medium: "email", campaign: "weekly_digest" },
+    { name: "LinkedIn Post", source: "linkedin", medium: "social", campaign: "company_post" },
+    { name: "Twitter / X", source: "twitter", medium: "social", campaign: "launch_tweet" },
+    { name: "YouTube Video", source: "youtube", medium: "video_desc", campaign: "channel_promo" }
+  ];
+
   const utmSelect = document.getElementById("utmTemplateSelect");
   const saveUtmBtn = document.getElementById("saveUtmTemplateBtn");
   
   const loadUtmTemplates = () => {
     if (!utmSelect) return;
+    const currentVal = utmSelect.value;
+    while (utmSelect.options.length > 1) {
+      utmSelect.remove(1);
+    }
+
+    // Pre-defined group
+    const builtInGroup = document.createElement("optgroup");
+    builtInGroup.label = typeof pickLang === "function" ? pickLang("Populyar Şablonlar", "Popüler Şablonlar", "Popular Templates") : "Populyar Şablonlar";
+    BUILTIN_UTM_TEMPLATES.forEach((tpl, idx) => {
+      const opt = document.createElement("option");
+      opt.value = "builtin_" + idx;
+      opt.textContent = tpl.name;
+      builtInGroup.appendChild(opt);
+    });
+    utmSelect.appendChild(builtInGroup);
+
+    // Custom user templates group
     try {
       const stored = JSON.parse(localStorage.getItem("ovlink_utm_templates") || "[]");
-      while (utmSelect.options.length > 1) {
-        utmSelect.remove(1);
+      if (stored.length > 0) {
+        const customGroup = document.createElement("optgroup");
+        customGroup.label = typeof pickLang === "function" ? pickLang("Şəxsi Şablonlarım", "Özel Şablonlarım", "Custom Templates") : "Şəxsi Şablonlarım";
+        stored.forEach((tpl, idx) => {
+          const opt = document.createElement("option");
+          opt.value = "custom_" + idx;
+          opt.textContent = tpl.name;
+          customGroup.appendChild(opt);
+        });
+        utmSelect.appendChild(customGroup);
       }
-      stored.forEach((tpl, idx) => {
-        const opt = document.createElement("option");
-        opt.value = idx;
-        opt.textContent = tpl.name;
-        utmSelect.appendChild(opt);
-      });
     } catch (e) {}
+
+    if (currentVal) utmSelect.value = currentVal;
   };
+  window.loadUtmTemplatesUi = loadUtmTemplates;
 
   if (utmSelect) {
     loadUtmTemplates();
     utmSelect.addEventListener("change", (e) => {
-      const idx = e.target.value;
-      if (idx === "") {
-        document.getElementById("utmSource").value = "";
-        document.getElementById("utmMedium").value = "";
-        document.getElementById("utmCampaign").value = "";
+      const val = e.target.value;
+      if (!val) {
+        if (document.getElementById("utmSource")) document.getElementById("utmSource").value = "";
+        if (document.getElementById("utmMedium")) document.getElementById("utmMedium").value = "";
+        if (document.getElementById("utmCampaign")) document.getElementById("utmCampaign").value = "";
         return;
       }
-      try {
-        const stored = JSON.parse(localStorage.getItem("ovlink_utm_templates") || "[]");
-        const tpl = stored[idx];
+      if (val.startsWith("builtin_")) {
+        const idx = parseInt(val.replace("builtin_", ""), 10);
+        const tpl = BUILTIN_UTM_TEMPLATES[idx];
         if (tpl) {
-          document.getElementById("utmSource").value = tpl.source || "";
-          document.getElementById("utmMedium").value = tpl.medium || "";
-          document.getElementById("utmCampaign").value = tpl.campaign || "";
+          if (document.getElementById("utmSource")) document.getElementById("utmSource").value = tpl.source || "";
+          if (document.getElementById("utmMedium")) document.getElementById("utmMedium").value = tpl.medium || "";
+          if (document.getElementById("utmCampaign")) document.getElementById("utmCampaign").value = tpl.campaign || "";
         }
-      } catch (e) {}
+      } else if (val.startsWith("custom_")) {
+        const idx = parseInt(val.replace("custom_", ""), 10);
+        try {
+          const stored = JSON.parse(localStorage.getItem("ovlink_utm_templates") || "[]");
+          const tpl = stored[idx];
+          if (tpl) {
+            if (document.getElementById("utmSource")) document.getElementById("utmSource").value = tpl.source || "";
+            if (document.getElementById("utmMedium")) document.getElementById("utmMedium").value = tpl.medium || "";
+            if (document.getElementById("utmCampaign")) document.getElementById("utmCampaign").value = tpl.campaign || "";
+          }
+        } catch (e) {}
+      }
     });
   }
 
@@ -3843,7 +3886,7 @@ if (customDomainList) {
         stored.push({ name, source, medium, campaign });
         localStorage.setItem("ovlink_utm_templates", JSON.stringify(stored));
         loadUtmTemplates();
-        utmSelect.value = stored.length - 1;
+        utmSelect.value = "custom_" + (stored.length - 1);
       } catch (e) {
         alert(pickLang("Şablon yadda saxlanılarkən xəta baş verdi.", "Şablon kaydedilirken bir hata oluştu.", "Error occurred while saving the template."));
       }
@@ -3896,6 +3939,28 @@ if (customDomainList) {
     const resultDiv = document.getElementById("result");
     const shortUrlEl = document.getElementById("shortUrl");
     const hintEl = document.getElementById("shortenHint");
+    const feedbackEl = document.getElementById("shortenFeedback");
+
+    const showFeedback = (msg, isError = true) => {
+      if (!feedbackEl) return;
+      feedbackEl.textContent = msg;
+      feedbackEl.className = `alert mt-3 py-2 mb-0 small fw-bold text-center rounded-pill ${isError ? 'alert-danger' : 'alert-success'}`;
+      feedbackEl.classList.remove("d-none");
+      if (isError && resultDiv) {
+        resultDiv.classList.add("hidden", "d-none");
+        resultDiv.style.display = "none";
+      }
+    };
+
+    // Client-side PRO check
+    const session = typeof getClientSession === "function" ? getClientSession() : { isLoggedIn: false };
+    if ((original_b || ios_url || android_url) && !session.isLoggedIn) {
+      const proMsg = typeof translations !== "undefined" && translations[currentLang] && translations[currentLang]["pro_feature_required"]
+        ? translations[currentLang]["pro_feature_required"]
+        : pickLang("A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.", "A/B Test ve Cihaz Hedefleme yalnızca PRO kullanıcılar içindir. Lütfen Pro plana yükseltin.", "A/B Testing and Device Targeting are only available for PRO users. Please upgrade to Pro.");
+      showFeedback(proMsg);
+      return;
+    }
 
     try {
       const payload = {

@@ -496,16 +496,172 @@ window.addEventListener("DOMContentLoaded", () => {
     })();
   }
 
+  // --- UTM Templates Logic ---
+  const BUILTIN_UTM_TEMPLATES = [
+    { name: "Facebook & Instagram Ads", source: "facebook", medium: "cpc", campaign: "promo_feed" },
+    { name: "Google Ads", source: "google", medium: "cpc", campaign: "search_ad" },
+    { name: "TikTok Ads", source: "tiktok", medium: "paid_video", campaign: "reels_campaign" },
+    { name: "Email Newsletter", source: "newsletter", medium: "email", campaign: "weekly_digest" },
+    { name: "LinkedIn Post", source: "linkedin", medium: "social", campaign: "company_post" },
+    { name: "Twitter / X", source: "twitter", medium: "social", campaign: "launch_tweet" },
+    { name: "YouTube Video", source: "youtube", medium: "video_desc", campaign: "channel_promo" }
+  ];
+
+  const utmSelect = document.getElementById("utmTemplateSelect");
+  const saveUtmBtn = document.getElementById("saveUtmTemplateBtn");
+
+  const loadUtmTemplates = () => {
+    if (!utmSelect) return;
+    const currentVal = utmSelect.value;
+    while (utmSelect.options.length > 1) {
+      utmSelect.remove(1);
+    }
+
+    // Pre-defined group
+    const builtInGroup = document.createElement("optgroup");
+    builtInGroup.label = pickLang("Populyar Şablonlar", "Popüler Şablonlar", "Popular Templates");
+    BUILTIN_UTM_TEMPLATES.forEach((tpl, idx) => {
+      const opt = document.createElement("option");
+      opt.value = "builtin_" + idx;
+      opt.textContent = tpl.name;
+      builtInGroup.appendChild(opt);
+    });
+    utmSelect.appendChild(builtInGroup);
+
+    // Custom user templates group
+    try {
+      const stored = JSON.parse(localStorage.getItem("ovlink_utm_templates") || "[]");
+      if (stored.length > 0) {
+        const customGroup = document.createElement("optgroup");
+        customGroup.label = pickLang("Şəxsi Şablonlarım", "Özel Şablonlarım", "Custom Templates");
+        stored.forEach((tpl, idx) => {
+          const opt = document.createElement("option");
+          opt.value = "custom_" + idx;
+          opt.textContent = tpl.name;
+          customGroup.appendChild(opt);
+        });
+        utmSelect.appendChild(customGroup);
+      }
+    } catch (e) {}
+
+    if (currentVal) utmSelect.value = currentVal;
+  };
+  window.loadUtmTemplatesUi = loadUtmTemplates;
+
+  if (utmSelect) {
+    loadUtmTemplates();
+    utmSelect.addEventListener("change", (e) => {
+      const val = e.target.value;
+      if (!val) {
+        if (document.getElementById("utmSource")) document.getElementById("utmSource").value = "";
+        if (document.getElementById("utmMedium")) document.getElementById("utmMedium").value = "";
+        if (document.getElementById("utmCampaign")) document.getElementById("utmCampaign").value = "";
+        return;
+      }
+      if (val.startsWith("builtin_")) {
+        const idx = parseInt(val.replace("builtin_", ""), 10);
+        const tpl = BUILTIN_UTM_TEMPLATES[idx];
+        if (tpl) {
+          if (document.getElementById("utmSource")) document.getElementById("utmSource").value = tpl.source || "";
+          if (document.getElementById("utmMedium")) document.getElementById("utmMedium").value = tpl.medium || "";
+          if (document.getElementById("utmCampaign")) document.getElementById("utmCampaign").value = tpl.campaign || "";
+        }
+      } else if (val.startsWith("custom_")) {
+        const idx = parseInt(val.replace("custom_", ""), 10);
+        try {
+          const stored = JSON.parse(localStorage.getItem("ovlink_utm_templates") || "[]");
+          const tpl = stored[idx];
+          if (tpl) {
+            if (document.getElementById("utmSource")) document.getElementById("utmSource").value = tpl.source || "";
+            if (document.getElementById("utmMedium")) document.getElementById("utmMedium").value = tpl.medium || "";
+            if (document.getElementById("utmCampaign")) document.getElementById("utmCampaign").value = tpl.campaign || "";
+          }
+        } catch (e) {}
+      }
+    });
+  }
+
+  if (saveUtmBtn) {
+    saveUtmBtn.addEventListener("click", () => {
+      const source = document.getElementById("utmSource")?.value?.trim() || "";
+      const medium = document.getElementById("utmMedium")?.value?.trim() || "";
+      const campaign = document.getElementById("utmCampaign")?.value?.trim() || "";
+      if (!source && !medium && !campaign) {
+        alert(pickLang("Yadda saxlanılacaq UTM parametri tapılmadı!", "Kaydedilecek bir UTM parametresi bulunamadı!", "No UTM parameter found to save!"));
+        return;
+      }
+      const name = prompt(pickLang("Bu şablon üçün ad daxil edin (Məs: Yay Endirimi):", "Bu şablon için bir isim girin (Örn: Yaz İndirimi):", "Enter a name for this template (e.g., Summer Sale):"));
+      if (!name) return;
+      try {
+        const stored = JSON.parse(localStorage.getItem("ovlink_utm_templates") || "[]");
+        stored.push({ name, source, medium, campaign });
+        localStorage.setItem("ovlink_utm_templates", JSON.stringify(stored));
+        loadUtmTemplates();
+        utmSelect.value = "custom_" + (stored.length - 1);
+      } catch (e) {
+        alert(pickLang("Şablon yadda saxlanılarkən xəta baş verdi.", "Şablon kaydedilirken bir hata oluştu.", "Error occurred while saving the template."));
+      }
+    });
+  }
+
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
 
-    const originalUrl = document.getElementById("originalUrl")?.value?.trim();
+    let originalUrl = document.getElementById("originalUrl")?.value?.trim();
     const customAlias = document.getElementById("customAlias")?.value?.trim();
     const linkPassword = document.getElementById("linkPassword")?.value?.trim();
     const selectedCustomDomain = document.getElementById("customDomainSelect")?.value?.trim();
     const resultDiv = document.getElementById("result");
     const shortUrlEl = document.getElementById("shortUrl");
     const hintEl = document.getElementById("shortenHint");
+    const feedbackEl = document.getElementById("shortenFeedback");
+
+    const utmSource = document.getElementById("utmSource")?.value?.trim();
+    const utmMedium = document.getElementById("utmMedium")?.value?.trim();
+    const utmCampaign = document.getElementById("utmCampaign")?.value?.trim();
+
+    let original_b = document.getElementById("originalB")?.value?.trim() || undefined;
+    const ab_split_percent = document.getElementById("abSplitPercent")?.value?.trim() || undefined;
+
+    let ios_url = document.getElementById("iosUrl")?.value?.trim() || undefined;
+    let android_url = document.getElementById("androidUrl")?.value?.trim() || undefined;
+
+    const appendUtm = (urlStr) => {
+      if (!urlStr) return urlStr;
+      if (!utmSource && !utmMedium && !utmCampaign) return urlStr;
+      try {
+        const u = new URL(urlStr.startsWith('http') ? urlStr : 'http://' + urlStr);
+        if (utmSource) u.searchParams.set('utm_source', utmSource);
+        if (utmMedium) u.searchParams.set('utm_medium', utmMedium);
+        if (utmCampaign) u.searchParams.set('utm_campaign', utmCampaign);
+        return u.toString();
+      } catch {
+        return urlStr;
+      }
+    };
+
+    originalUrl = appendUtm(originalUrl);
+    if (original_b) original_b = appendUtm(original_b);
+    if (ios_url) ios_url = appendUtm(ios_url);
+    if (android_url) android_url = appendUtm(android_url);
+
+    const showFeedback = (msg, isError = true) => {
+      if (!feedbackEl) return;
+      feedbackEl.textContent = msg;
+      feedbackEl.className = `alert mt-3 py-2 mb-0 small fw-bold text-center rounded-pill ${isError ? "alert-danger" : "alert-success"}`;
+      feedbackEl.classList.remove("d-none");
+      if (isError && resultDiv) {
+        resultDiv.classList.add("hidden", "d-none");
+        resultDiv.style.display = "none";
+      }
+    };
+
+    // Client-side PRO check
+    const session = typeof getClientSession === "function" ? getClientSession() : { isLoggedIn: false };
+    if ((original_b || ios_url || android_url) && !session.isLoggedIn) {
+      showFeedback(tKey("pro_feature_required", "A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin."));
+      return;
+    }
 
     try {
       const payload = {
@@ -515,7 +671,11 @@ window.addEventListener("DOMContentLoaded", () => {
         custom_domain: selectedCustomDomain || undefined,
         link_password: linkPassword || undefined,
         expires_at: normalizeExpiryInput(document.getElementById("expiresAt")?.value),
-        max_clicks: document.getElementById("maxClicks")?.value || undefined
+        max_clicks: document.getElementById("maxClicks")?.value || undefined,
+        original_b,
+        ab_split_percent,
+        ios_url,
+        android_url
       };
       
       if (typeof selectedHomeWorkspaceId !== 'undefined' && selectedHomeWorkspaceId > 0) {

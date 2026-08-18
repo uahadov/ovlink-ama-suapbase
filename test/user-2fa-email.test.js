@@ -166,8 +166,12 @@ test('user 2FA and email change flows', async (t) => {
   await t.test('6. email change: request sends a code, confirm swaps identity', async () => {
     // Stub only the Resend mail API; everything else passes through.
     globalThis.fetch = async (url, options) => {
-      if (typeof url === 'string' && url.includes('api.resend.com')) {
-        return { ok: true, status: 200, json: async () => ({ id: 'stub' }), text: async () => '' };
+      const urlStr = (url && typeof url === 'object' && url.url) ? url.url : (url && url.href ? url.href : String(url || ''));
+      if (urlStr.includes('resend.com')) {
+        return new Response(JSON.stringify({ data: { id: 'stub' }, error: null }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
       return originalFetch(url, options);
     };

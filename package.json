@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test test/**/*.test.js",
+    "test": "node --test --test-concurrency=1 test/**/*.test.js",
     "check:syntax": "node --check server.js routes/admin.js public/script.js public/lang.js",
     "check:security": "npm audit --omit=dev",
     "check:release": "npm test && npm run check:syntax && npm run check:security",

@@ -9245,6 +9245,29 @@ function send404(res) {
   return res.status(404).render('404', { csrfToken: res.locals._csrf, seo });
 }
 
+// Final Yönləndirmə URL hesablama (Cihaz Hədəfləməsi və A/B Testi daxil)
+function resolveFinalRedirectUrl(req, row) {
+  if (!row) return null;
+  let finalTargetUrl = row.original;
+  const userAgent = ((req && req.headers && req.headers['user-agent']) || '').toLowerCase();
+
+  // Cihaz Hədəfləmə Öncəliyi
+  if (row.ios_url && /iphone|ipad|ipod/.test(userAgent)) {
+    finalTargetUrl = row.ios_url;
+  } else if (row.android_url && /android/.test(userAgent)) {
+    finalTargetUrl = row.android_url;
+  } else if (row.original_b) {
+    const splitPercent = (row.ab_split_percent !== null && row.ab_split_percent !== undefined && !Number.isNaN(Number(row.ab_split_percent)))
+      ? Number(row.ab_split_percent)
+      : 50;
+    const rand = Math.random() * 100;
+    if (rand >= splitPercent) {
+      finalTargetUrl = row.original_b;
+    }
+  }
+  return ensureAbsoluteUrl(finalTargetUrl);
+}
+
 // Mərkəzləşdirilmiş Yönləndirmə Məntiqi
 function handleRedirection(req, res, row, passwordVerified = false) {
   const short = row.short;
@@ -9280,23 +9303,24 @@ function handleRedirection(req, res, row, passwordVerified = false) {
 
     // 3. Şifrə Kontrolü
     if (row.link_password && !passwordVerified) {
-      return res.redirect('/proceed/' + short);
+      return res.redirect(`/proceed/${encodeURIComponent(short)}`);
     }
 
-    // 4. Təhlükəli Link Kontrolü (yalnız 4+ şikayət olduqda)
-    if ((row.reports || 0) >= 4 && !req.query.confirm) {
-      const announcementHtml = buildAnnouncementHtml();
-      const assetQuery = `?v=${encodeURIComponent(res.locals.assetVersion || ASSET_VERSION)}`;
+    // 4. Abuse / Təhlükə Xəbərdarlığı Kontrolü
+    if (row.abuse_score >= 4 && !req.query.confirm) {
+      const currentLang = normalizeLang(req.query.lang || (req.session && req.session.lang), 'az');
+      const announcementHtml = buildAnnouncementBannerMarkup(currentLang);
+      const assetQuery = getAssetVersionQuery();
       return res.send(`
-        <html>
+        <!DOCTYPE html>
+        <html lang="${escapeHtml(currentLang)}">
           <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1" />
-            <title data-i18n="danger_title">Xəbərdarlıq</title>
-            <link rel="icon" href="/logo.ico" />
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-            <link rel="stylesheet" href="/style.css${assetQuery}" />
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Xəbərdarlıq - Ovlink</title>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+            <link rel="stylesheet" href="/style.css${assetQuery}">
           </head>
           <body class="home-page app-page">
 ${announcementHtml}
@@ -9322,22 +9346,7 @@ ${announcementHtml}
     recordClickEvent(req, row, REDIRECT_CONSENT_MODES.ANALYTICS);
 
     // 6. Final Yönlendirmə (Cihaz Hedefleme ve A/B Testi)
-    let finalTargetUrl = row.original;
-    const userAgent = (req.headers['user-agent'] || '').toLowerCase();
-    
-    // Cihaz Hedefleme Önceliği
-    if (row.ios_url && /iphone|ipad|ipod/.test(userAgent)) {
-      finalTargetUrl = row.ios_url;
-    } else if (row.android_url && /android/.test(userAgent)) {
-      finalTargetUrl = row.android_url;
-    } else if (row.original_b && typeof row.ab_split_percent === 'number') {
-      const rand = Math.random() * 100;
-      if (rand >= row.ab_split_percent) {
-        finalTargetUrl = row.original_b;
-      }
-    }
-
-    const targetUrl = ensureAbsoluteUrl(finalTargetUrl);
+    const targetUrl = resolveFinalRedirectUrl(req, row);
     if (!targetUrl) return send404(res);
     res.redirect(targetUrl);
   });
@@ -9554,7 +9563,7 @@ app.get('/proceed/:short', (req, res) => {
       if (consentState.source === 'session') {
         clearRedirectConsentSession(req);
       }
-      const targetUrl = ensureAbsoluteUrl(row.original);
+      const targetUrl = resolveFinalRedirectUrl(req, row);
       if (!targetUrl) return send404(res);
       res.redirect(targetUrl);
     }
@@ -9586,7 +9595,7 @@ app.post('/verify/:short', sensitiveActionLimiter, (req, res) => {
       return res.status(410).json({ error: pickLang(uiLang, 'Link deaktiv edilib.', 'Link devre dışı.', 'Link disabled.') });
     }
 
-    const targetUrl = ensureAbsoluteUrl(row.original);
+    const targetUrl = resolveFinalRedirectUrl(req, row);
     if (!targetUrl) {
       return res.status(400).json({ error: pickLang(uiLang, 'Yanlış link.', 'Geçersiz link.', 'Invalid link.') });
     }
@@ -11427,6 +11436,7 @@ module.exports = {
     isBlockedWebhookIp,
     isBlockedWebhookHostname,
     validateOutboundWebhookUrl,
+    resolveFinalRedirectUrl,
     // Exposed strictly for test teardown (closing the pg Pool so `node --test`
     // can exit cleanly) and for tests that need to seed/clean up rows against
     // the same database the running app uses.
