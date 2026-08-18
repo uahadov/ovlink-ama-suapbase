@@ -1548,7 +1548,7 @@ function isBcryptHash(value) {
   return /^\$2[abxy]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(text);
 }
 
-async function bcryptHash(password, saltRounds = 10) {
+async function bcryptHash(password, saltRounds = 12) {
   return new Promise((resolve, reject) => {
     bcrypt.hash(password, saltRounds, (err, hash) => {
       if (err) return reject(err);
@@ -1564,6 +1564,15 @@ async function bcryptCompare(password, hashed) {
       resolve(ok);
     });
   });
+}
+
+async function hashLinkPassword(plain) {
+  return bcryptHash(plain, 12);
+}
+
+async function verifyLinkPassword(hashed, plain) {
+  if (!hashed) return false;
+  return bcryptCompare(plain, hashed);
 }
 
 function getSafeHostHeader(req) {
@@ -6492,7 +6501,7 @@ app.post('/api/register',
         return res.status(400).json({ error: emailInUseMsg });
       }
 
-      bcrypt.hash(password, 10, (hashErr, hashed) => {
+      bcrypt.hash(password, 12, (hashErr, hashed) => {
         if (hashErr || !hashed) {
           return res.status(500).json({ error: accountCreateFailedMsg });
         }
@@ -7010,6 +7019,11 @@ app.get('/auth/google/callback', authLimiter, async (req, res) => {
             const msg = buildBanMessage(uiLang, existing.ban_until, existing.ban_reason);
             logSecurityEvent(req, 'auth.google.callback', 'blocked', { reason: 'banned', user_id: existing.id });
             return res.redirect('/login?error=ban&message=' + encodeURIComponent(msg));
+          }
+
+          if (!existing.email_verified) {
+            logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'google_attach_unverified_email', user_id: existing.id });
+            return res.redirect('/login?error=google_failed&msg=' + encodeURIComponent('Mövcud hesab e-poçtu təsdiqlənməyib. / Mevcut hesap e-postası doğrulanmamış.'));
           }
 
           return db.run(
@@ -8104,6 +8118,11 @@ app.post('/api/pro/v1/shorten', authenticateProApiKey, trackProApiUsage, proWrit
     return res.status(400).json({ error: 'Invalid original_url.' });
   }
 
+  const securityCheck = isSuspiciousOrPhishingUrl(originalAbs);
+  if (securityCheck.suspicious) {
+    return res.status(403).json({ error: 'Security warning: Malicious or phishing link detected.' });
+  }
+
   if (!Number.isInteger(ownerId) || ownerId <= 0) {
     return res.status(401).json({ error: 'Unauthorized.' });
   }
@@ -8848,7 +8867,7 @@ app.post('/api/user/password',
     const nowIso = new Date().toISOString();
 
     const continueWithHash = () => {
-      bcrypt.hash(newPassword, 10, (hashErr, hashed) => {
+      bcrypt.hash(newPassword, 12, (hashErr, hashed) => {
         if (hashErr || !hashed) {
           return res.status(500).json({ error: pickLang(uiLang, 'Şifrə dəyişdirilə bilmədi.', 'Şifre değiştirilemedi.', 'Password could not be changed.') });
         }
@@ -8981,7 +9000,7 @@ app.post('/api/reset-password',
               return res.status(400).json({ error: pickLang(uiLang, 'Link artıq istifadə edilib və ya vaxtı bitib.', 'Bağlantı zaten kullanıldı veya süresi doldu.', 'Link has already been used or has expired.') });
             }
 
-            bcrypt.hash(newPassword, 10, (hashErr, hashed) => {
+            bcrypt.hash(newPassword, 12, (hashErr, hashed) => {
               if (hashErr || !hashed) {
                 return res.status(500).json({ error: pickLang(uiLang, 'Şifrə yenilənə bilmədi.', 'Şifre güncellenemedi.', 'Password could not be updated.') });
               }
@@ -9064,6 +9083,34 @@ app.post('/api/notifications/delete-all', (req, res) => {
    LİNK İŞLEMLERİ (Kısaltma, Yönlendirme, Şifre Koruma, QR Kod)
 ------------------------- */
 
+function isSuspiciousOrPhishingUrl(rawUrl) {
+  if (!rawUrl) return { suspicious: false };
+  try {
+    const parsed = new URL(rawUrl);
+    const hostname = parsed.hostname.toLowerCase();
+    const pathname = parsed.pathname.toLowerCase();
+
+    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname) || hostname.startsWith('[') || hostname.includes('0x')) {
+      return { suspicious: true, reason: 'ip_hostname' };
+    }
+    const dangerousExts = ['.exe', '.scr', '.bat', '.cmd', '.vbs', '.apk', '.pif', '.hta', '.jar', '.msi', '.ps1'];
+    if (dangerousExts.some(ext => pathname.endsWith(ext) || pathname.includes(ext + '?'))) {
+      return { suspicious: true, reason: 'dangerous_extension' };
+    }
+    const phishingPatterns = [
+      /(?:free-?(?:nitro|robux|vbucks|steam|premium)|telegram-?(?:gift|premium|airdrop)|metamask-?(?:login|verify)|binance-?(?:security|verify)|paypal-?(?:login|security|update)|bank-?(?:login|verify)|login-?(?:steamcommunity|discord)|discord-?(?:nitro|app-gift))/i
+    ];
+    for (const pattern of phishingPatterns) {
+      if (pattern.test(hostname) || pattern.test(pathname)) {
+        return { suspicious: true, reason: 'phishing_pattern' };
+      }
+    }
+    return { suspicious: false };
+  } catch {
+    return { suspicious: false };
+  }
+}
+
 // URL kısaltma (POST /api/shorten)
 // Eğer kullanıcı özel link girmişse (customLink) onu kullan, aksi halde random üret.
 app.post('/api/shorten',
@@ -9122,6 +9169,11 @@ app.post('/api/shorten',
     const originalAbs = ensureAbsoluteUrl(original);
     if (!originalAbs) {
       return res.status(400).json({ error: pickLang(uiLang, 'Zəhmət olmasa düzgün bir URL daxil edin.', 'Lütfen geçerli bir URL girin.', 'Please enter a valid URL.') });
+    }
+
+    const securityCheck = isSuspiciousOrPhishingUrl(originalAbs);
+    if (securityCheck.suspicious) {
+      return res.status(403).json({ error: pickLang(uiLang, 'Təhlükəsizlik xəbərdarlığı: Zərərli və ya fişinq bağlantısı təsbit edildi.', 'Güvenlik uyarısı: Kötü amaçlı veya oltalama (phishing) bağlantısı tespit edildi.', 'Security warning: Malicious or phishing link detected.') });
     }
 
     const expiresValidation = normalizeFutureExpiryInput(expires_at);
@@ -10951,7 +11003,7 @@ app.get('/sso/:workspaceId/metadata', async (req, res) => {
   }
 });
 
-app.post('/api/auth/realm-lookup', async (req, res) => {
+app.post('/api/auth/realm-lookup', authLimiter, async (req, res) => {
   try {
     const rawInput = (req.body && (req.body.email || req.body.domain || req.body.workspace)) || '';
     const trimmed = rawInput.toString().trim().toLowerCase();
@@ -10967,16 +11019,10 @@ app.post('/api/auth/realm-lookup', async (req, res) => {
     const numericWsId = parseInt(searchDomain, 10);
 
     let matchedWs = null;
-    if (!Number.isNaN(numericWsId) && numericWsId > 0) {
-      const loaded = await loadActiveWorkspaceSso(numericWsId).catch(() => null);
-      if (loaded) {
-        matchedWs = loaded.workspace;
-      }
-    }
 
     if (!matchedWs) {
       const rows = await dbAllAsync(
-        `SELECT w.id, w.name, s.idp_entity_id, s.idp_sso_url, s.enabled, u.email, u.plan_tier, u.plan_status, u.pro_expires_at
+        `SELECT w.id, w.name, s.idp_entity_id, s.idp_sso_url, s.enabled, u.email, u.plan_tier, u.plan_status, u.pro_expires_at, w.owner_user_id
          FROM workspaces w
          JOIN sso_connections s ON s.workspace_id = w.id
          JOIN users u ON u.id = w.owner_user_id
@@ -10986,7 +11032,6 @@ app.post('/api/auth/realm-lookup', async (req, res) => {
       for (const r of rows) {
         if (!isProAccessActive(r)) continue;
         const wsName = (r.name || '').toLowerCase();
-        const entityId = (r.idp_entity_id || '').toLowerCase();
         let ownerDomain = '';
         try {
           if (r.email) {
@@ -10997,13 +11042,18 @@ app.post('/api/auth/realm-lookup', async (req, res) => {
           }
         } catch {}
 
+        let hasCustomDomain = false;
+        try {
+          const cDomain = await dbGetAsync('SELECT id FROM custom_domains WHERE owner_user_id = ? AND domain = ? AND verified = 1 LIMIT 1', [r.owner_user_id, searchDomain]).catch(() => null);
+          if (cDomain) hasCustomDomain = true;
+        } catch {}
+
         if (
-          wsName === searchDomain ||
-          entityId.includes(searchDomain) ||
-          searchDomain.includes(wsName) ||
-          (ownerDomain && ownerDomain === searchDomain)
+          (ownerDomain && ownerDomain === searchDomain) ||
+          hasCustomDomain ||
+          (numericWsId && numericWsId === r.id)
         ) {
-          matchedWs = { id: r.id, name: r.name };
+          matchedWs = { id: r.id };
           break;
         }
       }
@@ -11015,8 +11065,6 @@ app.post('/api/auth/realm-lookup', async (req, res) => {
 
     return res.json({
       ssoAvailable: true,
-      workspaceId: matchedWs.id,
-      workspaceName: matchedWs.name,
       ssoLoginUrl: `/sso/${matchedWs.id}/login`
     });
   } catch (err) {

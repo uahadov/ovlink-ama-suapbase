@@ -175,7 +175,11 @@ async function parseIdpMetadataXml(metadataXml) {
     }
   }
   if (!ssoLoginUrl) throw new Error('Metadata has no usable SingleSignOnService endpoint.');
-  if (!/^https?:\/\//i.test(ssoLoginUrl)) throw new Error('SingleSignOnService endpoint must be an http(s) URL.');
+  if (process.env.NODE_ENV === 'production' && !/^https:\/\//i.test(ssoLoginUrl)) {
+    throw new Error('SingleSignOnService endpoint must be an https URL in production.');
+  } else if (!/^https?:\/\//i.test(ssoLoginUrl)) {
+    throw new Error('SingleSignOnService endpoint must be an http(s) URL.');
+  }
 
   let certificate = '';
   const keyDescriptors = Array.isArray(idpDescriptor.KeyDescriptor) ? idpDescriptor.KeyDescriptor : [];
