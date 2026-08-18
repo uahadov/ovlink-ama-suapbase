@@ -29,7 +29,9 @@ if (password.length < 10) {
 
 const pool = new Pool({
   connectionString: dbUrl,
-  ssl: dbUrl.includes('localhost') ? false : { rejectUnauthorized: false }
+  ssl: dbUrl.includes('localhost') ? false : {
+    rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false'
+  }
 });
 
 async function main() {

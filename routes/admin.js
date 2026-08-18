@@ -450,7 +450,7 @@ module.exports = function createAdminRouter(db, options = {}) {
     return n;
   }
 
-  // Strict CSP for /admin only: no inline scripts/styles.
+  // Strict CSP for /admin with nonce support.
   router.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -461,9 +461,9 @@ module.exports = function createAdminRouter(db, options = {}) {
         formAction: ["'self'"],
         imgSrc: ["'self'", 'data:'],
         fontSrc: ["'self'"],
-        styleSrc: ["'self'"],
-        styleSrcAttr: ["'none'"],
-        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", (req, res) => `'nonce-${res.locals.nonce}'`],
+        styleSrcAttr: ["'unsafe-inline'"],
+        scriptSrc: ["'self'", (req, res) => `'nonce-${res.locals.nonce}'`],
         scriptSrcAttr: ["'none'"],
         connectSrc: ["'self'"],
       },
@@ -654,6 +654,7 @@ module.exports = function createAdminRouter(db, options = {}) {
           req.session.pendingAdminUserId = user.id;
           req.session.pendingAdminEmail = user.email;
           req.session.pendingAdminRole = user.role;
+          req.session.pendingAdminStartedAt = Date.now();
           req.session.pendingAdminNext = safeAdminReturn(nextUrl) || '/admin/links';
           void audit(req, 'ADMIN_2FA_CHALLENGE_REQUIRED', 'admin_user', String(user.id), { email: user.email });
           return req.session.save((saveErr) => {
@@ -685,6 +686,17 @@ module.exports = function createAdminRouter(db, options = {}) {
   router.post('/2fa/verify', requirePending2FA, twoFaVerifyLimiter, async (req, res) => {
     const token = (req.body.token || '').toString().replace(/\s+/g, '');
     const nextUrl = safeAdminReturn(req.session.pendingAdminNext) || '/admin/links';
+    const startedAt = req.session.pendingAdminStartedAt;
+
+    if (!startedAt || Date.now() - startedAt > 10 * 60 * 1000) {
+      delete req.session.pendingAdminUserId;
+      delete req.session.pendingAdminEmail;
+      delete req.session.pendingAdminRole;
+      delete req.session.pendingAdminStartedAt;
+      delete req.session.pendingAdminNext;
+      await audit(req, 'ADMIN_2FA_VERIFY_FAILURE', 'admin_user', '', { reason: 'session_expired' });
+      return res.status(401).render('admin/login', { error: '2FA session expired. Please log in again.', next: nextUrl });
+    }
 
     if (!/^\d{6}$/.test(token)) {
       await audit(req, 'ADMIN_2FA_VERIFY_FAILURE', 'admin_user', String(req.session.pendingAdminUserId || ''), { reason: 'invalid_format' });
@@ -713,17 +725,22 @@ module.exports = function createAdminRouter(db, options = {}) {
         return res.status(401).render('admin/2fa', { error: 'Invalid code.', next: nextUrl });
       }
 
-      req.session.adminUserId = user.id;
-      req.session.adminEmail = user.email;
-      req.session.adminRole = user.role;
-      delete req.session.pendingAdminUserId;
-      delete req.session.pendingAdminEmail;
-      delete req.session.pendingAdminRole;
-      delete req.session.pendingAdminNext;
+      const verifiedUserId = user.id;
+      const verifiedEmail = user.email;
+      const verifiedRole = user.role;
 
-      await logAdminAuthEvent(req, 'ADMIN_2FA_VERIFY_SUCCESS', user.email || req.session.pendingAdminEmail || '');
-      await audit(req, 'ADMIN_2FA_VERIFY_SUCCESS', 'admin_user', String(user.id), { email: user.email, next: nextUrl });
-      return req.session.save(() => res.redirect(nextUrl));
+      req.session.regenerate(async (regenErr) => {
+        if (regenErr) {
+          return res.status(500).render('admin/2fa', { error: 'Session regeneration failed.', next: nextUrl });
+        }
+        req.session.adminUserId = verifiedUserId;
+        req.session.adminEmail = verifiedEmail;
+        req.session.adminRole = verifiedRole;
+
+        await logAdminAuthEvent(req, 'ADMIN_2FA_VERIFY_SUCCESS', verifiedEmail || '');
+        await audit(req, 'ADMIN_2FA_VERIFY_SUCCESS', 'admin_user', String(verifiedUserId), { email: verifiedEmail, next: nextUrl });
+        return req.session.save(() => res.redirect(nextUrl));
+      });
     } catch (e) {
       console.error('[admin] 2fa verify error:', e);
       await audit(req, 'ADMIN_2FA_VERIFY_FAILURE', 'admin_user', String(req.session.pendingAdminUserId || ''), { reason: 'server_error' });

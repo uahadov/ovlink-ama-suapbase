@@ -157,8 +157,23 @@ function createDiscordBot(db, options = {}) {
 
   function verifySignature(signature, timestamp, body) {
     if (!PUBLIC_KEY) return false;
+    if (typeof signature !== 'string' || signature.length !== 128) return false;
+    if (typeof PUBLIC_KEY !== 'string' || PUBLIC_KEY.length !== 64) return false;
+
+    // Check timestamp drift (5 minutes / 300s replay window)
+    const tsNum = Number.parseInt(timestamp, 10);
+    if (!Number.isFinite(tsNum)) return false;
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (Math.abs(nowSec - tsNum) > 300) {
+      console.warn(`[discord-bot] Interaction timestamp expired (age=${Math.abs(nowSec - tsNum)}s)`);
+      return false;
+    }
+
     try {
-      const msg = Buffer.from(timestamp + body);
+      const msg = Buffer.concat([
+        Buffer.from(String(timestamp), 'utf-8'),
+        Buffer.isBuffer(body) ? body : Buffer.from(String(body || ''), 'utf-8'),
+      ]);
       const keyBytes = Buffer.from(PUBLIC_KEY, 'hex');
       const derPrefix = Buffer.from('302a300506032b6570032100', 'hex');
       const derKey = Buffer.concat([derPrefix, keyBytes]);

@@ -178,7 +178,7 @@
                     <div class="audit-json-content">
                       <div class="audit-json-toolbar">
                         <span class="audit-json-tag">metadata.json</span>
-                        <button type="button" class="btn btn--xs btn--ghost" data-copy='<%- JSON.stringify(meta) %>'>Copy JSON</button>
+                        <button type="button" class="btn btn--xs btn--ghost" data-copy="<%= JSON.stringify(meta || {}) %>">Copy JSON</button>
                       </div>
                       <pre class="log-json"><%= JSON.stringify(meta, null, 2) %></pre>
                     </div>

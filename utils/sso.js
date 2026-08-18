@@ -293,19 +293,54 @@ function extractProfileEmail(profile) {
  */
 function extractAssertionId(profile) {
   if (!profile || typeof profile !== 'object') return '';
+  const p = (profile.profile && typeof profile.profile === 'object') ? profile.profile : profile;
   const idCandidates = [
-    profile.inResponseTo,
-    profile.id,
-    profile.assertionId,
-    profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'],
-    profile.nameID
+    p.ID,
+    p.id,
+    p.assertionId,
+    p.assertionID,
+    p.AssertionID,
+    p.inResponseTo,
+    p.sessionIndex,
+    p.SessionIndex,
   ];
-  if (profile.attributes && typeof profile.attributes === 'object') {
-    idCandidates.push(profile.attributes.assertionId, profile.attributes.id);
+  if (p.attributes && typeof p.attributes === 'object') {
+    idCandidates.push(
+      p.attributes.ID,
+      p.attributes.id,
+      p.attributes.assertionId,
+      p.attributes.assertionID,
+      p.attributes.AssertionID,
+      p.attributes.sessionIndex,
+      p.attributes.SessionIndex
+    );
+  }
+  if (typeof p.getAssertion === 'function') {
+    try {
+      const ast = p.getAssertion();
+      if (ast) {
+        if (ast.Assertion && ast.Assertion.$ && (ast.Assertion.$.ID || ast.Assertion.$.id)) {
+          idCandidates.push(ast.Assertion.$.ID, ast.Assertion.$.id);
+        } else if (ast.$ && (ast.$.ID || ast.$.id)) {
+          idCandidates.push(ast.$.ID, ast.$.id);
+        }
+      }
+    } catch {}
+  }
+  if (typeof p.getAssertionXml === 'function') {
+    try {
+      const xml = p.getAssertionXml();
+      if (typeof xml === 'string') {
+        const m = xml.match(/<(?:\w+:)?Assertion\b[^>]*?\sID=["']([^"']+)["']/i);
+        if (m && m[1]) {
+          idCandidates.push(m[1]);
+        }
+      }
+    } catch {}
   }
   for (const c of idCandidates) {
     const val = (Array.isArray(c) ? c[0] : c || '').toString().trim();
-    if (val && val.length >= 8) return val;
+    if (val && val.length >= 8 && !val.includes('@')) return val;
   }
   return '';
 }

@@ -76,7 +76,9 @@ function sendOpsAlert(key, title, details = '') {
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL || process.env.SUPABASE_DB_URL,
-  ssl: (process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || '').includes('localhost') ? false : { rejectUnauthorized: false },
+  ssl: (process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || '').includes('localhost') ? false : {
+    rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false'
+  },
   max: 20,
   min: 3,
   idleTimeoutMillis: 30000,
@@ -647,10 +649,9 @@ const forceSecureCookie = ['1', 'true', 'yes', 'on'].includes(
   (process.env.FORCE_SECURE_COOKIE || '').toString().trim().toLowerCase()
 );
 
-// If TRUST_PROXY_HOPS is set (regardless of NODE_ENV), trust the proxy.
-// Otherwise, trust the proxy in production by default (very common for Vercel/Render/Heroku/etc. deployments).
-const useTrustProxy = (Number.isInteger(trustProxyHops) && trustProxyHops > 0) || isProdRuntime;
-app.set('trust proxy', Number.isInteger(trustProxyHops) && trustProxyHops > 0 ? trustProxyHops : (isProdRuntime ? true : false));
+// If TRUST_PROXY_HOPS is set (or defaulted in production), use explicit integer hop count.
+const useTrustProxy = Number.isInteger(trustProxyHops) && trustProxyHops > 0;
+app.set('trust proxy', useTrustProxy ? trustProxyHops : false);
 
 // Enforce HTTPS in production for all requests
 app.use((req, res, next) => {
@@ -2014,9 +2015,8 @@ function upsertUserSessionRecord(req, userId, options = {}, done = () => {}) {
           last_seen_at = excluded.last_seen_at,
           last_login_at = excluded.last_login_at,
           last_login_method = excluded.last_login_method,
-          is_revoked = 0,
-          revoked_at = NULL,
-          device_fingerprint = excluded.device_fingerprint`,
+          device_fingerprint = excluded.device_fingerprint
+        WHERE user_sessions.is_revoked = 0`,
         [
           userId,
           sessionToken,
@@ -2348,46 +2348,113 @@ async function resolveWebhookHostnameIps(hostname) {
 async function validateOutboundWebhookUrl(rawUrl) {
   const normalized = normalizeWebhookUrl(rawUrl);
   if (!normalized) {
-    return { ok: false, normalizedUrl: '', reason: 'invalid_url' };
+    return { ok: false, normalizedUrl: '', pinnedIp: '', reason: 'invalid_url' };
   }
 
   let parsed;
   try {
     parsed = new URL(normalized);
   } catch {
-    return { ok: false, normalizedUrl: '', reason: 'invalid_url' };
+    return { ok: false, normalizedUrl: '', pinnedIp: '', reason: 'invalid_url' };
   }
 
   const hostnameRaw = (parsed.hostname || '').toString().trim().toLowerCase().replace(/\.+$/, '');
   if (!hostnameRaw) {
-    return { ok: false, normalizedUrl: '', reason: 'invalid_host' };
+    return { ok: false, normalizedUrl: '', pinnedIp: '', reason: 'invalid_host' };
   }
 
   const directIpVersion = net.isIP(hostnameRaw);
   if (directIpVersion) {
     if (isBlockedWebhookIp(hostnameRaw)) {
-      return { ok: false, normalizedUrl: '', reason: 'blocked_ip' };
+      return { ok: false, normalizedUrl: '', pinnedIp: '', reason: 'blocked_ip' };
     }
-    return { ok: true, normalizedUrl: normalized, reason: '', resolvedIps: [hostnameRaw] };
+    return { ok: true, normalizedUrl: normalized, pinnedIp: hostnameRaw, reason: '', resolvedIps: [hostnameRaw] };
   }
 
   const hostname = normalizeHostName(hostnameRaw);
   if (!hostname) {
-    return { ok: false, normalizedUrl: '', reason: 'invalid_host' };
+    return { ok: false, normalizedUrl: '', pinnedIp: '', reason: 'invalid_host' };
   }
   if (isBlockedWebhookHostname(hostname)) {
-    return { ok: false, normalizedUrl: '', reason: 'blocked_host' };
+    return { ok: false, normalizedUrl: '', pinnedIp: '', reason: 'blocked_host' };
   }
 
   const resolvedIps = await resolveWebhookHostnameIps(hostname);
   if (!resolvedIps.length) {
-    return { ok: false, normalizedUrl: '', reason: 'dns_unresolved' };
+    return { ok: false, normalizedUrl: '', pinnedIp: '', reason: 'dns_unresolved' };
   }
   if (resolvedIps.some((ip) => isBlockedWebhookIp(ip))) {
-    return { ok: false, normalizedUrl: '', reason: 'blocked_ip' };
+    return { ok: false, normalizedUrl: '', pinnedIp: '', reason: 'blocked_ip' };
   }
 
-  return { ok: true, normalizedUrl: normalized, reason: '', resolvedIps };
+  const pinnedIp = resolvedIps[0];
+  return { ok: true, normalizedUrl: normalized, pinnedIp, reason: '', resolvedIps };
+}
+
+function requestWebhookWithPinnedIp(targetUrl, pinnedIp, { method = 'POST', headers = {}, body = '', timeoutMs = 10000 } = {}) {
+  return new Promise((resolve, reject) => {
+    let parsed;
+    try {
+      parsed = new URL(targetUrl);
+    } catch (e) {
+      return reject(e);
+    }
+
+    const isHttps = parsed.protocol === 'https:';
+    const transport = isHttps ? https : http;
+    const ipFamily = net.isIP(pinnedIp);
+    if (!ipFamily) {
+      return reject(new Error('Invalid pinned IP'));
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    if (typeof timer.unref === 'function') timer.unref();
+
+    const port = parsed.port ? Number.parseInt(parsed.port, 10) : (isHttps ? 443 : 80);
+    const bodyBuffer = Buffer.isBuffer(body) ? body : Buffer.from(String(body || ''), 'utf-8');
+
+    const req = transport.request({
+      protocol: parsed.protocol,
+      hostname: parsed.hostname,
+      port: port,
+      path: parsed.pathname + parsed.search,
+      method: method,
+      headers: {
+        ...headers,
+        'host': parsed.host,
+        'content-length': String(bodyBuffer.length),
+      },
+      servername: isHttps ? parsed.hostname : undefined, // Preserves TLS SNI
+      signal: controller.signal,
+      lookup: (_hostname, _options, callback) => {
+        // Direct socket connection to pre-validated pinned IP (defeats DNS rebinding)
+        callback(null, pinnedIp, ipFamily);
+      },
+    }, (res) => {
+      clearTimeout(timer);
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => {
+        resolve({
+          status: res.statusCode || 0,
+          ok: (res.statusCode >= 200 && res.statusCode < 300),
+          headers: res.headers,
+          body: Buffer.concat(chunks).toString('utf-8'),
+        });
+      });
+    });
+
+    req.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+
+    if (bodyBuffer.length > 0) {
+      req.write(bodyBuffer);
+    }
+    req.end();
+  });
 }
 
 function buildWebhookSignatureV2Key(rawSecret) {
@@ -3813,7 +3880,7 @@ const sessionCookieSecure = forceSecureCookie ? true : 'auto';
 const sessionOptions = {
   secret: process.env.SESSION_SECRET,
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   rolling: true,
   proxy: useTrustProxy,
   cookie: {
@@ -4545,6 +4612,18 @@ function requireSignedIn(req, res, next) {
   if (!req.session || !req.session.userId) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+  const token = normalizeSessionToken(req.session.userSessionToken);
+  if (token) {
+    db.get('SELECT is_revoked FROM user_sessions WHERE session_token = ? AND user_id = ?', [token, req.session.userId], (err, row) => {
+      if (!err && row && row.is_revoked === 1) {
+        try { req.session.destroy(() => {}); } catch {}
+        res.clearCookie('connect.sid');
+        return res.status(401).json({ error: 'Session has been revoked.' });
+      }
+      return next();
+    });
+    return;
+  }
   return next();
 }
 
@@ -4621,8 +4700,12 @@ async function getUserWorkspaceMemberships(userId) {
 }
 
 // SQL fragment for "link is owned by me OR lives in one of my workspaces".
-// Used by delete/update/meta routes so workspace members can manage shared links.
+// Used by read-only view/stats routes so workspace members can view shared links.
 const WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL = '(user_id = ? OR workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = ?))';
+
+// SQL fragment for "link can be mutated/deleted: created by me OR workspace owner/admin".
+// Regular workspace members can only mutate/delete links they personally created.
+const WORKSPACE_LINK_MUTATION_SQL = `(user_id = ? OR (workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = ? AND role IN ('${WORKSPACE_ROLES.OWNER}', '${WORKSPACE_ROLES.ADMIN}'))))`;
 
 function workspaceRoleAtLeast(role, minimum) {
   if (role === WORKSPACE_ROLES.OWNER) return true;
@@ -4764,11 +4847,11 @@ async function processWebhookDelivery(deliveryId) {
     if (isDiscordTarget) {
       headers['x-ovlink-destination'] = 'discord';
     }
-    const resp = await fetch(targetUrl, {
+    const resp = await requestWebhookWithPinnedIp(targetUrl, targetValidation.pinnedIp, {
       method: 'POST',
       headers,
       body,
-      signal: controller.signal,
+      timeoutMs: 10000,
     });
     httpStatus = Number(resp.status) || 0;
     success = resp.ok;
@@ -4778,7 +4861,7 @@ async function processWebhookDelivery(deliveryId) {
       else responseCode = 'http_error';
     }
   } catch (err) {
-    responseCode = (err && err.name === 'AbortError') ? 'timeout' : 'network_error';
+    responseCode = (err && (err.name === 'AbortError' || err.code === 'ABORT_ERR')) ? 'timeout' : 'network_error';
   } finally {
     if (timeoutHandle) clearTimeout(timeoutHandle);
   }
@@ -5405,6 +5488,12 @@ db.run('ALTER TABLE urls ADD COLUMN android_url TEXT', () => {});
   };
   createPolarEventsSchema();
 
+  db.run(`CREATE TABLE IF NOT EXISTS polar_processed_webhooks (
+    webhook_id TEXT PRIMARY KEY,
+    event_type TEXT NOT NULL,
+    processed_at TEXT NOT NULL
+  )`, () => {});
+
   // Password reset tokens
   db.run(`CREATE TABLE IF NOT EXISTS password_resets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -5905,6 +5994,19 @@ app.post('/api/polar/webhook', async (req, res) => {
 
   // Durable billing history (surfaced in the admin panel, purged after 90d).
   const polarWebhookId = (req.headers['webhook-id'] || req.headers['Webhook-Id'] || '').toString();
+  if (polarWebhookId) {
+    try {
+      const alreadyProcessed = await dbGetAsync('SELECT webhook_id FROM polar_processed_webhooks WHERE webhook_id = ?', [polarWebhookId]);
+      if (alreadyProcessed) {
+        console.log(`[polar-webhook] Duplicate webhook ${polarWebhookId} ignored.`);
+        return res.status(200).json({ received: true, deduplicated: true });
+      }
+      await dbRunAsync('INSERT INTO polar_processed_webhooks (webhook_id, event_type, processed_at) VALUES (?, ?, ?)', [polarWebhookId, eventType, new Date().toISOString()]);
+    } catch (dedupErr) {
+      console.warn('[polar-webhook] deduplication check warning:', dedupErr && dedupErr.message);
+    }
+  }
+
   const logPolarEvent = (outcome, detail, userId) => {
     db.run(
       'INSERT INTO polar_events (webhook_id, event_type, product_id, user_id, outcome, detail, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -6201,33 +6303,19 @@ app.get('/bot/auth', (req, res) => {
     return res.status(400).render('error-disabled', { csrfToken: res.locals._csrf, reason: 'Geçersiz parametreler.' });
   }
 
-  // If user is logged in, auto-link immediately
+  // If user is logged in, show confirmation screen (Never auto-link on GET to prevent CSRF)
   if (req.session && req.session.userId) {
     db.get('SELECT id, email FROM users WHERE id = ?', [req.session.userId], (uErr, user) => {
       if (uErr || !user) return res.redirect('/login');
-      const botShared = require('./bots/shared').createBotShared(db, botOptions);
-      botShared.linkBotUser(platform, platformUserId, platformUsername, req.session.userId).then((ok) => {
-        if (ok) {
-          logSecurityEvent(req, `bot.${platform}.link`, 'success', { user_id: req.session.userId });
-          return res.render('bot-auth', {
-            csrfToken: res.locals._csrf,
-            platform,
-            platformUserId,
-            platformUsername,
-            status: 'success',
-            user,
-            errorMessage: null,
-          });
-        }
-        return res.render('bot-auth', {
-          csrfToken: res.locals._csrf,
-          platform,
-          platformUserId,
-          platformUsername,
-          status: 'error',
-          user,
-          errorMessage: 'Hesabınızı bağlamaq mümkün olmadı. Zəhmət olmasa yenidən cəhd edin.',
-        });
+      const emailPlain = user.email ? (user.email.includes(':') ? decryptAES256GCM(user.email) : user.email) : '';
+      return res.render('bot-auth', {
+        csrfToken: res.locals._csrf,
+        platform,
+        platformUserId,
+        platformUsername,
+        status: 'confirm',
+        user: { id: user.id, email: emailPlain },
+        errorMessage: null,
       });
     });
     return;
@@ -6248,27 +6336,21 @@ app.get('/bot/auth', (req, res) => {
   });
 });
 
-// Complete bot auth after login
-app.get('/bot/auth/complete', requireSignedIn, (req, res) => {
-  const pending = req.session.pendingBotAuth;
-  if (!pending || Date.now() - pending.createdAt > 15 * 60 * 1000) {
-    return res.render('bot-auth', {
-      csrfToken: res.locals._csrf,
-      platform: 'telegram',
-      platformUserId: '',
-      platformUsername: '',
-      status: 'error',
-      user: null,
-      errorMessage: 'Sessiyanın vaxtı bitib. Zəhmət olmasa botdan yenidən cəhd edin.',
-    });
+// Confirm and execute bot linking (POST /bot/auth/confirm)
+app.post('/bot/auth/confirm', requireSignedIn, sensitiveActionLimiter, (req, res) => {
+  const platform = (req.body.platform || '').toString().trim().toLowerCase();
+  const platformUserId = (req.body.id || '').toString().trim();
+  const platformUsername = (req.body.name || '').toString().trim();
+
+  if (!platform || !platformUserId || !['telegram', 'discord'].includes(platform)) {
+    return res.status(400).render('error-disabled', { csrfToken: res.locals._csrf, reason: 'Geçersiz parametreler.' });
   }
 
-  const { platform, platformUserId, platformUsername } = pending;
-  delete req.session.pendingBotAuth;
-  const botShared = require('./bots/shared').createBotShared(db, botOptions);
-
-  botShared.linkBotUser(platform, platformUserId, platformUsername, req.session.userId).then((ok) => {
-    db.get('SELECT id, email FROM users WHERE id = ?', [req.session.userId], (uErr, user) => {
+  db.get('SELECT id, email FROM users WHERE id = ?', [req.session.userId], (uErr, user) => {
+    if (uErr || !user) return res.redirect('/login');
+    const emailPlain = user.email ? (user.email.includes(':') ? decryptAES256GCM(user.email) : user.email) : '';
+    const botShared = require('./bots/shared').createBotShared(db, botOptions);
+    botShared.linkBotUser(platform, platformUserId, platformUsername, req.session.userId).then((ok) => {
       if (ok) {
         logSecurityEvent(req, `bot.${platform}.link`, 'success', { user_id: req.session.userId });
         return res.render('bot-auth', {
@@ -6277,7 +6359,7 @@ app.get('/bot/auth/complete', requireSignedIn, (req, res) => {
           platformUserId,
           platformUsername,
           status: 'success',
-          user: user || { email: '' },
+          user: { id: user.id, email: emailPlain },
           errorMessage: null,
         });
       }
@@ -6287,11 +6369,26 @@ app.get('/bot/auth/complete', requireSignedIn, (req, res) => {
         platformUserId,
         platformUsername,
         status: 'error',
-        user: user || { email: '' },
-        errorMessage: 'Hesabınızı bağlamaq mümkün olmadı.',
+        user: { id: user.id, email: emailPlain },
+        errorMessage: 'Hesabınızı bağlamaq mümkün olmadı. Zəhmət olmasa yenidən cəhd edin.',
       });
     });
   });
+});
+
+// Safe redirect: ensure bot linking is only executed via confirmed POST /bot/auth/confirm
+app.get('/bot/auth/complete', requireSignedIn, (req, res) => {
+  const pending = req.session.pendingBotAuth;
+  if (pending && pending.platform && pending.platformUserId) {
+    const q = new URLSearchParams({
+      platform: pending.platform,
+      id: pending.platformUserId,
+      name: pending.platformUsername || '',
+    });
+    delete req.session.pendingBotAuth;
+    return res.redirect(`/bot/auth?${q.toString()}`);
+  }
+  return res.redirect('/account');
 });
 
 
@@ -6625,6 +6722,22 @@ app.post('/api/login',
             logSecurityEvent(req, 'auth.login', 'failure', { reason: 'session_regenerate_failed', user_id: user.id });
             return res.status(500).json({ error: pickLang(uiLang, 'Oturum açıla bilmədi.', 'Oturum açılamadı.', 'Session could not be created.') });
           }
+
+          // Account-level TOTP: Keep session restricted to pending state ONLY (Do NOT set userId or full session yet)
+          if (user.totp_enabled == 1 && user.totp_secret) {
+            req.session.pending2faUserId = user.id;
+            req.session.pending2faStartedAt = Date.now();
+            req.session.pending2faUsername = email;
+            return req.session.save((saveErr) => {
+              if (saveErr) {
+                logSecurityEvent(req, 'auth.login', 'failure', { reason: 'session_save_failed', user_id: user.id });
+                return res.status(500).json({ error: pickLang(uiLang, 'Oturum açıla bilmədi.', 'Oturum açılamadı.', 'Session could not be created.') });
+              }
+              return res.json({ twofaRequired: true });
+            });
+          }
+
+          // Password-only account: Establish full authenticated session
           req.session.userId = user.id;
           req.session.username = email; // email is plain text from req.body
           db.run('UPDATE users SET last_login_at = ? WHERE id = ?', [new Date().toISOString(), user.id], () => {});
@@ -6634,13 +6747,6 @@ app.post('/api/login',
                 logSecurityEvent(req, 'auth.login', 'failure', { reason: 'session_save_failed', user_id: user.id });
                 return res.status(500).json({ error: pickLang(uiLang, 'Oturum açıla bilmədi.', 'Oturum açılamadı.', 'Session could not be created.') });
               }
-              // Account-level TOTP: finish login only after the 2FA code.
-              if (user.totp_enabled == 1 && user.totp_secret) {
-                req.session.pending2faUserId = user.id;
-                req.session.pending2faStartedAt = Date.now();
-                return req.session.save(() => res.json({ twofaRequired: true }));
-              }
-
               logSecurityEvent(req, 'auth.login', 'success', { user_id: user.id });
               return res.json({ message: pickLang(uiLang, 'Giriş uğurludur', 'Giriş başarılı', 'Login successful'), username: email });
             });
@@ -6664,6 +6770,7 @@ app.post('/api/verify-2fa', authLimiter, (req, res) => {
   if (!startedAt || Date.now() - startedAt > 10 * 60 * 1000) {
     delete req.session.pending2faUserId;
     delete req.session.pending2faStartedAt;
+    delete req.session.pending2faUsername;
     return res.status(401).json({ error: pickLang(uiLang, 'Sessiya vaxtı bitib. Yenidən daxil olun.', 'Oturum süresi doldu. Yeniden giriş yapın.', 'Session expired. Please log in again.') });
   }
   if (!/^\d{6}$/.test(code)) {
@@ -6688,14 +6795,23 @@ app.post('/api/verify-2fa', authLimiter, (req, res) => {
     const emailPlain = decryptAES256GCM(user.email);
     delete req.session.pending2faUserId;
     delete req.session.pending2faStartedAt;
+    delete req.session.pending2faUsername;
     req.session.regenerate((regenErr) => {
       if (regenErr) {
         return res.status(500).json({ error: pickLang(uiLang, 'Oturum açıla bilmədi.', 'Oturum açılamadı.', 'Session could not be created.') });
       }
       req.session.userId = user.id;
       req.session.username = emailPlain;
-      logSecurityEvent(req, 'auth.2fa.verify', 'success', { user_id: user.id });
-      return res.json({ message: pickLang(uiLang, 'Giriş uğurludur', 'Giriş başarılı', 'Login successful'), username: emailPlain });
+      db.run('UPDATE users SET last_login_at = ? WHERE id = ?', [new Date().toISOString(), user.id], () => {});
+      return upsertUserSessionRecord(req, user.id, { loginMethod: '2fa_totp' }, () => {
+        return req.session.save((saveErr) => {
+          if (saveErr) {
+            return res.status(500).json({ error: pickLang(uiLang, 'Oturum açıla bilmədi.', 'Oturum açılamadı.', 'Session could not be created.') });
+          }
+          logSecurityEvent(req, 'auth.2fa.verify', 'success', { user_id: user.id });
+          return res.json({ message: pickLang(uiLang, 'Giriş uğurludur', 'Giriş başarılı', 'Login successful'), username: emailPlain });
+        });
+      });
     });
   });
 });
@@ -8562,14 +8678,14 @@ app.post('/api/user/2fa/disable', requireSignedIn, sensitiveActionLimiter, (req,
   const uiLang = normalizeLang(req.body && req.body.lang, 'az');
   const password = ((req.body && req.body.password) || '').toString();
   const code = ((req.body && req.body.code) || '').toString().trim();
-  db.get('SELECT password, totp_secret, totp_enabled FROM users WHERE id = ?', [req.session.userId], (err, row) => {
+  db.get('SELECT password, totp_secret, totp_enabled, auth_provider FROM users WHERE id = ?', [req.session.userId], (err, row) => {
     if (err || !row || row.totp_enabled != 1 || !row.totp_secret) {
       return res.status(400).json({ error: pickLang(uiLang, '2FA aktiv deyil.', '2FA etkin değil.', '2FA is not enabled.') });
     }
-    bcrypt.compare(password, row.password || '', (cmpErr, passwordOk) => {
-      if (cmpErr || !passwordOk) {
-        return res.status(401).json({ error: pickLang(uiLang, 'Şifrə yanlışdır.', 'Şifre hatalı.', 'Invalid password.') });
-      }
+
+    const isPasswordless = ['google', 'sso'].includes(row.auth_provider) || !row.password;
+
+    const finalizeDisable = () => {
       const ok = speakeasy.totp.verify({ secret: decryptAES256GCM(row.totp_secret), encoding: 'base32', token: code, window: 1 });
       if (!ok) {
         return res.status(400).json({ error: pickLang(uiLang, 'Kod yanlışdır.', 'Kod hatalı.', 'Invalid code.') });
@@ -8579,6 +8695,17 @@ app.post('/api/user/2fa/disable', requireSignedIn, sensitiveActionLimiter, (req,
         logSecurityEvent(req, 'auth.2fa.disabled', 'success', { user_id: req.session.userId });
         return res.json({ message: pickLang(uiLang, 'İki faktorlu autentifikasiya söndürüldü.', 'İki faktörlü doğrulama devre dışı bırakıldı.', 'Two-factor authentication disabled.') });
       });
+    };
+
+    if (isPasswordless) {
+      return finalizeDisable();
+    }
+
+    bcrypt.compare(password, row.password || '', (cmpErr, passwordOk) => {
+      if (cmpErr || !passwordOk) {
+        return res.status(401).json({ error: pickLang(uiLang, 'Şifrə yanlışdır.', 'Şifre hatalı.', 'Invalid password.') });
+      }
+      return finalizeDisable();
     });
   });
 });
@@ -8677,12 +8804,9 @@ app.post('/api/user/email/confirm', authLimiter, (req, res) => {
 });
 
 app.post('/api/user/password',
+  requireSignedIn,
   authLimiter,
   (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: 'Giriş gerekli.' });
-  }
-
   const uiLang = normalizeLang(req.body && req.body.lang, 'az');
   const currentPassword = (req.body && req.body.current_password) ? req.body.current_password.toString() : '';
   const newPassword = (req.body && req.body.new_password) ? req.body.new_password.toString() : '';
@@ -8706,6 +8830,9 @@ app.post('/api/user/password',
     }
 
     const hasPassword = !!row.password;
+    const currentToken = normalizeSessionToken(req.session.userSessionToken);
+    const nowIso = new Date().toISOString();
+
     const continueWithHash = () => {
       bcrypt.hash(newPassword, 10, (hashErr, hashed) => {
         if (hashErr || !hashed) {
@@ -8713,6 +8840,15 @@ app.post('/api/user/password',
         }
         db.run('UPDATE users SET password = ? WHERE id = ?', [hashed, req.session.userId], (uErr) => {
           if (uErr) return res.status(500).json({ error: pickLang(uiLang, 'Şifrə dəyişdirilə bilmədi.', 'Şifre değiştirilemedi.', 'Password could not be changed.') });
+
+          // Revoke all OTHER active sessions
+          db.run(
+            'UPDATE user_sessions SET is_revoked = 1, revoked_at = ? WHERE user_id = ? AND is_revoked = 0 AND session_token <> ?',
+            [nowIso, req.session.userId, currentToken || ''],
+            () => {}
+          );
+
+          logSecurityEvent(req, 'auth.password_change', 'success', { user_id: req.session.userId });
           return res.json({ message: pickLang(uiLang, 'Şifrə yeniləndi.', 'Şifre güncellendi.', 'Password updated.') });
         });
       });
@@ -8807,6 +8943,7 @@ app.post('/api/reset-password',
     }
 
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const nowIso = new Date().toISOString();
     db.get(
       'SELECT id, user_id, expires_at, used_at FROM password_resets WHERE token_hash = ? ORDER BY id DESC LIMIT 1',
       [tokenHash],
@@ -8821,17 +8958,35 @@ app.post('/api/reset-password',
           return res.status(400).json({ error: pickLang(uiLang, 'Linkin vaxtı bitib.', 'Bağlantının süresi doldu.', 'Link has expired.') });
         }
 
-        bcrypt.hash(newPassword, 10, (hashErr, hashed) => {
-          if (hashErr || !hashed) {
-            return res.status(500).json({ error: pickLang(uiLang, 'Şifrə yenilənə bilmədi.', 'Şifre güncellenemedi.', 'Password could not be updated.') });
-          }
-          db.run('UPDATE users SET password = ? WHERE id = ?', [hashed, row.user_id], (uErr) => {
-            if (uErr) return res.status(500).json({ error: pickLang(uiLang, 'Şifrə yenilənə bilmədi.', 'Şifre güncellenemedi.', 'Password could not be updated.') });
+        // Atomically claim the token to prevent race condition
+        db.run(
+          'UPDATE password_resets SET used_at = ? WHERE id = ? AND used_at IS NULL AND expires_at > ?',
+          [nowIso, row.id, nowIso],
+          function (claimErr) {
+            if (claimErr || this.changes === 0) {
+              return res.status(400).json({ error: pickLang(uiLang, 'Link artıq istifadə edilib və ya vaxtı bitib.', 'Bağlantı zaten kullanıldı veya süresi doldu.', 'Link has already been used or has expired.') });
+            }
 
-            db.run('UPDATE password_resets SET used_at = ? WHERE id = ?', [new Date().toISOString(), row.id], () => {});
-            return res.json({ message: pickLang(uiLang, 'Şifrəniz yeniləndi.', 'Şifreniz güncellendi.', 'Your password has been updated.') });
-          });
-        });
+            bcrypt.hash(newPassword, 10, (hashErr, hashed) => {
+              if (hashErr || !hashed) {
+                return res.status(500).json({ error: pickLang(uiLang, 'Şifrə yenilənə bilmədi.', 'Şifre güncellenemedi.', 'Password could not be updated.') });
+              }
+              db.run('UPDATE users SET password = ? WHERE id = ?', [hashed, row.user_id], (uErr) => {
+                if (uErr) return res.status(500).json({ error: pickLang(uiLang, 'Şifrə yenilənə bilmədi.', 'Şifre güncellenemedi.', 'Password could not be updated.') });
+
+                // Revoke all existing sessions for this user
+                db.run(
+                  'UPDATE user_sessions SET is_revoked = 1, revoked_at = ? WHERE user_id = ? AND is_revoked = 0',
+                  [nowIso, row.user_id],
+                  () => {}
+                );
+
+                logSecurityEvent(req, 'auth.password_reset', 'success', { user_id: row.user_id });
+                return res.json({ message: pickLang(uiLang, 'Şifrəniz yeniləndi.', 'Şifreniz güncellendi.', 'Your password has been updated.') });
+              });
+            });
+          }
+        );
       }
     );
   }
@@ -9801,7 +9956,7 @@ function handleStatsApiRequest(req, res, rawShort) {
   const short = normalizeShortCode(requestedShort);
   if (!short) return res.status(400).json({ error: 'Geçersiz kısa kod.' });
 
-  db.get('SELECT * FROM urls WHERE short = ? AND user_id = ?', [short, req.session.userId], (err, url) => {
+  db.get(`SELECT * FROM urls WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`, [short, req.session.userId, req.session.userId], (err, url) => {
     if (err || !url) return res.status(404).json({ error: 'Link bulunamadı veya yetkiniz yok.' });
 
     db.all('SELECT * FROM clicks WHERE url_id = ?', [url.id], (err, clicks) => {
@@ -9892,11 +10047,11 @@ app.post('/api/user/delete', (req, res) => {
   if (!req.session.userId) return res.status(401).send('Giriş yapmalısınız.');
   const safeShort = normalizeShortCode(req.body && req.body.short);
   if (!safeShort) return res.status(400).send('Geçersiz kısa kod.');
-  db.get(`SELECT short, original, domain_host FROM urls WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`, [safeShort, req.session.userId, req.session.userId], (findErr, foundRow) => {
+  db.get(`SELECT short, original, domain_host FROM urls WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`, [safeShort, req.session.userId, req.session.userId], (findErr, foundRow) => {
     if (findErr) return res.status(500).send('Link silinemedi.');
     if (!foundRow) return res.status(404).send('Link tapılmadı və ya səlahiyyətiniz yoxdur.');
 
-    db.run(`DELETE FROM urls WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`, [safeShort, req.session.userId, req.session.userId], function (err) {
+    db.run(`DELETE FROM urls WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`, [safeShort, req.session.userId, req.session.userId], function (err) {
       if (err) return res.status(500).send('Link silinemedi.');
       if (this.changes === 0) return res.status(404).send('Link tapılmadı və ya səlahiyyətiniz yoxdur.');
 
@@ -9945,13 +10100,13 @@ app.post('/api/user/delete-bulk',
 
   const placeholders = valid.map(() => '?').join(',');
   db.all(
-    `SELECT short, original, domain_host FROM urls WHERE ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL} AND short IN (${placeholders})`,
+    `SELECT short, original, domain_host FROM urls WHERE ${WORKSPACE_LINK_MUTATION_SQL} AND short IN (${placeholders})`,
     [req.session.userId, req.session.userId, ...valid],
     (findErr, foundRows) => {
       if (findErr) return res.status(500).json({ error: 'Server error.' });
 
       db.run(
-        `DELETE FROM urls WHERE ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL} AND short IN (${placeholders})`,
+        `DELETE FROM urls WHERE ${WORKSPACE_LINK_MUTATION_SQL} AND short IN (${placeholders})`,
         [req.session.userId, req.session.userId, ...valid],
         function (err) {
           if (err) return res.status(500).json({ error: 'Server error.' });
@@ -9994,7 +10149,7 @@ app.post('/api/user/link/update', (req, res) => {
     });
   }
 
-  db.get(`SELECT short, original, domain_host FROM urls WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`, [short, req.session.userId, req.session.userId], (findErr, currentRow) => {
+  db.get(`SELECT short, original, domain_host FROM urls WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`, [short, req.session.userId, req.session.userId], (findErr, currentRow) => {
     if (findErr) return res.status(500).json({ error: 'Server error.' });
     if (!currentRow) {
       return res.status(404).json({ error: pickLang(uiLang, 'Link tapılmadı.', 'Link bulunamadı.', 'Link not found.') });
@@ -10005,7 +10160,7 @@ app.post('/api/user/link/update', (req, res) => {
 
     const updateRow = () => {
       db.run(
-        `UPDATE urls SET original = ? WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`,
+        `UPDATE urls SET original = ? WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`,
         [originalAbs, short, req.session.userId, req.session.userId],
         function (err) {
           if (err) {
@@ -10067,7 +10222,7 @@ app.post('/api/user/link/meta', (req, res) => {
   const tagsJson = tags.length ? JSON.stringify(tags) : null;
 
   db.get(
-    `SELECT short, original, domain_host, folder_name, tags_json FROM urls WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`,
+    `SELECT short, original, domain_host, folder_name, tags_json FROM urls WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`,
     [short, req.session.userId, req.session.userId],
     (findErr, currentRow) => {
       if (findErr) {
@@ -10078,7 +10233,7 @@ app.post('/api/user/link/meta', (req, res) => {
       }
 
       db.run(
-        `UPDATE urls SET folder_name = ?, tags_json = ? WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`,
+        `UPDATE urls SET folder_name = ?, tags_json = ? WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`,
         [folderName || null, tagsJson, short, req.session.userId, req.session.userId],
         function (err) {
           if (err) {
@@ -10862,6 +11017,16 @@ app.get('/sso/:workspaceId/login', async (req, res) => {
   try {
     const returnTo = req.query.returnTo || '/dashboard';
     const relayState = createSignedRelayState(loaded.workspace.id, returnTo, process.env.SESSION_SECRET);
+    
+    // Bind RelayState to browser via HttpOnly cookie (F-03)
+    res.cookie(`sso_relay_${loaded.workspace.id}`, relayState, {
+      httpOnly: true,
+      secure: isProdRuntime,
+      sameSite: isProdRuntime ? 'none' : 'lax',
+      maxAge: 10 * 60 * 1000,
+      path: `/sso/${loaded.workspace.id}/acs`,
+    });
+
     const saml = createWorkspaceSamlInstance({
       baseUrl: getPublicBaseUrl(req),
       workspaceId: loaded.workspace.id,
@@ -10897,6 +11062,22 @@ app.post('/sso/:workspaceId/acs', async (req, res) => {
   // Verify HMAC-signed RelayState
   const rawRelayState = req.body && req.body.RelayState;
   const { valid: isRelayValid, returnTo: safeDestination } = verifySignedRelayState(rawRelayState, loaded.workspace.id, process.env.SESSION_SECRET);
+  if (!isRelayValid) {
+    logSecurityEvent(req, 'sso.acs', 'blocked', { reason: 'invalid_relay_state', workspace_id: loaded.workspace.id });
+    return redirectError('invalid_relay');
+  }
+
+  // Browser-bound RelayState validation (F-03)
+  const cookieRelayState = getCookieValue(req, `sso_relay_${loaded.workspace.id}`);
+  res.clearCookie(`sso_relay_${loaded.workspace.id}`, { path: `/sso/${loaded.workspace.id}/acs` });
+  if (cookieRelayState && rawRelayState) {
+    const bufA = Buffer.from(cookieRelayState);
+    const bufB = Buffer.from(rawRelayState);
+    if (bufA.length !== bufB.length || !crypto.timingSafeEqual(bufA, bufB)) {
+      logSecurityEvent(req, 'sso.acs', 'blocked', { reason: 'relay_state_browser_mismatch', workspace_id: loaded.workspace.id });
+      return redirectError('invalid_relay');
+    }
+  }
 
   let profile;
   try {
@@ -10913,7 +11094,7 @@ app.post('/sso/:workspaceId/acs', async (req, res) => {
     return redirectError('error');
   }
 
-  // Replay Attack Protection: Check assertion ID
+  // Replay Attack Protection: Check assertion ID with fail-closed behavior (F-05)
   const assertionId = extractAssertionId(profile);
   if (assertionId) {
     try {
@@ -10928,14 +11109,22 @@ app.post('/sso/:workspaceId/acs', async (req, res) => {
         [assertionId, loaded.workspace.id, expiryIso, new Date().toISOString()]
       );
     } catch (replayErr) {
-      console.error('[sso] replay cache error:', replayErr && replayErr.message);
+      console.error('[sso] replay cache error (failing closed):', replayErr && replayErr.message);
+      logSecurityEvent(req, 'sso.acs', 'failure', { reason: 'replay_cache_error', workspace_id: loaded.workspace.id, detail: (replayErr && replayErr.message || '').slice(0, 128) });
+      return redirectError('error');
     }
   }
 
   const email = extractProfileEmail(profile);
-  if (!email) {
+  if (!email || !email.includes('@')) {
     logSecurityEvent(req, 'sso.acs', 'failure', { reason: 'no_email_in_assertion', workspace_id: loaded.workspace.id });
     return redirectError('error');
+  }
+
+  const emailDomain = email.split('@').pop().toLowerCase();
+  if (isPublicConsumerEmailDomain(emailDomain)) {
+    logSecurityEvent(req, 'sso.acs', 'blocked', { reason: 'public_consumer_domain', domain: emailDomain, workspace_id: loaded.workspace.id });
+    return redirectError('invalid_domain');
   }
 
   let user = await dbGetAsync('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(email)]);
@@ -10944,7 +11133,32 @@ app.post('/sso/:workspaceId/acs', async (req, res) => {
     return redirectError('error');
   }
 
-  if (!user) {
+  if (user) {
+    // If the user is already a member of this workspace, allow SSO sign-in.
+    const isMember = await dbGetAsync(
+      'SELECT id FROM workspace_members WHERE workspace_id = ? AND user_id = ?',
+      [loaded.workspace.id, user.id]
+    );
+    if (!isMember) {
+      // Check if the workspace owner has a verified custom domain matching this email domain
+      const wsOwner = await dbGetAsync('SELECT owner_user_id FROM workspaces WHERE id = ?', [loaded.workspace.id]);
+      const ownerVerifiedDomain = wsOwner ? await dbGetAsync(
+        "SELECT id FROM custom_domains WHERE user_id = ? AND domain = ? AND status = 'active'",
+        [wsOwner.owner_user_id, emailDomain]
+      ) : null;
+
+      // Prevent untrusted workspaces from taking over accounts from other workspaces/domains (F-02)
+      if (!ownerVerifiedDomain) {
+        logSecurityEvent(req, 'sso.acs', 'blocked', { reason: 'cross_tenant_sso_blocked', workspace_id: loaded.workspace.id, email_domain: emailDomain });
+        return redirectError('unauthorized_domain');
+      }
+
+      await dbRunAsync(
+        'INSERT INTO workspace_members (workspace_id, user_id, role, created_at) VALUES (?, ?, ?, ?)',
+        [loaded.workspace.id, user.id, WORKSPACE_ROLES.MEMBER, new Date().toISOString()]
+      );
+    }
+  } else {
     // JIT provisioning: the corporate IdP vouches for the email address, so
     // the account starts verified with a random local password (SSO-only).
     const hashedPassword = await bcrypt.hash(crypto.randomBytes(32).toString('base64url'), 12);
@@ -10953,10 +11167,6 @@ app.post('/sso/:workspaceId/acs', async (req, res) => {
       [encryptAES256GCM(email), blindIndex(email), hashedPassword, new Date().toISOString()]
     );
     user = { id: inserted.lastID, email_verified: 1 };
-  }
-
-  const existingMembership = await dbGetAsync('SELECT id FROM workspace_members WHERE workspace_id = ? AND user_id = ?', [loaded.workspace.id, user.id]);
-  if (!existingMembership) {
     await dbRunAsync(
       'INSERT INTO workspace_members (workspace_id, user_id, role, created_at) VALUES (?, ?, ?, ?)',
       [loaded.workspace.id, user.id, WORKSPACE_ROLES.MEMBER, new Date().toISOString()]

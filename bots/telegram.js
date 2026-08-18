@@ -714,8 +714,31 @@ function createTelegramBot(db, options = {}) {
     })();
   }
 
+  async function setWebhook(url, secretToken) {
+    if (!BOT_TOKEN) return false;
+    try {
+      const payload = {
+        url: url,
+        secret_token: secretToken,
+        allowed_updates: ['message', 'edited_message', 'callback_query'],
+        drop_pending_updates: false,
+      };
+      const res = await fetch(`${API_BASE}/setWebhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await res.json();
+      return !!(data && data.ok);
+    } catch (err) {
+      console.error('[telegram-bot] setWebhook error:', err.message);
+      return false;
+    }
+  }
+
   function stopPolling() { isPolling = false; }
-  return { processUpdate, startPolling, stopPolling, isEnabled: !!BOT_TOKEN };
+  return { processUpdate, startPolling, stopPolling, setWebhook, isEnabled: !!BOT_TOKEN };
 }
 
 module.exports = { createTelegramBot };

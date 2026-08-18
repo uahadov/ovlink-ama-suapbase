@@ -31,10 +31,13 @@ COPY . .
 # Final stage for app image
 FROM base
 
-# Copy built application
-COPY --from=build /app /app
+# Copy built application with unprivileged node user ownership
+COPY --chown=node:node --from=build /app /app
+
+USER node
 
 # Start the server by default, this can be overwritten at runtime
 # DATABASE_URL must be provided at runtime (PostgreSQL connection string)
 EXPOSE 3000
 CMD [ "npm", "run", "start" ]
+
