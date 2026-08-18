@@ -89,6 +89,11 @@ test('Advanced Settings: i18n parity, UTM presets, and PRO A/B + Device gating',
       'adv_utm_medium_ph',
       'adv_utm_campaign',
       'adv_utm_campaign_ph',
+      'adv_utm_popular_templates',
+      'adv_utm_custom_templates',
+      'adv_utm_no_params_alert',
+      'adv_utm_prompt_name',
+      'adv_utm_save_error',
       'adv_ab_title',
       'adv_ab_url_b',
       'adv_ab_url_b_ph',
@@ -117,7 +122,52 @@ test('Advanced Settings: i18n parity, UTM presets, and PRO A/B + Device gating',
     });
   });
 
-  await t.test('2. POST /api/shorten blocks non-pro / guest users from using A/B testing or Device targeting', async () => {
+  await t.test('2. Builtin UTM templates exist with correct structure in frontend scripts and index.ejs markup', async () => {
+    const homeJsCode = fs.readFileSync(path.join(__dirname, '../public/home.js'), 'utf8');
+    const scriptJsCode = fs.readFileSync(path.join(__dirname, '../public/script.js'), 'utf8');
+    const indexEjsCode = fs.readFileSync(path.join(__dirname, '../views/index.ejs'), 'utf8');
+
+    // Verify index.ejs markup elements
+    assert.ok(indexEjsCode.includes('id="utmTemplateSelect"'), 'views/index.ejs must contain utmTemplateSelect');
+    assert.ok(indexEjsCode.includes('id="utmSource"'), 'views/index.ejs must contain utmSource');
+    assert.ok(indexEjsCode.includes('id="utmMedium"'), 'views/index.ejs must contain utmMedium');
+    assert.ok(indexEjsCode.includes('id="utmCampaign"'), 'views/index.ejs must contain utmCampaign');
+    assert.ok(indexEjsCode.includes('id="saveUtmTemplateBtn"'), 'views/index.ejs must contain saveUtmTemplateBtn');
+
+    const extractTemplates = (code) => {
+      const match = code.match(/const\s+BUILTIN_UTM_TEMPLATES\s*=\s*(\[[\s\S]*?\]);/);
+      assert.ok(match, 'BUILTIN_UTM_TEMPLATES definition must be present');
+      return vm.runInNewContext(match[1]);
+    };
+
+    const homeTemplates = extractTemplates(homeJsCode);
+    const scriptTemplates = extractTemplates(scriptJsCode);
+
+    [homeTemplates, scriptTemplates].forEach((templates) => {
+      assert.ok(Array.isArray(templates), 'Templates must be an array');
+      assert.ok(templates.length >= 5, 'Must have at least 5 builtin templates');
+      templates.forEach((tpl) => {
+        assert.ok(typeof tpl.name === 'string' && tpl.name.trim().length > 0, 'Template name must be non-empty string');
+        assert.ok(typeof tpl.source === 'string' && tpl.source.trim().length > 0, 'Template source must be non-empty string');
+        assert.ok(typeof tpl.medium === 'string' && tpl.medium.trim().length > 0, 'Template medium must be non-empty string');
+        assert.ok(typeof tpl.campaign === 'string' && tpl.campaign.trim().length > 0, 'Template campaign must be non-empty string');
+      });
+    });
+
+    const expectedSources = ['facebook', 'google', 'tiktok', 'newsletter', 'linkedin', 'twitter', 'youtube'];
+    expectedSources.forEach((src) => {
+      assert.ok(
+        homeTemplates.some((t) => t.source === src),
+        `BUILTIN_UTM_TEMPLATES in home.js must include source "${src}"`
+      );
+      assert.ok(
+        scriptTemplates.some((t) => t.source === src),
+        `BUILTIN_UTM_TEMPLATES in script.js must include source "${src}"`
+      );
+    });
+  });
+
+  await t.test('3. POST /api/shorten blocks non-pro / guest users from using A/B testing or Device targeting', async () => {
     const { cookie, csrfToken } = await getCsrfSession();
 
     // Guest attempt with original_b
@@ -175,7 +225,7 @@ test('Advanced Settings: i18n parity, UTM presets, and PRO A/B + Device gating',
     assert.match(body3.error, /PRO kullanıcılar|PRO/i);
   });
 
-  await t.test('3. Redirection resolves based on device and A/B split percentage', async () => {
+  await t.test('4. Redirection resolves based on device and A/B split percentage', async () => {
     const fakeRowIos = {
       id: 9991,
       short: 'test_ios',

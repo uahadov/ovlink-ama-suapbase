@@ -173,24 +173,24 @@
                               <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h6 class="fw-bold mb-0 text-primary"><i class="fa-solid fa-bullhorn me-2"></i><span data-i18n="adv_utm_params_title">UTM Parameters</span></h6>
                                 <div class="d-flex gap-2">
-                                  <select id="utmTemplateSelect" class="form-select form-select-sm" style="width: auto;">
+                                  <select id="utmTemplateSelect" class="form-select form-select-sm" style="width: auto;" aria-label="UTM Template">
                                     <option value="" data-i18n="adv_utm_template_select">Select Template</option>
                                   </select>
-                                  <button type="button" id="saveUtmTemplateBtn" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" data-i18n-title="adv_utm_save_tooltip" title="Save current UTM settings"><i class="fa-solid fa-floppy-disk"></i></button>
+                                  <button type="button" id="saveUtmTemplateBtn" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" data-i18n-title="adv_utm_save_tooltip" title="Save current UTM settings" aria-label="Save UTM template"><i class="fa-solid fa-floppy-disk"></i></button>
                                 </div>
                               </div>
                               <div class="row g-3">
                                 <div class="col-md-12">
-                                  <label for="utmSource" class="form-label small fw-semibold text-muted"><span data-i18n="adv_utm_source">Source</span></label>
-                                  <input type="text" id="utmSource" class="form-control" data-i18n-placeholder="adv_utm_source_ph" placeholder="e.g. instagram">
+                                  <label for="utmSource" class="form-label small fw-semibold text-muted"><i class="fa-solid fa-share-nodes me-1"></i><span data-i18n="adv_utm_source">Source</span></label>
+                                  <input type="text" id="utmSource" class="form-control" data-i18n-placeholder="adv_utm_source_ph" placeholder="e.g. instagram" aria-label="UTM Source">
                                 </div>
                                 <div class="col-md-6">
-                                  <label for="utmMedium" class="form-label small fw-semibold text-muted"><span data-i18n="adv_utm_medium">Medium</span></label>
-                                  <input type="text" id="utmMedium" class="form-control" data-i18n-placeholder="adv_utm_medium_ph" placeholder="e.g. social">
+                                  <label for="utmMedium" class="form-label small fw-semibold text-muted"><i class="fa-solid fa-layer-group me-1"></i><span data-i18n="adv_utm_medium">Medium</span></label>
+                                  <input type="text" id="utmMedium" class="form-control" data-i18n-placeholder="adv_utm_medium_ph" placeholder="e.g. social" aria-label="UTM Medium">
                                 </div>
                                 <div class="col-md-6">
-                                  <label for="utmCampaign" class="form-label small fw-semibold text-muted"><span data-i18n="adv_utm_campaign">Campaign</span></label>
-                                  <input type="text" id="utmCampaign" class="form-control" data-i18n-placeholder="adv_utm_campaign_ph" placeholder="e.g. summer_sale">
+                                  <label for="utmCampaign" class="form-label small fw-semibold text-muted"><i class="fa-solid fa-bullhorn me-1"></i><span data-i18n="adv_utm_campaign">Campaign</span></label>
+                                  <input type="text" id="utmCampaign" class="form-control" data-i18n-placeholder="adv_utm_campaign_ph" placeholder="e.g. summer_sale" aria-label="UTM Campaign">
                                 </div>
                               </div>
                             </div>

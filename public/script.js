@@ -3796,19 +3796,32 @@ if (customDomainList) {
     { name: "YouTube Video", source: "youtube", medium: "video_desc", campaign: "channel_promo" }
   ];
 
-  const utmSelect = document.getElementById("utmTemplateSelect");
-  const saveUtmBtn = document.getElementById("saveUtmTemplateBtn");
-  
   const loadUtmTemplates = () => {
+    const utmSelect = document.getElementById("utmTemplateSelect");
     if (!utmSelect) return;
     const currentVal = utmSelect.value;
-    while (utmSelect.options.length > 1) {
-      utmSelect.remove(1);
+
+    const defaultText = (typeof getText === "function" ? getText("adv_utm_template_select") : null) ||
+      (typeof pickLang === "function" ? pickLang("Şablon Seç", "Şablon Seç", "Select Template") : "Select Template");
+
+    const defaultOpt = document.createElement("option");
+    defaultOpt.value = "";
+    defaultOpt.setAttribute("data-i18n", "adv_utm_template_select");
+    defaultOpt.textContent = defaultText;
+
+    // Properly reset children without leaving orphaned optgroup elements
+    if (typeof utmSelect.replaceChildren === "function") {
+      utmSelect.replaceChildren(defaultOpt);
+    } else {
+      utmSelect.innerHTML = "";
+      utmSelect.appendChild(defaultOpt);
     }
 
     // Pre-defined group
     const builtInGroup = document.createElement("optgroup");
-    builtInGroup.label = typeof pickLang === "function" ? pickLang("Populyar Şablonlar", "Popüler Şablonlar", "Popular Templates") : "Populyar Şablonlar";
+    builtInGroup.label = (typeof getText === "function" ? getText("adv_utm_popular_templates") : null) ||
+      (typeof pickLang === "function" ? pickLang("Populyar Şablonlar", "Popüler Şablonlar", "Popular Templates") : "Populyar Şablonlar");
+
     BUILTIN_UTM_TEMPLATES.forEach((tpl, idx) => {
       const opt = document.createElement("option");
       opt.value = "builtin_" + idx;
@@ -3819,77 +3832,134 @@ if (customDomainList) {
 
     // Custom user templates group
     try {
-      const stored = JSON.parse(localStorage.getItem("ovlink_utm_templates") || "[]");
-      if (stored.length > 0) {
+      const rawStored = localStorage.getItem("ovlink_utm_templates");
+      const stored = rawStored ? JSON.parse(rawStored) : [];
+      if (Array.isArray(stored) && stored.length > 0) {
         const customGroup = document.createElement("optgroup");
-        customGroup.label = typeof pickLang === "function" ? pickLang("Şəxsi Şablonlarım", "Özel Şablonlarım", "Custom Templates") : "Şəxsi Şablonlarım";
+        customGroup.label = (typeof getText === "function" ? getText("adv_utm_custom_templates") : null) ||
+          (typeof pickLang === "function" ? pickLang("Şəxsi Şablonlarım", "Özel Şablonlarım", "Custom Templates") : "Şəxsi Şablonlarım");
+
         stored.forEach((tpl, idx) => {
+          if (!tpl || typeof tpl !== "object") return;
           const opt = document.createElement("option");
           opt.value = "custom_" + idx;
-          opt.textContent = tpl.name;
+          opt.textContent = tpl.name || ("Template " + (idx + 1));
           customGroup.appendChild(opt);
         });
-        utmSelect.appendChild(customGroup);
+
+        if (customGroup.children.length > 0) {
+          utmSelect.appendChild(customGroup);
+        }
       }
     } catch (e) {}
 
-    if (currentVal) utmSelect.value = currentVal;
+    // Restore previous selected value if valid
+    if (currentVal) {
+      const exists = Array.from(utmSelect.options).some((o) => o.value === currentVal);
+      if (exists) {
+        utmSelect.value = currentVal;
+      } else {
+        utmSelect.value = "";
+      }
+    }
   };
+
   window.loadUtmTemplatesUi = loadUtmTemplates;
 
-  if (utmSelect) {
-    loadUtmTemplates();
-    utmSelect.addEventListener("change", (e) => {
-      const val = e.target.value;
-      if (!val) {
-        if (document.getElementById("utmSource")) document.getElementById("utmSource").value = "";
-        if (document.getElementById("utmMedium")) document.getElementById("utmMedium").value = "";
-        if (document.getElementById("utmCampaign")) document.getElementById("utmCampaign").value = "";
-        return;
-      }
-      if (val.startsWith("builtin_")) {
-        const idx = parseInt(val.replace("builtin_", ""), 10);
-        const tpl = BUILTIN_UTM_TEMPLATES[idx];
-        if (tpl) {
-          if (document.getElementById("utmSource")) document.getElementById("utmSource").value = tpl.source || "";
-          if (document.getElementById("utmMedium")) document.getElementById("utmMedium").value = tpl.medium || "";
-          if (document.getElementById("utmCampaign")) document.getElementById("utmCampaign").value = tpl.campaign || "";
+  function setupUtmListeners() {
+    const utmSelect = document.getElementById("utmTemplateSelect");
+    if (utmSelect && !utmSelect.dataset.utmBound) {
+      utmSelect.dataset.utmBound = "true";
+      utmSelect.addEventListener("change", (e) => {
+        const val = e.target.value;
+        const sourceEl = document.getElementById("utmSource");
+        const mediumEl = document.getElementById("utmMedium");
+        const campaignEl = document.getElementById("utmCampaign");
+
+        if (!val) {
+          if (sourceEl) sourceEl.value = "";
+          if (mediumEl) mediumEl.value = "";
+          if (campaignEl) campaignEl.value = "";
+          return;
         }
-      } else if (val.startsWith("custom_")) {
-        const idx = parseInt(val.replace("custom_", ""), 10);
-        try {
-          const stored = JSON.parse(localStorage.getItem("ovlink_utm_templates") || "[]");
-          const tpl = stored[idx];
+
+        if (val.startsWith("builtin_")) {
+          const idx = parseInt(val.replace("builtin_", ""), 10);
+          const tpl = BUILTIN_UTM_TEMPLATES[idx];
           if (tpl) {
-            if (document.getElementById("utmSource")) document.getElementById("utmSource").value = tpl.source || "";
-            if (document.getElementById("utmMedium")) document.getElementById("utmMedium").value = tpl.medium || "";
-            if (document.getElementById("utmCampaign")) document.getElementById("utmCampaign").value = tpl.campaign || "";
+            if (sourceEl) sourceEl.value = tpl.source || "";
+            if (mediumEl) mediumEl.value = tpl.medium || "";
+            if (campaignEl) campaignEl.value = tpl.campaign || "";
           }
-        } catch (e) {}
-      }
-    });
+        } else if (val.startsWith("custom_")) {
+          const idx = parseInt(val.replace("custom_", ""), 10);
+          try {
+            const rawStored = localStorage.getItem("ovlink_utm_templates");
+            const stored = rawStored ? JSON.parse(rawStored) : [];
+            const tpl = Array.isArray(stored) ? stored[idx] : null;
+            if (tpl) {
+              if (sourceEl) sourceEl.value = tpl.source || "";
+              if (mediumEl) mediumEl.value = tpl.medium || "";
+              if (campaignEl) campaignEl.value = tpl.campaign || "";
+            }
+          } catch (e) {}
+        }
+      });
+    }
+
+    const saveUtmBtn = document.getElementById("saveUtmTemplateBtn");
+    if (saveUtmBtn && !saveUtmBtn.dataset.utmBound) {
+      saveUtmBtn.dataset.utmBound = "true";
+      saveUtmBtn.addEventListener("click", () => {
+        const source = document.getElementById("utmSource")?.value?.trim() || "";
+        const medium = document.getElementById("utmMedium")?.value?.trim() || "";
+        const campaign = document.getElementById("utmCampaign")?.value?.trim() || "";
+        if (!source && !medium && !campaign) {
+          const alertMsg = (typeof getText === "function" ? getText("adv_utm_no_params_alert") : null) ||
+            (typeof pickLang === "function" ? pickLang("Yadda saxlanılacaq UTM parametri tapılmadı!", "Kaydedilecek bir UTM parametresi bulunamadı!", "No UTM parameter found to save!") : "Yadda saxlanılacaq UTM parametri tapılmadı!");
+          alert(alertMsg);
+          return;
+        }
+        const promptMsg = (typeof getText === "function" ? getText("adv_utm_prompt_name") : null) ||
+          (typeof pickLang === "function" ? pickLang("Bu şablon üçün ad daxil edin (Məs: Yay Endirimi):", "Bu şablon için bir isim girin (Örn: Yaz İndirimi):", "Enter a name for this template (e.g., Summer Sale):") : "Bu şablon üçün ad daxil edin (Məs: Yay Endirimi):");
+        const name = prompt(promptMsg);
+        if (!name || !name.trim()) return;
+        try {
+          const rawStored = localStorage.getItem("ovlink_utm_templates");
+          const stored = rawStored ? JSON.parse(rawStored) : [];
+          const list = Array.isArray(stored) ? stored : [];
+          list.push({ name: name.trim(), source, medium, campaign });
+          localStorage.setItem("ovlink_utm_templates", JSON.stringify(list));
+          loadUtmTemplates();
+          const sel = document.getElementById("utmTemplateSelect");
+          if (sel) {
+            sel.value = "custom_" + (list.length - 1);
+          }
+        } catch (e) {
+          const errorMsg = (typeof getText === "function" ? getText("adv_utm_save_error") : null) ||
+            (typeof pickLang === "function" ? pickLang("Şablon yadda saxlanılarkən xəta baş verdi.", "Şablon kaydedilirken bir hata oluştu.", "Error occurred while saving the template.") : "Şablon yadda saxlanılarkən xəta baş verdi.");
+          alert(errorMsg);
+        }
+      });
+    }
   }
 
-  if (saveUtmBtn) {
-    saveUtmBtn.addEventListener("click", () => {
-      const source = document.getElementById("utmSource")?.value?.trim() || "";
-      const medium = document.getElementById("utmMedium")?.value?.trim() || "";
-      const campaign = document.getElementById("utmCampaign")?.value?.trim() || "";
-      if (!source && !medium && !campaign) {
-        alert(pickLang("Yadda saxlanılacaq UTM parametri tapılmadı!", "Kaydedilecek bir UTM parametresi bulunamadı!", "No UTM parameter found to save!"));
-        return;
-      }
-      const name = prompt(pickLang("Bu şablon üçün ad daxil edin (Məs: Yay Endirimi):", "Bu şablon için bir isim girin (Örn: Yaz İndirimi):", "Enter a name for this template (e.g., Summer Sale):"));
-      if (!name) return;
-      try {
-        const stored = JSON.parse(localStorage.getItem("ovlink_utm_templates") || "[]");
-        stored.push({ name, source, medium, campaign });
-        localStorage.setItem("ovlink_utm_templates", JSON.stringify(stored));
+  // Load UTM templates immediately and attach listeners
+  loadUtmTemplates();
+  setupUtmListeners();
+
+  if (typeof document !== "undefined") {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
         loadUtmTemplates();
-        utmSelect.value = "custom_" + (stored.length - 1);
-      } catch (e) {
-        alert(pickLang("Şablon yadda saxlanılarkən xəta baş verdi.", "Şablon kaydedilirken bir hata oluştu.", "Error occurred while saving the template."));
-      }
+        setupUtmListeners();
+      });
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("ovlink:languageChanged", () => {
+      loadUtmTemplates();
     });
   }
 

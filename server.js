@@ -30,6 +30,7 @@ const {
   createSignedRelayState,
   verifySignedRelayState
 } = require('./utils/sso.js');
+const { verifyPolarWebhook, resolvePolarProductPolicy } = require('./utils/polar.js');
 const speakeasy = require('speakeasy');
 // POLAR_WEBHOOK_SECRET is read from process.env inside the webhook handler (not cached at startup)
 // so that dotenv-loaded values are always visible.
@@ -401,7 +402,7 @@ const API_KEY_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('API_KEY_HASH_SECRE
   minBytes: 64,
   allowFallbackInProduction: true,
 });
-const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260818-03';
+const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260818-04';
 const WEBHOOK_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('WEBHOOK_HASH_SECRET', 'ovlink:webhook-secret-hash:v2', {
   minBytes: 64,
   allowFallbackInProduction: true,
