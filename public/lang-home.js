@@ -60,6 +60,8 @@ const homeTranslations = {
 
     pro_badge: "PRO",
     pro_feature_required: "A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.",
+    pro_feature_required_ab: "A/B Test yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.",
+    pro_feature_required_device: "Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.",
 
     shorten_btn: "Qısalt və QR Yarat",
     generated_title: "Linkiniz Hazırdır!",
@@ -176,6 +178,8 @@ const homeTranslations = {
 
     pro_badge: "PRO",
     pro_feature_required: "A/B Test ve Cihaz Hedefleme yalnızca PRO kullanıcılar içindir. Lütfen Pro plana yükseltin.",
+    pro_feature_required_ab: "A/B Test yalnızca PRO kullanıcılar içindir. Lütfen Pro plana geçin.",
+    pro_feature_required_device: "Cihaz Hedeflemesi yalnızca PRO kullanıcılar içindir. Lütfen Pro plana geçin.",
 
     shorten_btn: "Kısalt ve QR Oluştur",
     generated_title: "Linkiniz hazır!",
@@ -292,6 +296,8 @@ const homeTranslations = {
 
     pro_badge: "PRO",
     pro_feature_required: "A/B Testing and Device Targeting are only available for PRO users. Please upgrade to Pro.",
+    pro_feature_required_ab: "A/B Testing is only available for PRO users. Please upgrade to Pro.",
+    pro_feature_required_device: "Device Targeting is only available for PRO users. Please upgrade to Pro.",
 
     shorten_btn: "Shorten & Create QR",
     generated_title: "Your link is ready!",

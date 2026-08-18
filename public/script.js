@@ -4028,11 +4028,20 @@ function initShorten() {
     const isPro = typeof isProPlanActive === "function" && isProPlanActive();
 
     if (hasProFeature && (!session.isLoggedIn || (window.__userPlan && !isPro))) {
-      const proMsg = typeof getText === "function"
-        ? getText("pro_feature_required", pickLang("A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.", "A/B Test ve Cihaz Hedefleme yalnızca PRO kullanıcılar içindir. Lütfen Pro plana yükseltin.", "A/B Testing and Device Targeting are only available for PRO users. Please upgrade to Pro."))
-        : (typeof translations !== "undefined" && translations[currentLang] && translations[currentLang]["pro_feature_required"]
-          ? translations[currentLang]["pro_feature_required"]
-          : pickLang("A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.", "A/B Test ve Cihaz Hedefleme yalnızca PRO kullanıcılar içindir. Lütfen Pro plana yükseltin.", "A/B Testing and Device Targeting are only available for PRO users. Please upgrade to Pro."));
+      let proMsg = "";
+      if (original_b) {
+        proMsg = typeof getText === "function"
+          ? getText("pro_feature_required_ab", pickLang("A/B Test yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.", "A/B Test yalnızca PRO kullanıcılar içindir. Lütfen Pro plana geçin.", "A/B Testing is only available for PRO users. Please upgrade to Pro."))
+          : (typeof translations !== "undefined" && translations[currentLang] && translations[currentLang]["pro_feature_required_ab"]
+            ? translations[currentLang]["pro_feature_required_ab"]
+            : pickLang("A/B Test yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.", "A/B Test yalnızca PRO kullanıcılar içindir. Lütfen Pro plana geçin.", "A/B Testing is only available for PRO users. Please upgrade to Pro."));
+      } else {
+        proMsg = typeof getText === "function"
+          ? getText("pro_feature_required_device", pickLang("Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.", "Cihaz Hedeflemesi yalnızca PRO kullanıcılar içindir. Lütfen Pro plana geçin.", "Device Targeting is only available for PRO users. Please upgrade to Pro."))
+          : (typeof translations !== "undefined" && translations[currentLang] && translations[currentLang]["pro_feature_required_device"]
+            ? translations[currentLang]["pro_feature_required_device"]
+            : pickLang("Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.", "Cihaz Hedeflemesi yalnızca PRO kullanıcılar içindir. Lütfen Pro plana geçin.", "Device Targeting is only available for PRO users. Please upgrade to Pro."));
+      }
       showFeedback(proMsg, true);
       return;
     }
@@ -4061,7 +4070,9 @@ function initShorten() {
 
       if (!response.ok || data.error) {
         let errorMsg = data.error || (response.status === 403
-          ? (typeof getText === "function" ? getText("pro_feature_required", "A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür.") : "A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür.")
+          ? (original_b
+            ? (typeof getText === "function" ? getText("pro_feature_required_ab", "A/B Test yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.") : "A/B Test yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.")
+            : (typeof getText === "function" ? getText("pro_feature_required_device", "Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.") : "Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin."))
           : pickLang("Əməliyyat alınmadı", "İşlem başarısız", "Request failed"));
 
         // Sunucudan gelen sabit mesajları yakala ve tercüme et

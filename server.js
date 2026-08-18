@@ -9120,7 +9120,11 @@ const checkCustomDomain = (cb) => {
           return res.status(403).json({ error: banResult.banError });
         }
         if ((original_b || ios_url || android_url) && (!banResult || !banResult.uRow || !isProAccessActive(banResult.uRow))) {
-          return res.status(403).json({ error: pickLang(uiLang, 'Bu inkişaf etmiş xüsusiyyətlər (A/B, Cihaz) yalnız PRO istifadəçilər üçündür.', 'Bu gelişmiş özellikler (A/B, Cihaz) yalnızca PRO kullanıcılar içindir.', 'These advanced features (A/B, Device Targeting) are only available for PRO users.') });
+          if (original_b) {
+            return res.status(403).json({ error: pickLang(uiLang, 'A/B Test yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.', 'A/B Test yalnızca PRO kullanıcılar içindir. Lütfen Pro plana geçin.', 'A/B Testing is only available for PRO users. Please upgrade to Pro.') });
+          } else {
+            return res.status(403).json({ error: pickLang(uiLang, 'Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.', 'Cihaz Hedeflemesi yalnızca PRO kullanıcılar içindir. Lütfen Pro plana geçin.', 'Device Targeting is only available for PRO users. Please upgrade to Pro.') });
+          }
         }
         if (blockedResult) {
           return res.status(403).json({

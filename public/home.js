@@ -733,10 +733,18 @@ function initShorten() {
     const isPro = typeof isProPlanActive === "function" && isProPlanActive();
 
     if (hasProFeature && (!session.isLoggedIn || (window.__userPlan && !isPro))) {
-      const proMsg = tKey(
-        "pro_feature_required",
-        "A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin."
-      );
+      let proMsg = "";
+      if (original_b) {
+        proMsg = tKey(
+          "pro_feature_required_ab",
+          "A/B Test yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin."
+        );
+      } else {
+        proMsg = tKey(
+          "pro_feature_required_device",
+          "Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin."
+        );
+      }
       showFeedback(proMsg, true);
       return;
     }
@@ -765,7 +773,7 @@ function initShorten() {
 
       if (!response.ok || data.error) {
         let errorMsg = data.error || (response.status === 403
-          ? tKey("pro_feature_required", "A/B Test və Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.")
+          ? (original_b ? tKey("pro_feature_required_ab", "A/B Test yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin.") : tKey("pro_feature_required_device", "Cihaz Hədəfləməsi yalnız PRO istifadəçilər üçündür. Zəhmət olmasa Pro plana keçin."))
           : pickLang("Əməliyyat alınmadı", "İşlem başarısız", "Request failed"));
 
         if (errorMsg === pickLang("Bu xüsusi link istifadə olunub", "Bu özel link kullanımda", "This custom link is already in use")) {
