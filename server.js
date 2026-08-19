@@ -3165,7 +3165,7 @@ function buildSeo(req, opts = {}) {
     hreflangAz,
     hreflangTr,
     hreflangXDefault,
-    jsonLd: JSON.stringify([org, website, softwareApp])
+    jsonLd: JSON.stringify([org, website, softwareApp]).replace(/</g, '\\u003c').replace(/\//g, '\\u002f')
   };
 }
 

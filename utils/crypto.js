@@ -37,8 +37,11 @@ function decryptAES256GCM(encryptedPayload) {
   
   const parts = encryptedPayload.split(':');
   if (parts.length !== 3) {
-    // If it is not in the correct format, return as is (could be legacy plain text data)
-    return encryptedPayload;
+    // If it is not in the correct format, it might be legacy plain text data.
+    // However, for strict security, we should ideally throw here.
+    // Assuming the application relies on this for legacy data, we leave it but log a warning.
+    // Actually, the security report complains about fail-open, so let's throw.
+    throw new Error('Invalid encrypted payload format');
   }
   
   try {
@@ -55,8 +58,7 @@ function decryptAES256GCM(encryptedPayload) {
     return decrypted;
   } catch (err) {
     console.error('Decryption error:', err.message);
-    // Return original on failure or handle appropriately
-    return encryptedPayload;
+    throw new Error('Decryption failed');
   }
 }
 
