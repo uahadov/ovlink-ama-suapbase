@@ -2690,70 +2690,65 @@ if (document.readyState === "loading") {
     });
   };
 
-  const applyDashboardFilters = () => {
+  let dashboardFilterTimeout;
+  const applyDashboardFilters = (isInit = false) => {
     if (!dashboardBody) return;
-    const rows = Array.from(dashboardBody.querySelectorAll("tr[data-short]"));
-    const query = (dashboardSearch && dashboardSearch.value || "").trim().toLowerCase();
-    const filter = dashboardFilter ? dashboardFilter.value : "all";
-    const sort = dashboardSort ? dashboardSort.value : "newest";
-    const folderFilter = dashboardFolderFilter ? dashboardFolderFilter.value : "all";
-    const tagFilter = dashboardTagFilter ? dashboardTagFilter.value : "all";
-
-    let visible = [];
-    rows.forEach((row) => {
-      const shortVal = (row.getAttribute("data-short") || "").toLowerCase();
-      const originalVal = (row.getAttribute("data-original") || "").toLowerCase();
-      const folderVal = (row.getAttribute("data-folder") || "").toLowerCase();
-      const tagsVal = (row.getAttribute("data-tags") || "").toLowerCase();
-      const folderToken = normalizeMetaToken(row.getAttribute("data-folder-raw") || "");
-      const tagTokens = parseMetaTagsFromRow(row).map((tag) => normalizeMetaToken(tag));
-      const reports = parseInt(row.getAttribute("data-reports") || "0", 10) || 0;
-      const hasPassword = row.getAttribute("data-password") === "1";
-      const isDisabled = row.getAttribute("data-disabled") === "1";
-
-      let ok = true;
-      if (query) {
-        ok = shortVal.includes(query) || originalVal.includes(query) || folderVal.includes(query) || tagsVal.includes(query);
-      }
-      if (ok && filter === "reported") ok = reports > 0;
-      if (ok && filter === "password") ok = hasPassword;
-      if (ok && filter === "disabled") ok = isDisabled;
-      if (ok && folderFilter !== "all") ok = folderToken === folderFilter;
-      if (ok && tagFilter !== "all") ok = tagTokens.includes(tagFilter);
-
-      if (ok) {
-        row.classList.remove("d-none");
-        visible.push(row);
-      } else {
-        row.classList.add("d-none");
-      }
-    });
-
-    const parseDate = (row) => {
-      const raw = row.getAttribute("data-created") || "";
-      const t = Date.parse(raw);
-      return Number.isNaN(t) ? 0 : t;
-    };
-
-    visible.sort((a, b) => {
-      const ra = parseInt(a.getAttribute("data-reports") || "0", 10) || 0;
-      const rb = parseInt(b.getAttribute("data-reports") || "0", 10) || 0;
-      const da = parseDate(a);
-      const db = parseDate(b);
-      if (sort === "oldest") return da - db;
-      if (sort === "reports") return (rb - ra) || (db - da);
-      return db - da;
-    });
-
-    visible.forEach((row) => dashboardBody.appendChild(row));
-
-    if (dashboardNoResults) {
-      if (visible.length === 0) {
-        dashboardNoResults.classList.remove("d-none");
-      } else {
-        dashboardNoResults.classList.add("d-none");
-      }
+    
+    const params = new URLSearchParams(window.location.search);
+    if (isInit) {
+      if (dashboardSearch && params.has("q")) dashboardSearch.value = params.get("q");
+      if (dashboardFilter && params.has("filter")) dashboardFilter.value = params.get("filter");
+      if (dashboardSort && params.has("sort")) dashboardSort.value = params.get("sort");
+      // Note: folder and tag are populated asynchronously by mountDashboardMetaFilters.
+      return; 
     }
+
+    clearTimeout(dashboardFilterTimeout);
+    dashboardFilterTimeout = setTimeout(() => {
+      const query = (dashboardSearch && dashboardSearch.value || "").trim().toLowerCase();
+      const filter = dashboardFilter ? dashboardFilter.value : "all";
+      const sort = dashboardSort ? dashboardSort.value : "newest";
+      const folderFilter = dashboardFolderFilter ? dashboardFolderFilter.value : "all";
+      const tagFilter = dashboardTagFilter ? dashboardTagFilter.value : "all";
+
+      if (query) params.set("q", query); else params.delete("q");
+      if (filter !== "all") params.set("filter", filter); else params.delete("filter");
+      if (sort !== "newest") params.set("sort", sort); else params.delete("sort");
+      if (folderFilter !== "all") params.set("folder", folderFilter); else params.delete("folder");
+      if (tagFilter !== "all") params.set("tag", tagFilter); else params.delete("tag");
+      params.delete("page");
+
+      const newUrl = window.location.pathname + "?" + params.toString();
+      window.history.replaceState({}, "", newUrl);
+
+      fetch(newUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then(r => r.text())
+        .then(html => {
+          const doc = new DOMParser().parseFromString(html, "text/html");
+          const newBody = doc.getElementById("dashboardTableBody");
+          if (newBody) dashboardBody.innerHTML = newBody.innerHTML;
+          
+          const oldPagination = document.querySelector(".card-footer.bg-transparent");
+          const newPagination = doc.querySelector(".card-footer.bg-transparent");
+          if (oldPagination && newPagination) {
+            oldPagination.outerHTML = newPagination.outerHTML;
+          } else if (oldPagination && !newPagination) {
+            oldPagination.remove();
+          } else if (!oldPagination && newPagination) {
+            const container = dashboardBody.closest(".card");
+            if (container) container.appendChild(newPagination);
+          }
+
+          Array.from(dashboardBody.querySelectorAll("tr[data-short]")).forEach((row) => {
+            renderDashboardRowMetaCells(row);
+          });
+          ensureDashboardMetaButtons();
+          if (typeof mountDashboardMetaFilters === "function") {
+            mountDashboardMetaFilters();
+          }
+        })
+        .catch(console.error);
+    }, 300);
   };
 
   if (dashboardBody) {
@@ -2768,7 +2763,7 @@ if (document.readyState === "loading") {
     dashboardSearch && dashboardSearch.addEventListener("input", applyDashboardFilters);
     dashboardFilter && dashboardFilter.addEventListener("change", applyDashboardFilters);
     dashboardSort && dashboardSort.addEventListener("change", applyDashboardFilters);
-    applyDashboardFilters();
+    applyDashboardFilters(true);
   }
 
   const profileForm = document.getElementById("profileSettingsForm");

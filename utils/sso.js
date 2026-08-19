@@ -225,9 +225,9 @@ function buildSamlOptions(cfg) {
     wantAssertionsSigned: false,
     signatureAlgorithm: 'sha256',
     digestAlgorithm: 'sha256',
-    // 'never' keeps the flow stateless: the ACS URL itself carries the
-    // workspace binding and NotOnOrAfter conditions still bound the response.
-    validateInResponseTo: 'never',
+    // 'ifPresent' keeps IdP-initiated flow working, but validates InResponseTo if it was provided.
+    // 'always' would break IdP-initiated SSO.
+    validateInResponseTo: 'ifPresent',
     acceptedClockSkewMs: SAML_ACCEPTED_CLOCK_SKEW_MS,
     identifierFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
   };

@@ -51,7 +51,10 @@ function sendOpsAlert(key, title, details = '') {
   const last = opsAlertSentAt.get(key) || 0;
   if (now - last < OPS_ALERT_RATE_LIMIT_MS) return;
   opsAlertSentAt.set(key, now);
-  if (opsAlertSentAt.size > 100) opsAlertSentAt.clear();
+  if (opsAlertSentAt.size > 100) {
+    const oldestKey = opsAlertSentAt.keys().next().value;
+    opsAlertSentAt.delete(oldestKey);
+  }
 
   const text = `[ovlink ALERT] ${title}${details ? `\n${String(details).slice(0, 1200)}` : ''}`;
   const payload = url.includes('api.telegram.org')
@@ -201,36 +204,46 @@ const db = {
 
   _queue: [],
   _isSerializing: false,
+  _isProcessingQueue: false,
   
   _processQueue() {
     if (this._queue.length === 0) {
-      this._isSerializing = false;
+      this._isProcessingQueue = false;
       return;
     }
+    this._isProcessingQueue = true;
     const task = this._queue.shift();
     const pgSql = this.convertSql(task.sql);
     
     // Catch-all query execution
     pool.query(pgSql, task.params, (err, res) => {
       if (err) {
-        console.error('[db error]', err.message, 'SQL:', task.sql);
+        console.error('[db error] Message:', err.message, '| SQL:', task.sql);
         sendOpsAlert('db_error:' + (err.code || err.message || '').toString().slice(0, 40), 'Database error', `${err.message}\nSQL: ${String(task.sql || '').slice(0, 300)}`);
-        if (task.callback) task.callback(err);
-      } else {
-        if (task.type === 'get') {
-          if (task.callback) task.callback(null, res.rows[0]);
-        } else if (task.type === 'all') {
-          if (task.callback) task.callback(null, res.rows);
-        } else if (task.type === 'run') {
-          const context = {
-            lastID: res && res.rows && res.rows[0] ? res.rows[0].id : null,
-            changes: res ? res.rowCount : 0
-          };
-          if (task.callback) task.callback.call(context, null);
-        }
       }
-      // Process next query
-      this._processQueue();
+      
+      this._isSerializing = true;
+      try {
+        if (err) {
+          if (task.callback) task.callback(err);
+        } else {
+          if (task.type === 'get') {
+            if (task.callback) task.callback(null, res.rows[0]);
+          } else if (task.type === 'all') {
+            if (task.callback) task.callback(null, res.rows);
+          } else if (task.type === 'run') {
+            const context = {
+              lastID: res && res.rows && res.rows[0] ? res.rows[0].id : null,
+              changes: res ? res.rowCount : 0
+            };
+            if (task.callback) task.callback.call(context, null);
+          }
+        }
+      } finally {
+        this._isSerializing = false;
+        // Process next query
+        this._processQueue();
+      }
     });
   },
 
@@ -290,8 +303,14 @@ const db = {
 
   serialize(callback) {
     this._isSerializing = true;
-    callback();
-    this._processQueue();
+    try {
+      if (typeof callback === 'function') callback();
+    } finally {
+      this._isSerializing = false;
+    }
+    if (!this._isProcessingQueue) {
+      this._processQueue();
+    }
   }
 };
 
@@ -751,7 +770,7 @@ app.use((req, res, next) => {
   const allowSameOriginEnv = ['1', 'true', 'yes', 'on'].includes(
     (process.env.AD_SANDBOX_ALLOW_SAME_ORIGIN || '').toString().trim().toLowerCase()
   );
-  if (process.env.NODE_ENV !== 'production' || allowSameOriginEnv) {
+  if (allowSameOriginEnv) {
     flags.push('allow-same-origin');
   }
   res.locals.adFrameSandbox = flags.join(' ');
@@ -2683,26 +2702,30 @@ const API_USAGE_LOGS_INDEX_SQL = [
 let apiUsageLogsSchemaReady = false;
 let apiUsageLogsSchemaPromise = null;
 
-function ensureApiUsageLogsSchema(force = false) {
-  if (!db) return Promise.resolve(false);
-  if (!force && apiUsageLogsSchemaReady) return Promise.resolve(true);
+async function ensureApiUsageLogsSchema(force = false) {
+  if (!db) return false;
+  if (!force && apiUsageLogsSchemaReady) return true;
   if (!force && apiUsageLogsSchemaPromise) return apiUsageLogsSchemaPromise;
 
-  apiUsageLogsSchemaPromise = new Promise((resolve) => {
-    db.serialize(() => {
-      db.run(API_USAGE_LOGS_CREATE_TABLE_SQL, () => {});
-      API_USAGE_LOGS_INDEX_SQL.forEach((sql) => db.run(sql, () => {}));
-      db.get(
-        "SELECT table_name AS name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'api_usage_logs' LIMIT 1",
-        (err, row) => {
-          const ready = !err && !!(row && row.name);
-          apiUsageLogsSchemaReady = ready;
-          apiUsageLogsSchemaPromise = null;
-          resolve(ready);
-        }
-      );
-    });
-  });
+  apiUsageLogsSchemaPromise = (async () => {
+    try {
+      await dbRunAsync(API_USAGE_LOGS_CREATE_TABLE_SQL).catch(() => {});
+      for (const sql of API_USAGE_LOGS_INDEX_SQL) {
+        await dbRunAsync(sql).catch(() => {});
+      }
+      const row = await dbGetAsync(
+        "SELECT table_name AS name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'api_usage_logs' LIMIT 1"
+      ).catch(() => null);
+      const ready = !row ? false : !!(row && row.name);
+      apiUsageLogsSchemaReady = ready;
+      return ready;
+    } catch {
+      return false;
+    } finally {
+      apiUsageLogsSchemaPromise = null;
+    }
+  })();
+
   return apiUsageLogsSchemaPromise;
 }
 
@@ -4587,6 +4610,7 @@ app.get('/site.webmanifest', (req, res) => {
 
 
 const webhookTimerMap = new Map();
+const webhookInFlightSet = new Set();
 
 function dbGetAsync(sql, params = []) {
   const pgSql = db.convertSql(sql);
@@ -4752,14 +4776,14 @@ async function sendWorkspaceInviteEmail(toEmail, workspaceName, inviteUrl) {
   await sendMail({ to: toEmail, subject, text, html });
 }
 
-function scheduleWebhookProcessing(deliveryId, delayMs = 0) {
+function scheduleWebhookProcessing(deliveryId, delayMs = 0, preloadedRow = null) {
   const safeId = Number.parseInt(deliveryId, 10);
   if (!Number.isInteger(safeId) || safeId <= 0) return;
-  if (webhookTimerMap.has(safeId)) return;
+  if (webhookTimerMap.has(safeId) || webhookInFlightSet.has(safeId)) return;
   const safeDelay = Math.max(0, Number.parseInt(delayMs, 10) || 0);
   const timer = setTimeout(() => {
     webhookTimerMap.delete(safeId);
-    void processWebhookDelivery(safeId);
+    void processWebhookDelivery(safeId, preloadedRow);
   }, safeDelay);
   webhookTimerMap.set(safeId, timer);
   if (typeof timer.unref === 'function') timer.unref();
@@ -4781,140 +4805,155 @@ async function resetWebhookFailureState(webhookId, updatedAtIso) {
   );
 }
 
-async function processWebhookDelivery(deliveryId) {
-  const row = await dbGetAsync(
-    'SELECT d.id, d.webhook_id, d.user_id, d.event_type, d.payload_json, d.attempt, d.status, w.url, w.secret_hash, w.signature_v2_key, w.signature_v2_enabled, w.is_active, w.message_locale, w.message_template, u.ui_lang AS user_ui_lang ' +
-    'FROM webhook_deliveries d JOIN webhooks w ON w.id = d.webhook_id JOIN users u ON u.id = d.user_id WHERE d.id = ?',
-    [deliveryId]
-  ).catch(() => null);
+async function processWebhookDelivery(deliveryId, preloadedRow = null) {
+  const safeId = Number.parseInt(deliveryId, 10);
+  if (!Number.isInteger(safeId) || safeId <= 0) return;
+  if (webhookInFlightSet.has(safeId)) return;
+  webhookInFlightSet.add(safeId);
 
-  if (!row) return;
-  if (row.status === 'delivered' || row.status === 'failed' || row.status === 'cancelled') return;
-
-  const plan = await getEffectivePlanForUser(row.user_id).catch(() => null);
-  if (!plan || !plan.is_active || plan.tier !== PLAN_TIERS.PRO) {
-    await dbRunAsync(
-      'UPDATE webhook_deliveries SET status = ?, updated_at = ? WHERE id = ?',
-      ['cancelled', new Date().toISOString(), deliveryId]
-    ).catch(() => {});
-    return;
-  }
-
-  if (row.is_active != 1) {
-    await dbRunAsync(
-      'UPDATE webhook_deliveries SET status = ?, updated_at = ? WHERE id = ?',
-      ['cancelled', new Date().toISOString(), deliveryId]
-    ).catch(() => {});
-    return;
-  }
-
-  const now = new Date().toISOString();
-  const attemptNumber = (Number.parseInt(row.attempt || '0', 10) || 0) + 1;
-  const payload = {
-    delivery_id: row.id,
-    event: row.event_type,
-    attempt: attemptNumber,
-    sent_at: now,
-    data: (() => {
-      try {
-        return JSON.parse((row.payload_json || '{}').toString());
-      } catch {
-        return {};
-      }
-    })(),
-  };
-  const isDiscordTarget = isDiscordIncomingWebhookUrl(row.url);
-  const outboundPayload = isDiscordTarget ? buildDiscordWebhookPayload(payload, row) : payload;
-  const body = JSON.stringify(outboundPayload);
-
-  let httpStatus = 0;
-  let responseCode = '';
-  let success = false;
-  let timeoutHandle = null;
-
-  const targetValidation = await validateOutboundWebhookUrl(row.url).catch(() => ({ ok: false, reason: 'validation_error' }));
-  if (!targetValidation || !targetValidation.ok) {
-    const blockedNow = new Date().toISOString();
-    await updateWebhookFailureState(row.webhook_id, blockedNow).catch(() => {});
-    await dbRunAsync(
-      'UPDATE webhook_deliveries SET attempt = ?, status = ?, http_status = ?, response_excerpt = ?, next_retry_at = NULL, last_attempt_at = ?, updated_at = ? WHERE id = ?',
-      [attemptNumber, 'failed', null, 'blocked_ssrf', blockedNow, blockedNow, deliveryId]
-    ).catch(() => {});
-    return;
-  }
-
-  const targetUrl = targetValidation.normalizedUrl || row.url;
   try {
-    const controller = new AbortController();
-    timeoutHandle = setTimeout(() => controller.abort(), 10_000);
-    const legacySig = row.secret_hash
-      ? crypto.createHmac('sha256', row.secret_hash).update(body).digest('hex')
-      : '';
-    const signatureV2Enabled = row.signature_v2_enabled == 1;
-    const signatureV2Key = signatureV2Enabled ? decodeWebhookSignatureV2Key(row.signature_v2_key) : null;
-    const signatureTs = String(Math.floor(Date.now() / 1000));
-    const headers = {
-      'content-type': 'application/json',
-      'x-ovlink-event': row.event_type,
-      'x-ovlink-delivery-id': String(row.id),
-      'x-ovlink-signature-ts': signatureTs,
+    let row = preloadedRow;
+    if (!row || !row.webhook_id || row.id !== safeId) {
+      row = await dbGetAsync(
+        'SELECT d.id, d.webhook_id, d.user_id, d.event_type, d.payload_json, d.attempt, d.status, w.url, w.secret_hash, w.signature_v2_key, w.signature_v2_enabled, w.is_active, w.message_locale, w.message_template, u.ui_lang AS user_ui_lang, u.plan_tier, u.plan_status, u.pro_expires_at ' +
+        'FROM webhook_deliveries d JOIN webhooks w ON w.id = d.webhook_id JOIN users u ON u.id = d.user_id WHERE d.id = ?',
+        [safeId]
+      ).catch(() => null);
+    }
+
+    if (!row) return;
+    if (row.status === 'delivered' || row.status === 'failed' || row.status === 'cancelled') return;
+
+    const plan = (row.plan_tier !== undefined && row.plan_status !== undefined)
+      ? { tier: row.plan_tier || 'free', is_active: row.plan_status === 'active' && isProAccessActive(row) }
+      : await getEffectivePlanForUser(row.user_id).catch(() => null);
+
+    if (!plan || !plan.is_active || plan.tier !== PLAN_TIERS.PRO) {
+      await dbRunAsync(
+        'UPDATE webhook_deliveries SET status = ?, updated_at = ? WHERE id = ?',
+        ['cancelled', new Date().toISOString(), safeId]
+      ).catch(() => {});
+      return;
+    }
+
+    if (row.is_active != 1) {
+      await dbRunAsync(
+        'UPDATE webhook_deliveries SET status = ?, updated_at = ? WHERE id = ?',
+        ['cancelled', new Date().toISOString(), safeId]
+      ).catch(() => {});
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const attemptNumber = (Number.parseInt(row.attempt || '0', 10) || 0) + 1;
+    const payload = {
+      delivery_id: row.id,
+      event: row.event_type,
+      attempt: attemptNumber,
+      sent_at: now,
+      data: (() => {
+        try {
+          return JSON.parse((row.payload_json || '{}').toString());
+        } catch {
+          return {};
+        }
+      })(),
     };
-    if (legacySig) {
-      headers['x-ovlink-signature'] = `sha256=${legacySig}`;
+    const isDiscordTarget = isDiscordIncomingWebhookUrl(row.url);
+    const outboundPayload = isDiscordTarget ? buildDiscordWebhookPayload(payload, row) : payload;
+    const body = JSON.stringify(outboundPayload);
+
+    let httpStatus = 0;
+    let responseCode = '';
+    let success = false;
+    let timeoutHandle = null;
+
+    const targetValidation = await validateOutboundWebhookUrl(row.url).catch(() => ({ ok: false, reason: 'validation_error' }));
+    if (!targetValidation || !targetValidation.ok) {
+      const blockedNow = new Date().toISOString();
+      await updateWebhookFailureState(row.webhook_id, blockedNow).catch(() => {});
+      await dbRunAsync(
+        'UPDATE webhook_deliveries SET attempt = ?, status = ?, http_status = ?, response_excerpt = ?, next_retry_at = NULL, last_attempt_at = ?, updated_at = ? WHERE id = ?',
+        [attemptNumber, 'failed', null, 'blocked_ssrf', blockedNow, blockedNow, safeId]
+      ).catch(() => {});
+      return;
     }
-    if (signatureV2Key && signatureV2Key.length) {
-      const v2Body = `${signatureTs}.${body}`;
-      const v2Sig = crypto.createHmac('sha256', signatureV2Key).update(v2Body).digest('hex');
-      headers['x-ovlink-signature-v2'] = `sha256=${v2Sig}`;
+
+    const targetUrl = targetValidation.normalizedUrl || row.url;
+    try {
+      const controller = new AbortController();
+      timeoutHandle = setTimeout(() => controller.abort(), 10_000);
+      const legacySig = row.secret_hash
+        ? crypto.createHmac('sha256', row.secret_hash).update(body).digest('hex')
+        : '';
+      const signatureV2Enabled = row.signature_v2_enabled == 1;
+      const signatureV2Key = signatureV2Enabled ? decodeWebhookSignatureV2Key(row.signature_v2_key) : null;
+      const signatureTs = String(Math.floor(Date.now() / 1000));
+      const headers = {
+        'content-type': 'application/json',
+        'x-ovlink-event': row.event_type,
+        'x-ovlink-delivery-id': String(row.id),
+        'x-ovlink-signature-ts': signatureTs,
+      };
+      if (legacySig) {
+        headers['x-ovlink-signature'] = `sha256=${legacySig}`;
+      }
+      if (signatureV2Key && signatureV2Key.length) {
+        const v2Body = `${signatureTs}.${body}`;
+        const v2Sig = crypto.createHmac('sha256', signatureV2Key).update(v2Body).digest('hex');
+        headers['x-ovlink-signature-v2'] = `sha256=${v2Sig}`;
+      }
+      if (isDiscordTarget) {
+        headers['x-ovlink-destination'] = 'discord';
+      }
+      const resp = await requestWebhookWithPinnedIp(targetUrl, targetValidation.pinnedIp, {
+        method: 'POST',
+        headers,
+        body,
+        timeoutMs: 10000,
+      });
+      httpStatus = Number(resp.status) || 0;
+      success = resp.ok;
+      if (!success) {
+        if (httpStatus >= 500) responseCode = 'http_5xx';
+        else if (httpStatus >= 400) responseCode = 'http_4xx';
+        else responseCode = 'http_error';
+      }
+    } catch (err) {
+      responseCode = (err && (err.name === 'AbortError' || err.code === 'ABORT_ERR')) ? 'timeout' : 'network_error';
+    } finally {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
     }
-    if (isDiscordTarget) {
-      headers['x-ovlink-destination'] = 'discord';
+
+    if (success) {
+      await dbRunAsync(
+        'UPDATE webhook_deliveries SET attempt = ?, status = ?, http_status = ?, response_excerpt = ?, next_retry_at = NULL, last_attempt_at = ?, updated_at = ? WHERE id = ?',
+        [attemptNumber, 'delivered', httpStatus || null, null, now, now, safeId]
+      ).catch(() => {});
+      await resetWebhookFailureState(row.webhook_id, now).catch(() => {});
+      return;
     }
-    const resp = await requestWebhookWithPinnedIp(targetUrl, targetValidation.pinnedIp, {
-      method: 'POST',
-      headers,
-      body,
-      timeoutMs: 10000,
-    });
-    httpStatus = Number(resp.status) || 0;
-    success = resp.ok;
-    if (!success) {
-      if (httpStatus >= 500) responseCode = 'http_5xx';
-      else if (httpStatus >= 400) responseCode = 'http_4xx';
-      else responseCode = 'http_error';
+
+    await updateWebhookFailureState(row.webhook_id, now).catch(() => {});
+
+    if (attemptNumber >= WEBHOOK_MAX_ATTEMPTS) {
+      await dbRunAsync(
+        'UPDATE webhook_deliveries SET attempt = ?, status = ?, http_status = ?, response_excerpt = ?, next_retry_at = NULL, last_attempt_at = ?, updated_at = ? WHERE id = ?',
+        [attemptNumber, 'failed', httpStatus || null, responseCode || 'delivery_failed', now, now, safeId]
+      ).catch(() => {});
+      return;
     }
-  } catch (err) {
-    responseCode = (err && (err.name === 'AbortError' || err.code === 'ABORT_ERR')) ? 'timeout' : 'network_error';
+
+    const delayMs = computeWebhookRetryDelayMs(attemptNumber + 1);
+    const nextRetryAt = new Date(Date.now() + delayMs).toISOString();
+    await dbRunAsync(
+      'UPDATE webhook_deliveries SET attempt = ?, status = ?, http_status = ?, response_excerpt = ?, next_retry_at = ?, last_attempt_at = ?, updated_at = ? WHERE id = ?',
+      [attemptNumber, 'retry_scheduled', httpStatus || null, responseCode || 'delivery_failed', nextRetryAt, now, now, safeId]
+    ).catch(() => {});
+    scheduleWebhookProcessing(safeId, delayMs);
   } finally {
-    if (timeoutHandle) clearTimeout(timeoutHandle);
+    webhookInFlightSet.delete(safeId);
   }
-
-  if (success) {
-    await dbRunAsync(
-      'UPDATE webhook_deliveries SET attempt = ?, status = ?, http_status = ?, response_excerpt = ?, next_retry_at = NULL, last_attempt_at = ?, updated_at = ? WHERE id = ?',
-      [attemptNumber, 'delivered', httpStatus || null, null, now, now, deliveryId]
-    ).catch(() => {});
-    await resetWebhookFailureState(row.webhook_id, now).catch(() => {});
-    return;
-  }
-
-  await updateWebhookFailureState(row.webhook_id, now).catch(() => {});
-
-  if (attemptNumber >= WEBHOOK_MAX_ATTEMPTS) {
-    await dbRunAsync(
-      'UPDATE webhook_deliveries SET attempt = ?, status = ?, http_status = ?, response_excerpt = ?, next_retry_at = NULL, last_attempt_at = ?, updated_at = ? WHERE id = ?',
-      [attemptNumber, 'failed', httpStatus || null, responseCode || 'delivery_failed', now, now, deliveryId]
-    ).catch(() => {});
-    return;
-  }
-
-  const delayMs = computeWebhookRetryDelayMs(attemptNumber + 1);
-  const nextRetryAt = new Date(Date.now() + delayMs).toISOString();
-  await dbRunAsync(
-    'UPDATE webhook_deliveries SET attempt = ?, status = ?, http_status = ?, response_excerpt = ?, next_retry_at = ?, last_attempt_at = ?, updated_at = ? WHERE id = ?',
-    [attemptNumber, 'retry_scheduled', httpStatus || null, responseCode || 'delivery_failed', nextRetryAt, now, now, deliveryId]
-  ).catch(() => {});
-  scheduleWebhookProcessing(deliveryId, delayMs);
 }
 
 async function enqueueWebhookEventForUser(userId, eventType, payload = {}) {
@@ -4954,17 +4993,33 @@ async function enqueueWebhookEventForUser(userId, eventType, payload = {}) {
 async function resumePendingWebhookDeliveries() {
   const now = new Date().toISOString();
   const pending = await dbAllAsync(
-    "SELECT id, next_retry_at FROM webhook_deliveries WHERE status IN ('queued', 'retry_scheduled') ORDER BY id DESC LIMIT 300",
+    'SELECT d.id, d.webhook_id, d.user_id, d.event_type, d.payload_json, d.attempt, d.status, d.next_retry_at, ' +
+    'w.url, w.secret_hash, w.signature_v2_key, w.signature_v2_enabled, w.is_active, w.message_locale, w.message_template, ' +
+    'u.ui_lang AS user_ui_lang, u.plan_tier, u.plan_status, u.pro_expires_at ' +
+    'FROM webhook_deliveries d ' +
+    'JOIN webhooks w ON w.id = d.webhook_id ' +
+    'JOIN users u ON u.id = d.user_id ' +
+    "WHERE d.status IN ('queued', 'retry_scheduled') " +
+    'ORDER BY d.id ASC ' +
+    'LIMIT 100',
     []
   ).catch(() => []);
 
-  for (const item of (pending || [])) {
-    const id = Number.parseInt(item.id || '0', 10);
+  for (const row of (pending || [])) {
+    const id = Number.parseInt(row.id || '0', 10);
     if (!Number.isInteger(id) || id <= 0) continue;
-    const retryMs = parseIsoTimeMs(item.next_retry_at || now);
+    if (webhookTimerMap.has(id) || webhookInFlightSet.has(id)) continue;
+    const retryMs = parseIsoTimeMs(row.next_retry_at || now);
     const delay = Number.isFinite(retryMs) ? Math.max(0, retryMs - Date.now()) : 0;
-    scheduleWebhookProcessing(id, delay);
+    scheduleWebhookProcessing(id, delay, row);
   }
+}
+
+function scheduleWebhookRecoveryWorker() {
+  const timer = setInterval(() => {
+    void resumePendingWebhookDeliveries();
+  }, 30_000);
+  if (typeof timer.unref === 'function') timer.unref();
 }
 
 db.serialize(() => {
@@ -5707,6 +5762,7 @@ scheduleNightlyBackup();
 scheduleApiIdempotencyPurge();
 scheduleApiUsageLogPurge();
 void resumePendingWebhookDeliveries();
+scheduleWebhookRecoveryWorker();
 
 // ========================
 // BOT INTEGRATIONS (Telegram + Discord)
@@ -9236,6 +9292,10 @@ app.post('/api/shorten',
       }
       const nextCount = (meta.count || 0) + 1;
       guestLimitStore.set(meta.storeKey, { count: nextCount, updated_at: new Date().toISOString() });
+      if (guestLimitStore.size > 1000) {
+        const oldestKey = guestLimitStore.keys().next().value;
+        guestLimitStore.delete(oldestKey);
+      }
     };
 
     // User ban check (prevents link creation while banned)
@@ -11020,42 +11080,48 @@ app.post('/api/auth/realm-lookup', authLimiter, async (req, res) => {
 
     let matchedWs = null;
 
-    if (!matchedWs) {
-      const rows = await dbAllAsync(
-        `SELECT w.id, w.name, s.idp_entity_id, s.idp_sso_url, s.enabled, u.email, u.plan_tier, u.plan_status, u.pro_expires_at, w.owner_user_id
-         FROM workspaces w
-         JOIN sso_connections s ON s.workspace_id = w.id
-         JOIN users u ON u.id = w.owner_user_id
-         WHERE s.enabled = 1`
-      ).catch(() => []);
+    const rows = await dbAllAsync(
+      `SELECT w.id, w.name, s.idp_entity_id, s.idp_sso_url, s.enabled, u.email, u.plan_tier, u.plan_status, u.pro_expires_at, w.owner_user_id
+       FROM workspaces w
+       JOIN sso_connections s ON s.workspace_id = w.id
+       JOIN users u ON u.id = w.owner_user_id
+       WHERE s.enabled = 1`
+    ).catch(() => []);
 
-      for (const r of rows) {
-        if (!isProAccessActive(r)) continue;
-        const wsName = (r.name || '').toLowerCase();
-        let ownerDomain = '';
-        try {
-          if (r.email) {
-            const dec = decryptAES256GCM(r.email);
-            if (dec && dec.includes('@')) {
-              ownerDomain = dec.split('@').pop().toLowerCase();
-            }
-          }
-        } catch {}
-
-        let hasCustomDomain = false;
-        try {
-          const cDomain = await dbGetAsync('SELECT id FROM custom_domains WHERE owner_user_id = ? AND domain = ? AND verified = 1 LIMIT 1', [r.owner_user_id, searchDomain]).catch(() => null);
-          if (cDomain) hasCustomDomain = true;
-        } catch {}
-
-        if (
-          (ownerDomain && ownerDomain === searchDomain) ||
-          hasCustomDomain ||
-          (numericWsId && numericWsId === r.id)
-        ) {
-          matchedWs = { id: r.id };
-          break;
+    const verifiedCustomDomainOwners = new Set();
+    if (searchDomain && rows.length > 0) {
+      try {
+        const cdRows = await dbAllAsync(
+          "SELECT user_id FROM custom_domains WHERE LOWER(domain) = ? AND (status = 'active' OR status = 'verified' OR verified_at IS NOT NULL)",
+          [searchDomain.toLowerCase()]
+        ).catch(() => []);
+        for (const cd of cdRows) {
+          if (cd && cd.user_id) verifiedCustomDomainOwners.add(cd.user_id);
         }
+      } catch {}
+    }
+
+    for (const r of rows) {
+      if (!isProAccessActive(r)) continue;
+      let ownerDomain = '';
+      try {
+        if (r.email) {
+          const dec = decryptAES256GCM(r.email);
+          if (dec && dec.includes('@')) {
+            ownerDomain = dec.split('@').pop().toLowerCase();
+          }
+        }
+      } catch {}
+
+      const hasCustomDomain = verifiedCustomDomainOwners.has(r.owner_user_id);
+
+      if (
+        (ownerDomain && ownerDomain === searchDomain) ||
+        hasCustomDomain ||
+        (numericWsId && numericWsId === r.id)
+      ) {
+        matchedWs = { id: r.id, name: r.name };
+        break;
       }
     }
 
@@ -11065,6 +11131,8 @@ app.post('/api/auth/realm-lookup', authLimiter, async (req, res) => {
 
     return res.json({
       ssoAvailable: true,
+      workspaceId: matchedWs.id,
+      workspaceName: matchedWs.name,
       ssoLoginUrl: `/sso/${matchedWs.id}/login`
     });
   } catch (err) {
@@ -11291,16 +11359,69 @@ app.get('/dashboard', (req, res) => {
       const activeWorkspace = activeMembership
         ? { id: activeMembership.id, name: activeMembership.name, role: activeMembership.role }
         : null;
-      const linksSql = activeWorkspace
-        ? 'SELECT short, original, created_at, reports, link_password, disabled, domain_host, folder_name, tags_json FROM urls WHERE workspace_id = ? ORDER BY created_at DESC'
-        : 'SELECT short, original, created_at, reports, link_password, disabled, domain_host, folder_name, tags_json FROM urls WHERE user_id = ? AND workspace_id IS NULL ORDER BY created_at DESC';
 
-    db.all(linksSql, [activeWorkspace ? activeWorkspace.id : req.session.userId], (err, rows) => {
-    if (err) return res.status(500).send('Veritabanı hatası.');
+      const currentPage = Math.max(1, Number.parseInt(req.query && req.query.page, 10) || 1);
+      const perPage = Math.min(100, Math.max(10, Number.parseInt(req.query && req.query.limit, 10) || 50));
+      const offset = (currentPage - 1) * perPage;
 
-    // Özet İstatistikler Hesapla
-    const totalLinks = rows.length;
-    const totalReports = rows.reduce((acc, row) => acc + (row.reports || 0), 0);
+      let whereClauses = [];
+      let params = [];
+      
+      if (activeWorkspace) {
+        whereClauses.push('workspace_id = ?');
+        params.push(activeWorkspace.id);
+      } else {
+        whereClauses.push('user_id = ? AND workspace_id IS NULL');
+        params.push(req.session.userId);
+      }
+
+      const q = (req.query && req.query.q || '').toString().trim().toLowerCase();
+      if (q) {
+        whereClauses.push('(LOWER(short) LIKE ? OR LOWER(original) LIKE ? OR LOWER(folder_name) LIKE ? OR LOWER(tags_json) LIKE ?)');
+        const likeQ = `%${q}%`;
+        params.push(likeQ, likeQ, likeQ, likeQ);
+      }
+
+      const filter = (req.query && req.query.filter || 'all').toString();
+      if (filter === 'reported') whereClauses.push('reports > 0');
+      else if (filter === 'password') whereClauses.push('(link_password IS NOT NULL AND link_password != "")');
+      else if (filter === 'disabled') whereClauses.push('disabled = 1');
+
+      const folder = (req.query && req.query.folder || 'all').toString();
+      if (folder !== 'all') {
+        whereClauses.push("LOWER(REPLACE(folder_name, ' ', '_')) = ?");
+        params.push(folder.toLowerCase());
+      }
+
+      const tag = (req.query && req.query.tag || 'all').toString();
+      if (tag !== 'all') {
+        whereClauses.push("LOWER(REPLACE(tags_json, ' ', '_')) LIKE ?");
+        params.push('%"' + tag.toLowerCase() + '"%');
+      }
+
+      const sort = (req.query && req.query.sort || 'newest').toString();
+      let orderSql = 'ORDER BY created_at DESC';
+      if (sort === 'oldest') orderSql = 'ORDER BY created_at ASC';
+      else if (sort === 'reports') orderSql = 'ORDER BY reports DESC, created_at DESC';
+
+      const whereSql = 'WHERE ' + whereClauses.join(' AND ');
+
+      const countSql = `SELECT COUNT(*) AS total_count, COALESCE(SUM(reports), 0) AS total_reports FROM urls ${whereSql}`;
+
+      db.get(countSql, params, (cErr, countRow) => {
+        if (cErr) return res.status(500).send('Veritabanı hatası.');
+
+        const totalLinks = countRow ? Number.parseInt(countRow.total_count, 10) || 0 : 0;
+        const totalReports = countRow ? Number.parseInt(countRow.total_reports, 10) || 0 : 0;
+        const totalPages = Math.max(1, Math.ceil(totalLinks / perPage));
+
+        const linksSql = `SELECT short, original, created_at, reports, link_password, disabled, domain_host, folder_name, tags_json FROM urls ${whereSql} ${orderSql} LIMIT ? OFFSET ?`;
+
+        db.all(linksSql, [...params, perPage, offset], (err, rows) => {
+          if (err) return res.status(500).send('Veritabanı hatası.');
+
+          // Özet İstatistikler
+          const displayRows = Array.isArray(rows) ? rows : [];
     // Toplam tıklama sayısını hesaplamak için ayrı bir sorgu gerekir veya basitlik adına şimdilik pas geçebiliriz 
     // veya join ile alabiliriz. Şimdilik elimizdeki veriyi kullanalım.
     // Dashboard'a girildiğinde "Hoşgeldin X" ve Premium Tasarım
@@ -11490,11 +11611,11 @@ ${announcementHtml}
                     </thead>
                     <tbody id="dashboardTableBody">`;
 
-    if (rows.length === 0) {
+    if (displayRows.length === 0) {
       html += `<tr><td colspan="8" class="text-center py-4 text-muted" data-i18n="empty_list">Hələ heç bir link yaratmamısınız.</td></tr>
                       <tr id="dashboardNoResults" class="d-none"><td colspan="8" class="text-center py-4 text-muted" data-i18n="dashboard_no_results">Nəticə tapılmadı.</td></tr>`;
     } else {
-      rows.forEach(row => {
+      displayRows.forEach(row => {
         const shortCode = (row.short || '').toString();
         const originalUrl = (row.original || '').toString();
         const shortUrl = buildShortUrl(req, shortCode, row.domain_host || '');
@@ -11549,10 +11670,68 @@ ${announcementHtml}
       });
     }
 
+    let paginationHtml = '';
+    if (totalPages > 1) {
+      const buildPageUrl = (p) => {
+        const params = new URLSearchParams();
+        if (activeWorkspace) params.set('ws', String(activeWorkspace.id));
+        if (req.query.q) params.set('q', req.query.q);
+        if (req.query.filter && req.query.filter !== 'all') params.set('filter', req.query.filter);
+        if (req.query.sort && req.query.sort !== 'newest') params.set('sort', req.query.sort);
+        if (req.query.folder && req.query.folder !== 'all') params.set('folder', req.query.folder);
+        if (req.query.tag && req.query.tag !== 'all') params.set('tag', req.query.tag);
+        params.set('page', String(p));
+        if (perPage !== 50) params.set('limit', String(perPage));
+        return '/dashboard?' + params.toString();
+      };
+
+      const prevDisabled = currentPage <= 1 ? ' disabled' : '';
+      const nextDisabled = currentPage >= totalPages ? ' disabled' : '';
+      const prevHref = currentPage > 1 ? buildPageUrl(currentPage - 1) : '#';
+      const nextHref = currentPage < totalPages ? buildPageUrl(currentPage + 1) : '#';
+
+      let pageItems = '';
+      const maxVisible = 5;
+      let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+      let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+      if (endPage - startPage + 1 < maxVisible) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+      }
+
+      for (let p = startPage; p <= endPage; p++) {
+        const activeClass = p === currentPage ? ' active' : '';
+        pageItems += `<li class="page-item${activeClass}"><a class="page-link" href="${escapeHtml(buildPageUrl(p))}">${p}</a></li>`;
+      }
+
+      paginationHtml = `
+        <div class="card-footer bg-transparent border-top d-flex justify-content-between align-items-center flex-wrap gap-2 py-3 px-4">
+          <div class="small text-muted">
+            <span>${escapeHtml(pickLang(uiLang, 'Səhifə', 'Sayfa', 'Page'))} ${currentPage} / ${totalPages}</span> (${totalLinks} ${escapeHtml(pickLang(uiLang, 'link', 'link', 'links'))})
+          </div>
+          <nav aria-label="Dashboard pagination">
+            <ul class="pagination pagination-sm mb-0">
+              <li class="page-item${prevDisabled}">
+                <a class="page-link" href="${escapeHtml(prevHref)}" aria-label="Previous">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </a>
+              </li>
+              ${pageItems}
+              <li class="page-item${nextDisabled}">
+                <a class="page-link" href="${escapeHtml(nextHref)}" aria-label="Next">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      `;
+    }
+
     html += `
                     </tbody>
                   </table>
                 </div>
+                ${paginationHtml}
               </div>
             </div>
               </div>
@@ -11699,8 +11878,9 @@ https://example.com/page-2"></textarea>
       </html>
     `;
     res.send(html);
-  });
-  });
+        });
+      });
+    });
   });
 });
 
@@ -11844,7 +12024,7 @@ module.exports = {
     // Lets callers (tests) wait for the fire-and-forget startup migration
     // queue to finish before tearing down the pool, avoiding noisy
     // "Cannot use a pool after calling end" errors from in-flight migrations.
-    isDbMigrationQueueDrained: () => !db._isSerializing && db._queue.length === 0,
+    isDbMigrationQueueDrained: () => !db._isSerializing && db._queue.length === 0 && !db._isProcessingQueue,
   },
 };
 

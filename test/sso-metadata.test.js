@@ -63,7 +63,7 @@ test('buildSamlOptions produces node-saml v5 option names', () => {
   assert.equal(options.idpIssuer, 'http://www.okta.com/abc');
   assert.equal(options.wantAuthnResponseSigned, true);
   assert.equal(options.wantAssertionsSigned, false);
-  assert.equal(options.validateInResponseTo, 'never');
+  assert.equal(options.validateInResponseTo, 'ifPresent');
 });
 
 test('extractProfileEmail finds email in nameID and attributes, lowercased', () => {
