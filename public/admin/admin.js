@@ -32,6 +32,8 @@
         btn.textContent = 'Hide';
       }
     });
+  });
+
   // Copy to clipboard helper for audit logs & code snippets
   qsa('[data-copy]').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
