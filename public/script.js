@@ -3736,6 +3736,8 @@ function initShorten() {
     };
 
     (async () => {
+      const session = typeof getClientSession === "function" ? getClientSession() : { isLoggedIn: false };
+      if (!session.isLoggedIn) return;
       try {
         const res = await fetch("/api/workspaces", { credentials: "include" });
         if (!res.ok) return; // not logged in or error
