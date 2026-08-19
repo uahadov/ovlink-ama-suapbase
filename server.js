@@ -4058,6 +4058,7 @@ app.use((req, res, next) => {
   try {
     const token = req.csrfToken();
     if (!res.locals._csrf) res.locals._csrf = token;
+    if (req.session) req.session.csrfInit = 1;
     req.session.save((err) => {
       if (err) console.error('[inline csrf] session save error:', err);
       next();
@@ -4095,7 +4096,8 @@ app.get('/api/csrf', (req, res) => {
     const token = typeof req.csrfToken === 'function' ? req.csrfToken() : '';
     if (!token) return res.json({ csrfToken: '' });
     // saveUninitialized:false means guest sessions are not auto-saved.
-    // We must explicitly save here so the CSRF secret persists across requests.
+    // We must explicitly mark and save here so the CSRF secret persists across requests.
+    if (req.session) req.session.csrfInit = 1;
     req.session.save((err) => {
       if (err) {
         console.error('[csrf] session save error:', err);
@@ -11919,7 +11921,7 @@ app.use((err, req, res, next) => {
     }
     const msg = 'Session refreshed. Please try again.';
     const referer = (req.get('referer') || '').toString();
-    let target = '/';
+    let target = req.path.startsWith('/admin') ? '/admin/login' : '/';
 
     if (referer) {
       try {
