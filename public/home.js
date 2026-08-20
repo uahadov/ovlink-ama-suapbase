@@ -58,7 +58,7 @@ document.addEventListener("click", (e) => {
     e.preventDefault();
     toggleTheme();
   }
-}, true);
+});
 
 function getCsrfToken() {
   return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');

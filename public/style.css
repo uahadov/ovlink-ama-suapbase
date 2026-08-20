@@ -895,6 +895,7 @@ body.dark-mode,
   border-radius: 999px;
   border: 2px solid #4f46e5;
   line-height: 1;
+  pointer-events: none !important;
 }
 
 #notifPageBadge {
@@ -1396,43 +1397,73 @@ body.dark-mode,
   transform: none;
 }
 
-.home-page .lang-pill {
+.home-page .lang-pill,
+.lang-pill {
   border: 1px solid #d1d5db;
   border-radius: 999px;
   background: #f8fafc;
   color: #334155;
-  min-width: 72px;
-  padding-inline: 0.95rem;
+  min-width: 68px;
+  padding: 0.4rem 0.85rem !important;
   font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.lang-pill::after {
+  pointer-events: none;
+  margin-left: 0.35rem;
 }
 
 .home-page .lang-pill:hover,
-.home-page .lang-pill:focus {
+.home-page .lang-pill:focus,
+.lang-pill:hover,
+.lang-pill:focus {
   background: #ffffff;
   border-color: #cbd5e1;
   color: #0f172a;
 }
 
-.home-page .home-theme-btn {
-  position: static;
-  bottom: auto;
-  right: auto;
+.home-page .home-theme-btn,
+.home-navbar .home-theme-btn,
+.home-theme-btn {
+  position: relative !important;
+  bottom: auto !important;
+  right: auto !important;
   width: 38px;
   height: 38px;
+  min-width: 38px;
+  min-height: 38px;
   border-radius: 50%;
   border: 1px solid #d1d5db;
   background: #f8fafc;
   color: #4b5563;
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: 0 !important;
   box-shadow: none;
+  cursor: pointer;
 }
 
-.home-page .home-theme-btn:hover {
-  transform: none;
+.home-theme-btn i {
+  pointer-events: none;
+  transition: transform 0.25s ease;
+}
+
+.home-page .home-theme-btn:hover,
+.home-theme-btn:hover {
   background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.home-theme-btn:hover i {
+  transform: scale(1.15) rotate(15deg);
 }
 
 .home-page #hero {
@@ -4027,11 +4058,11 @@ body.dark-mode,
 
 /* Icon Bounce on Hover */
 .theme-toggle-animated {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .theme-toggle-animated:hover {
-  transform: rotate(180deg) scale(1.1);
+  transform: scale(1.06);
 }
 
 /* Button Loading State */

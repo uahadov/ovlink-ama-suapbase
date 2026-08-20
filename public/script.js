@@ -49,7 +49,7 @@ document.addEventListener("click", (e) => {
     e.preventDefault();
     toggleTheme();
   }
-}, true);
+});
 
 // Initial UI sync on load
 if (document.readyState === "loading") {
