@@ -423,7 +423,7 @@ const API_KEY_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('API_KEY_HASH_SECRE
   minBytes: 64,
   allowFallbackInProduction: true,
 });
-const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260820-01';
+const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20260820-02';
 const WEBHOOK_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('WEBHOOK_HASH_SECRET', 'ovlink:webhook-secret-hash:v2', {
   minBytes: 64,
   allowFallbackInProduction: true,
@@ -4142,7 +4142,22 @@ app.use((req, res, next) => {
     email: req.session.username || '',
     isAdmin: !!req.session.adminUserId
   } : null;
-  next();
+  res.locals.unreadNotifCount = 0;
+
+  if (!req.session || !req.session.userId) {
+    return next();
+  }
+
+  db.get(
+    'SELECT COUNT(*) AS cnt FROM notifications WHERE user_id = ? AND read_at IS NULL',
+    [req.session.userId],
+    (err, row) => {
+      if (!err && row && Number.isFinite(row.cnt)) {
+        res.locals.unreadNotifCount = row.cnt;
+      }
+      next();
+    }
+  );
 });
 
 app.use((req, res, next) => {

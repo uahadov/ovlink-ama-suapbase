@@ -22,7 +22,7 @@
             <a class="nav-link dropdown-toggle position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="fa-solid fa-user-circle me-1"></i>
               <span id="navUserEmail" data-i18n="nav_my_account">Hesabım</span>
-              <span id="navNotifBadge" class="notif-badge d-none">0</span>
+              <span id="navNotifBadge" class="notif-badge <%= (typeof unreadNotifCount !== 'undefined' && unreadNotifCount > 0) ? '' : 'd-none' %>"><%= (typeof unreadNotifCount !== 'undefined' && unreadNotifCount > 0) ? unreadNotifCount : '0' %></span>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
               <li><a class="dropdown-item" href="/dashboard"><i class="fa-solid fa-chart-line me-2"></i><span data-i18n="dashboard_stats_link">Statistika</span></a></li>
@@ -31,7 +31,7 @@
               <li>
                 <a class="dropdown-item d-flex align-items-center justify-content-between" href="/notifications">
                   <span><i class="fa-solid fa-bell me-2"></i><span data-i18n="notif_center_title">Bildiriş Mərkəzi</span></span>
-                  <span id="navNotifBadgeMenu" class="notif-menu-badge d-none">0</span>
+                  <span id="navNotifBadgeMenu" class="notif-menu-badge <%= (typeof unreadNotifCount !== 'undefined' && unreadNotifCount > 0) ? '' : 'd-none' %>"><%= (typeof unreadNotifCount !== 'undefined' && unreadNotifCount > 0) ? unreadNotifCount : '0' %></span>
                 </a>
               </li>
               <li><hr class="dropdown-divider" /></li>

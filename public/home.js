@@ -496,6 +496,10 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  if (getClientSession().isLoggedIn) {
+    loadNotifications().catch(() => {});
+  }
+
   const initAsync = async () => {
     if (!getCsrfToken()) await refreshCsrfToken();
     await trySyncSessionFromServer();
@@ -509,18 +513,12 @@ window.addEventListener("DOMContentLoaded", () => {
           if (document.visibilityState === "visible" && getClientSession().isLoggedIn) {
             loadNotifications().catch(() => {});
           }
-        }, 25000);
+        }, 20000);
       }
     }
   };
 
-  if (typeof window.requestIdleCallback === "function") {
-    window.requestIdleCallback(() => {
-      void initAsync();
-    }, { timeout: 1000 });
-  } else {
-    setTimeout(() => void initAsync(), 180);
-  }
+  void initAsync();
 
   ensurePricingNavLink();
   syncFloatingPricingBanner();
