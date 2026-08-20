@@ -87,3 +87,8 @@ test('isSuspiciousOrPhishingUrl allows standard legitimate URLs', () => {
     assert.equal(check.suspicious, false, `Legitimate URL ${url} should pass`);
   }
 });
+
+test('checkLiveThreat correctly returns safe status for clean URLs', async () => {
+  const res = await helpers.checkLiveThreat('https://github.com/nodejs/node');
+  assert.equal(res.threat, false);
+});

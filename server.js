@@ -9152,6 +9152,10 @@ const UGC_HOSTNAMES = new Set([
   'discord.com', 'discord.gg', 'cdn.discordapp.com'
 ]);
 
+const threatCache = new Map();
+const THREAT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const THREAT_CACHE_MAX_ENTRIES = 5000;
+
 function isSuspiciousOrPhishingUrl(rawUrl) {
   if (!rawUrl) return { suspicious: false };
   try {
@@ -9185,6 +9189,145 @@ function isSuspiciousOrPhishingUrl(rawUrl) {
   } catch {
     return { suspicious: false, isUgc: false };
   }
+}
+
+async function checkUrlhausThreat(targetUrl) {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    const body = new URLSearchParams({ url: targetUrl });
+    const res = await fetch('https://urlhaus-api.abuse.ch/v1/url/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    if (!res.ok) return { threat: false };
+    const data = await res.json();
+    if (data && data.query_status === 'ok') {
+      const threatType = (data.threat || 'malware_url').toString();
+      const status = (data.url_status || 'online').toString();
+      return { threat: true, reason: `urlhaus_${threatType}_${status}`, provider: 'urlhaus' };
+    }
+    return { threat: false };
+  } catch {
+    return { threat: false };
+  }
+}
+
+async function checkGoogleSafeBrowsingThreat(targetUrl) {
+  const apiKey = (process.env.GOOGLE_SAFE_BROWSING_KEY || process.env.SAFE_BROWSING_API_KEY || '').trim();
+  if (!apiKey) return { threat: false };
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    const payload = {
+      client: { clientId: 'ovlink-url-shortener', clientVersion: '1.0.0' },
+      threatInfo: {
+        threatTypes: ['MALWARE', 'SOCIAL_ENGINEERING', 'UNWANTED_SOFTWARE', 'POTENTIALLY_HARMFUL_APPLICATION'],
+        platformTypes: ['ANY_PLATFORM'],
+        threatEntryTypes: ['URL'],
+        threatEntries: [{ url: targetUrl }]
+      }
+    };
+    const res = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${encodeURIComponent(apiKey)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    if (!res.ok) return { threat: false };
+    const data = await res.json();
+    if (data && Array.isArray(data.matches) && data.matches.length > 0) {
+      const match = data.matches[0];
+      return { threat: true, reason: `google_${(match.threatType || 'threat').toLowerCase()}`, provider: 'google_safebrowsing' };
+    }
+    return { threat: false };
+  } catch {
+    return { threat: false };
+  }
+}
+
+async function checkVirusTotalThreat(targetUrl) {
+  const apiKey = (process.env.VIRUSTOTAL_API_KEY || '').trim();
+  if (!apiKey) return { threat: false };
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    const urlId = Buffer.from(targetUrl).toString('base64url');
+    const res = await fetch(`https://www.virustotal.com/api/v3/urls/${urlId}`, {
+      method: 'GET',
+      headers: { 'x-apikey': apiKey },
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    if (!res.ok) return { threat: false };
+    const data = await res.json();
+    const stats = data && data.data && data.data.attributes && data.data.attributes.last_analysis_stats;
+    if (stats && (stats.malicious >= 1 || (stats.malicious + stats.suspicious) >= 2)) {
+      return { threat: true, reason: `virustotal_malicious_${stats.malicious}`, provider: 'virustotal' };
+    }
+    return { threat: false };
+  } catch {
+    return { threat: false };
+  }
+}
+
+async function checkLiveThreat(targetUrl) {
+  if (!targetUrl) return { threat: false };
+
+  const cached = threatCache.get(targetUrl);
+  if (cached && (Date.now() - cached.checkedAt < THREAT_CACHE_TTL_MS)) {
+    return cached;
+  }
+
+  // 1. Check live URLhaus (abuse.ch free API - 0 RAM)
+  const uhResult = await checkUrlhausThreat(targetUrl);
+  if (uhResult && uhResult.threat) {
+    if (threatCache.size >= THREAT_CACHE_MAX_ENTRIES) {
+      const oldestKey = threatCache.keys().next().value;
+      if (oldestKey) threatCache.delete(oldestKey);
+    }
+    threatCache.set(targetUrl, { ...uhResult, checkedAt: Date.now() });
+    return uhResult;
+  }
+
+  // 2. Check Google Safe Browsing if key configured
+  const gsbResult = await checkGoogleSafeBrowsingThreat(targetUrl);
+  if (gsbResult && gsbResult.threat) {
+    if (threatCache.size >= THREAT_CACHE_MAX_ENTRIES) {
+      const oldestKey = threatCache.keys().next().value;
+      if (oldestKey) threatCache.delete(oldestKey);
+    }
+    threatCache.set(targetUrl, { ...gsbResult, checkedAt: Date.now() });
+    return gsbResult;
+  }
+
+  // 3. Check VirusTotal if key configured
+  const vtResult = await checkVirusTotalThreat(targetUrl);
+  if (vtResult && vtResult.threat) {
+    if (threatCache.size >= THREAT_CACHE_MAX_ENTRIES) {
+      const oldestKey = threatCache.keys().next().value;
+      if (oldestKey) threatCache.delete(oldestKey);
+    }
+    threatCache.set(targetUrl, { ...vtResult, checkedAt: Date.now() });
+    return vtResult;
+  }
+
+  // 4. Fallback Heuristics
+  const localCheck = isSuspiciousOrPhishingUrl(targetUrl);
+  const finalResult = localCheck && localCheck.suspicious
+    ? { threat: true, reason: localCheck.reason, provider: 'heuristic' }
+    : { threat: false, provider: 'none' };
+
+  if (threatCache.size >= THREAT_CACHE_MAX_ENTRIES) {
+    const oldestKey = threatCache.keys().next().value;
+    if (oldestKey) threatCache.delete(oldestKey);
+  }
+  threatCache.set(targetUrl, { ...finalResult, checkedAt: Date.now() });
+  return finalResult;
 }
 
 function quarantineUrlByShort(shortCode, reason, triggerSource = 'safety_scanner') {
@@ -9243,11 +9386,11 @@ function quarantineUrlByShort(shortCode, reason, triggerSource = 'safety_scanner
 
 function scanUrlAsync(shortCode, originalUrl, userId) {
   if (!shortCode || !originalUrl) return;
-  setImmediate(() => {
+  setImmediate(async () => {
     try {
-      const check = isSuspiciousOrPhishingUrl(originalUrl);
-      if (check && check.suspicious) {
-        quarantineUrlByShort(shortCode, check.reason || 'phishing_pattern', 'async_creation_scan');
+      const check = await checkLiveThreat(originalUrl);
+      if (check && check.threat) {
+        quarantineUrlByShort(shortCode, check.reason || 'threat_detected', check.provider || 'async_creation_scan');
       }
     } catch (err) {
       console.warn('[safety-scanner] Async scan error:', err && (err.message || err));
@@ -9265,7 +9408,7 @@ function runWeeklySafetyScan() {
     db.all(
       'SELECT id, short, original, user_id FROM urls WHERE id > ? AND (disabled = 0 OR disabled IS NULL) ORDER BY id ASC LIMIT ?',
       [lastId, batchSize],
-      (err, rows) => {
+      async (err, rows) => {
         if (err || !Array.isArray(rows) || rows.length === 0) {
           console.log('[safety-scanner] Weekly safety sweep complete.');
           return;
@@ -9274,10 +9417,12 @@ function runWeeklySafetyScan() {
         for (const item of rows) {
           lastId = Math.max(lastId, item.id);
           if (!item.original) continue;
-          const check = isSuspiciousOrPhishingUrl(item.original);
-          if (check && check.suspicious) {
-            quarantineUrlByShort(item.short, check.reason || 'periodic_safety_scan', 'weekly_cron');
-          }
+          try {
+            const check = await checkLiveThreat(item.original);
+            if (check && check.threat) {
+              quarantineUrlByShort(item.short, check.reason || 'periodic_safety_scan', check.provider || 'weekly_cron');
+            }
+          } catch {}
         }
 
         setTimeout(fetchNextBatch, intervalMs);
@@ -12147,6 +12292,10 @@ module.exports = {
     isReservedShortAlias,
     normalizeCustomDomainInput,
     isSuspiciousOrPhishingUrl,
+    checkLiveThreat,
+    checkUrlhausThreat,
+    checkGoogleSafeBrowsingThreat,
+    checkVirusTotalThreat,
     quarantineUrlByShort,
     scanUrlAsync,
     runWeeklySafetyScan,
