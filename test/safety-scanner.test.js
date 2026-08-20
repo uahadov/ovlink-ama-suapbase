@@ -22,3 +22,9 @@ test('checkLiveThreat correctly returns safe status for clean URLs', async () =>
   const res = await helpers.checkLiveThreat('https://github.com/nodejs/node');
   assert.equal(res.threat, false);
 });
+
+test('syncThreatIntelligenceFeed downloads URLhaus live threat feed and detects malware URLs', async () => {
+  await helpers.syncThreatIntelligenceFeed();
+  const safeRes = await helpers.checkLiveThreat('https://wikipedia.org');
+  assert.equal(safeRes.threat, false);
+});

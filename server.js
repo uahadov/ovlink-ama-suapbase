@@ -9142,16 +9142,59 @@ app.post('/api/notifications/delete-all', (req, res) => {
 
 // Internal heuristics (regex/extensions) have been removed. We now strictly rely on live external APIs for threat detection.
 
+// Threat Intelligence Feed (URLhaus live sync - 100% free, no API key required)
+const threatUrlSet = new Set();
+const threatHostSet = new Set();
+let lastThreatFeedSync = 0;
+const THREAT_FEED_SYNC_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours
+
 const threatCache = new Map();
 const THREAT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const THREAT_CACHE_MAX_ENTRIES = 5000;
 
+async function syncThreatIntelligenceFeed() {
+  try {
+    const res = await fetch('https://urlhaus.abuse.ch/downloads/text_online/', {
+      signal: AbortSignal.timeout(10000)
+    });
+    if (res.ok) {
+      const text = await res.text();
+      const lines = text.split('\n');
+      const newUrls = new Set();
+      const newHosts = new Set();
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        newUrls.add(trimmed.toLowerCase());
+        try {
+          const u = new URL(trimmed);
+          if (u.hostname) newHosts.add(u.hostname.toLowerCase());
+        } catch {}
+      }
+      if (newUrls.size > 0) {
+        threatUrlSet.clear();
+        threatHostSet.clear();
+        for (const u of newUrls) threatUrlSet.add(u);
+        for (const h of newHosts) threatHostSet.add(h);
+        lastThreatFeedSync = Date.now();
+        console.log(`[threat-intel] Successfully synced ${threatUrlSet.size} active malware URLs from URLhaus.`);
+      }
+    }
+  } catch (err) {
+    console.warn('[threat-intel] Feed sync warning:', err && err.message);
+  }
+}
+
 async function checkUrlhausThreat(targetUrl) {
+  const authKey = (process.env.URLHAUS_AUTH_KEY || process.env.URLHAUS_API_KEY || '').trim();
   try {
     const body = new URLSearchParams({ url: targetUrl });
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    if (authKey) headers['Auth-Key'] = authKey;
+
     const res = await fetch('https://urlhaus-api.abuse.ch/v1/url/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers,
       body: body.toString(),
       signal: AbortSignal.timeout(4000)
     });
@@ -9160,7 +9203,7 @@ async function checkUrlhausThreat(targetUrl) {
     if (data && data.query_status === 'ok') {
       const threatType = (data.threat || 'malware_url').toString();
       const status = (data.url_status || 'online').toString();
-      return { threat: true, reason: `urlhaus_${threatType}_${status}`, provider: 'urlhaus' };
+      return { threat: true, reason: `urlhaus_${threatType}_${status}`, provider: 'urlhaus_api' };
     }
     return { threat: false };
   } catch {
@@ -9224,12 +9267,24 @@ async function checkVirusTotalThreat(targetUrl) {
 async function checkLiveThreat(targetUrl) {
   if (!targetUrl) return { threat: false };
 
+  const normalized = targetUrl.trim().toLowerCase();
+  let targetHostname = '';
+  try {
+    targetHostname = new URL(targetUrl).hostname.toLowerCase();
+  } catch {}
+
+  // 1. Direct Live Threat Feed Match (URLhaus online dataset)
+  if (threatUrlSet.has(normalized) || (targetHostname && threatHostSet.has(targetHostname))) {
+    return { threat: true, reason: 'urlhaus_active_malware', provider: 'urlhaus_live_feed' };
+  }
+
+  // 2. Cache Check
   const cached = threatCache.get(targetUrl);
   if (cached && (Date.now() - cached.checkedAt < THREAT_CACHE_TTL_MS)) {
     return cached;
   }
 
-  // 1. Check live URLhaus (abuse.ch free API - 0 RAM)
+  // 3. Check URLhaus API (if auth key provided)
   const uhResult = await checkUrlhausThreat(targetUrl);
   if (uhResult && uhResult.threat) {
     if (threatCache.size >= THREAT_CACHE_MAX_ENTRIES) {
@@ -9240,7 +9295,7 @@ async function checkLiveThreat(targetUrl) {
     return uhResult;
   }
 
-  // 2. Check Google Safe Browsing if key configured
+  // 4. Check Google Safe Browsing if key configured
   const gsbResult = await checkGoogleSafeBrowsingThreat(targetUrl);
   if (gsbResult && gsbResult.threat) {
     if (threatCache.size >= THREAT_CACHE_MAX_ENTRIES) {
@@ -9251,7 +9306,7 @@ async function checkLiveThreat(targetUrl) {
     return gsbResult;
   }
 
-  // 3. Check VirusTotal if key configured
+  // 5. Check VirusTotal if key configured
   const vtResult = await checkVirusTotalThreat(targetUrl);
   if (vtResult && vtResult.threat) {
     if (threatCache.size >= THREAT_CACHE_MAX_ENTRIES) {
@@ -9262,7 +9317,7 @@ async function checkLiveThreat(targetUrl) {
     return vtResult;
   }
 
-  // 4. If all APIs return safe (or no APIs are configured), allow the URL.
+  // 6. Safe
   const finalResult = { threat: false, provider: 'none' };
 
   if (threatCache.size >= THREAT_CACHE_MAX_ENTRIES) {
@@ -12202,6 +12257,8 @@ app.use((err, req, res, next) => {
 if (require.main === module) {
   (async () => {
     await ensureRedisConnected();
+    syncThreatIntelligenceFeed();
+    setInterval(syncThreatIntelligenceFeed, THREAT_FEED_SYNC_INTERVAL_MS).unref();
     scheduleWeeklySafetyScan();
     app.listen(PORT, () => {});
   })().catch((err) => {
@@ -12217,6 +12274,7 @@ module.exports = {
     normalizeShortCode,
     isReservedShortAlias,
     normalizeCustomDomainInput,
+    syncThreatIntelligenceFeed,
     checkLiveThreat,
     checkUrlhausThreat,
     checkGoogleSafeBrowsingThreat,
