@@ -8176,11 +8176,6 @@ app.post('/api/pro/v1/shorten', authenticateProApiKey, trackProApiUsage, proWrit
     return res.status(400).json({ error: 'Invalid original_url.' });
   }
 
-  const securityCheck = isSuspiciousOrPhishingUrl(originalAbs);
-  if (securityCheck.suspicious) {
-    return res.status(403).json({ error: 'Security warning: Malicious or phishing link detected.' });
-  }
-
   if (!Number.isInteger(ownerId) || ownerId <= 0) {
     return res.status(401).json({ error: 'Unauthorized.' });
   }
@@ -8359,6 +8354,10 @@ app.post('/api/pro/v1/shorten', authenticateProApiKey, trackProApiUsage, proWrit
     if (idempotencyState && idempotencyState.recordId) {
       await finalizeApiIdempotencyRecord(idempotencyState.recordId, 201, responsePayload);
     }
+    scanUrlAsync(short, originalAbs, ownerId);
+    if (originalBAbs) scanUrlAsync(short, originalBAbs, ownerId);
+    if (iosUrlAbs) scanUrlAsync(short, iosUrlAbs, ownerId);
+    if (androidUrlAbs) scanUrlAsync(short, androidUrlAbs, ownerId);
     return res.status(201).json(responsePayload);
   } catch (err) {
     if (idempotencyState && idempotencyState.recordId) {
@@ -9447,11 +9446,6 @@ app.post('/api/shorten',
       return res.status(400).json({ error: pickLang(uiLang, 'Zəhmət olmasa düzgün bir URL daxil edin.', 'Lütfen geçerli bir URL girin.', 'Please enter a valid URL.') });
     }
 
-    const securityCheck = isSuspiciousOrPhishingUrl(originalAbs);
-    if (securityCheck.suspicious) {
-      return res.status(403).json({ error: pickLang(uiLang, 'Təhlükəsizlik xəbərdarlığı: Zərərli və ya fişinq bağlantısı təsbit edildi.', 'Güvenlik uyarısı: Kötü amaçlı veya oltalama (phishing) bağlantısı tespit edildi.', 'Security warning: Malicious or phishing link detected.') });
-    }
-
     const expiresValidation = normalizeFutureExpiryInput(expires_at);
     if (expiresValidation.error === 'invalid') {
       return res.status(400).json({ error: pickLang(uiLang, 'Bitmə tarixi etibarlı deyil.', 'Bitiş tarihi geçersiz.', 'Expiration date is invalid.') });
@@ -10497,18 +10491,6 @@ app.post('/api/user/link/update', (req, res) => {
   if (!short || !originalAbs) {
     return res.status(400).json({
       error: pickLang(uiLang, 'Düzgün qısa kod və URL daxil edin.', 'Geçerli kısa kod ve URL girin.', 'Enter a valid short code and URL.')
-    });
-  }
-
-  const securityCheck = isSuspiciousOrPhishingUrl(originalAbs);
-  if (securityCheck && securityCheck.suspicious) {
-    return res.status(403).json({
-      error: pickLang(
-        uiLang,
-        'Təhlükəsizlik xəbərdarlığı: Daxil edilmiş yeni URL zərərli və ya fişinq kimi təsbit edildi.',
-        'Güvenlik uyarısı: Girilen yeni URL kötü amaçlı veya oltalama olarak tespit edildi.',
-        'Security warning: Entered URL was flagged as malicious or phishing.'
-      )
     });
   }
 
