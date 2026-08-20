@@ -9141,55 +9141,11 @@ app.post('/api/notifications/delete-all', (req, res) => {
    LİNK İŞLEMLERİ (Kısaltma, Yönlendirme, Şifre Koruma, QR Kod)
 ------------------------- */
 
-const UGC_HOSTNAMES = new Set([
-  'mediafire.com', 'www.mediafire.com',
-  'drive.google.com', 'docs.google.com',
-  'dropbox.com', 'www.dropbox.com',
-  'mega.nz', 'mega.io',
-  'github.com', 'raw.githubusercontent.com', 'gist.github.com',
-  'gitlab.com',
-  't.me', 'telegram.me',
-  'discord.com', 'discord.gg', 'cdn.discordapp.com'
-]);
+// Internal heuristics (regex/extensions) have been removed. We now strictly rely on live external APIs for threat detection.
 
 const threatCache = new Map();
 const THREAT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const THREAT_CACHE_MAX_ENTRIES = 5000;
-
-function isSuspiciousOrPhishingUrl(rawUrl) {
-  if (!rawUrl) return { suspicious: false };
-  try {
-    const parsed = new URL(rawUrl);
-    const hostname = parsed.hostname.toLowerCase();
-    const pathname = parsed.pathname.toLowerCase();
-    let decodedPath = pathname;
-    try { decodedPath = decodeURIComponent(pathname).toLowerCase(); } catch {}
-
-    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname) || hostname.startsWith('[') || hostname.includes('0x')) {
-      return { suspicious: true, reason: 'ip_hostname', isUgc: false };
-    }
-
-    const isUgc = UGC_HOSTNAMES.has(hostname) || Array.from(UGC_HOSTNAMES).some(h => hostname.endsWith('.' + h));
-
-    const dangerousExts = ['.exe', '.scr', '.bat', '.cmd', '.vbs', '.apk', '.pif', '.hta', '.jar', '.msi', '.ps1', '.vbe', '.wsf', '.iso'];
-    if (dangerousExts.some(ext => pathname.endsWith(ext) || decodedPath.endsWith(ext))) {
-      return { suspicious: true, reason: 'dangerous_extension', isUgc };
-    }
-
-    const phishingPatterns = [
-      /(?:free-?(?:nitro|robux|vbucks|steam|premium)|telegram-?(?:gift|premium|airdrop)|metamask-?(?:login|verify)|binance-?(?:security|verify)|paypal-?(?:login|security|update)|bank-?(?:login|verify)|login-?(?:steamcommunity|discord)|discord-?(?:nitro|app-gift))/i,
-      /(?:wallet-?(?:connect|verify|claim)|crypto-?(?:giveaway|airdrop|claim)|claim-?(?:rewards|airdrop|tokens))/i
-    ];
-    for (const pattern of phishingPatterns) {
-      if (pattern.test(hostname) || pattern.test(pathname) || pattern.test(decodedPath)) {
-        return { suspicious: true, reason: 'phishing_pattern', isUgc };
-      }
-    }
-    return { suspicious: false, isUgc };
-  } catch {
-    return { suspicious: false, isUgc: false };
-  }
-}
 
 async function checkUrlhausThreat(targetUrl) {
   try {
@@ -9307,11 +9263,8 @@ async function checkLiveThreat(targetUrl) {
     return vtResult;
   }
 
-  // 4. Fallback Heuristics
-  const localCheck = isSuspiciousOrPhishingUrl(targetUrl);
-  const finalResult = localCheck && localCheck.suspicious
-    ? { threat: true, reason: localCheck.reason, provider: 'heuristic' }
-    : { threat: false, provider: 'none' };
+  // 4. If all APIs return safe (or no APIs are configured), allow the URL.
+  const finalResult = { threat: false, provider: 'none' };
 
   if (threatCache.size >= THREAT_CACHE_MAX_ENTRIES) {
     const oldestKey = threatCache.keys().next().value;
@@ -12282,7 +12235,6 @@ module.exports = {
     normalizeShortCode,
     isReservedShortAlias,
     normalizeCustomDomainInput,
-    isSuspiciousOrPhishingUrl,
     checkLiveThreat,
     checkUrlhausThreat,
     checkGoogleSafeBrowsingThreat,
