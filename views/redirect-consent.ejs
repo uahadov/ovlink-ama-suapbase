@@ -151,6 +151,10 @@
           body: body.toString(),
           redirect: 'manual'
         }).then(function (resp) {
+          if (decision === 'no') {
+            window.location.href = consentUrl + '?view=declined';
+            return;
+          }
           // Cookie is now set. Navigate to the short URL which will redirect to target.
           var targetPath = nextAction === 'proceed'
             ? '/proceed/' + encodeURIComponent(shortCode)

@@ -254,7 +254,8 @@ function isFreeUpsellEligible() {
 
 function updatePricingBuyCta() {
   const btn = document.getElementById("pricingBuyBtn");
-  if (!btn) return;
+  if (!btn || btn.dataset.buyAttached === "1") return;
+  btn.dataset.buyAttached = "1";
 
   btn.addEventListener("click", async (e) => {
     e.preventDefault();

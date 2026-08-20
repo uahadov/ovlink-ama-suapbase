@@ -1,5 +1,7 @@
 const homeTranslations = {
   az: {
+    ws_title: "Workspace",
+    bot_auth_title: "Bot Doğrulaması",
     nav_login: "Giriş",
     nav_register: "Qeydiyyat",
     nav_pricing: "Pro Plan",
@@ -121,6 +123,8 @@ const homeTranslations = {
     error_link_not_found: "Belə bir link tapılmadı."
   },
   tr: {
+    ws_title: "Workspace",
+    bot_auth_title: "Bot Doğrulama",
     nav_login: "Giriş",
     nav_register: "Kayıt",
     nav_pricing: "Pro Plan",
@@ -242,6 +246,8 @@ const homeTranslations = {
     error_link_not_found: "Böyle bir link bulunamadı."
   },
   en: {
+    ws_title: "Workspace",
+    bot_auth_title: "Bot Authentication",
     nav_login: "Login",
     nav_register: "Register",
     nav_pricing: "Pro Plan",

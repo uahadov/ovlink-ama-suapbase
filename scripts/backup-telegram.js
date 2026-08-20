@@ -8,7 +8,7 @@
  */
 
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const fs   = require('fs');
 const path = require('path');
 const https = require('https');
@@ -36,19 +36,23 @@ async function main() {
 
   // 1. pg_dump
   try {
-    execSync(`pg_dump "${DB_URL}" --format=custom --file="${dumpFile}"`, {
+    const result = spawnSync('pg_dump', [DB_URL, '--format=custom', `--file=${dumpFile}`], {
       stdio: ['ignore', 'ignore', 'pipe'],
     });
+    if (result.error) throw result.error;
+    if (result.status !== 0) throw new Error(result.stderr?.toString() || `Exit code ${result.status}`);
     console.log('[backup] ✅ pg_dump tamamlandı');
   } catch (err) {
-    console.error('[backup] ❌ pg_dump hatası:', err.stderr?.toString() || err.message);
+    console.error('[backup] ❌ pg_dump hatası:', err.message);
     await sendAlert(`❌ *Ovlink DB Yedeği BAŞARISIZ*\n📅 ${date}\n\nHata: pg_dump başarısız`);
     process.exit(1);
   }
 
   // 2. Gzip
   try {
-    execSync(`gzip -f "${dumpFile}"`);
+    const result = spawnSync('gzip', ['-f', dumpFile]);
+    if (result.error) throw result.error;
+    if (result.status !== 0) throw new Error(`Exit code ${result.status}`);
     console.log('[backup] ✅ Gzip tamamlandı');
   } catch (err) {
     console.error('[backup] ❌ gzip hatası:', err.message);

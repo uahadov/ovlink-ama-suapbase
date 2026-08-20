@@ -1049,9 +1049,9 @@ module.exports = function createAdminRouter(db, options = {}) {
     const params = [];
 
     if (q) {
-      where.push('(LOWER(u.short) LIKE ? OR LOWER(u.original) LIKE ? OR usr.email_hash = ? OR LOWER(usr.email) LIKE ?)');
+      where.push('(LOWER(u.short) LIKE ? OR LOWER(u.original) LIKE ? OR usr.email_hash = ?)');
       const like = '%' + q.toLowerCase() + '%';
-      params.push(like, like, blindIndex(q), like);
+      params.push(like, like, blindIndex(q));
     }
 
     if (status === 'disabled') where.push('u.disabled = 1');
@@ -1175,9 +1175,16 @@ module.exports = function createAdminRouter(db, options = {}) {
     const url = await get('SELECT id, original FROM urls WHERE short = ?', [short]);
     if (!url) return res.redirect(back);
 
-    await run('DELETE FROM clicks WHERE url_id = ?', [url.id]);
-    await run('DELETE FROM reports WHERE short = ?', [short]);
-    await run('DELETE FROM urls WHERE id = ?', [url.id]);
+    try {
+      await run('BEGIN');
+      await run('DELETE FROM clicks WHERE url_id = ?', [url.id]);
+      await run('DELETE FROM reports WHERE short = ?', [short]);
+      await run('DELETE FROM urls WHERE id = ?', [url.id]);
+      await run('COMMIT');
+    } catch (err) {
+      await run('ROLLBACK').catch(() => {});
+      throw err;
+    }
 
     await audit(req, 'DELETE_LINK', 'url', short, { original: url.original });
     return res.redirect(back);
@@ -1269,8 +1276,8 @@ module.exports = function createAdminRouter(db, options = {}) {
     const params = [];
 
     if (q) {
-      where.push('(u.email_hash = ? OR LOWER(u.email) LIKE ?)');
-      params.push(blindIndex(q), '%' + q + '%');
+      where.push('u.email_hash = ?');
+      params.push(blindIndex(q));
     }
 
     if (status === 'banned') {

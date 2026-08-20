@@ -191,6 +191,10 @@ const db = {
         converted = converted.replace(/INSERT OR REPLACE INTO/gi, 'INSERT INTO');
       }
     }
+
+    if (converted.toUpperCase().match(/^INSERT\s/i) && !converted.toUpperCase().includes('RETURNING')) {
+      converted = converted + ' RETURNING *';
+    }
     
     // Cache the result
     if (_sqlCache.size >= _SQL_CACHE_MAX) {
@@ -215,36 +219,34 @@ const db = {
     const task = this._queue.shift();
     const pgSql = this.convertSql(task.sql);
     
-    // Catch-all query execution
-    pool.query(pgSql, task.params, (err, res) => {
-      if (err) {
-        console.error('[db error] Message:', err.message, '| SQL:', task.sql);
-        sendOpsAlert('db_error:' + (err.code || err.message || '').toString().slice(0, 40), 'Database error', `${err.message}\nSQL: ${String(task.sql || '').slice(0, 300)}`);
-      }
-      
-      this._isSerializing = true;
-      try {
+      // Catch-all query execution
+      pool.query(pgSql, task.params, (err, res) => {
         if (err) {
-          if (task.callback) task.callback(err);
-        } else {
-          if (task.type === 'get') {
-            if (task.callback) task.callback(null, res.rows[0]);
-          } else if (task.type === 'all') {
-            if (task.callback) task.callback(null, res.rows);
-          } else if (task.type === 'run') {
-            const context = {
-              lastID: res && res.rows && res.rows[0] ? res.rows[0].id : null,
-              changes: res ? res.rowCount : 0
-            };
-            if (task.callback) task.callback.call(context, null);
-          }
+          console.error('[db error] Message:', err.message, '| SQL:', task.sql);
+          sendOpsAlert('db_error:' + (err.code || err.message || '').toString().slice(0, 40), 'Database error', `${err.message}\nSQL: ${String(task.sql || '').slice(0, 300)}`);
         }
-      } finally {
-        this._isSerializing = false;
-        // Process next query
-        this._processQueue();
-      }
-    });
+        
+        try {
+          if (err) {
+            if (task.callback) task.callback(err);
+          } else {
+            if (task.type === 'get') {
+              if (task.callback) task.callback(null, res.rows[0]);
+            } else if (task.type === 'all') {
+              if (task.callback) task.callback(null, res.rows);
+            } else if (task.type === 'run') {
+              const context = {
+                lastID: res && res.rows && res.rows[0] ? res.rows[0].id : null,
+                changes: res ? res.rowCount : 0
+              };
+              if (task.callback) task.callback.call(context, null);
+            }
+          }
+        } finally {
+          // Process next query
+          this._processQueue();
+        }
+      });
   },
 
   get(sql, params, callback) {
@@ -1486,6 +1488,16 @@ function buildCustomDomainPayload(row) {
   if (!row) return null;
   const domain = normalizeHostName(row.domain);
   const txtHost = getCustomDomainTxtHost(domain);
+  
+  let txtValue = row.verification_token || '';
+  try {
+    if (txtValue.includes(':')) {
+      txtValue = decryptAES256GCM(txtValue);
+    }
+  } catch (e) {
+    // Fallback to raw value if it was not encrypted
+  }
+
   return {
     id: row.id,
     domain,
@@ -1496,7 +1508,7 @@ function buildCustomDomainPayload(row) {
     routing_ok: row.routing_ok == 1,
     verification: {
       txt_host: txtHost,
-      txt_value: decryptAES256GCM(row.verification_token),
+      txt_value: txtValue,
       cname_target: getCustomDomainTargetHost(),
     }
   };
@@ -4039,7 +4051,7 @@ app.use((req, res, next) => {
   if (req.method === 'POST' && isServerWebhookRoute(req.path)) return next();
   if (req.method === 'POST' && isSamlAcsRoute(req.path)) return next();
   const hasApiKeyHeader = hasApiKeyAuthHeader(req);
-  if (hasApiKeyHeader) return next();
+  if (req.path.startsWith('/api/') && hasApiKeyHeader) return next();
   return csrfProtection(req, res, next);
 });
 
@@ -8549,7 +8561,7 @@ app.post('/api/domains/add', (req, res) => {
       });
     }
 
-    const token = crypto.randomBytes(20).toString('hex');
+    const token = encryptAES256GCM(crypto.randomBytes(20).toString('hex'));
     const now = new Date().toISOString();
     db.run(
       'INSERT INTO custom_domains (user_id, domain, status, verification_token, created_at, routing_ok) VALUES (?, ?, ?, ?, ?, 0)',
@@ -9932,8 +9944,8 @@ ${announcementHtml}
       `);
     }
 
-    // 5. Tracking (Klik qeydiyyatı) — analytics mode by default
-    recordClickEvent(req, row, REDIRECT_CONSENT_MODES.ANALYTICS);
+    // 5. Tracking (Klik qeydiyyatı)
+    recordClickEvent(req, row, consentMode);
 
     // 6. Final Yönlendirmə (Cihaz Hedefleme ve A/B Testi)
     const targetUrl = resolveFinalRedirectUrl(req, row);
@@ -10232,7 +10244,7 @@ app.post('/verify/:short', sensitiveActionLimiter, (req, res) => {
             }
           }
           // Tıklama kaydı ekle
-          recordClickEvent(req, row, REDIRECT_CONSENT_MODES.ANALYTICS);
+          recordClickEvent(req, row, consentMode);
 
           return res.json({ success: true, redirect: targetUrl });
         }
@@ -10408,13 +10420,20 @@ function handleStatsApiRequest(req, res, rawShort) {
       // Sort Time Stats chronologically
       const sortedKeys = Object.keys(stats.clicks_over_time)
         .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-      const sortedTimeStats = {};
-      sortedKeys.forEach(k => {
-        sortedTimeStats[k] = stats.clicks_over_time[k];
-      });
-      stats.clicks_over_time = sortedTimeStats;
+      
+      const clicks_by_day = sortedKeys.map(k => ({
+        date: k,
+        count: stats.clicks_over_time[k]
+      }));
 
-      res.json(stats);
+      res.json({
+        ...stats,
+        short: url.short,
+        original: url.original,
+        created_at: url.created_at,
+        clicks_total: stats.total_clicks,
+        clicks_by_day: clicks_by_day
+      });
     });
   });
 }
@@ -11140,11 +11159,18 @@ app.delete('/api/workspaces/:id', requireSignedIn, async (req, res) => {
   const workspaceId = ctx.workspace.id;
   // Workspace links fall back to their creator's personal scope; redirects
   // never break.
-  await dbRunAsync('UPDATE urls SET workspace_id = NULL WHERE workspace_id = ?', [workspaceId]);
-  await dbRunAsync('DELETE FROM sso_connections WHERE workspace_id = ?', [workspaceId]);
-  await dbRunAsync('DELETE FROM workspace_invitations WHERE workspace_id = ?', [workspaceId]);
-  await dbRunAsync('DELETE FROM workspace_members WHERE workspace_id = ?', [workspaceId]);
-  await dbRunAsync('DELETE FROM workspaces WHERE id = ?', [workspaceId]);
+  try {
+    await dbRunAsync('BEGIN');
+    await dbRunAsync('UPDATE urls SET workspace_id = NULL WHERE workspace_id = ?', [workspaceId]);
+    await dbRunAsync('DELETE FROM sso_connections WHERE workspace_id = ?', [workspaceId]);
+    await dbRunAsync('DELETE FROM workspace_invitations WHERE workspace_id = ?', [workspaceId]);
+    await dbRunAsync('DELETE FROM workspace_members WHERE workspace_id = ?', [workspaceId]);
+    await dbRunAsync('DELETE FROM workspaces WHERE id = ?', [workspaceId]);
+    await dbRunAsync('COMMIT');
+  } catch (err) {
+    await dbRunAsync('ROLLBACK').catch(() => {});
+    throw err;
+  }
   logSecurityEvent(req, 'workspace.deleted', 'success', { workspace_id: workspaceId });
   return res.json({ deleted: true });
 });
@@ -11675,7 +11701,7 @@ app.get('/dashboard', (req, res) => {
 
       const filter = (req.query && req.query.filter || 'all').toString();
       if (filter === 'reported') whereClauses.push('reports > 0');
-      else if (filter === 'password') whereClauses.push('(link_password IS NOT NULL AND link_password != "")');
+      else if (filter === 'password') whereClauses.push('(link_password IS NOT NULL AND link_password != \'\')');
       else if (filter === 'disabled') whereClauses.push('disabled = 1');
 
       const folder = (req.query && req.query.folder || 'all').toString();
@@ -12275,6 +12301,15 @@ if (require.main === module) {
     syncThreatIntelligenceFeed();
     setInterval(syncThreatIntelligenceFeed, THREAT_FEED_SYNC_INTERVAL_MS).unref();
     scheduleWeeklySafetyScan();
+    
+    await new Promise(resolve => {
+      const check = () => {
+         if (!db._isSerializing && db._queue.length === 0 && !db._isProcessingQueue) resolve();
+         else setTimeout(check, 50);
+      };
+      check();
+    });
+
     app.listen(PORT, () => {});
   })().catch((err) => {
     console.error('[startup] fatal error before listen', err && (err.message || err));

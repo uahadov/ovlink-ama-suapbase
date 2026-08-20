@@ -1,5 +1,6 @@
 const translations = {
     az: {
+        bot_auth_title: "Bot Doğrulaması",
         navbar_brand: "Ovlink - URL Qısaltma",
         hero_badge: "Ovlink - Yeni nəsil link menecmenti",
         nav_home: "Ana Səhifə",

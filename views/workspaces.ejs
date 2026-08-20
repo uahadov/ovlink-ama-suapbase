@@ -55,7 +55,7 @@
         <div id="wsCreateSection" class="policy-card app-card d-none">
           <h5 class="mb-3 fw-bold"><i class="fa-solid fa-plus me-2"></i><span data-i18n="ws_create_title">Workspace yarat</span></h5>
           <p class="small text-muted" data-i18n="ws_create_desc">Bir workspace yaradın, komandanızı dəvət edin və eyni hesab üzərindən birgə link yaradın.</p>
-          <form id="wsCreateForm" class="row g-2 align-items-end" onsubmit="return false;">
+          <form id="wsCreateForm" class="row g-2 align-items-end">
             <div class="col-12 col-md-8">
               <label class="form-label small fw-bold text-muted" for="wsCreateName" data-i18n="ws_create_name_label">Workspace adı</label>
               <input id="wsCreateName" class="form-control" type="text" maxlength="64" placeholder="Şirkətim" data-i18n-placeholder="ws_create_name_placeholder">
@@ -84,7 +84,7 @@
             
             <div id="wsProWarning" class="alert alert-warning mt-4 mb-0 py-2 small d-none" data-i18n="ws_owner_pro_expired"><i class="fa-solid fa-triangle-exclamation me-2"></i>Sahibin Pro abunəliyi bitib — workspace yalnız oxuma rejimindədir.</div>
             
-            <form id="wsRenameForm" class="row g-2 mt-4 d-none" onsubmit="return false;">
+            <form id="wsRenameForm" class="row g-2 mt-4 d-none">
               <div class="col-12 col-md-8">
                 <input id="wsRenameInput" class="form-control" type="text" maxlength="64">
               </div>
@@ -144,7 +144,7 @@
           <!-- Dəvət -->
           <div class="policy-card app-card mb-4 d-none" id="wsInviteCard">
             <h5 class="mb-3 fw-bold"><i class="fa-solid fa-paper-plane me-2 text-primary"></i><span data-i18n="ws_invite_title">Üzv dəvət et</span></h5>
-            <form id="wsInviteForm" class="row g-2 align-items-end" onsubmit="return false;">
+            <form id="wsInviteForm" class="row g-2 align-items-end">
               <div class="col-12 col-md-6">
                 <label class="form-label small fw-bold text-muted" for="wsInviteEmail" data-i18n="ws_invite_email_label">E-poçt</label>
                 <input id="wsInviteEmail" class="form-control" type="email" placeholder="istifadeci@sirket.com" data-i18n-placeholder="ws_invite_email_placeholder" required>
@@ -172,7 +172,7 @@
             <h5 class="mb-3 fw-bold"><i class="fa-solid fa-shield-halved me-2 text-primary"></i><span data-i18n="ws_sso_title">SSO (SAML 2.0)</span></h5>
             <p class="small text-muted" data-i18n="ws_sso_desc">Okta və ya digər SAML 2.0 IdP metadata XML-i əlavə edin; komandanız korporativ girişlə daxil ola bilər.</p>
             <div id="wsSsoStatusWrap" class="small mb-3"></div>
-            <form id="wsSsoForm" class="d-none" onsubmit="return false;">
+            <form id="wsSsoForm" class="d-none">
               <div class="mb-3">
                 <label class="form-label small fw-bold text-muted" for="wsSsoMetadata" data-i18n="ws_sso_metadata_label">IdP Metadata XML</label>
                 <textarea id="wsSsoMetadata" class="form-control font-monospace" rows="6" placeholder='<EntityDescriptor ...>'></textarea>
