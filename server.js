@@ -9193,16 +9193,13 @@ function isSuspiciousOrPhishingUrl(rawUrl) {
 
 async function checkUrlhausThreat(targetUrl) {
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4000);
     const body = new URLSearchParams({ url: targetUrl });
     const res = await fetch('https://urlhaus-api.abuse.ch/v1/url/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
-      signal: controller.signal
+      signal: AbortSignal.timeout(4000)
     });
-    clearTimeout(timer);
     if (!res.ok) return { threat: false };
     const data = await res.json();
     if (data && data.query_status === 'ok') {
@@ -9220,8 +9217,6 @@ async function checkGoogleSafeBrowsingThreat(targetUrl) {
   const apiKey = (process.env.GOOGLE_SAFE_BROWSING_KEY || process.env.SAFE_BROWSING_API_KEY || '').trim();
   if (!apiKey) return { threat: false };
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4000);
     const payload = {
       client: { clientId: 'ovlink-url-shortener', clientVersion: '1.0.0' },
       threatInfo: {
@@ -9235,9 +9230,8 @@ async function checkGoogleSafeBrowsingThreat(targetUrl) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-      signal: controller.signal
+      signal: AbortSignal.timeout(4000)
     });
-    clearTimeout(timer);
     if (!res.ok) return { threat: false };
     const data = await res.json();
     if (data && Array.isArray(data.matches) && data.matches.length > 0) {
@@ -9254,15 +9248,12 @@ async function checkVirusTotalThreat(targetUrl) {
   const apiKey = (process.env.VIRUSTOTAL_API_KEY || '').trim();
   if (!apiKey) return { threat: false };
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4000);
     const urlId = Buffer.from(targetUrl).toString('base64url');
     const res = await fetch(`https://www.virustotal.com/api/v3/urls/${urlId}`, {
       method: 'GET',
       headers: { 'x-apikey': apiKey },
-      signal: controller.signal
+      signal: AbortSignal.timeout(4000)
     });
-    clearTimeout(timer);
     if (!res.ok) return { threat: false };
     const data = await res.json();
     const stats = data && data.data && data.data.attributes && data.data.attributes.last_analysis_stats;
