@@ -1918,6 +1918,14 @@ function initScriptApp() {
       || isLoggedIn;
     if (shouldLoadNotifications) {
       tasks.push(loadNotifications());
+      if (isLoggedIn && !window.__notifPollerActive) {
+        window.__notifPollerActive = true;
+        setInterval(() => {
+          if (document.visibilityState === "visible" && getClientSession().isLoggedIn) {
+            loadNotifications().catch(() => {});
+          }
+        }, 25000);
+      }
     }
 
     await Promise.allSettled(tasks);
@@ -2522,6 +2530,8 @@ if (document.readyState === "loading") {
           window.setTimeout(() => {
             closeModalById("dashboardEditLinkModal");
           }, 400);
+          setTimeout(() => loadNotifications().catch(() => {}), 1200);
+          setTimeout(() => loadNotifications().catch(() => {}), 3500);
         } catch (err) {
           if (msgEl) {
             msgEl.className = "small text-danger";
@@ -4112,6 +4122,11 @@ function initShorten() {
       if (resultDiv) {
         resultDiv.classList.remove("hidden", "d-none");
         resultDiv.style.display = "block";
+      }
+
+      if (getClientSession().isLoggedIn) {
+        setTimeout(() => loadNotifications().catch(() => {}), 1200);
+        setTimeout(() => loadNotifications().catch(() => {}), 3500);
       }
     } catch (err) {
       const el = document.getElementById("shortenFeedback") || feedbackEl;

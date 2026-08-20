@@ -8,6 +8,9 @@ const homeTranslations = {
     dashboard_stats_link: "Statistika",
     profile_settings_title: "Profil Parametrləri",
     notif_center_title: "Bildiriş Mərkəzi",
+    notif_unread_count: "Oxunmamış",
+    notif_short_label: "Qısa link:",
+    notif_original_label: "Orijinal link:",
 
     hero_badge: "Ovlink - Yeni nəsil link menecmenti",
     hero_title_line1: "Qısaldın və İdarə Edin",
@@ -126,6 +129,9 @@ const homeTranslations = {
     dashboard_stats_link: "İstatistik",
     profile_settings_title: "Profil Ayarları",
     notif_center_title: "Bildirim Merkezi",
+    notif_unread_count: "Okunmamış",
+    notif_short_label: "Kısa link:",
+    notif_original_label: "Orijinal link:",
 
     hero_badge: "Ovlink - Yeni nesil link yönetimi",
     hero_title_line1: "Kısaltın ve Yönetin",
@@ -244,6 +250,9 @@ const homeTranslations = {
     dashboard_stats_link: "Statistics",
     profile_settings_title: "Profile Settings",
     notif_center_title: "Notification Center",
+    notif_unread_count: "Unread",
+    notif_short_label: "Short link:",
+    notif_original_label: "Original link:",
 
     hero_badge: "Ovlink - Next-Gen Link Management",
     hero_title_line1: "Shorten and Manage",

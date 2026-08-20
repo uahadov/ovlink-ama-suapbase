@@ -385,6 +385,94 @@ function renderNavbarAuth() {
   syncFloatingPricingBanner();
 }
 
+/* -------------------------------------------------------------
+ * NOTIFICATION CENTER & LIVE TOAST NOTIFICATIONS (HOME PAGE)
+ * ------------------------------------------------------------- */
+function showNotificationToast(notification) {
+  if (!notification) return;
+  const lang = getCurrentLang();
+  const title = lang === "tr" ? (notification.title_tr || notification.title_az || notification.title_en || "") : (lang === "en" ? (notification.title_en || notification.title_az || notification.title_tr || "") : (notification.title_az || notification.title_tr || notification.title_en || ""));
+  const body = lang === "tr" ? (notification.body_tr || notification.body_az || notification.body_en || "") : (lang === "en" ? (notification.body_en || notification.body_az || notification.body_tr || "") : (notification.body_az || notification.body_tr || notification.body_en || ""));
+  const shortLabel = tKey("notif_short_label", lang === "en" ? "Short link:" : (lang === "tr" ? "Kısa link:" : "Qısa link:"));
+  const originalLabel = tKey("notif_original_label", lang === "en" ? "Original link:" : (lang === "tr" ? "Orijinal link:" : "Orijinal link:"));
+  const extra = [];
+  if (notification.link_short) extra.push(`${shortLabel} ${notification.link_short}`);
+  if (notification.original_url) extra.push(`${originalLabel} ${notification.original_url}`);
+
+  let toast = document.getElementById("notifToast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "notifToast";
+    toast.className = "notif-toast";
+    toast.innerHTML = '<div class="notif-toast-title"></div><div class="notif-toast-body"></div>';
+    document.body.appendChild(toast);
+  }
+
+  const titleEl = toast.querySelector(".notif-toast-title");
+  const bodyEl = toast.querySelector(".notif-toast-body");
+  if (titleEl) titleEl.textContent = title;
+  if (bodyEl) bodyEl.textContent = [body, ...extra].filter(Boolean).join(" • ");
+
+  toast.classList.add("show");
+  if (toast.__hideTimer) clearTimeout(toast.__hideTimer);
+  toast.__hideTimer = setTimeout(() => {
+    toast.classList.remove("show");
+  }, 6000);
+}
+
+function maybeShowNotificationToast(items) {
+  if (!Array.isArray(items) || !items.length) return;
+  const latest = items[0];
+  if (!latest || !latest.id) return;
+  const lastSeen = parseInt(localStorage.getItem("notif_last_seen_id") || "0", 10);
+  if (latest.id <= lastSeen) return;
+  if (latest.read_at) return;
+  localStorage.setItem("notif_last_seen_id", String(latest.id));
+  showNotificationToast(latest);
+}
+
+async function loadNotifications() {
+  const navBadge = document.getElementById("navNotifBadge");
+  const menuBadge = document.getElementById("navNotifBadgeMenu");
+
+  const setBadge = (el, value) => {
+    if (!el) return;
+    if (value > 0) {
+      el.textContent = String(value);
+      el.classList.remove("d-none");
+    } else {
+      el.classList.add("d-none");
+    }
+  };
+
+  try {
+    const res = await fetch("/api/notifications", { credentials: "include" });
+    if (!res.ok) {
+      if (res.status === 401) {
+        setBadge(navBadge, 0);
+        setBadge(menuBadge, 0);
+      }
+      return;
+    }
+    const data = await res.json().catch(() => ({}));
+    const items = Array.isArray(data.notifications) ? data.notifications : [];
+
+    if (!items.length) {
+      setBadge(navBadge, 0);
+      setBadge(menuBadge, 0);
+      return;
+    }
+
+    const unreadCount = items.filter((n) => !n.read_at).length;
+    setBadge(navBadge, unreadCount);
+    setBadge(menuBadge, unreadCount);
+
+    maybeShowNotificationToast(items);
+  } catch {
+    // network issue
+  }
+}
+
 async function clientLogout() {
   try {
     const res = await postJsonWithCsrf("/api/logout", { lang: getCurrentLang() });
@@ -414,6 +502,15 @@ window.addEventListener("DOMContentLoaded", () => {
     renderNavbarAuth();
     if (getClientSession().isLoggedIn) {
       await loadCustomDomains();
+      await loadNotifications();
+      if (!window.__notifPollerActive) {
+        window.__notifPollerActive = true;
+        setInterval(() => {
+          if (document.visibilityState === "visible" && getClientSession().isLoggedIn) {
+            loadNotifications().catch(() => {});
+          }
+        }, 25000);
+      }
     }
   };
 
@@ -816,6 +913,11 @@ function initShorten() {
       if (resultDiv) {
         resultDiv.classList.remove("hidden", "d-none");
         resultDiv.style.display = "block";
+      }
+
+      if (getClientSession().isLoggedIn) {
+        setTimeout(() => loadNotifications().catch(() => {}), 1200);
+        setTimeout(() => loadNotifications().catch(() => {}), 3500);
       }
     } catch (err) {
       showFeedback(
