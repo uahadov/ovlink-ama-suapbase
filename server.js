@@ -9141,32 +9141,161 @@ app.post('/api/notifications/delete-all', (req, res) => {
    LİNK İŞLEMLERİ (Kısaltma, Yönlendirme, Şifre Koruma, QR Kod)
 ------------------------- */
 
+const UGC_HOSTNAMES = new Set([
+  'mediafire.com', 'www.mediafire.com',
+  'drive.google.com', 'docs.google.com',
+  'dropbox.com', 'www.dropbox.com',
+  'mega.nz', 'mega.io',
+  'github.com', 'raw.githubusercontent.com', 'gist.github.com',
+  'gitlab.com',
+  't.me', 'telegram.me',
+  'discord.com', 'discord.gg', 'cdn.discordapp.com'
+]);
+
 function isSuspiciousOrPhishingUrl(rawUrl) {
   if (!rawUrl) return { suspicious: false };
   try {
     const parsed = new URL(rawUrl);
     const hostname = parsed.hostname.toLowerCase();
     const pathname = parsed.pathname.toLowerCase();
+    let decodedPath = pathname;
+    try { decodedPath = decodeURIComponent(pathname).toLowerCase(); } catch {}
 
     if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname) || hostname.startsWith('[') || hostname.includes('0x')) {
-      return { suspicious: true, reason: 'ip_hostname' };
+      return { suspicious: true, reason: 'ip_hostname', isUgc: false };
     }
-    const dangerousExts = ['.exe', '.scr', '.bat', '.cmd', '.vbs', '.apk', '.pif', '.hta', '.jar', '.msi', '.ps1'];
-    if (dangerousExts.some(ext => pathname.endsWith(ext) || pathname.includes(ext + '?'))) {
-      return { suspicious: true, reason: 'dangerous_extension' };
+
+    const isUgc = UGC_HOSTNAMES.has(hostname) || Array.from(UGC_HOSTNAMES).some(h => hostname.endsWith('.' + h));
+
+    const dangerousExts = ['.exe', '.scr', '.bat', '.cmd', '.vbs', '.apk', '.pif', '.hta', '.jar', '.msi', '.ps1', '.vbe', '.wsf', '.iso'];
+    if (dangerousExts.some(ext => pathname.endsWith(ext) || decodedPath.endsWith(ext))) {
+      return { suspicious: true, reason: 'dangerous_extension', isUgc };
     }
+
     const phishingPatterns = [
-      /(?:free-?(?:nitro|robux|vbucks|steam|premium)|telegram-?(?:gift|premium|airdrop)|metamask-?(?:login|verify)|binance-?(?:security|verify)|paypal-?(?:login|security|update)|bank-?(?:login|verify)|login-?(?:steamcommunity|discord)|discord-?(?:nitro|app-gift))/i
+      /(?:free-?(?:nitro|robux|vbucks|steam|premium)|telegram-?(?:gift|premium|airdrop)|metamask-?(?:login|verify)|binance-?(?:security|verify)|paypal-?(?:login|security|update)|bank-?(?:login|verify)|login-?(?:steamcommunity|discord)|discord-?(?:nitro|app-gift))/i,
+      /(?:wallet-?(?:connect|verify|claim)|crypto-?(?:giveaway|airdrop|claim)|claim-?(?:rewards|airdrop|tokens))/i
     ];
     for (const pattern of phishingPatterns) {
-      if (pattern.test(hostname) || pattern.test(pathname)) {
-        return { suspicious: true, reason: 'phishing_pattern' };
+      if (pattern.test(hostname) || pattern.test(pathname) || pattern.test(decodedPath)) {
+        return { suspicious: true, reason: 'phishing_pattern', isUgc };
       }
     }
-    return { suspicious: false };
+    return { suspicious: false, isUgc };
   } catch {
-    return { suspicious: false };
+    return { suspicious: false, isUgc: false };
   }
+}
+
+function quarantineUrlByShort(shortCode, reason, triggerSource = 'safety_scanner') {
+  if (!shortCode) return;
+  db.get('SELECT id, short, original, user_id, disabled FROM urls WHERE short = ?', [shortCode], (err, row) => {
+    if (err || !row) return;
+    if (row.disabled == 1) return;
+
+    const disabledReason = reason || 'security_threat';
+    const nowIso = new Date().toISOString();
+
+    db.run(
+      'UPDATE urls SET disabled = 1, dangerous = 1, disabled_reason = ?, disabled_at = ? WHERE id = ? AND (disabled = 0 OR disabled IS NULL)',
+      [disabledReason, nowIso, row.id],
+      function (updateErr) {
+        if (updateErr) {
+          console.error('[safety-scanner] Failed to quarantine URL:', shortCode, updateErr.message);
+          return;
+        }
+        if ((this.changes || 0) === 0) return; // already quarantined by a concurrent scan
+
+        console.warn(`[safety-scanner] URL "${shortCode}" quarantined due to: ${disabledReason} (source: ${triggerSource})`);
+
+        if (row.user_id) {
+          const eventKey = `quarantine_${shortCode}_${Date.now()}`;
+          const titleAz = '⚠️ Təhlükəsizlik Xəbərdarlığı';
+          const titleTr = '⚠️ Güvenlik Uyarısı';
+          const titleEn = '⚠️ Security Alert';
+
+          const bodyAz = `"${shortCode}" qısa linkinizin hədəf ünvanı təhlükəsizlik qaydalarına zidd (${disabledReason}) olduğu üçün karantinə alındı və yönləndirmə dayandırıldı.`;
+          const bodyTr = `"${shortCode}" kısa linkinizin hedef adresi güvenlik riski (${disabledReason}) nedeniyle karantinaya alındı ve yönlendirme durduruldu.`;
+          const bodyEn = `The destination URL of short link "${shortCode}" was flagged as unsafe (${disabledReason}) and quarantined.`;
+
+          db.run(
+            'INSERT OR IGNORE INTO notifications (user_id, type, title_az, title_tr, title_en, body_az, body_tr, body_en, link_short, event_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [row.user_id, 'security_alert', titleAz, titleTr, titleEn, bodyAz, bodyTr, bodyEn, shortCode, eventKey, nowIso],
+            () => {}
+          );
+        }
+
+        try {
+          logSecurityEvent(null, 'quarantine_threat', 'quarantined', {
+            target_short: shortCode,
+            reason: disabledReason,
+            source: triggerSource,
+            original: row.original,
+            user_id: row.user_id || null
+          });
+        } catch {}
+
+        sendOpsAlert('quarantine:' + shortCode, 'Link Quarantined', `Short: ${shortCode}\nReason: ${disabledReason}\nOriginal: ${row.original}`);
+      }
+    );
+  });
+}
+
+function scanUrlAsync(shortCode, originalUrl, userId) {
+  if (!shortCode || !originalUrl) return;
+  setImmediate(() => {
+    try {
+      const check = isSuspiciousOrPhishingUrl(originalUrl);
+      if (check && check.suspicious) {
+        quarantineUrlByShort(shortCode, check.reason || 'phishing_pattern', 'async_creation_scan');
+      }
+    } catch (err) {
+      console.warn('[safety-scanner] Async scan error:', err && (err.message || err));
+    }
+  });
+}
+
+function runWeeklySafetyScan() {
+  console.log('[safety-scanner] Starting weekly background safety sweep...');
+  let lastId = 0;
+  const batchSize = 50;
+  const intervalMs = 2000;
+
+  const fetchNextBatch = () => {
+    db.all(
+      'SELECT id, short, original, user_id FROM urls WHERE id > ? AND (disabled = 0 OR disabled IS NULL) ORDER BY id ASC LIMIT ?',
+      [lastId, batchSize],
+      (err, rows) => {
+        if (err || !Array.isArray(rows) || rows.length === 0) {
+          console.log('[safety-scanner] Weekly safety sweep complete.');
+          return;
+        }
+
+        for (const item of rows) {
+          lastId = Math.max(lastId, item.id);
+          if (!item.original) continue;
+          const check = isSuspiciousOrPhishingUrl(item.original);
+          if (check && check.suspicious) {
+            quarantineUrlByShort(item.short, check.reason || 'periodic_safety_scan', 'weekly_cron');
+          }
+        }
+
+        setTimeout(fetchNextBatch, intervalMs);
+      }
+    );
+  };
+
+  fetchNextBatch();
+}
+
+function scheduleWeeklySafetyScan() {
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const timer = setTimeout(() => {
+    runWeeklySafetyScan();
+    const interval = setInterval(runWeeklySafetyScan, WEEK_MS);
+    if (interval && interval.unref) interval.unref();
+  }, 5 * 60 * 1000);
+  if (timer && timer.unref) timer.unref();
 }
 
 // URL kısaltma (POST /api/shorten)
@@ -9502,6 +9631,11 @@ const checkCustomDomain = (cb) => {
                     created_at: createdAt,
                   });
                 }
+
+                scanUrlAsync(short, originalAbs, ownerId);
+                if (originalBAbs) scanUrlAsync(short, originalBAbs, ownerId);
+                if (iosUrlAbs) scanUrlAsync(short, iosUrlAbs, ownerId);
+                if (androidUrlAbs) scanUrlAsync(short, androidUrlAbs, ownerId);
 
                 return res.json({
                   message: pickLang(uiLang, 'Qısaldılmış link: ' + shortUrl, 'Kısaltılmış link: ' + shortUrl, 'Short link: ' + shortUrl),
@@ -10277,6 +10411,18 @@ app.post('/api/user/link/update', (req, res) => {
     });
   }
 
+  const securityCheck = isSuspiciousOrPhishingUrl(originalAbs);
+  if (securityCheck && securityCheck.suspicious) {
+    return res.status(403).json({
+      error: pickLang(
+        uiLang,
+        'Təhlükəsizlik xəbərdarlığı: Daxil edilmiş yeni URL zərərli və ya fişinq kimi təsbit edildi.',
+        'Güvenlik uyarısı: Girilen yeni URL kötü amaçlı veya oltalama olarak tespit edildi.',
+        'Security warning: Entered URL was flagged as malicious or phishing.'
+      )
+    });
+  }
+
   db.get(`SELECT short, original, domain_host FROM urls WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`, [short, req.session.userId, req.session.userId], (findErr, currentRow) => {
     if (findErr) return res.status(500).json({ error: 'Server error.' });
     if (!currentRow) {
@@ -10307,6 +10453,8 @@ app.post('/api/user/link/update', (req, res) => {
             domain: normalizeHostName(currentRow.domain_host || '') || null,
             updated_at: new Date().toISOString(),
           });
+
+          scanUrlAsync(short, originalAbs, req.session.userId);
 
           return res.json({ message: pickLang(uiLang, 'Link hədəfi yeniləndi.', 'Link hedefi güncellendi.', 'Link destination updated.') });
         }
@@ -11647,6 +11795,7 @@ ${announcementHtml}
                         </td>
                         <td class="fw-bold">
                            <a href="${safeShortUrl}" target="_blank" class="text-decoration-none">${safeShort}</a>
+                           ${row.disabled ? ` <span class="badge bg-danger" data-i18n="link_quarantined">${escapeHtml(pickLang(uiLang, 'Karantin', 'Karantina', 'Quarantined'))}</span>` : ''}
                         </td>
                         <td style="max-width: 300px;" class="text-truncate">${safeOriginal}</td>
                         <td class="small">${folderHtml}</td>
@@ -11982,6 +12131,7 @@ app.use((err, req, res, next) => {
 if (require.main === module) {
   (async () => {
     await ensureRedisConnected();
+    scheduleWeeklySafetyScan();
     app.listen(PORT, () => {});
   })().catch((err) => {
     console.error('[startup] fatal error before listen', err && (err.message || err));
@@ -11996,6 +12146,10 @@ module.exports = {
     normalizeShortCode,
     isReservedShortAlias,
     normalizeCustomDomainInput,
+    isSuspiciousOrPhishingUrl,
+    quarantineUrlByShort,
+    scanUrlAsync,
+    runWeeklySafetyScan,
     getRequestIp,
     maskIpForDisplay,
     buildNetworkFingerprintForDisplay,
