@@ -11,6 +11,29 @@ const { isProAccessActive, getEffectivePlanForUser } = require('../lib/plans');
 const { ASSET_VERSION } = require('../config/index');
 const { siteSettings } = require('../middleware/maintenance');
 
+function formatBanInfo(untilIso, lang) {
+  if (!untilIso) return { untilText: 'Daimi', remainingText: '' };
+  try {
+    const d = new Date(untilIso);
+    if (isNaN(d.getTime())) return { untilText: untilIso, remainingText: '' };
+    const diff = d.getTime() - Date.now();
+    if (diff <= 0) return { untilText: 'Bitti', remainingText: '0 dk' };
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const mins = Math.floor((diff / 1000 / 60) % 60);
+    let rem = '';
+    if (days > 0) rem += days + ' gun ';
+    if (hours > 0) rem += hours + ' saat ';
+    rem += mins + ' dk';
+    return {
+      untilText: d.toLocaleString('az-AZ'),
+      remainingText: rem.trim()
+    };
+  } catch(e) {
+    return { untilText: untilIso, remainingText: '' };
+  }
+}
+
 function escapeHtml(value) {
   return (value || '').toString().replace(/[&<>"']/g, (ch) => ({
     '&': '&amp;',
