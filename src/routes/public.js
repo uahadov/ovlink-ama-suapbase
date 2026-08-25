@@ -251,8 +251,8 @@ router.get('/why-ovlink', (req, res) => {
     titleTr: 'Neden Ovlink? - Ovlink',
     titleEn: 'Why Ovlink? - Ovlink',
     descAz: 'Ovlink-in dəyəri, təhlükəsizlik və idarəetmə prinsipləri.',
-    descTr: 'Ovlink'in değeri, güvenlik ve yönetim yaklaşımı.',
-    descEn: 'Ovlink's value, safety model, and link management approach.'
+    descTr: "Ovlink'in değeri, güvenlik ve yönetim yaklaşımı.",
+    descEn: "Ovlink's value, safety model, and link management approach."
   });
   res.render('why-ovlink', { csrfToken: res.locals._csrf, seo });
 });

@@ -14,6 +14,7 @@ function langMiddleware(req, res, next) {
 
   res.locals.defaultLang = lang;
   res.locals.assetVersion = ASSET_VERSION;
+  res.locals.seo = null;
   req.defaultLang = lang;
 
   const accept = (req.get('accept') || '').toLowerCase();
