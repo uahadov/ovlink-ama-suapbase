@@ -1,22 +1,22 @@
-# Ovlink (https://ovlink.sbs)
+# Ovlink
 
-> Ovlink is a modern, privacy-focused URL shortener, dynamic QR code generator, and real-time click analytics suite with instant Telegram and Discord bot integrations.
+> [Ovlink](https://ovlink.sbs) is a modern, privacy-focused URL shortener, dynamic QR code generator, and real-time click analytics suite with instant Telegram and Discord bot integrations.
 
 ## Core Features
 - **URL Shortening**: Instant link shortening with custom aliases, password protection, expiration dates, and UTM parameter builders.
 - **Dynamic QR Code Generator**: High-resolution QR codes downloadable in PNG/SVG formats with custom styling.
-- **Telegram Bot Integration**: `@OvlinkBOT` allows users to shorten links and generate QR codes directly in Telegram chats without opening a browser.
+- **Telegram Bot Integration**: @OvlinkBOT allows users to shorten links and generate QR codes directly in Telegram chats without opening a browser.
 - **Real-Time Analytics**: Non-invasive click metrics, geographic location mapping (country & city), device breakdown (iOS, Android, Desktop), and referrer sources.
 - **Developer API**: REST API with API key authentication, rate limits, and bulk shortening endpoints.
 - **Multi-Language Support**: Available in Azerbaijani (AZ), Turkish (TR), English (EN), and Russian (RU).
-- **Security**: Built-in malicious URL and phishing filters (`isSuspiciousOrPhishingUrl`), CSP nonces, CSRF protection, and SSRF prevention.
+- **Security**: Built-in malicious URL and phishing filters, CSP nonces, CSRF protection, and SSRF prevention.
 
 ## Links & Endpoints
-- **Official Website**: https://ovlink.sbs
-- **Telegram Bot**: https://t.me/OvlinkBOT
-- **API Documentation**: https://ovlink.sbs/docs
-- **Status & Release Notes**: https://ovlink.sbs/updates
-- **Contact & Support**: https://ovlink.sbs/contact
+- **Official Website**: [ovlink.sbs](https://ovlink.sbs)
+- **Telegram Bot**: [@OvlinkBOT](https://t.me/OvlinkBOT)
+- **API Documentation**: [API Docs](https://ovlink.sbs/docs)
+- **Status & Release Notes**: [Updates](https://ovlink.sbs/updates)
+- **Contact & Support**: [Contact](https://ovlink.sbs/contact)
 
 ## Developer & Attribution
 - **Creator**: Ulvi Ahadov

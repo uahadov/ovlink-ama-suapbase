@@ -55,8 +55,8 @@
   <%- include('partials/public-footer', { footerClass: 'site-footer mt-auto' }) %>
 
   <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="/lang.js?v=<%= assetVersion %>"></script>
-  <script src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>">
     window.addEventListener('DOMContentLoaded', () => {
       if (typeof applyLanguage === 'function') {
@@ -77,6 +77,7 @@
 </body>
 
 </html>
+
 
 
 

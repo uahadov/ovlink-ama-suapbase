@@ -17,10 +17,9 @@ const helmetMiddleware = helmet({
       scriptSrc: [
         "'self'",
         (req, res) => `'nonce-${res.locals.nonce}'`,
-        "https://cdn.jsdelivr.net",
-        "https://cdnjs.cloudflare.com",
-        "https://unpkg.com",
-        "https://static.cloudflareinsights.com"
+        "'strict-dynamic'",
+        "'unsafe-inline'",
+        "https:"
       ],
       scriptSrcAttr: ["'none'"],
       styleSrc: ["'self'", (req, res) => `'nonce-${res.locals.nonce}'`, "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
@@ -45,12 +44,13 @@ const helmetMiddleware = helmet({
       manifestSrc: ["'self'"],
       mediaSrc: ["'self'"],
       workerSrc: ["'self'"],
-      upgradeInsecureRequests: []
+      upgradeInsecureRequests: [],
+      requireTrustedTypesFor: ["'script'"]
     }
   },
   crossOriginEmbedderPolicy: false,
   hsts: isProd ? {
-    maxAge: 15552000,
+    maxAge: 31536000,
     includeSubDomains: true,
     preload: true
   } : false,
