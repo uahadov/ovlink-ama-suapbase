@@ -101,10 +101,23 @@ function getSafeHostHeader(req) {
   return host;
 }
 
+const { buildAbsoluteUrl } = require('./security');
+
 function getRequestHostName(req) {
   const hostHeader = getSafeHostHeader(req);
   if (hostHeader) return normalizeHostName(hostHeader);
   return normalizeHostName(req && req.hostname);
+}
+
+function buildShortUrl(req, short, customDomainHost) {
+  const shortPath = '/' + encodeURIComponent((short || '').toString().trim());
+  if (customDomainHost) {
+    const cleanHost = normalizeHostName(customDomainHost);
+    if (cleanHost) {
+      return `https://${cleanHost}${shortPath}`;
+    }
+  }
+  return buildAbsoluteUrl(req, shortPath);
 }
 
 module.exports = {
@@ -116,6 +129,7 @@ module.exports = {
   normalizeHostName,
   getSafeHostHeader,
   getRequestHostName,
+  buildShortUrl,
   CUSTOM_DOMAIN_RE,
   RESERVED_SHORTS: RESERVED_SHORT_ALIASES
 };

@@ -11,7 +11,8 @@ const {
   normalizeCustomDomainInput,
   ensureAbsoluteUrl,
   normalizeHostName,
-  getSafeHostHeader
+  getSafeHostHeader,
+  buildShortUrl
 } = require('../../lib/url-helpers');
 const { isSuspiciousOrPhishingUrl } = require('../../lib/url-validator');
 const {
