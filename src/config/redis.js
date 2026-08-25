@@ -38,8 +38,7 @@ const sessionStore = redisClient
     ? new session.MemoryStore()
     : new pgSession({
       pool: pool,
-      tableName: 'express_sessions',
-      createTableIfMissing: true,
+      tableName: 'express_sessions'
     }));
 
 function createRateLimitStore(scope) {
