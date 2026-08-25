@@ -1803,7 +1803,7 @@ body.dark-mode,
 .site-footer .footer-link-group {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0;
   min-width: 100px;
 }
 
@@ -1813,13 +1813,15 @@ body.dark-mode,
   text-transform: uppercase;
   letter-spacing: 0.06em;
     /* opacity removed for WCAG contrast */
-  margin-bottom: 0.1rem;
+  margin-bottom: 0.5rem;
 }
 
 .site-footer .footer-link-group a {
   font-size: 0.78rem;
     /* opacity removed for WCAG contrast */
   transition: opacity 0.2s ease;
+  padding: 0.5rem 0;
+  display: block;
 }
 
 .site-footer .footer-link-group a:hover {
