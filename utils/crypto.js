@@ -4,6 +4,9 @@ const crypto = require('crypto');
 function getEncryptionKey() {
   const keyHex = process.env.ENCRYPTION_KEY;
   if (!keyHex) {
+    if (process.env.SESSION_SECRET) {
+      return crypto.createHmac('sha256', process.env.SESSION_SECRET).update('ovlink:encryption-key').digest();
+    }
     throw new Error('ENCRYPTION_KEY is required in environment variables (must be 64 hex chars / 32 bytes).');
   }
   const keyBuffer = Buffer.from(keyHex, 'hex');
