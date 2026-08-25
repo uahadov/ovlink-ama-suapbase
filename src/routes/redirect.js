@@ -533,7 +533,8 @@ router.post('/verify/:short', sensitiveActionLimiter, (req, res) => {
             }
           }
           // Tıklama kaydı ekle
-          recordClickEvent(req, row, consentMode);
+          const consentState = getRedirectConsentModeForRequest(req, short, 'verify');
+          recordClickEvent(req, row, consentState.mode || 'essential');
 
           return res.json({ success: true, redirect: targetUrl });
         }
