@@ -279,7 +279,7 @@ textarea:focus {
 }
 
 .site-footer p {
-  opacity: 0.7;
+    /* opacity removed for WCAG contrast */
   font-weight: 400;
 }
 
@@ -1812,13 +1812,13 @@ body.dark-mode,
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  opacity: 0.5;
+    /* opacity removed for WCAG contrast */
   margin-bottom: 0.1rem;
 }
 
 .site-footer .footer-link-group a {
   font-size: 0.78rem;
-  opacity: 0.75;
+    /* opacity removed for WCAG contrast */
   transition: opacity 0.2s ease;
 }
 
@@ -1848,7 +1848,7 @@ body.dark-mode,
 .site-footer .footer-copy {
   text-align: center;
   font-size: 0.75rem;
-  opacity: 0.55;
+    /* opacity removed for WCAG contrast */
   margin: 0;
 }
 
@@ -3899,7 +3899,7 @@ body.dark-mode,
 }
 
 .btn-glow:hover::before {
-  opacity: 0.7;
+    /* opacity removed for WCAG contrast */
   animation: glowPulse 1.5s ease-in-out infinite;
 }
 
