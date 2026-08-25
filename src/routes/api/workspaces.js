@@ -5,7 +5,7 @@ const router = express.Router();
 const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../../db/helpers');
 const { requireSignedIn, requireProAccess } = require('../../middleware/auth');
 const { pickLang, normalizeLang } = require('../../lib/i18n');
-const { isProAccessActive } = require('../../lib/plans');
+const { isProAccessActive, isIsoTimeExpired } = require('../../lib/plans');
 const { db } = require('../../db/index');
 const { sensitiveActionLimiter, mutationLimiter, authLimiter } = require('../../middleware/rate-limiter');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('../../../utils/crypto');
@@ -21,6 +21,60 @@ const {
 const { logSecurityEvent, getPublicBaseUrl } = require('../../lib/security');
 const { isProdRuntime } = require('../../config/index');
 const crypto = require('crypto');
+
+const WORKSPACE_ROLES = Object.freeze({
+  OWNER: 'owner',
+  ADMIN: 'admin',
+  MEMBER: 'member',
+});
+
+function normalizeWorkspaceRole(raw) {
+  const v = (raw || '').toString().trim().toLowerCase();
+  if (v === 'admin') return WORKSPACE_ROLES.ADMIN;
+  if (v === 'owner') return WORKSPACE_ROLES.OWNER;
+  return WORKSPACE_ROLES.MEMBER;
+}
+
+function normalizeWorkspaceName(raw) {
+  return (raw || '').toString().trim().slice(0, 50);
+}
+
+async function getWorkspaceById(id) {
+  const wsId = Number.parseInt(id, 10);
+  if (!Number.isInteger(wsId) || wsId <= 0) return null;
+  return dbGetAsync('SELECT * FROM workspaces WHERE id = ?', [wsId]);
+}
+
+async function isWorkspaceProActive(ws) {
+  if (!ws) return false;
+  const ownerId = ws.owner_user_id || ws.owner_id;
+  if (!ownerId) return false;
+  const ownerUser = await dbGetAsync('SELECT * FROM users WHERE id = ?', [ownerId]);
+  if (!ownerUser) return false;
+  return isProAccessActive(ownerUser);
+}
+
+async function loadValidWorkspaceInvitation(token) {
+  const rawToken = (token || '').toString().trim();
+  if (!rawToken || rawToken.length > 200) return { error: 'invalid' };
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const invitation = await dbGetAsync('SELECT * FROM workspace_invitations WHERE token_hash = ?', [tokenHash]);
+  if (!invitation) return { error: 'invalid' };
+  if (invitation.revoked_at) return { error: 'revoked' };
+  if (invitation.accepted_at) return { error: 'accepted', invitation };
+  if (isIsoTimeExpired(invitation.expires_at)) return { error: 'expired', invitation };
+  const workspace = await getWorkspaceById(invitation.workspace_id);
+  if (!workspace) return { error: 'invalid' };
+  return { invitation, workspace };
+}
+
+async function getUserWorkspaceMemberships(userId) {
+  if (!userId) return [];
+  return dbAllAsync(
+    'SELECT w.id, w.name, w.owner_user_id, wm.role FROM workspace_members wm JOIN workspaces w ON w.id = wm.workspace_id WHERE wm.user_id = ? ORDER BY w.created_at ASC',
+    [userId]
+  );
+}
 
 
 router.post('/workspaces/accept', async (req, res) => {

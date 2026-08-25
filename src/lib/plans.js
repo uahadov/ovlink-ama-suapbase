@@ -118,8 +118,13 @@ function isIsoTimeExpired(rawValue) {
 
 module.exports = {
   PLAN_TIERS,
+  PLAN_STATUS,
+  PRO_FEATURES,
   getEffectivePlanForUser,
   isProAccessActive,
+  isProExpired,
+  buildPlanPayload,
+  downgradeExpiredProIfNeeded,
   normalizeFutureExpiryInput,
   isIsoTimeExpired,
   parseIsoTimeMs

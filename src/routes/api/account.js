@@ -21,7 +21,7 @@ const { logSecurityEvent, getPublicBaseUrl } = require('../../lib/security');
 const { googleOidc, initGoogleOidc, getGoogleRedirectUri } = require('../../lib/google-auth');
 const { requireSignedIn } = require('../../middleware/auth');
 const { authLimiter, sensitiveActionLimiter } = require('../../middleware/rate-limiter');
-const { isProAccessActive, getEffectivePlanForUser } = require('../../lib/plans');
+const { isProAccessActive, getEffectivePlanForUser, buildPlanPayload, isProExpired, downgradeExpiredProIfNeeded } = require('../../lib/plans');
 
 function generateVerificationCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
