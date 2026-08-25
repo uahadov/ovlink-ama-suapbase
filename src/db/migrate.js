@@ -1,6 +1,11 @@
-﻿const { db } = require('./index');
+const { db } = require('./index');
+const { pool } = require('./pool');
 const bcrypt = require('bcrypt');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('../../utils/crypto.js');
+const { DEFAULT_API_KEY_SCOPES_STORAGE } = require('../lib/security');
+const { buildVerificationExpiryIso } = require('../lib/session');
+const { siteSettings } = require('../middleware/maintenance');
+const { refreshCustomDomainCache } = require('../lib/custom-domain');
 
 function ensureDbTables() {
   db.serialize(() => {
