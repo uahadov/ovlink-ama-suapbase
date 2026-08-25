@@ -21,6 +21,9 @@ function ensureDbTables() {
       google_id TEXT
     )`);
   
+    db.run(`CREATE TABLE IF NOT EXISTS express_sessions (sid VARCHAR NOT NULL PRIMARY KEY, sess JSON NOT NULL, expire TIMESTAMP NOT NULL)`);
+    db.run('CREATE INDEX IF NOT EXISTS idx_express_sessions_expire ON express_sessions(expire)', () => {});
+
     // URL tablosu
     db.run(`CREATE TABLE IF NOT EXISTS urls (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
