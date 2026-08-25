@@ -622,7 +622,7 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
         return req.session.regenerate((regenErr) => {
           if (regenErr) {
             logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'session_regenerate_failed', user_id: user.id });
-            return res.redirect('/login?error=google_failed&reason=session_regenerate_failed');
+            return res.redirect('/login?error=google_failed&reason=session_regenerate_failed:' + (regenErr ? regenErr.message : 'unknown'));
           }
           req.session.userId = user.id;
           req.session.username = decryptAES256GCM(user.email);
@@ -682,7 +682,7 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
               req.session.regenerate((regenErr) => {
                 if (regenErr) {
                   logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'session_regenerate_failed', user_id: existing.id });
-                  return res.redirect('/login?error=google_failed&reason=session_regenerate_failed');
+                  return res.redirect('/login?error=google_failed&reason=session_regenerate_failed:' + (regenErr ? regenErr.message : 'unknown'));
                 }
                 req.session.userId = existing.id;
                 req.session.username = decryptAES256GCM(existing.email);
@@ -716,7 +716,7 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
             req.session.regenerate((regenErr) => {
               if (regenErr) {
                 logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'session_regenerate_failed', user_id: newUserId });
-                return res.redirect('/login?error=google_failed&reason=session_regenerate_failed');
+                return res.redirect('/login?error=google_failed&reason=session_regenerate_failed:' + (regenErr ? regenErr.message : 'unknown'));
               }
               req.session.userId = newUserId;
               req.session.username = email; // email is plain text from req.body
@@ -1401,4 +1401,5 @@ router.post('/api/notifications/delete-all', (req, res) => {
 const threatUrlSet = new Set();
 const threatHostSet = new Set();
 module.exports = router;
+
 
