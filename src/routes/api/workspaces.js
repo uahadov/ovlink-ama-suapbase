@@ -19,6 +19,7 @@ const {
   extractAssertionId
 } = require('../../../utils/sso');
 const { logSecurityEvent, getPublicBaseUrl } = require('../../lib/security');
+const { trackUserSession: upsertUserSessionRecord } = require('../../lib/session');
 const { isProdRuntime } = require('../../config/index');
 const crypto = require('crypto');
 
@@ -718,5 +719,6 @@ router.post('/sso/:workspaceId/acs', async (req, res) => {
 
 
 module.exports = router;
+
 
 

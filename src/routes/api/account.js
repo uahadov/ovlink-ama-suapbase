@@ -17,6 +17,7 @@ const {
   sendResetPasswordEmail,
   sendNewDeviceLoginEmailForUser
 } = require('../../lib/email');
+const { trackUserSession: upsertUserSessionRecord } = require('../../lib/session');
 const { getRequestGeoMeta, maskIpForDisplay, buildNetworkFingerprintForDisplay, parseAcceptLang } = require('../../lib/geo');
 const { logSecurityEvent, getPublicBaseUrl } = require('../../lib/security');
 const { googleOidc, initGoogleOidc, getGoogleRedirectUri } = require('../../lib/google-auth');
@@ -1401,5 +1402,6 @@ router.post('/api/notifications/delete-all', (req, res) => {
 const threatUrlSet = new Set();
 const threatHostSet = new Set();
 module.exports = router;
+
 
 
