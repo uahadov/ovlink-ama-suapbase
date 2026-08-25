@@ -40,15 +40,15 @@ function isIsoTimeExpired(isoString) {
   return ms < Date.now();
 }
 
-// Sayfa Rotalarâ”€â–’
+// Sayfa Rotaları
 router.get('/', (req, res) => {
   const seo = buildSeo(req, {
     path: '/',
-    titleAz: 'Link Qâ”€â–’saltmaq - Pulsuz URL Qâ”€â–’saltma vâ•”Ã– QR Kod Yarat | Ovlink',
+    titleAz: 'Link Qısaltmaq - Pulsuz URL Qısaltma və QR Kod Yarat | Ovlink',
     titleTr: 'Link Kısaltma - Ücretsiz URL Kısaltıcı & QR Kod Oluşturucu | Ovlink',
     titleEn: 'URL Shortener - Free Link Shortening & QR Code Generator | Ovlink',
-    descAz: 'Ovlink ilâ•”Ã– uzun linklâ•”Ã–ri 1 saniyâ•”Ã–dâ•”Ã– pulsuz qâ”€â–’saldâ”€â–’n, xâ”œâ•susi QR kodlar yaradâ”€â–’n, klik analitikasâ”€â–’nâ”€â–’ izlâ•”Ã–yin vâ•”Ã– @OvlinkBOT Telegram botu ilâ•”Ã– idarâ•”Ã– edin.',
-    descTr: 'Ovlink ile uzun linklerinizi saniyeler iâ”œÄŸinde â”œâ•cretsiz kâ”€â–’saltâ”€â–’n, â”œÃ‚zel QR kodlar oluâ”¼ÅŸturun, anlâ”€â–’k tâ”€â–’klama analitiâ”€ÅŸini takip edin ve @OvlinkBOT Telegram botu ile yâ”œÃ‚netin.',
+    descAz: 'Ovlink ilə uzun linkləri 1 saniyədə pulsuz qısaldın, xüsusi QR kodlar yaradın, klik analitikasını izləyin və @OvlinkBOT Telegram botu ilə idarə edin.',
+    descTr: 'Ovlink ile uzun linklerinizi saniyeler içinde ücretsiz kısaltın, özel QR kodlar oluşturun, anlık tıklama analitiğini takip edin ve @OvlinkBOT Telegram botu ile yönetin.',
     descEn: 'Shorten long URLs in seconds, generate custom QR codes, track real-time click analytics, and use our instant @OvlinkBOT Telegram bot with Ovlink.'
   });
   res.render('index', { csrfToken: res.locals._csrf, seo });
@@ -68,11 +68,11 @@ router.get('/stats.html', (req, res) => {
 router.get('/privacy', (req, res) => {
   const seo = buildSeo(req, {
     path: '/privacy',
-    titleAz: 'Mâ•”Ã–xfilik Siyasâ•”Ã–ti - Ovlink',
-    titleTr: 'Gizlilik Politikasâ”€â–’ - Ovlink',
+    titleAz: 'Məxfilik Siyasəti - Ovlink',
+    titleTr: 'Gizlilik Politikası - Ovlink',
     titleEn: 'Privacy Policy - Ovlink',
-    descAz: 'Ovlink mâ•”Ã–xfilik siyasâ•”Ã–ti vâ•”Ã– â”¼ÅŸâ•”Ã–xsi mâ•”Ã–lumatlarâ”€â–’n iâ”¼ÅŸlâ•”Ã–nmâ•”Ã–si haqqâ”€â–’nda mâ•”Ã–lumat.',
-    descTr: 'Ovlink gizlilik politikasâ”€â–’ ve kiâ”¼ÅŸisel verilerin iâ”¼ÅŸlenmesi hakkâ”€â–’nda bilgi.',
+    descAz: 'Ovlink məxfilik siyasəti və şəxsi məlumatların işlənməsi haqqında məlumat.',
+    descTr: 'Ovlink gizlilik politikası ve kişisel verilerin işlenmesi hakkında bilgi.',
     descEn: 'Ovlink privacy policy and how we process personal data.'
   });
   res.render('privacy', { csrfToken: res.locals._csrf, seo });
@@ -80,11 +80,11 @@ router.get('/privacy', (req, res) => {
 router.get('/privacy.html', (req, res) => {
   const seo = buildSeo(req, {
     path: '/privacy',
-    titleAz: 'Mâ•”Ã–xfilik Siyasâ•”Ã–ti - Ovlink',
-    titleTr: 'Gizlilik Politikasâ”€â–’ - Ovlink',
+    titleAz: 'Məxfilik Siyasəti - Ovlink',
+    titleTr: 'Gizlilik Politikası - Ovlink',
     titleEn: 'Privacy Policy - Ovlink',
-    descAz: 'Ovlink mâ•”Ã–xfilik siyasâ•”Ã–ti vâ•”Ã– â”¼ÅŸâ•”Ã–xsi mâ•”Ã–lumatlarâ”€â–’n iâ”¼ÅŸlâ•”Ã–nmâ•”Ã–si haqqâ”€â–’nda mâ•”Ã–lumat.',
-    descTr: 'Ovlink gizlilik politikasâ”€â–’ ve kiâ”¼ÅŸisel verilerin iâ”¼ÅŸlenmesi hakkâ”€â–’nda bilgi.',
+    descAz: 'Ovlink məxfilik siyasəti və şəxsi məlumatların işlənməsi haqqında məlumat.',
+    descTr: 'Ovlink gizlilik politikası ve kişisel verilerin işlenmesi hakkında bilgi.',
     descEn: 'Ovlink privacy policy and how we process personal data.'
   });
   res.render('privacy', { csrfToken: res.locals._csrf, seo });
@@ -93,11 +93,11 @@ router.get('/privacy.html', (req, res) => {
 router.get('/terms', (req, res) => {
   const seo = buildSeo(req, {
     path: '/terms',
-    titleAz: 'â”€â–‘stifadâ•”Ã– â”¼Åâ•”Ã–rtlâ•”Ã–ri - Ovlink',
-    titleTr: 'Kullanâ”€â–’m â”¼Åartlarâ”€â–’ - Ovlink',
+    titleAz: 'İstifadə Şərtləri - Ovlink',
+    titleTr: 'Kullanım Şartları - Ovlink',
     titleEn: 'Terms of Service - Ovlink',
-    descAz: 'Ovlink xidmâ•”Ã–tindâ•”Ã–n istifadâ•”Ã– â”¼ÅŸâ•”Ã–rtlâ•”Ã–ri vâ•”Ã– qaydalarâ”€â–’.',
-    descTr: 'Ovlink kullanâ”€â–’m â”¼ÅŸartlarâ”€â–’ ve hizmet kurallarâ”€â–’.',
+    descAz: 'Ovlink xidmətindən istifadə şərtləri və qaydaları.',
+    descTr: 'Ovlink kullanım şartları ve hizmet kuralları.',
     descEn: 'Ovlink terms of service and usage rules.'
   });
   res.render('terms', { csrfToken: res.locals._csrf, seo });
@@ -105,11 +105,11 @@ router.get('/terms', (req, res) => {
 router.get('/terms.html', (req, res) => {
   const seo = buildSeo(req, {
     path: '/terms',
-    titleAz: 'â”€â–‘stifadâ•”Ã– â”¼Åâ•”Ã–rtlâ•”Ã–ri - Ovlink',
-    titleTr: 'Kullanâ”€â–’m â”¼Åartlarâ”€â–’ - Ovlink',
+    titleAz: 'İstifadə Şərtləri - Ovlink',
+    titleTr: 'Kullanım Şartları - Ovlink',
     titleEn: 'Terms of Service - Ovlink',
-    descAz: 'Ovlink xidmâ•”Ã–tindâ•”Ã–n istifadâ•”Ã– â”¼ÅŸâ•”Ã–rtlâ•”Ã–ri vâ•”Ã– qaydalarâ”€â–’.',
-    descTr: 'Ovlink kullanâ”€â–’m â”¼ÅŸartlarâ”€â–’ ve hizmet kurallarâ”€â–’.',
+    descAz: 'Ovlink xidmətindən istifadə şərtləri və qaydaları.',
+    descTr: 'Ovlink kullanım şartları ve hizmet kuralları.',
     descEn: 'Ovlink terms of service and usage rules.'
   });
   res.render('terms', { csrfToken: res.locals._csrf, seo });
@@ -119,10 +119,10 @@ router.get('/contact', (req, res) => {
   const seo = buildSeo(req, {
     path: '/contact',
     titleAz: 'Əlaqə - Ovlink',
-    titleTr: 'â”€â–‘letiâ”¼ÅŸim - Ovlink',
+    titleTr: 'İletişim - Ovlink',
     titleEn: 'Contact - Ovlink',
-    descAz: 'Dâ•”Ã–stâ•”Ã–k vâ•”Ã– â•”Ã–laqâ•”Ã– â”œâ•â”œÄŸâ”œâ•n Ovlink ilâ•”Ã– â•”Ã–laqâ•”Ã– saxlayâ”€â–’n.',
-    descTr: 'Destek ve iletiâ”¼ÅŸim iâ”œÄŸin Ovlink ile iletiâ”¼ÅŸime geâ”œÄŸin.',
+    descAz: 'Dəstək və əlaqə üçün Ovlink ilə əlaqə saxlayın.',
+    descTr: 'Destek ve iletişim için Ovlink ile iletişime geçin.',
     descEn: 'Contact Ovlink support and get help.'
   });
   res.render('contact', { csrfToken: res.locals._csrf, seo });
@@ -131,10 +131,10 @@ router.get('/contact.html', (req, res) => {
   const seo = buildSeo(req, {
     path: '/contact',
     titleAz: 'Əlaqə - Ovlink',
-    titleTr: 'â”€â–‘letiâ”¼ÅŸim - Ovlink',
+    titleTr: 'İletişim - Ovlink',
     titleEn: 'Contact - Ovlink',
-    descAz: 'Dâ•”Ã–stâ•”Ã–k vâ•”Ã– â•”Ã–laqâ•”Ã– â”œâ•â”œÄŸâ”œâ•n Ovlink ilâ•”Ã– â•”Ã–laqâ•”Ã– saxlayâ”€â–’n.',
-    descTr: 'Destek ve iletiâ”¼ÅŸim iâ”œÄŸin Ovlink ile iletiâ”¼ÅŸime geâ”œÄŸin.',
+    descAz: 'Dəstək və əlaqə üçün Ovlink ilə əlaqə saxlayın.',
+    descTr: 'Destek ve iletişim için Ovlink ile iletişime geçin.',
     descEn: 'Contact Ovlink support and get help.'
   });
   res.render('contact', { csrfToken: res.locals._csrf, seo });
@@ -143,11 +143,11 @@ router.get('/contact.html', (req, res) => {
 router.get('/pricing', (req, res) => {
   const seo = buildSeo(req, {
     path: '/pricing',
-    titleAz: 'Pro Plan Qiymâ•”Ã–tlâ•”Ã–ri - Ovlink',
-    titleTr: 'Pro Plan Fiyatlandâ”€â–’rma - Ovlink',
+    titleAz: 'Pro Plan Qiymətləri - Ovlink',
+    titleTr: 'Pro Plan Fiyatlandırma - Ovlink',
     titleEn: 'Pro Plan Pricing - Ovlink',
-    descAz: 'Ovlink Free vâ•”Ã– Pro planlarâ”€â–’nâ”€â–’ mâ”œâ•qayisâ•”Ã– edin. Pro plan â”œâ•â”œÄŸâ”œâ•n qiymâ•”Ã–t $4.99/ay.',
-    descTr: 'Ovlink Free ve Pro planlarâ”€â–’nâ”€â–’ karâ”¼ÅŸâ”€â–’laâ”¼ÅŸtâ”€â–’râ”€â–’n. Pro plan fiyatâ”€â–’ $4.99/ay.',
+    descAz: 'Ovlink Free və Pro planlarını müqayisə edin. Pro plan üçün qiymət $4.99/ay.',
+    descTr: 'Ovlink Free ve Pro planlarını karşılaştırın. Pro plan fiyatı $4.99/ay.',
     descEn: 'Compare Ovlink Free and Pro plans. Pro pricing is $4.99/month with 3-day free trial.',
   });
   
@@ -160,11 +160,11 @@ router.get('/pricing.html', (req, res) => res.redirect(301, '/pricing'));
 router.get('/pro', (req, res) => {
   const seo = buildSeo(req, {
     path: '/pro',
-    titleAz: 'Pro aktivlâ•”Ã–â”¼ÅŸdirilir - Ovlink',
-    titleTr: 'Pro etkinleâ”¼ÅŸtiriliyor - Ovlink',
+    titleAz: 'Pro aktivləşdirilir - Ovlink',
+    titleTr: 'Pro etkinleştiriliyor - Ovlink',
     titleEn: 'Pro activation - Ovlink',
-    descAz: 'Ovlink Pro â”œÃ‚dâ•”Ã–niâ”¼ÅŸi tamamlandâ”€â–’; abunâ•”Ã–lik avtomatik aktivlâ•”Ã–â”¼ÅŸdirilir.',
-    descTr: 'Ovlink Pro â”œÃ‚demesi tamamlandâ”€â–’; abonelik otomatik etkinleâ”¼ÅŸtirilir.',
+    descAz: 'Ovlink Pro ödənişi tamamlandı; abunəlik avtomatik aktivləşdirilir.',
+    descTr: 'Ovlink Pro ödemesi tamamlandı; abonelik otomatik etkinleştirilir.',
     descEn: 'Ovlink Pro payment completed; the subscription is activated automatically.'
   });
   res.render('pro', { csrfToken: res.locals._csrf, seo, isLoggedIn: !!(req.session && req.session.userId) });
@@ -173,11 +173,11 @@ router.get('/pro', (req, res) => {
 router.get('/cookie-policy', (req, res) => {
   const seo = buildSeo(req, {
     path: '/cookie-policy',
-    titleAz: 'Cookie Siyasâ•”Ã–ti - Ovlink',
+    titleAz: 'Cookie Siyasəti - Ovlink',
     titleTr: 'Çerez Politikası - Ovlink',
     titleEn: 'Cookie Policy - Ovlink',
-    descAz: 'Ovlink kuki siyasâ•”Ã–ti vâ•”Ã– kukilâ•”Ã–rin istifadâ•”Ã–si haqqâ”€â–’nda mâ•”Ã–lumat.',
-    descTr: 'Ovlink â”œÄŸerez politikasâ”€â–’ ve â”œÄŸerez kullanâ”€â–’mâ”€â–’ hakkâ”€â–’nda bilgi.',
+    descAz: 'Ovlink kuki siyasəti və kukilərin istifadəsi haqqında məlumat.',
+    descTr: 'Ovlink çerez politikası ve çerez kullanımı hakkında bilgi.',
     descEn: 'Ovlink cookie policy and how cookies are used.'
   });
   res.render('cookie-policy', { csrfToken: res.locals._csrf, seo });
@@ -185,11 +185,11 @@ router.get('/cookie-policy', (req, res) => {
 router.get('/cookie-policy.html', (req, res) => {
   const seo = buildSeo(req, {
     path: '/cookie-policy',
-    titleAz: 'Cookie Siyasâ•”Ã–ti - Ovlink',
+    titleAz: 'Cookie Siyasəti - Ovlink',
     titleTr: 'Çerez Politikası - Ovlink',
     titleEn: 'Cookie Policy - Ovlink',
-    descAz: 'Ovlink kuki siyasâ•”Ã–ti vâ•”Ã– kukilâ•”Ã–rin istifadâ•”Ã–si haqqâ”€â–’nda mâ•”Ã–lumat.',
-    descTr: 'Ovlink â”œÄŸerez politikasâ”€â–’ ve â”œÄŸerez kullanâ”€â–’mâ”€â–’ hakkâ”€â–’nda bilgi.',
+    descAz: 'Ovlink kuki siyasəti və kukilərin istifadəsi haqqında məlumat.',
+    descTr: 'Ovlink çerez politikası ve çerez kullanımı hakkında bilgi.',
     descEn: 'Ovlink cookie policy and how cookies are used.'
   });
   res.render('cookie-policy', { csrfToken: res.locals._csrf, seo });
@@ -198,11 +198,11 @@ router.get('/cookie-policy.html', (req, res) => {
 router.get('/about', (req, res) => {
   const seo = buildSeo(req, {
     path: '/about',
-    titleAz: 'Haqqâ”€â–’mâ”€â–’zda - Ovlink',
-    titleTr: 'Hakkâ”€â–’mâ”€â–’zda - Ovlink',
+    titleAz: 'Haqqımızda - Ovlink',
+    titleTr: 'Hakkımızda - Ovlink',
     titleEn: 'About - Ovlink',
-    descAz: 'Ovlink xidmâ•”Ã–tinin mâ•”Ã–qsâ•”Ã–di vâ•”Ã– operator mâ•”Ã–lumatlarâ”€â–’.',
-    descTr: 'Ovlink hizmetinin amacâ”€â–’ ve iâ”¼ÅŸletmeci bilgileri.',
+    descAz: 'Ovlink xidmətinin məqsədi və operator məlumatları.',
+    descTr: 'Ovlink hizmetinin amacı ve işletmeci bilgileri.',
     descEn: 'Purpose of Ovlink and operator information.'
   });
   res.render('about', { csrfToken: res.locals._csrf, seo });
@@ -210,11 +210,11 @@ router.get('/about', (req, res) => {
 router.get('/about.html', (req, res) => {
   const seo = buildSeo(req, {
     path: '/about',
-    titleAz: 'Haqqâ”€â–’mâ”€â–’zda - Ovlink',
-    titleTr: 'Hakkâ”€â–’mâ”€â–’zda - Ovlink',
+    titleAz: 'Haqqımızda - Ovlink',
+    titleTr: 'Hakkımızda - Ovlink',
     titleEn: 'About - Ovlink',
-    descAz: 'Ovlink xidmâ•”Ã–tinin mâ•”Ã–qsâ•”Ã–di vâ•”Ã– operator mâ•”Ã–lumatlarâ”€â–’.',
-    descTr: 'Ovlink hizmetinin amacâ”€â–’ ve iâ”¼ÅŸletmeci bilgileri.',
+    descAz: 'Ovlink xidmətinin məqsədi və operator məlumatları.',
+    descTr: 'Ovlink hizmetinin amacı ve işletmeci bilgileri.',
     descEn: 'Purpose of Ovlink and operator information.'
   });
   res.render('about', { csrfToken: res.locals._csrf, seo });
@@ -223,11 +223,11 @@ router.get('/about.html', (req, res) => {
 router.get('/how-it-works', (req, res) => {
   const seo = buildSeo(req, {
     path: '/how-it-works',
-    titleAz: 'Link Qâ”€â–’saltma Necâ•”Ã– â”€â–‘â”¼ÅŸlâ•”Ã–yir? - Ovlink',
+    titleAz: 'Link Qısaltma Necə İşləyir? - Ovlink',
     titleTr: 'Link Kısaltma Nasıl Çalışır? - Ovlink',
     titleEn: 'How URL Shortening Works - Ovlink',
-    descAz: 'Qâ”€â–’sa linklâ•”Ã–rin yaradâ”€â–’lmasâ”€â–’, paylaâ”¼ÅŸâ”€â–’lmasâ”€â–’ vâ•”Ã– statistika izahâ”€â–’.',
-    descTr: 'Kâ”€â–’sa link oluâ”¼ÅŸturma, paylaâ”¼ÅŸâ”€â–’m ve istatistik aâ”œÄŸâ”€â–’klamasâ”€â–’.',
+    descAz: 'Qısa linklərin yaradılması, paylaşılması və statistika izahı.',
+    descTr: 'Kısa link oluşturma, paylaşım ve istatistik açıklaması.',
     descEn: 'How short links are created, shared, and measured.'
   });
   res.render('how-it-works', { csrfToken: res.locals._csrf, seo });
@@ -235,11 +235,11 @@ router.get('/how-it-works', (req, res) => {
 router.get('/how-it-works.html', (req, res) => {
   const seo = buildSeo(req, {
     path: '/how-it-works',
-    titleAz: 'Link Qâ”€â–’saltma Necâ•”Ã– â”€â–‘â”¼ÅŸlâ•”Ã–yir? - Ovlink',
+    titleAz: 'Link Qısaltma Necə İşləyir? - Ovlink',
     titleTr: 'Link Kısaltma Nasıl Çalışır? - Ovlink',
     titleEn: 'How URL Shortening Works - Ovlink',
-    descAz: 'Qâ”€â–’sa linklâ•”Ã–rin yaradâ”€â–’lmasâ”€â–’, paylaâ”¼ÅŸâ”€â–’lmasâ”€â–’ vâ•”Ã– statistika izahâ”€â–’.',
-    descTr: 'Kâ”€â–’sa link oluâ”¼ÅŸturma, paylaâ”¼ÅŸâ”€â–’m ve istatistik aâ”œÄŸâ”€â–’klamasâ”€â–’.',
+    descAz: 'Qısa linklərin yaradılması, paylaşılması və statistika izahı.',
+    descTr: 'Kısa link oluşturma, paylaşım ve istatistik açıklaması.',
     descEn: 'How short links are created, shared, and measured.'
   });
   res.render('how-it-works', { csrfToken: res.locals._csrf, seo });
@@ -247,12 +247,12 @@ router.get('/how-it-works.html', (req, res) => {
 router.get('/why-ovlink', (req, res) => {
   const seo = buildSeo(req, {
     path: '/why-ovlink',
-    titleAz: 'Niyâ•”Ã– Ovlink? - Ovlink',
+    titleAz: 'Niyə Ovlink? - Ovlink',
     titleTr: 'Neden Ovlink? - Ovlink',
     titleEn: 'Why Ovlink? - Ovlink',
-    descAz: 'Ovlink-in dâ•”Ã–yâ•”Ã–ri, tâ•”Ã–hlâ”œâ•kâ•”Ã–sizlik vâ•”Ã– idarâ•”Ã–etmâ•”Ã– prinsiplâ•”Ã–ri.',
-    descTr: 'OvlinkÃ”Ã‡Ã–in deâ”€ÅŸeri, gâ”œâ•venlik ve yâ”œÃ‚netim yaklaâ”¼ÅŸâ”€â–’mâ”€â–’.',
-    descEn: 'OvlinkÃ”Ã‡Ã–s value, safety model, and link management approach.'
+    descAz: 'Ovlink-in dəyəri, təhlükəsizlik və idarəetmə prinsipləri.',
+    descTr: 'Ovlink'in değeri, güvenlik ve yönetim yaklaşımı.',
+    descEn: 'Ovlink's value, safety model, and link management approach.'
   });
   res.render('why-ovlink', { csrfToken: res.locals._csrf, seo });
 });
@@ -264,8 +264,8 @@ router.get('/faq', (req, res) => {
     titleAz: 'FAQ - Ovlink',
     titleTr: 'SSS - Ovlink',
     titleEn: 'FAQ - Ovlink',
-    descAz: 'Ovlink haqqâ”€â–’nda tez-tez verilâ•”Ã–n suallar vâ•”Ã– qâ”€â–’sa cavablar.',
-    descTr: 'Ovlink hakkâ”€â–’nda sâ”€â–’kâ”œÄŸa sorulan sorular ve kâ”€â–’sa cevaplar.',
+    descAz: 'Ovlink haqqında tez-tez verilən suallar və qısa cavablar.',
+    descTr: 'Ovlink hakkında sıkça sorulan sorular ve kısa cevaplar.',
     descEn: 'Frequently asked questions about Ovlink.'
   });
   res.render('faq', { csrfToken: res.locals._csrf, seo });
@@ -276,11 +276,11 @@ router.get('/sss', (req, res) => res.redirect(301, '/faq'));
 router.get('/help', (req, res) => {
   const seo = buildSeo(req, {
     path: '/help',
-    titleAz: 'Yardâ”€â–’m Mâ•”Ã–rkâ•”Ã–zi - Ovlink',
-    titleTr: 'Yardâ”€â–’m Merkezi - Ovlink',
+    titleAz: 'Yardım Mərkəzi - Ovlink',
+    titleTr: 'Yardım Merkezi - Ovlink',
     titleEn: 'Help Center - Ovlink',
-    descAz: 'Ovlink â”œâ•â”œÄŸâ”œâ•n addâ”€â–’m-addâ”€â–’m istifadâ•”Ã– vâ•”Ã– problem hâ•”Ã–lli bâ•”Ã–lâ•”Ã–dâ”œÄŸisi.',
-    descTr: 'Ovlink iâ”œÄŸin adâ”€â–’m adâ”€â–’m kullanâ”€â–’m ve sorun giderme rehberi.',
+    descAz: 'Ovlink üçün addım-addım istifadə və problem həlli bələdçisi.',
+    descTr: 'Ovlink için adım adım kullanım ve sorun giderme rehberi.',
     descEn: 'Step-by-step help and troubleshooting for Ovlink.'
   });
   res.render('help', { csrfToken: res.locals._csrf, seo });
@@ -290,11 +290,11 @@ router.get('/help.html', (req, res) => res.redirect(301, '/help'));
 router.get('/docs', (req, res) => {
   const seo = buildSeo(req, {
     path: '/docs',
-    titleAz: 'Sâ•”Ã–nâ•”Ã–dlâ•”Ã–r - Ovlink',
-    titleTr: 'Dokâ”œâ•manlar - Ovlink',
+    titleAz: 'Sənədlər - Ovlink',
+    titleTr: 'Dokümanlar - Ovlink',
     titleEn: 'Documentation - Ovlink',
-    descAz: 'Ovlink iâ”¼ÅŸ prinsipi, mâ”œÃ‚vcud funksiyalar vâ•”Ã– mâ•”Ã–suliyyâ•”Ã–tli istifadâ•”Ã– sâ•”Ã–nâ•”Ã–dlâ•”Ã–ri.',
-    descTr: 'Ovlink â”œÄŸalâ”€â–’â”¼ÅŸma modeli, mevcut â”œÃ‚zellikler ve sorumlu kullanâ”€â–’m dokâ”œâ•manlarâ”€â–’.',
+    descAz: 'Ovlink iş prinsipi, mövcud funksiyalar və məsuliyyətli istifadə sənədləri.',
+    descTr: 'Ovlink çalışma modeli, mevcut özellikler ve sorumlu kullanım dokümanları.',
     descEn: 'Ovlink redirect model, available features, and responsible-use docs.'
   });
   res.render('docs', { csrfToken: res.locals._csrf, seo });
@@ -304,11 +304,11 @@ router.get('/docs.html', (req, res) => res.redirect(301, '/docs'));
 router.get('/api-guide', (req, res) => {
   const seo = buildSeo(req, {
     path: '/api-guide',
-    titleAz: 'API â”€â–‘stifadâ•”Ã– Bâ•”Ã–lâ•”Ã–dâ”œÄŸisi - Ovlink',
-    titleTr: 'API Kullanâ”€â–’m Rehberi - Ovlink',
+    titleAz: 'API İstifadə Bələdçisi - Ovlink',
+    titleTr: 'API Kullanım Rehberi - Ovlink',
     titleEn: 'API Usage Guide - Ovlink',
-    descAz: 'Ovlink API key istifadâ•”Ã– qaydalarâ”€â–’ vâ•”Ã– Node.js, Python, C#, C++ nâ”œâ•munâ•”Ã–lâ•”Ã–ri.',
-    descTr: 'Ovlink API key kullanâ”€â–’m adâ”€â–’mlarâ”€â–’ ve Node.js, Python, C#, C++ â”œÃ‚rnekleri.',
+    descAz: 'Ovlink API key istifadə qaydaları və Node.js, Python, C#, C++ nümunələri.',
+    descTr: 'Ovlink API key kullanım adımları ve Node.js, Python, C#, C++ örnekleri.',
     descEn: 'Ovlink API key usage guide with Node.js, Python, C#, and C++ examples.'
   });
   res.render('api-guide', { csrfToken: res.locals._csrf, seo });
@@ -321,8 +321,8 @@ router.get('/abuse-safety', (req, res) => {
     titleAz: 'Abuse & Safety - Ovlink',
     titleTr: 'Abuse & Safety - Ovlink',
     titleEn: 'Abuse & Safety - Ovlink',
-    descAz: 'Sui-istifadâ•”Ã–, tâ•”Ã–hlâ”œâ•kâ•”Ã–sizlik siyasâ•”Ã–ti vâ•”Ã– icra tâ•”Ã–dbirlâ•”Ã–ri barâ•”Ã–dâ•”Ã– mâ•”Ã–lumat.',
-    descTr: 'Kâ”œÃ‚tâ”œâ•ye kullanâ”€â–’m, gâ”œâ•venlik politikasâ”€â–’ ve yaptâ”€â–’râ”€â–’m sâ”œâ•reci hakkâ”€â–’nda bilgi.',
+    descAz: 'Sui-istifadə, təhlükəsizlik siyasəti və icra tədbirləri barədə məlumat.',
+    descTr: 'Kötüye kullanım, güvenlik politikası ve yaptırım süreci hakkında bilgi.',
     descEn: 'Abuse policy, safety standards, and enforcement actions.'
   });
   res.render('abuse-safety', { csrfToken: res.locals._csrf, seo });
@@ -332,11 +332,11 @@ router.get('/abuse-safety.html', (req, res) => res.redirect(301, '/abuse-safety'
 router.get('/updates', (req, res) => {
   const seo = buildSeo(req, {
     path: '/updates',
-    titleAz: 'Yeniliklâ•”Ã–r - Ovlink',
-    titleTr: 'Gâ”œâ•ncellemeler - Ovlink',
+    titleAz: 'Yeniliklər - Ovlink',
+    titleTr: 'Güncellemeler - Ovlink',
     titleEn: 'Updates - Ovlink',
-    descAz: 'Ovlink â”œâ•â”œÄŸâ”œâ•n son ictimai yeniliklâ•”Ã–r, performans dâ”œâ•zâ•”Ã–liâ”¼ÅŸlâ•”Ã–ri vâ•”Ã– buraxâ”€â–’lâ”€â–’â”¼ÅŸ qeydlâ•”Ã–ri.',
-    descTr: 'Ovlink iâ”œÄŸin son herkese aâ”œÄŸâ”€â–’k gâ”œâ•ncellemeler, performans iyileâ”¼ÅŸtirmeleri ve sâ”œâ•râ”œâ•m notlarâ”€â–’.',
+    descAz: 'Ovlink üçün son ictimai yeniliklər, performans düzəlişləri və buraxılış qeydləri.',
+    descTr: 'Ovlink için son herkese açık güncellemeler, performans iyileştirmeleri ve sürüm notları.',
     descEn: 'Latest public updates, performance improvements, and release notes for Ovlink.'
   });
   res.render('updates', { csrfToken: res.locals._csrf, seo });
@@ -435,7 +435,7 @@ router.get('/bot/auth', (req, res) => {
   const platformUsername = (req.query.name || '').toString().trim();
 
   if (!platform || !platformUserId || !['telegram', 'discord'].includes(platform)) {
-    return res.status(400).render('error-disabled', { csrfToken: res.locals._csrf, reason: 'Geâ”œÄŸersiz parametreler.' });
+    return res.status(400).render('error-disabled', { csrfToken: res.locals._csrf, reason: 'Geçersiz parametreler.' });
   }
 
   // If user is logged in, show confirmation screen (Never auto-link on GET to prevent CSRF)
