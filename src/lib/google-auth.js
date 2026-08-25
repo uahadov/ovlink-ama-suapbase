@@ -123,5 +123,6 @@ getGoogleOidcClient().then((initialized) => {
 module.exports = {
   googleOidc,
   getGoogleOidcClient,
+  initGoogleOidc: getGoogleOidcClient,
   getGoogleRedirectUri
 };
