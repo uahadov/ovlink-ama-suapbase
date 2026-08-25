@@ -9,7 +9,8 @@ const { body, validationResult } = require('express-validator');
 const { db } = require('../../db/index');
 const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../../db/helpers');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('../../../utils/crypto');
-const { pickLang, normalizeLang } = require('../../lib/i18n');
+const { pickLang, normalizeLang, getCookieValue } = require('../../lib/i18n');
+const { isProdRuntime } = require('../../config/index');
 const {
   sendVerificationEmail,
   send2faEmail,
@@ -480,13 +481,26 @@ router.get('/auth/google', authLimiter, async (req, res) => {  if (!googleOidc.r
   const codeVerifier = generators.codeVerifier();
   const codeChallenge = generators.codeChallenge(codeVerifier);
 
-  req.session.oauth = {
+  const oauthPayload = {
     state,
     nonce,
     codeVerifier,
     redirectUri,
     createdAt: Date.now()
   };
+  req.session.oauth = oauthPayload;
+
+  try {
+    const encryptedState = encryptAES256GCM(JSON.stringify(oauthPayload));
+    res.cookie('ovlink_oauth', encryptedState, {
+      httpOnly: true,
+      secure: isProdRuntime,
+      sameSite: 'lax',
+      maxAge: 10 * 60 * 1000
+    });
+  } catch (cookieErr) {
+    console.warn('[google-auth] failed to set backup oauth cookie', cookieErr && cookieErr.message);
+  }
 
   const url = googleOidc.client.authorizationUrl({
     scope: 'openid email profile',
@@ -519,16 +533,30 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
   }
 
   try {
-    const oauth = req.session.oauth || {};
+    let oauth = req.session && req.session.oauth ? req.session.oauth : null;
+    if (!oauth || !oauth.state) {
+      const rawCookie = getCookieValue(req, 'ovlink_oauth');
+      if (rawCookie) {
+        try {
+          const decrypted = decryptAES256GCM(rawCookie);
+          oauth = JSON.parse(decrypted);
+        } catch (err) {
+          console.warn('[google-auth] failed to decrypt backup oauth cookie', err && err.message);
+        }
+      }
+    }
+    oauth = oauth || {};
+    res.clearCookie('ovlink_oauth');
+
     const callbackState = Array.isArray(req.query.state) ? req.query.state[0] : req.query.state;
     const now = Date.now();
 
     if (!oauth.state || !callbackState || oauth.state !== callbackState) {
-      req.session.oauth = null;
+      if (req.session) req.session.oauth = null;
       console.warn('[google-auth] state mismatch', {
         hasSession: !!req.session,
-        hasOAuth: !!req.session?.oauth,
-        hasState: !!oauth.state,
+        hasOAuth: !!(oauth && oauth.state),
+        hasState: !!(oauth && oauth.state),
         hasCallbackState: !!callbackState,
       });
       logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'state_mismatch' });

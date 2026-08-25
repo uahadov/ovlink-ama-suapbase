@@ -30,5 +30,6 @@ function getLangFromCookie(req) {
 module.exports = {
   pickLang,
   normalizeLang,
-  getLangFromCookie
+  getLangFromCookie,
+  getCookieValue
 };
