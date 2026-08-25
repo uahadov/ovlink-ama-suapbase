@@ -516,7 +516,7 @@ router.get('/auth/google', authLimiter, async (req, res) => {  if (!googleOidc.r
     if (saveErr) {
       console.error('[google-auth] session save failed', saveErr);
       logSecurityEvent(req, 'auth.google.start', 'failure', { reason: 'session_save_failed' });
-      return res.redirect('/login?error=google_failed');
+      return res.redirect('/login?error=google_failed&reason=verbose');
     }
     logSecurityEvent(req, 'auth.google.start', 'success', { reason: 'redirect_initiated' });
     return res.redirect(url);
@@ -560,13 +560,13 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
         hasCallbackState: !!callbackState,
       });
       logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'state_mismatch' });
-      return res.redirect('/login?error=google_failed');
+      return res.redirect('/login?error=google_failed&reason=state_mismatch');
     }
 
     if (oauth.createdAt && (now - oauth.createdAt) > 10 * 60 * 1000) {
       req.session.oauth = null;
       logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'oauth_expired' });
-      return res.redirect('/login?error=google_failed');
+      return res.redirect('/login?error=google_failed&reason=oauth_expired');
     }
 
     const callbackRedirectUri = (oauth.redirectUri || getGoogleRedirectUri(req) || googleOidc.redirectUri || '').toString();
@@ -598,7 +598,7 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
     db.get('SELECT * FROM users WHERE google_id_hash = ?', [blindIndex(googleId)], (err, user) => {
       if (err) {
         logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'db_lookup_failed' });
-        return res.redirect('/login?error=google_failed');
+        return res.redirect('/login?error=google_failed&reason=db_lookup_failed');
       }
       if (user) {
         const uiLang = normalizeLang(user.ui_lang || fallbackLang, 'az');
@@ -622,7 +622,7 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
         return req.session.regenerate((regenErr) => {
           if (regenErr) {
             logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'session_regenerate_failed', user_id: user.id });
-            return res.redirect('/login?error=google_failed');
+            return res.redirect('/login?error=google_failed&reason=session_regenerate_failed');
           }
           req.session.userId = user.id;
           req.session.username = decryptAES256GCM(user.email);
@@ -631,7 +631,7 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
             return req.session.save((saveErr) => {
               if (saveErr) {
                 logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'session_save_failed', user_id: user.id });
-                return res.redirect('/login?error=google_failed');
+                return res.redirect('/login?error=google_failed&reason=session_save_failed');
               }
               logSecurityEvent(req, 'auth.google.callback', 'success', { reason: 'existing_google_user', user_id: user.id });
               return res.redirect('/');
@@ -643,7 +643,7 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
       db.get('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(email)], (err2, existing) => {
         if (err2) {
           logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'email_lookup_failed' });
-          return res.redirect('/login?error=google_failed');
+          return res.redirect('/login?error=google_failed&reason=email_lookup_failed');
         }
 
         if (existing) {
@@ -677,12 +677,12 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
             (updateErr) => {
               if (updateErr) {
                 logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'google_attach_failed', user_id: existing.id });
-                return res.redirect('/login?error=google_failed');
+                return res.redirect('/login?error=google_failed&reason=google_attach_failed');
               }
               req.session.regenerate((regenErr) => {
                 if (regenErr) {
                   logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'session_regenerate_failed', user_id: existing.id });
-                  return res.redirect('/login?error=google_failed');
+                  return res.redirect('/login?error=google_failed&reason=session_regenerate_failed');
                 }
                 req.session.userId = existing.id;
                 req.session.username = decryptAES256GCM(existing.email);
@@ -691,7 +691,7 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
                   return req.session.save((saveErr) => {
                     if (saveErr) {
                       logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'session_save_failed', user_id: existing.id });
-                      return res.redirect('/login?error=google_failed');
+                      return res.redirect('/login?error=google_failed&reason=session_save_failed');
                     }
                     logSecurityEvent(req, 'auth.google.callback', 'success', { reason: 'existing_email_linked', user_id: existing.id });
                     return res.redirect('/');
@@ -710,13 +710,13 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
           function (err3) {
             if (err3) {
               logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'user_create_failed' });
-              return res.redirect('/login?error=google_failed');
+              return res.redirect('/login?error=google_failed&reason=user_create_failed');
             }
             const newUserId = this.lastID;
             req.session.regenerate((regenErr) => {
               if (regenErr) {
                 logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'session_regenerate_failed', user_id: newUserId });
-                return res.redirect('/login?error=google_failed');
+                return res.redirect('/login?error=google_failed&reason=session_regenerate_failed');
               }
               req.session.userId = newUserId;
               req.session.username = email; // email is plain text from req.body
@@ -725,7 +725,7 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
                 return req.session.save((saveErr) => {
                   if (saveErr) {
                     logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'session_save_failed', user_id: newUserId });
-                    return res.redirect('/login?error=google_failed');
+                    return res.redirect('/login?error=google_failed&reason=session_save_failed');
                   }
                   logSecurityEvent(req, 'auth.google.callback', 'success', { reason: 'new_google_user', user_id: newUserId });
                   return res.redirect('/');
@@ -739,7 +739,7 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
   } catch (err) {
     console.error('[google-auth] callback failed', err);
     logSecurityEvent(req, 'auth.google.callback', 'failure', { reason: 'callback_exception' });
-    return res.redirect('/login?error=google_failed');
+    return res.redirect('/login?error=google_failed&reason=callback_exception');
   }
 });
 
@@ -1401,3 +1401,4 @@ router.post('/api/notifications/delete-all', (req, res) => {
 const threatUrlSet = new Set();
 const threatHostSet = new Set();
 module.exports = router;
+
