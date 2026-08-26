@@ -1,5 +1,5 @@
 const { db } = require('../db/index');
-const { normalizeHostName } = require('./url-helpers');
+const { normalizeHostName, getRequestHostName } = require('./url-helpers');
 const { getConfiguredBaseHost } = require('./security');
 
 const ACTIVE_CUSTOM_DOMAIN_HOSTS = new Set();
@@ -103,11 +103,34 @@ function validateBaseUrlConfiguration() {
   }
 }
 
+function getShortHostAccess(row, reqHost) {
+  const customDomain = normalizeHostName(row && row.domain_host);
+  const normalizedReqHost = normalizeHostName(reqHost);
+
+  // If no custom domain is configured on the short link, allow default hosts
+  if (!customDomain) {
+    if (isActiveCustomDomainHost(normalizedReqHost)) {
+      return { allowed: false, redirectHost: null };
+    }
+    return { allowed: true, redirectHost: null };
+  }
+
+  // If short link is assigned to a custom domain:
+  if (normalizedReqHost === customDomain) {
+    return { allowed: true, redirectHost: null };
+  }
+
+  return { allowed: false, redirectHost: customDomain };
+}
+
 module.exports = {
   isActiveCustomDomainHost,
   refreshCustomDomainCache,
   getCustomDomainTargetHost,
   getCustomDomainTxtHost,
   parseConfiguredBaseUrl,
-  validateBaseUrlConfiguration
+  validateBaseUrlConfiguration,
+  getRequestHostName,
+  getShortHostAccess
 };
+

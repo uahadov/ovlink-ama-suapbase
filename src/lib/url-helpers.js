@@ -119,6 +119,18 @@ function buildShortUrl(req, short, customDomainHost) {
   return buildAbsoluteUrl(req, shortPath);
 }
 
+function buildAbsoluteUrlForHost(req, host, pathValue) {
+  const cleanHost = normalizeHostName(host);
+  const safePath = (pathValue || '/').toString();
+  const normalizedPath = safePath.startsWith('/') ? safePath : `/${safePath}`;
+  if (cleanHost) {
+    const proto = req && req.secure ? 'https' : 'http';
+    return `${proto}://${cleanHost}${normalizedPath}`;
+  }
+  const { buildAbsoluteUrl } = require('./security');
+  return buildAbsoluteUrl(req, normalizedPath);
+}
+
 module.exports = {
   ensureAbsoluteUrl,
   normalizeShortCode,
@@ -129,6 +141,8 @@ module.exports = {
   getSafeHostHeader,
   getRequestHostName,
   buildShortUrl,
+  buildAbsoluteUrlForHost,
   CUSTOM_DOMAIN_RE,
   RESERVED_SHORTS: RESERVED_SHORT_ALIASES
 };
+

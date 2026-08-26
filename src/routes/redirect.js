@@ -199,39 +199,9 @@ function handleRedirection(req, res, row, passwordVerified = false) {
 
     // 4. Abuse / Təhlükə Xəbərdarlığı Kontrolü
     if (row.abuse_score >= 4 && !req.query.confirm) {
-      const currentLang = normalizeLang(req.query.lang || (req.session && req.session.lang), 'az');
-      const announcementHtml = buildAnnouncementBannerMarkup(currentLang);
-      const assetQuery = getAssetVersionQuery();
-      return res.send(`
-        <!DOCTYPE html>
-        <html lang="${escapeHtml(currentLang)}">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Xəbərdarlıq - Ovlink</title>
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-            <link rel="stylesheet" href="/style.css${assetQuery}">
-          </head>
-          <body class="home-page app-page">
-${announcementHtml}
-            <main class="container mt-5 text-center">
-              <div class="card shadow-sm border-0 mx-auto p-4" style="max-width: 520px;">
-                <i class="fa-solid fa-triangle-exclamation fa-4x text-warning mb-3"></i>
-                <h2 class="fw-bold mb-2" data-i18n="danger_title">Xəbərdarlıq</h2>
-                <p class="text-muted" data-i18n="danger_msg">Bu link çox sayda şikayət alıb. Davam etmək istəyirsiniz?</p>
-                <div class="d-flex justify-content-center gap-2 mt-3">
-                  <a href="/${short}?confirm=true" class="btn btn-warning" data-i18n="danger_continue">Davam et</a>
-                  <a href="/" class="btn btn-outline-secondary" data-i18n="danger_back">Geri qayıt</a>
-                </div>
-              </div>
-            </main>
-            <script src="/lang.js${assetQuery}"></script>
-            <script src="/script.js${assetQuery}"></script>
-          </body>
-        </html>
-      `);
+      return res.render('error-warning', { csrfToken: res.locals._csrf, short });
     }
+
 
     // 5. Tracking (Klik qeydiyyatı)
     recordClickEvent(req, row, consentMode);

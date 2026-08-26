@@ -72,10 +72,68 @@ function getRedirectConsentModeForRequest(req, short, nextAction) {
   return { mode: '', source: '' };
 }
 
+const REDIRECT_CONSENT_COUNTDOWN_MS = 1500;
+const REDIRECT_CONSENT_MARKER = 'consent_essential';
+
+function getConsentResumePath(short, nextAction) {
+  const safeShort = encodeURIComponent((short || '').toString().trim());
+  const normalizedNext = normalizeConsentNext(nextAction);
+  if (normalizedNext === 'proceed') {
+    return `/proceed/${safeShort}`;
+  }
+  return `/${safeShort}`;
+}
+
+function setRedirectConsentSession(req, short, nextAction, mode) {
+  if (!req || !req.session) return;
+  req.session.redirectConsentApproved = {
+    short: (short || '').toString(),
+    next: normalizeConsentNext(nextAction),
+    mode: normalizeConsentMode(mode) || REDIRECT_CONSENT_MODES.ANALYTICS,
+    expiresAt: Date.now() + 15 * 60 * 1000,
+  };
+}
+
+function clearRedirectConsentSession(req) {
+  if (req && req.session) {
+    delete req.session.redirectConsentApproved;
+  }
+}
+
+function setRedirectConsentMode(res, mode) {
+  if (!res || typeof res.cookie !== 'function') return;
+  const normalized = normalizeConsentMode(mode) || REDIRECT_CONSENT_MODES.ANALYTICS;
+  res.cookie(REDIRECT_CONSENT_COOKIE, normalized, {
+    httpOnly: false,
+    sameSite: 'Lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 365 * 24 * 60 * 60 * 1000,
+  });
+}
+
+function clearRedirectConsentMode(res) {
+  if (!res || typeof res.clearCookie !== 'function') return;
+  res.clearCookie(REDIRECT_CONSENT_COOKIE, {
+    sameSite: 'Lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+}
+
 module.exports = {
   buildRedirectConsentSignature,
   isRedirectConsentSignatureValid,
   normalizeConsentMode,
   normalizeConsentNext,
-  getRedirectConsentModeForRequest
+  getRedirectConsentMode,
+  getRedirectConsentModeForRequest,
+  getConsentResumePath,
+  setRedirectConsentSession,
+  clearRedirectConsentSession,
+  setRedirectConsentMode,
+  clearRedirectConsentMode,
+  REDIRECT_CONSENT_COOKIE,
+  REDIRECT_CONSENT_MODES,
+  REDIRECT_CONSENT_COUNTDOWN_MS,
+  REDIRECT_CONSENT_MARKER
 };
+
