@@ -101,8 +101,6 @@ function getSafeHostHeader(req) {
   return host;
 }
 
-const { buildAbsoluteUrl } = require('./security');
-
 function getRequestHostName(req) {
   const hostHeader = getSafeHostHeader(req);
   if (hostHeader) return normalizeHostName(hostHeader);
@@ -117,6 +115,7 @@ function buildShortUrl(req, short, customDomainHost) {
       return `https://${cleanHost}${shortPath}`;
     }
   }
+  const { buildAbsoluteUrl } = require('./security');
   return buildAbsoluteUrl(req, shortPath);
 }
 
