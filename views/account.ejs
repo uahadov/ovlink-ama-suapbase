@@ -208,7 +208,15 @@
                 <p class="text-muted small mb-2" data-i18n="pro_panel_subtitle">Pro planınızla API açarları ve webhook axınlarını idarə edin.</p>
                 <a href="/api-guide" class="btn btn-sm btn-outline-secondary rounded-pill" data-i18n="pro_panel_guide_btn">API necə istifadə olunur?</a>
               </div>
-              <span id="proPlanBadge" class="badge text-bg-light border" data-i18n="pro_badge_free">Free Plan</span>
+              <% if (plan && plan.tier === 'pro' && plan.is_active) { %>
+                <span id="proPlanBadge" class="badge text-bg-success" data-i18n="pro_badge_active">Pro Active</span>
+              <% } else if (plan && plan.tier === 'pro' && plan.status === 'paused') { %>
+                <span id="proPlanBadge" class="badge text-bg-warning" data-i18n="pro_badge_paused">Pro Paused</span>
+              <% } else if (plan && plan.tier === 'pro') { %>
+                <span id="proPlanBadge" class="badge text-bg-secondary" data-i18n="pro_badge_expired">Pro Expired</span>
+              <% } else { %>
+                <span id="proPlanBadge" class="badge text-bg-light border" data-i18n="pro_badge_free">Free Plan</span>
+              <% } %>
             </div>
 
             <div id="proPlanMeta" class="small text-muted mb-2"></div>
@@ -219,12 +227,12 @@
               <span class="pro-quick-item" data-i18n="pro_quick_step_3">3) Test et və keç</span>
             </div>
 
-            <div id="proLockedNotice" class="alert alert-warning mt-3 mb-0" role="alert">
+            <div id="proLockedNotice" class="alert alert-warning mt-3 mb-0 <%= (plan && plan.tier === 'pro' && plan.is_active) ? 'd-none' : '' %>" role="alert">
               <strong data-i18n="pro_locked_title">Pro tələb olunur.</strong>
               <span class="d-block mt-1" data-i18n="pro_locked_text">Bu bölmədə API açarı və webhook idarəetməsi yalnız aktiv Pro plan üçün açıqdır.</span>
             </div>
 
-            <div id="proFeatureWrap" class="d-none mt-3">
+            <div id="proFeatureWrap" class="<%= (plan && plan.tier === 'pro' && plan.is_active) ? '' : 'd-none' %> mt-3">
               <div class="row g-3">
                 <div class="col-12 col-lg-6">
                   <div class="pro-surface border rounded-4 p-3 h-100">
