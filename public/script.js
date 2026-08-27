@@ -4592,17 +4592,24 @@ document.addEventListener("click", async (e) => {
     let data = null;
     try {
       const res = await fetch("/api/workspaces", { credentials: "include" });
-      if (res.ok) data = await res.json();
-    } catch {}
-    loadingEl.classList.add("d-none");
+      if (res.ok) {
+        data = await res.json();
+      } else if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+    } catch (err) {
+      console.error("Failed to load workspaces:", err);
+    }
+    if (loadingEl) loadingEl.classList.add("d-none");
 
-    const list = (data && data.workspaces) || [];
+    const list = (data && Array.isArray(data.workspaces)) ? data.workspaces : [];
     if (!list.length) {
       const isPro = !!(window.__wsPlanIsPro);
       if (isPro) {
-        createSection.classList.remove("d-none");
+        if (createSection) createSection.classList.remove("d-none");
       } else {
-        upsellEl.classList.remove("d-none");
+        if (upsellEl) upsellEl.classList.remove("d-none");
       }
       return;
     }
