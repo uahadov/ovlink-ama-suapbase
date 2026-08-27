@@ -4813,18 +4813,21 @@ document.addEventListener("click", async (e) => {
       input.value = wsDetail ? wsDetail.name : "";
       form.classList.toggle("d-none");
     });
-    document.getElementById("wsRenameForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      if (!wsDetail) return;
-      const name = (document.getElementById("wsRenameInput").value || "").trim();
-      const res = await wsRequest("PATCH", `/api/workspaces/${wsDetail.id}`, { name });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert((data && data.error) || pickLang("Ad dəyişmək mümkün olmadı.", "Yeniden adlandırma başarısız.", "Rename failed."));
-        return;
-      }
-      renderWorkspaceDetail(wsDetail.id);
-    });
+    const renameForm = document.getElementById("wsRenameForm");
+    if (renameForm) {
+      renameForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!wsDetail) return;
+        const name = (document.getElementById("wsRenameInput").value || "").trim();
+        const res = await wsRequest("PATCH", `/api/workspaces/${wsDetail.id}`, { name });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert((data && data.error) || pickLang("Ad dəyişmək mümkün olmadı.", "Yeniden adlandırma başarısız.", "Rename failed."));
+          return;
+        }
+        renderWorkspaceDetail(wsDetail.id);
+      });
+    }
   }
 
   const inviteForm = document.getElementById("wsInviteForm");
@@ -4877,17 +4880,19 @@ document.addEventListener("click", async (e) => {
       renderWorkspaceDetail(wsDetail.id);
     });
     const ssoRemoveBtn = document.getElementById("wsSsoRemoveBtn");
-    ssoRemoveBtn.addEventListener("click", async () => {
-      if (!wsDetail) return;
-      if (!confirm(pickLang("SSO konfiqurasiyası silinsin?", "SSO yapılandırması silinsin?", "Delete SSO configuration?"))) return;
-      const res = await wsRequest("DELETE", `/api/workspaces/${wsDetail.id}/sso`);
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert((err && err.error) || pickLang("Silmək mümkün olmadı.", "Silme işlemi başarısız.", "Delete failed."));
-        return;
-      }
-      renderWorkspaceDetail(wsDetail.id);
-    });
+    if (ssoRemoveBtn) {
+      ssoRemoveBtn.addEventListener("click", async () => {
+        if (!wsDetail) return;
+        if (!confirm(pickLang("SSO konfiqurasiyası silinsin?", "SSO yapılandırması silinsin?", "Delete SSO configuration?"))) return;
+        const res = await wsRequest("DELETE", `/api/workspaces/${wsDetail.id}/sso`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert((err && err.error) || pickLang("Silmək mümkün olmadı.", "Silme işlemi başarısız.", "Delete failed."));
+          return;
+        }
+        renderWorkspaceDetail(wsDetail.id);
+      });
+    }
   }
 
   const deleteBtn = document.getElementById("wsDeleteBtn");
