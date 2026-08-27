@@ -36,7 +36,6 @@ function parseIsoTimeMs(raw) {
 
 function isProAccessActive(userRow, nowMs = Date.now()) {
   if (!userRow) return false;
-  if (userRow.is_admin == 1 || userRow.role === 'admin') return true;
   const tier = normalizePlanTier(userRow.plan_tier);
   const status = normalizePlanStatus(userRow.plan_status);
   if (tier !== PLAN_TIERS.PRO || status !== PLAN_STATUS.ACTIVE) return false;
@@ -48,7 +47,6 @@ function isProAccessActive(userRow, nowMs = Date.now()) {
 
 function isProExpired(userRow, nowMs = Date.now()) {
   if (!userRow) return false;
-  if (userRow.is_admin == 1 || userRow.role === 'admin') return false;
   if (normalizePlanTier(userRow.plan_tier) !== PLAN_TIERS.PRO) return false;
   if (!userRow.pro_expires_at) return false;
   const expiresMs = parseIsoTimeMs(userRow.pro_expires_at);
@@ -57,9 +55,8 @@ function isProExpired(userRow, nowMs = Date.now()) {
 }
 
 function buildPlanPayload(userRow, nowMs = Date.now()) {
-  const isAdmin = !!(userRow && (userRow.is_admin == 1 || userRow.role === 'admin'));
-  const tier = isAdmin ? PLAN_TIERS.PRO : normalizePlanTier(userRow && userRow.plan_tier);
-  const status = isAdmin ? PLAN_STATUS.ACTIVE : normalizePlanStatus(userRow && userRow.plan_status);
+  const tier = normalizePlanTier(userRow && userRow.plan_tier);
+  const status = normalizePlanStatus(userRow && userRow.plan_status);
   const expiresAt = userRow && userRow.pro_expires_at ? userRow.pro_expires_at : null;
   const pausedAt = userRow && userRow.pro_paused_at ? userRow.pro_paused_at : null;
   const expiresMs = parseIsoTimeMs(expiresAt);
@@ -80,7 +77,7 @@ function buildPlanPayload(userRow, nowMs = Date.now()) {
 async function loadUserPlanRow(userId) {
   if (!Number.isInteger(userId) || userId <= 0) return null;
   return dbGetAsync(
-    'SELECT id, plan_tier, plan_status, pro_expires_at, pro_paused_at, polar_customer_id, is_admin FROM users WHERE id = ?',
+    'SELECT id, plan_tier, plan_status, pro_expires_at, pro_paused_at, polar_customer_id FROM users WHERE id = ?',
     [userId]
   );
 }
