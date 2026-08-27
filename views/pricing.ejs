@@ -8,15 +8,13 @@
   <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
   <link rel="icon" href="/logo.ico" />
   <link rel="manifest" href="/site.webmanifest" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  
   <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" media="print" id="bs-css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" media="print" id="gf-css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" id="fa-css" />
   <script nonce="<%= nonce %>">
     var bs = document.getElementById("bs-css"); if (bs) bs.media = "all";
+    var mc = document.getElementById("main-css"); if (mc) mc.media = "all";
     var gf = document.getElementById("gf-css"); if (gf) gf.media = "all";
     document.getElementById("fa-css").media = "all";
   </script>
@@ -25,7 +23,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   </noscript>
   
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" media="print" id="main-css" />
   <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
   <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />

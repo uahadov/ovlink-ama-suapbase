@@ -3937,7 +3937,8 @@ body.dark-mode,
 .btn-shimmer {
   position: relative;
   overflow: hidden;
-  contain: paint;
+  contain: layout paint;
+  isolation: isolate;
 }
 
 .btn-shimmer::after {
@@ -3952,6 +3953,13 @@ body.dark-mode,
   pointer-events: none;
   will-change: transform;
   animation: btnShimmer 4s ease-in-out infinite;
+}
+
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+  .btn-shimmer::after {
+    display: none;
+    animation: none;
+  }
 }
 
 @keyframes btnShimmer {

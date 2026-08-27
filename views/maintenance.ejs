@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" id="fa-css" />
   <script nonce="<%= nonce %>">
     var bs = document.getElementById("bs-css"); if (bs) bs.media = "all";
+    var mc = document.getElementById("main-css"); if (mc) mc.media = "all";
     var gf = document.getElementById("gf-css"); if (gf) gf.media = "all";
     document.getElementById("fa-css").media = "all";
   </script>
@@ -21,7 +22,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   </noscript>
   
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" media="print" id="main-css" />
 </head>
 
 <body class="bg-light d-flex flex-column min-vh-100 maintenance-page">
