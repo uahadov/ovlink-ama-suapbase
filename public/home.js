@@ -958,13 +958,7 @@ observer.unobserve(entry.target);
 threshold: 0.1,
 rootMargin: '0px 0px -50px 0px'
 });
-revealElements.forEach(el => {
-if (el.getBoundingClientRect().top < window.innerHeight) {
-activateReveal(el);
-} else {
-observer.observe(el);
-}
-});
+revealElements.forEach(el => observer.observe(el));
 } else {
 revealElements.forEach(activateReveal);
 }
