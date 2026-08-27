@@ -3092,43 +3092,35 @@ transform: none;
 }
 .js-reveal .reveal {
 opacity: 0;
-transform: translateY(30px);
-transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+transition: opacity 0.4s ease;
 }
 .js-reveal .reveal.active {
 opacity: 1;
-transform: translateY(0);
 }
 .js-reveal .reveal-left {
 opacity: 0;
-transform: translateX(-40px);
-transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+transition: opacity 0.4s ease;
 }
 .js-reveal .reveal-left.active {
 opacity: 1;
-transform: translateX(0);
 }
 .js-reveal .reveal-right {
 opacity: 0;
-transform: translateX(40px);
-transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+transition: opacity 0.4s ease;
 }
 .js-reveal .reveal-right.active {
 opacity: 1;
-transform: translateX(0);
 }
 .js-reveal .reveal-scale {
 opacity: 0;
-transform: scale(0.92);
-transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+transition: opacity 0.4s ease;
 }
 .js-reveal .reveal-scale.active {
 opacity: 1;
-transform: scale(1);
+}
+.tool-card {
+contain: layout paint;
+isolation: isolate;
 }
 .js-reveal .stagger-children > * {
 opacity: 0;
