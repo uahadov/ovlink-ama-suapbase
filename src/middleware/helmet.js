@@ -17,8 +17,10 @@ const helmetMiddleware = helmet({
       scriptSrc: [
         "'self'",
         (req, res) => `'nonce-${res.locals.nonce}'`,
-        "'strict-dynamic'",
-        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net",
+        "https://cdnjs.cloudflare.com",
+        "https://unpkg.com",
+        "https://cloudflareinsights.com",
         "https:"
       ],
       scriptSrcAttr: ["'none'"],
