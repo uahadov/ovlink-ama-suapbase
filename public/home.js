@@ -51,7 +51,6 @@ function toggleTheme() {
   applyTheme(nextTheme);
 }
 
-// Document-level click handler for .theme-toggle (always works across all pages)
 document.addEventListener("click", (e) => {
   const btn = e.target.closest(".theme-toggle");
   if (btn) {
@@ -356,7 +355,6 @@ async function trySyncSessionFromServer() {
       clearClientSession();
     }
   } catch {
-    // ignore network issue
   }
 }
 
@@ -385,9 +383,7 @@ function renderNavbarAuth() {
   syncFloatingPricingBanner();
 }
 
-/* -------------------------------------------------------------
- * NOTIFICATION CENTER & LIVE TOAST NOTIFICATIONS (HOME PAGE)
- * ------------------------------------------------------------- */
+
 function showNotificationToast(notification) {
   if (!notification) return;
   const lang = getCurrentLang();
@@ -469,7 +465,6 @@ async function loadNotifications() {
 
     maybeShowNotificationToast(items);
   } catch {
-    // network issue
   }
 }
 
@@ -529,7 +524,6 @@ function initShorten() {
   if (!form || form.dataset.shortenBound === "true") return;
   form.dataset.shortenBound = "true";
 
-  // --- Home Workspace Selector Logic ---
   const hwWrapper = document.getElementById("homeWorkspaceTopWrapper");
   const hwBtn = document.getElementById("homeWorkspaceDropdownBtn");
   const hwIcon = document.getElementById("homeWorkspaceBtnIcon");
@@ -557,7 +551,6 @@ function initShorten() {
 
         hwWrapper.classList.remove("d-none");
         
-        // Populate menu
         const personalName = window.pickLang ? window.pickLang("Şəxsi hesab", "Kişisel hesap", "Personal account") : "Şəxsi hesab";
         hwMenu.innerHTML = `
           <li><a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#" data-ws-id="0"><i class="fa-solid fa-user text-muted"></i> <span class="fw-medium">${personalName}</span></a></li>
@@ -569,7 +562,6 @@ function initShorten() {
           hwMenu.innerHTML += `<li><a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#" data-ws-id="${ws.id}"><i class="fa-solid fa-users text-primary"></i> <span class="fw-medium">${wsName}</span></a></li>`;
         });
 
-        // Set initial selection
         const storedId = parseInt(localStorage.getItem("ovlink_home_workspace") || "0", 10);
         const activeWs = workspaces.find(w => w.id === storedId);
         if (activeWs) {
@@ -578,7 +570,6 @@ function initShorten() {
           updateHwBtn(0, personalName);
         }
 
-        // Handle clicks
         hwMenu.addEventListener("click", (e) => {
           const a = e.target.closest("a.dropdown-item");
           if (!a) return;
@@ -589,12 +580,10 @@ function initShorten() {
         });
 
       } catch (err) {
-        // ignore errors
       }
     })();
   }
 
-  // --- UTM Templates Logic ---
   const BUILTIN_UTM_TEMPLATES = [
     { name: "Facebook & Instagram Ads", source: "facebook", medium: "cpc", campaign: "promo_feed" },
     { name: "Google Ads", source: "google", medium: "cpc", campaign: "search_ad" },
@@ -618,7 +607,6 @@ function initShorten() {
     defaultOpt.setAttribute("data-i18n", "adv_utm_template_select");
     defaultOpt.textContent = defaultText;
 
-    // Properly reset children without leaving orphaned optgroup elements
     if (typeof utmSelect.replaceChildren === "function") {
       utmSelect.replaceChildren(defaultOpt);
     } else {
@@ -626,7 +614,6 @@ function initShorten() {
       utmSelect.appendChild(defaultOpt);
     }
 
-    // Pre-defined group
     const builtInGroup = document.createElement("optgroup");
     builtInGroup.label = (typeof tKey === "function" ? tKey("adv_utm_popular_templates") : null) ||
       (typeof pickLang === "function" ? pickLang("Populyar Şablonlar", "Popüler Şablonlar", "Popular Templates") : "Populyar Şablonlar");
@@ -639,7 +626,6 @@ function initShorten() {
     });
     utmSelect.appendChild(builtInGroup);
 
-    // Custom user templates group
     try {
       const rawStored = localStorage.getItem("ovlink_utm_templates");
       const stored = rawStored ? JSON.parse(rawStored) : [];
@@ -662,7 +648,6 @@ function initShorten() {
       }
     } catch (e) {}
 
-    // Restore previous selected value if valid
     if (currentVal) {
       const exists = Array.from(utmSelect.options).some((o) => o.value === currentVal);
       if (exists) {
@@ -753,7 +738,6 @@ function initShorten() {
     }
   }
 
-  // Load UTM templates immediately and attach listeners
   loadUtmTemplates();
   setupUtmListeners();
 
@@ -824,7 +808,6 @@ function initShorten() {
     if (ios_url) ios_url = appendUtm(ios_url);
     if (android_url) android_url = appendUtm(android_url);
 
-    // Client-side PRO check for A/B testing or Device targeting
     const hasProFeature = Boolean(original_b || ios_url || android_url);
     const session = typeof getClientSession === "function" ? getClientSession() : { isLoggedIn: false };
     const isPro = typeof isProPlanActive === "function" && isProPlanActive();
@@ -951,7 +934,6 @@ document.addEventListener("click", async (e) => {
         copyBtn.innerHTML = `<i class="fa-solid fa-copy me-1"></i> ${tKey("copy_btn", "Copy")}`;
       }, 1200);
     } catch {
-      // ignore
     }
   }
 
@@ -1232,4 +1214,4 @@ document.addEventListener("click", async (e) => {
     }, { threshold: 0.1 });
     observer.observe(btn);
   });
-})();
+})();
