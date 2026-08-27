@@ -1390,6 +1390,17 @@ body.dark-mode,
   font-size: 0.95rem;
   opacity: 0.85;
   transform: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-page .navbar-nav .nav-link i,
+.home-navbar .navbar-nav .nav-link i {
+  display: inline-block;
+  width: 1.15em;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 .home-page .navbar-nav .nav-link:hover {
@@ -1500,6 +1511,7 @@ body.dark-mode,
 }
 
 .home-page .hero-title-accent {
+  color: #4f46e5;
   background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -3383,8 +3395,9 @@ body.dark-mode,
   text-decoration: none;
   color: #ffffff;
   border-radius: 16px;
-  padding: 12px;
-  padding-right: 36px;
+  padding: 14px;
+  padding-right: 48px;
+  min-height: 48px;
   transition: transform .18s ease, box-shadow .18s ease;
 }
 
@@ -3442,28 +3455,31 @@ body.dark-mode,
 .floating-pricing-banner-close {
   position: absolute;
   top: 6px;
-  right: 8px;
+  right: 6px;
   z-index: 2;
-  width: 20px;
-  height: 20px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(15, 23, 42, 0.65);
   color: #dbeafe;
-  font-size: 0.92rem;
+  font-size: 1.1rem;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
   user-select: none;
   border: 0;
   padding: 0;
+  touch-action: manipulation;
 }
 
 .floating-pricing-banner-close:hover,
 .floating-pricing-banner-close:focus-visible {
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(15, 23, 42, 0.9);
   color: #ffffff;
   outline: none;
 }
@@ -3476,7 +3492,8 @@ body.dark-mode,
   }
 
   .floating-pricing-banner-link {
-    padding: 10px;
+    padding: 12px;
+    padding-right: 48px;
     gap: 10px;
   }
 
@@ -3919,24 +3936,27 @@ body.dark-mode,
 .btn-shimmer {
   position: relative;
   overflow: hidden;
+  contain: paint;
 }
 
 .btn-shimmer::after {
   content: '';
   position: absolute;
   top: 0;
-  left: -100%;
+  left: 0;
   width: 60%;
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
-  transform: skewX(-20deg);
+  transform: translateX(-150%) skewX(-20deg);
+  pointer-events: none;
+  will-change: transform;
   animation: btnShimmer 4s ease-in-out infinite;
 }
 
 @keyframes btnShimmer {
-  0% { left: -100%; }
-  30% { left: 150%; }
-  100% { left: 150%; }
+  0% { transform: translateX(-150%) skewX(-20deg); }
+  30% { transform: translateX(250%) skewX(-20deg); }
+  100% { transform: translateX(250%) skewX(-20deg); }
 }
 
 /* Attention Pulse for Primary Buttons */

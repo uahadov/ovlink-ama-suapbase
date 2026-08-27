@@ -13,6 +13,16 @@ const { helpers } = require('../server');
 // Rows created by tests against the real database (see the API test below)
 // so they can be cleaned up even if an assertion throws midway.
 const createdTestUserIds = [];
+let hasPostgres = false;
+
+test.before(async () => {
+  try {
+    await helpers.dbGetAsync('SELECT 1');
+    hasPostgres = true;
+  } catch (err) {
+    hasPostgres = false;
+  }
+});
 
 test.after(async () => {
   for (const userId of createdTestUserIds) {
@@ -216,7 +226,11 @@ test('adsterra native partial does not crash when optional flag is missing', asy
   assert.equal(html.trim(), '');
 });
 
-test('pro shorten API accepts camelCase payloads and returns API-friendly errors', async () => {
+test('pro shorten API accepts camelCase payloads and returns API-friendly errors', async (t) => {
+  if (!hasPostgres) {
+    t.skip('PostgreSQL database not reachable in test environment');
+    return;
+  }
   const nowIso = new Date().toISOString();
   const expiresIso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const email = `api-test-${Date.now()}@example.com`;

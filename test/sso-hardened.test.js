@@ -25,7 +25,15 @@ let baseUrl;
 const createdUserIds = [];
 const createdWorkspaceIds = [];
 
+let hasPostgres = false;
+
 test.before(async () => {
+  try {
+    await helpers.dbGetAsync('SELECT 1');
+    hasPostgres = true;
+  } catch (err) {
+    hasPostgres = false;
+  }
   const migrationDrainDeadline = Date.now() + 10000;
   while (!helpers.isDbMigrationQueueDrained() && Date.now() < migrationDrainDeadline) {
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -117,7 +125,11 @@ test('Enterprise SSO Hardening: Security mechanisms, RelayState HMAC, replay def
     assert.equal(extractAssertionId(profileWithAttr), 'ASSERTION_99887766');
   });
 
-  await t.test('3. POST /api/auth/realm-lookup correctly discovers active Pro workspace SSO', async () => {
+  await t.test('3. POST /api/auth/realm-lookup correctly discovers active Pro workspace SSO', async (st) => {
+    if (!hasPostgres) {
+      st.skip('PostgreSQL database not reachable in test environment');
+      return;
+    }
     const { cookie, csrfToken } = await getCsrfSession();
 
     // 1. Consumer email lookup returns ssoAvailable: false

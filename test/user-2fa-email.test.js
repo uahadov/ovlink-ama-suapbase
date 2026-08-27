@@ -26,7 +26,15 @@ function forgeSessionCookie(sid) {
   return `connect.sid=${encodeURIComponent(signed)}`;
 }
 
+let hasPostgres = false;
+
 test.before(async () => {
+  try {
+    await helpers.dbGetAsync('SELECT 1');
+    hasPostgres = true;
+  } catch (err) {
+    hasPostgres = false;
+  }
   const deadline = Date.now() + 10000;
   while (!helpers.isDbMigrationQueueDrained() && Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -55,6 +63,10 @@ test.after(async () => {
 });
 
 test('user 2FA and email change flows', async (t) => {
+  if (!hasPostgres) {
+    t.skip('PostgreSQL database not reachable in test environment');
+    return;
+  }
   const server = app.listen(0);
   await new Promise((resolve, reject) => {
     server.once('listening', resolve);

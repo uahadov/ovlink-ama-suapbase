@@ -89,7 +89,7 @@ const homeTranslations = {
     home_long_title: "Niyə Ovlink?",
     home_why_teaser_p1: "Ovlink etibarlı və idarəolunan qısa linklər üçün hazırlanıb.",
     home_why_teaser_p2: "Legitim paylaşım üçün nəzərdə tutulub və təhlükəsizlik/siyasət qaydalarını pozan linkləri məhdudlaşdıra bilər.",
-    home_why_cta: "Davamını oxu",
+    home_why_cta: "Ovlink haqqında ətraflı oxu",
 
     home_value_title: "Necə işləyir və niyə təhlükəsizdir",
     home_mini_feature_1_title: "Sürətli Qısaltma",
@@ -212,7 +212,7 @@ const homeTranslations = {
     home_long_title: "Neden Ovlink?",
     home_why_teaser_p1: "Ovlink güvenilir ve yönetilebilir kısa linkler için tasarlanmıştır.",
     home_why_teaser_p2: "Meşru paylaşım için geliştirilmiştir; güvenlik/politika ihlali olan linkler kısıtlanabilir.",
-    home_why_cta: "Devamını oku",
+    home_why_cta: "Ovlink hakkında detaylı bilgi",
 
     home_value_title: "Nasıl çalışır ve neden güvenli",
     home_mini_feature_1_title: "Anında Kısaltma",
@@ -335,7 +335,7 @@ const homeTranslations = {
     home_long_title: "Why Choose Ovlink?",
     home_why_teaser_p1: "Ovlink is built for trustworthy, manageable short links.",
     home_why_teaser_p2: "It is intended for legitimate sharing and may restrict links that violate safety or policy rules.",
-    home_why_cta: "Read more",
+    home_why_cta: "Learn why you should choose Ovlink",
 
     home_value_title: "How it works & Why it's safe",
     home_mini_feature_1_title: "Instant Shortening",

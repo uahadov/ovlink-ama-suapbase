@@ -8,9 +8,16 @@ process.env.PORT = '0';
 const { app, helpers } = require('../server');
 const { blindIndex, encryptAES256GCM } = require('../utils/crypto');
 
+let hasPostgres = false;
 const createdTestUserIds = [];
 
 test.before(async () => {
+  try {
+    await helpers.dbGetAsync('SELECT 1');
+    hasPostgres = true;
+  } catch (err) {
+    hasPostgres = false;
+  }
   const migrationDrainDeadline = Date.now() + 10000;
   while (!helpers.isDbMigrationQueueDrained() && Date.now() < migrationDrainDeadline) {
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -37,7 +44,11 @@ test.after(async () => {
 // The index is created by the startup migration; parallel test processes boot
 // the server against the same database, so poll briefly instead of assuming
 // this process created it first.
-test('unique indexes exist on users(email_hash) and admin_users(email_hash)', async () => {
+test('unique indexes exist on users(email_hash) and admin_users(email_hash)', async (t) => {
+  if (!hasPostgres) {
+    t.skip('PostgreSQL database not reachable in test environment');
+    return;
+  }
   const deadline = Date.now() + 15000;
   let rows = [];
   while (Date.now() < deadline) {
@@ -55,6 +66,10 @@ test('unique indexes exist on users(email_hash) and admin_users(email_hash)', as
 });
 
 test('account identity: duplicate emails and id-scoped verification', async (t) => {
+  if (!hasPostgres) {
+    t.skip('PostgreSQL database not reachable in test environment');
+    return;
+  }
   const server = app.listen(0);
   await new Promise((resolve, reject) => {
     server.once('listening', resolve);
