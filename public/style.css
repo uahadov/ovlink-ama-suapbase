@@ -557,22 +557,28 @@ color: #fff !important;
 .cookie-banner {
 position: fixed;
 bottom: 20px;
-left: 50%;
-transform: translateX(-50%);
-width: min(640px, calc(100vw - 32px));
-background: rgba(255, 255, 255, 0.85);
+left: 20px;
+width: min(480px, calc(100vw - 40px));
+background: rgba(255, 255, 255, 0.95);
 backdrop-filter: blur(16px);
 -webkit-backdrop-filter: blur(16px);
 border: 1px solid rgba(226, 232, 240, 0.8);
 border-radius: 16px;
-padding: 16px 20px;
+padding: 14px 18px;
 text-align: center;
 z-index: 10000;
 box-shadow: 0 12px 40px rgba(15, 23, 42, 0.15);
 display: flex;
 align-items: center;
 gap: 14px;
-animation: cookieSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#acceptCookieBtn {
+min-height: 48px;
+min-width: 72px;
+padding: 10px 20px;
+display: inline-flex;
+align-items: center;
+justify-content: center;
 }
 .cookie-banner p {
 margin: 0;
@@ -584,9 +590,11 @@ text-align: left;
 .cookie-banner p a {
 color: #4f46e5;
 text-decoration: underline;
+display: inline-block;
+padding: 4px 0;
 }
 .dark-mode .cookie-banner {
-background: rgba(30, 41, 59, 0.9);
+background: rgba(30, 41, 59, 0.95);
 border-color: rgba(71, 85, 105, 0.6);
 box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
@@ -595,10 +603,6 @@ color: #cbd5e1;
 }
 .dark-mode .cookie-banner p a {
 color: #818cf8;
-}
-@keyframes cookieSlideUp {
-from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 body.dark-mode,
 .dark-mode.bg-light {
@@ -2896,15 +2900,29 @@ color: #ffffff;
 outline: none;
 }
 @media (max-width: 576px) {
-.floating-pricing-banner {
+.cookie-banner {
+left: 10px;
 right: 10px;
 bottom: 10px;
 width: calc(100vw - 20px);
 }
+.floating-pricing-banner {
+right: 10px;
+bottom: 110px;
+width: calc(100vw - 20px);
+}
 .floating-pricing-banner-link {
 padding: 12px;
-padding-right: 48px;
+padding-right: 56px;
+min-height: 52px;
+min-width: 48px;
 gap: 10px;
+}
+.floating-pricing-banner-close {
+width: 48px;
+height: 48px;
+min-width: 48px;
+min-height: 48px;
 }
 .floating-pricing-banner-image {
 width: 54px;
