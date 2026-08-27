@@ -77,18 +77,17 @@ async function getUserWorkspaceMemberships(userId) {
   );
 }
 
-
 router.post('/workspaces/accept', async (req, res) => {
-  if (!req.session.userId) return res.redirect(`/workspaces/accept?token=${encodeURIComponent((req.body && req.body.token || '').toString())}`);
+  if (!req.session.userId) return res.redirect('/workspaces/accept?token=' + encodeURIComponent((req.body && req.body.token || '').toString()));
   const token = (req.body && req.body.token || '').toString();
   const loaded = await loadValidWorkspaceInvitation(token).catch(() => ({ error: 'invalid' }));
-  if (loaded.error) return res.redirect(`/workspaces/accept?token=${encodeURIComponent(token)}`);
+  if (loaded.error) return res.redirect('/workspaces/accept?token=' + encodeURIComponent(token));
 
   const { invitation, workspace } = loaded;
-  if (!(await isWorkspaceProActive(workspace))) return res.redirect(`/workspaces/accept?token=${encodeURIComponent(token)}`);
+  if (!(await isWorkspaceProActive(workspace))) return res.redirect('/workspaces/accept?token=' + encodeURIComponent(token));
 
   const user = await dbGetAsync('SELECT id, email_hash, banned FROM users WHERE id = ?', [req.session.userId]);
-  if (!user || user.email_hash !== invitation.email_hash) return res.redirect(`/workspaces/accept?token=${encodeURIComponent(token)}`);
+  if (!user || user.email_hash !== invitation.email_hash) return res.redirect('/workspaces/accept?token=' + encodeURIComponent(token));
 
   const existingMember = await dbGetAsync('SELECT id FROM workspace_members WHERE workspace_id = ? AND user_id = ?', [workspace.id, user.id]);
   if (!existingMember) {
@@ -99,10 +98,11 @@ router.post('/workspaces/accept', async (req, res) => {
   }
   await dbRunAsync('UPDATE workspace_invitations SET accepted_at = ? WHERE id = ?', [new Date().toISOString(), invitation.id]);
   logSecurityEvent(req, 'workspace.invite.accepted', 'success', { workspace_id: workspace.id, invitation_id: invitation.id });
-  return res.redirect(`/dashboard?ws=${workspace.id}`);
+  return res.redirect('/dashboard?ws=' + workspace.id);
 });
 
 router.get('/api/workspaces', requireSignedIn, async (req, res) => {
+  const plan = await getEffectivePlanForUser(req.session.userId).catch(() => ({ is_active: false }));
   const memberships = await getUserWorkspaceMemberships(req.session.userId);
   const enriched = [];
   for (const m of memberships) {
@@ -115,7 +115,8 @@ router.get('/api/workspaces', requireSignedIn, async (req, res) => {
       pro_active: await isWorkspaceProActive(m),
     });
   }
-  return res.json({ workspaces: enriched });
+  const isProUser = !!(plan && plan.is_active && plan.tier === 'pro');
+  return res.json({ workspaces: enriched, is_pro: isProUser });
 });
 
 router.post('/api/workspaces',
@@ -125,12 +126,12 @@ router.post('/api/workspaces',
     const uiLang = normalizeLang(req.body && req.body.lang, 'az');
     const name = normalizeWorkspaceName(req.body && req.body.name);
     if (name.length < 3) {
-      return res.status(400).json({ error: pickLang(uiLang, 'Workspace adâ”€â–’ â•”Ã–n azâ”€â–’ 3 simvol olmalâ”€â–’dâ”€â–’r.', 'Workspace adâ”€â–’ en az 3 karakter olmalâ”€â–’dâ”€â–’r.', 'Workspace name must be at least 3 characters.') });
+      return res.status(400).json({ error: pickLang(uiLang, 'Workspace adı ən azı 3 simvol olmalıdır.', 'Workspace adı en az 3 karakter olmalıdır.', 'Workspace name must be at least 3 characters.') });
     }
     const existing = await dbGetAsync('SELECT id, name FROM workspaces WHERE owner_user_id = ?', [req.session.userId]);
     if (existing) {
       return res.status(409).json({
-        error: pickLang(uiLang, 'Sizin artâ”€â–’q bir workspace-iniz var.', 'Zaten bir workspace\'iniz var.', 'You already have a workspace.'),
+        error: pickLang(uiLang, 'Sizin artıq bir workspace-iniz var.', 'Zaten bir workspace\'iniz var.', 'You already have a workspace.'),
         workspace: { id: existing.id, name: existing.name },
       });
     }
