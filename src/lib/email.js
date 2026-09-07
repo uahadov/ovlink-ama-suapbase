@@ -25,18 +25,27 @@ if (process.env.RESEND_API_KEY) {
   }
 }
 
+const smtpPort = Number(process.env.SMTP_PORT) || 587;
+const isSecure = process.env.SMTP_SECURE != null
+  ? (process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1')
+  : (smtpPort === 465);
+
 const emailTransporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'mail.spaceship.com',
-  port: Number(process.env.SMTP_PORT) || 465,
-  secure: true,
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: smtpPort,
+  secure: isSecure,
   auth: {
     user: process.env.SMTP_USER || 'verify@ovlink.sbs',
-    pass: process.env.SMTP_PASS,
+    pass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''),
   },
+  family: 4,
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
 });
 
-const SMTP_FROM = process.env.FROM_EMAIL || 'Ovlink <verify@ovlink.sbs>';
-const RESEND_FROM = process.env.RESEND_FROM || 'Ovlink <verify@ovlink.sbs>';
+const SMTP_FROM = process.env.FROM_EMAIL || process.env.SMTP_USER || 'Ovlink <verify@ovlink.sbs>';
+const RESEND_FROM = process.env.RESEND_FROM || process.env.FROM_EMAIL || 'Ovlink <verify@ovlink.sbs>';
 
 async function sendMail({ to, subject, html, text }) {
   if (resendClient) {

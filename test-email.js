@@ -14,14 +14,21 @@ if (!process.env.FROM_EMAIL) {
 console.log('Email test baslatiliyor...');
 console.log('FROM_EMAIL:', process.env.FROM_EMAIL);
 
+const smtpPort = Number(process.env.SMTP_PORT) || 587;
+const isSecure = process.env.SMTP_SECURE != null
+  ? (process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1')
+  : (smtpPort === 465);
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'mail.spaceship.com',
-  port: Number(process.env.SMTP_PORT) || 465,
-  secure: true,
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: smtpPort,
+  secure: isSecure,
   auth: {
     user: process.env.SMTP_USER || 'verify@ovlink.sbs',
-    pass: process.env.SMTP_PASS,
+    pass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''),
   },
+  family: 4,
+  connectionTimeout: 10000,
 });
 
 async function sendTestEmail() {
