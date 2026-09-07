@@ -251,7 +251,9 @@
             msg.className = "text-center text-success small";
             msg.textContent = currentLang === 'az' ? "Giriş uğurludur! Yönləndirilirsiniz..." : (currentLang === 'en' ? "Login successful! Redirecting..." : "Giriş başarılı! Yönlendiriliyorsunuz...");
             setClientSession({ email: data.username, isAdmin: false });
-            setTimeout(() => window.location.href = '/', 1000);
+            const nextParam = new URLSearchParams(window.location.search).get('next');
+            const safeRedirect = (nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')) ? nextParam : '/';
+            setTimeout(() => window.location.href = safeRedirect, 1000);
           } else {
             msg.className = "text-center text-danger small";
             msg.textContent = data.error || (currentLang === 'az' ? "Kod yanlışdır." : (currentLang === 'en' ? "Invalid code." : "Kod hatalı."));
@@ -273,7 +275,9 @@
           msg.className = "text-center text-success small";
           msg.textContent = currentLang === 'az' ? "Giriş uğurludur! Yönləndirilirsiniz..." : (currentLang === 'en' ? "Login successful! Redirecting..." : "Giriş başarılı! Yönlendiriliyorsunuz...");
           setClientSession({ email: data.username, isAdmin: false });
-          setTimeout(() => window.location.href = '/', 1000);
+          const nextParam = new URLSearchParams(window.location.search).get('next');
+          const safeRedirect = (nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')) ? nextParam : '/';
+          setTimeout(() => window.location.href = safeRedirect, 1000);
         } else {
           msg.className = "text-center text-danger small";
           msg.textContent = data.error || (currentLang === 'az' ? "Giriş alınmadı." : (currentLang === 'en' ? "Login failed." : "Giriş başarısız."));

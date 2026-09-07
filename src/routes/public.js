@@ -152,7 +152,8 @@ router.get('/pricing', (req, res) => {
   });
   
   const isLoggedIn = !!(req.session && req.session.userId);
-  res.render('pricing', { csrfToken: res.locals._csrf, seo, isLoggedIn });
+  const polarCheckoutUrl = (process.env.POLAR_CHECKOUT_URL || 'https://buy.polar.sh/polar_cl_9QZbWPt4zCzplBGNFgy6xeZf9rxVICG62IIe03GpkNS').trim();
+  res.render('pricing', { csrfToken: res.locals._csrf, seo, isLoggedIn, polarCheckoutUrl });
 });
 router.get('/pricing.html', (req, res) => res.redirect(301, '/pricing'));
 

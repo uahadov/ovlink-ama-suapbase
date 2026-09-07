@@ -15,16 +15,9 @@ router.post('/api/polar/create-checkout', async (req, res) => {
     return res.status(401).json({ error: 'unauthorized', code: 'not_logged_in' });
   }
 
-  const expectedPriceId = process.env.POLAR_PRODUCT_PRICE_ID || '';
-  if (!expectedPriceId) {
-    console.error('[polar] POLAR_PRODUCT_PRICE_ID is missing from environment variables.');
-    return res.status(500).json({ error: 'Checkout configuration missing on server.' });
-  }
-
-  if (!process.env.POLAR_ACCESS_TOKEN) {
-    console.error('[polar] POLAR_ACCESS_TOKEN is missing from environment variables.');
-    return res.status(500).json({ error: 'Checkout configuration missing on server.' });
-  }
+  const fallbackCheckoutUrl = (process.env.POLAR_CHECKOUT_URL || 'https://buy.polar.sh/polar_cl_9QZbWPt4zCzplBGNFgy6xeZf9rxVICG62IIe03GpkNS').trim();
+  const expectedPriceId = (process.env.POLAR_PRODUCT_PRICE_ID || '').trim();
+  const accessToken = (process.env.POLAR_ACCESS_TOKEN || '').trim();
 
   try {
     const user = await new Promise((resolve, reject) => {
@@ -39,7 +32,23 @@ router.post('/api/polar/create-checkout', async (req, res) => {
     }
 
     // users.email is stored encrypted; Polar needs the real address.
-    const customerEmail = decryptAES256GCM(user.email).toString().trim();
+    let customerEmail = '';
+    try {
+      if (user.email) {
+        customerEmail = decryptAES256GCM(user.email).toString().trim();
+      }
+    } catch (_) {}
+
+    // If Polar API configuration is missing, gracefully fall back to direct Polar checkout link
+    if (!expectedPriceId || !accessToken) {
+      let url = fallbackCheckoutUrl;
+      if (customerEmail && customerEmail.includes('@')) {
+        const sep = url.includes('?') ? '&' : '?';
+        url = `${url}${sep}customer_email=${encodeURIComponent(customerEmail)}`;
+      }
+      return res.json({ url });
+    }
+
     if (!customerEmail || !customerEmail.includes('@')) {
       console.error('[polar] Could not decrypt a usable email for user', req.session.userId, '; refusing checkout.');
       return res.status(500).json({ error: 'Account email is unavailable. Please contact support.' });
@@ -62,7 +71,7 @@ router.post('/api/polar/create-checkout', async (req, res) => {
     const response = await fetch('https://api.polar.sh/v1/checkouts/', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.POLAR_ACCESS_TOKEN}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
@@ -71,6 +80,14 @@ router.post('/api/polar/create-checkout', async (req, res) => {
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
       console.error('[polar] Checkout session creation failed:', response.status, errData);
+      if (fallbackCheckoutUrl) {
+        let url = fallbackCheckoutUrl;
+        if (customerEmail && customerEmail.includes('@')) {
+          const sep = url.includes('?') ? '&' : '?';
+          url = `${url}${sep}customer_email=${encodeURIComponent(customerEmail)}`;
+        }
+        return res.json({ url });
+      }
       return res.status(502).json({ error: 'Failed to create checkout session with payment provider.' });
     }
 
@@ -78,6 +95,9 @@ router.post('/api/polar/create-checkout', async (req, res) => {
     return res.json({ url: sessionData.url });
   } catch (err) {
     console.error('[polar] Checkout session error:', err);
+    if (fallbackCheckoutUrl) {
+      return res.json({ url: fallbackCheckoutUrl });
+    }
     return res.status(500).json({ error: 'Internal server error during checkout creation.' });
   }
 });

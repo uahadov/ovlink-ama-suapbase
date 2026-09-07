@@ -174,7 +174,9 @@
           msg.textContent = data.message;
           setClientSession({ email: userEmail, isAdmin: false });
           setTimeout(() => {
-            window.location.href = '/';
+            const nextParam = new URLSearchParams(window.location.search).get('next');
+            const safeRedirect = (nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')) ? nextParam : '/';
+            window.location.href = safeRedirect;
           }, 1500);
         } else {
           msg.className = "text-center text-danger small";

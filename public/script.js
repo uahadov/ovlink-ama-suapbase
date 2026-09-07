@@ -288,31 +288,49 @@ function updatePricingBuyCta() {
   if (!btn || btn.dataset.buyAttached === "1") return;
   btn.dataset.buyAttached = "1";
 
+  const defaultCheckoutUrl = btn.getAttribute("data-checkout-url") || btn.getAttribute("href") || "https://buy.polar.sh/polar_cl_9QZbWPt4zCzplBGNFgy6xeZf9rxVICG62IIe03GpkNS";
+
   btn.addEventListener("click", async (e) => {
-    e.preventDefault();
-    const isLoggedIn = btn.getAttribute("data-is-logged-in") === "true";
+    const isLoggedIn = btn.getAttribute("data-is-logged-in") === "true" || !!(getClientSession() && getClientSession().isLoggedIn);
+
     if (!isLoggedIn) {
-      window.location.href = "/login?next=/pricing";
+      e.preventDefault();
+      window.location.href = defaultCheckoutUrl;
       return;
     }
 
+    e.preventDefault();
     const originalText = btn.textContent;
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Yüklənir...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + pickLang("Yüklənir...", "Yükleniyor...", "Loading...");
 
     try {
+      if (!getCsrfToken()) {
+        await refreshCsrfToken();
+      }
       const res = await postJsonWithCsrf("/api/polar/create-checkout", {});
       const data = await res.json().catch(() => ({}));
       if (data && data.url) {
         window.location.href = data.url;
-      } else if (res.status === 401 || (data && data.error === "unauthorized")) {
-        window.location.href = "/login?next=/pricing";
-      } else {
-        alert(pickLang("Xəta baş verdi: ", "Hata oluştu: ", "Error occurred: ") + (data && data.error ? data.error : pickLang("Bilinməyən xəta", "Bilinmeyen hata", "Unknown error")));
-        btn.disabled = false;
-        btn.textContent = originalText;
+        return;
       }
+      if (res.status === 401 || (data && data.error === "unauthorized")) {
+        window.location.href = defaultCheckoutUrl;
+        return;
+      }
+      // Fall back to direct checkout URL if server config missing or dynamic session not returned
+      if (defaultCheckoutUrl) {
+        window.location.href = defaultCheckoutUrl;
+        return;
+      }
+      alert(pickLang("Xəta baş verdi: ", "Hata oluştu: ", "Error occurred: ") + (data && data.error ? data.error : pickLang("Bilinməyən xəta", "Bilinmeyen hata", "Unknown error")));
+      btn.disabled = false;
+      btn.textContent = originalText;
     } catch (err) {
+      if (defaultCheckoutUrl) {
+        window.location.href = defaultCheckoutUrl;
+        return;
+      }
       alert(pickLang("Xəta baş verdi. Lütfən yenidən yoxlayın.", "Hata oluştu. Lütfen tekrar deneyin.", "An error occurred. Please try again."));
       btn.disabled = false;
       btn.textContent = originalText;
