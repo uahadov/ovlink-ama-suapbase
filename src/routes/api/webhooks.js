@@ -11,7 +11,8 @@ const { proWriteLimiter, proReadLimiter } = require('../../middleware/rate-limit
 const {
   hashWebhookSecretValueV2,
   buildWebhookSignatureV2Key,
-  logSecurityEvent
+  logSecurityEvent,
+  safeJsonStringify
 } = require('../../lib/security');
 const {
   enqueueWebhookEventForUser,
@@ -19,7 +20,9 @@ const {
   normalizeWebhookMessageLocale,
   normalizeWebhookMessageTemplate,
   webhookTimerMap,
-  webhookInFlightSet
+  webhookInFlightSet,
+  webhookHasEvent,
+  scheduleWebhookProcessing
 } = require('../../lib/webhook');
 const { validateOutboundWebhookUrl } = require('../../lib/url-validator');
 

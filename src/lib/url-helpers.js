@@ -152,6 +152,7 @@ module.exports = {
   buildShortUrl,
   buildAbsoluteUrlForHost,
   CUSTOM_DOMAIN_RE,
-  RESERVED_SHORTS: RESERVED_SHORT_ALIASES
+  RESERVED_SHORTS: RESERVED_SHORT_ALIASES,
+  SHORT_CODE_RE
 };
 

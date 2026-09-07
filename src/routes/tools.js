@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { validateOutboundWebhookUrl } = require('../lib/url-validator');
 let cheerio = null;
 try {
   cheerio = require('cheerio');
@@ -23,14 +24,50 @@ router.post('/api/tools/fetch-metadata', async (req, res) => {
   }
 
   try {
-    new URL(url); // Validate URL
+    let currentUrl = url;
+    let hops = 0;
+    const maxHops = 3;
+    let response;
 
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      },
-    });
+    while (hops <= maxHops) {
+      const parsedHop = new URL(currentUrl);
+      if (parsedHop.protocol !== 'http:' && parsedHop.protocol !== 'https:') {
+        return res.status(400).json({ error: 'Only HTTP and HTTPS URLs are supported.' });
+      }
+
+      const validation = await validateOutboundWebhookUrl(currentUrl).catch(() => null);
+      if (!validation || !validation.ok) {
+        return res.status(400).json({ error: 'This URL cannot be fetched (private or restricted host).' });
+      }
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
+
+      try {
+        response = await fetch(currentUrl, {
+          signal: controller.signal,
+          redirect: 'manual',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          },
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+        const location = response.headers.get('location');
+        if (!location || hops === maxHops) {
+          throw new Error('Too many redirects or missing redirect location.');
+        }
+        currentUrl = new URL(location, currentUrl).toString();
+        hops++;
+        continue;
+      }
+
+      break;
+    }
 
     if (!response.ok) {
       throw new Error(`Failed to fetch URL: ${response.status}`);

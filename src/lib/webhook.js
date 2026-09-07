@@ -527,5 +527,6 @@ module.exports = {
   webhookHasEvent,
   webhookTimerMap,
   webhookInFlightSet,
+  scheduleWebhookProcessing,
   buildDiscordWebhookPayload
 };

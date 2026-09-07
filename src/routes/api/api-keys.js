@@ -222,4 +222,7 @@ router.post('/api/pro/api-keys/scopes', requireSignedIn, proWriteLimiter, requir
   }
 });
 
+router.loadProOverviewPayload = loadProOverviewPayload;
+
 module.exports = router;
+module.exports.loadProOverviewPayload = loadProOverviewPayload;

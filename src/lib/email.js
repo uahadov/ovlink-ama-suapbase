@@ -2,7 +2,7 @@ const nodemailer = require('nodemailer');
 const { pickLang, normalizeLang } = require('./i18n');
 const { getConfiguredPublicBaseUrl } = require('./security');
 const { db } = require('../db/index');
-const { decryptAES256GCM } = require('./security');
+const { decryptAES256GCM } = require('../../utils/crypto');
 
 function escapeHtml(value) {
   return (value || '').toString().replace(/[&<>"']/g, (ch) => ({
@@ -358,11 +358,37 @@ function sendNewDeviceLoginEmailForUser(userId, details = {}) {
   });
 }
 
+function sendWorkspaceInviteEmail(to, workspaceName, inviteUrl, lang = 'az') {
+  const uiLang = normalizeLang(lang, 'az');
+  const safeWsName = escapeHtml(workspaceName || 'Workspace');
+  const subject = pickLang(
+    uiLang,
+    `Ovlink: "${safeWsName}" workspace-nə dəvət edildiniz`,
+    `Ovlink: "${safeWsName}" workspace'ine davet edildiniz`,
+    `Ovlink: You've been invited to "${safeWsName}" workspace`
+  );
+  const text = `${subject}\n\n${inviteUrl}`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #111;">Ovlink</h2>
+      <p style="font-size: 16px; color: #333;">${subject}</p>
+      <p style="margin: 24px 0;">
+        <a href="${escapeHtml(inviteUrl)}" style="display:inline-block;padding:12px 24px;background:#4f46e5;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">
+          ${pickLang(uiLang, 'Dəvəti Qəbul Et', 'Daveti Kabul Et', 'Accept Invitation')}
+        </a>
+      </p>
+      <p style="color:#666;font-size:12px;">Link: <a href="${escapeHtml(inviteUrl)}">${escapeHtml(inviteUrl)}</a></p>
+    </div>
+  `;
+  return sendMail({ to, subject, html, text });
+}
+
 module.exports = {
   sendMail,
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendNewDeviceLoginEmail,
   sendNewDeviceLoginEmailForUser,
+  sendWorkspaceInviteEmail,
   escapeHtml
 };

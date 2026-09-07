@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const { getPublicBaseUrl } = require('../../config/index');
+const { getPublicBaseUrl } = require('../../lib/security');
 
 const router = express.Router();
 

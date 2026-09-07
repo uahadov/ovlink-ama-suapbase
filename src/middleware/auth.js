@@ -1,7 +1,14 @@
 const { db } = require('../db/index');
-const { dbRunAsync } = require('../db/helpers');
+const { dbGetAsync, dbRunAsync } = require('../db/helpers');
 const { getEffectivePlanForUser, PLAN_TIERS, PLAN_STATUS } = require('../lib/plans');
-const { logSecurityEvent } = require('../lib/security');
+const {
+  logSecurityEvent,
+  getApiKeyFromRequest,
+  hashApiKeyValueV2,
+  hashApiKeyValueLegacy,
+  normalizeApiKeyScopes,
+  DEFAULT_API_KEY_SCOPES
+} = require('../lib/security');
 
 function normalizeSessionToken(tokenRaw) {
   const t = (tokenRaw || '').toString().trim();

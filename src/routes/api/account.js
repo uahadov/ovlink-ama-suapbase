@@ -14,7 +14,6 @@ const { isProdRuntime } = require('../../config/index');
 const tsscmp = require('tsscmp');
 const {
   sendVerificationEmail,
-  send2faEmail,
   sendPasswordResetEmail,
   sendNewDeviceLoginEmailForUser
 } = require('../../lib/email');
@@ -100,8 +99,8 @@ router.post('/api/register',
     if (!email || !password)
       return res.status(400).json({ error: pickLang(uiLang, 'E-poçt və şifrə tələb olunur.', 'E-posta ve şifre gerekli.', 'Email and password are required.') });
 
-    const emailDomain = email.split('@')[1].toLowerCase();
-    if (tempEmailDomains.includes(emailDomain)) {
+    const emailDomain = (email.split('@')[1] || '').toLowerCase();
+    if (!emailDomain || tempEmailDomains.includes(emailDomain)) {
       return res.status(400).json({ error: pickLang(uiLang, 'Bu e-poçt ünvanı müvəqqəti (fake) görünür. Zəhmət olmasa real e-poçt ünvanı daxil edin.', 'Bu e-posta adresi geçici görünüyor. Lütfen gerçek bir e-posta adresi girin.', 'This email address appears to be temporary. Please enter a real email address.') });
     }
 

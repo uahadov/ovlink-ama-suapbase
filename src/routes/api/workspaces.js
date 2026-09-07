@@ -4,8 +4,8 @@ const router = express.Router();
 
 const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../../db/helpers');
 const { requireSignedIn, requireProAccess } = require('../../middleware/auth');
-const { pickLang, normalizeLang } = require('../../lib/i18n');
-const { isProAccessActive, isIsoTimeExpired } = require('../../lib/plans');
+const { pickLang, normalizeLang, getCookieValue } = require('../../lib/i18n');
+const { isProAccessActive, isIsoTimeExpired, getEffectivePlanForUser } = require('../../lib/plans');
 const { db } = require('../../db/index');
 const { sensitiveActionLimiter, mutationLimiter, authLimiter } = require('../../middleware/rate-limiter');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('../../../utils/crypto');
@@ -18,7 +18,8 @@ const {
   extractProfileEmail,
   extractAssertionId
 } = require('../../../utils/sso');
-const { logSecurityEvent, getPublicBaseUrl } = require('../../lib/security');
+const { logSecurityEvent, getPublicBaseUrl, buildAbsoluteUrl } = require('../../lib/security');
+const { sendWorkspaceInviteEmail } = require('../../lib/email');
 const { trackUserSession: upsertUserSessionRecord } = require('../../lib/session');
 const { isProdRuntime } = require('../../config/index');
 const crypto = require('crypto');
@@ -34,6 +35,27 @@ function normalizeWorkspaceRole(raw) {
   if (v === 'admin') return WORKSPACE_ROLES.ADMIN;
   if (v === 'owner') return WORKSPACE_ROLES.OWNER;
   return WORKSPACE_ROLES.MEMBER;
+}
+
+const ROLE_HIERARCHY = Object.freeze({
+  [WORKSPACE_ROLES.MEMBER]: 1,
+  [WORKSPACE_ROLES.ADMIN]: 2,
+  [WORKSPACE_ROLES.OWNER]: 3,
+});
+
+function workspaceRoleAtLeast(role, minimumRole) {
+  const roleLevel = ROLE_HIERARCHY[role];
+  const minLevel = ROLE_HIERARCHY[minimumRole];
+  if (!roleLevel || !minLevel) return false;
+  return roleLevel >= minLevel;
+}
+
+async function getWorkspaceMemberRole(userId, workspaceId) {
+  const uid = Number.parseInt(userId, 10);
+  const wid = Number.parseInt(workspaceId, 10);
+  if (!Number.isInteger(uid) || !Number.isInteger(wid) || uid <= 0 || wid <= 0) return null;
+  const row = await dbGetAsync('SELECT role FROM workspace_members WHERE user_id = ? AND workspace_id = ?', [uid, wid]);
+  return row ? row.role : null;
 }
 
 function normalizeWorkspaceName(raw) {
@@ -719,7 +741,18 @@ router.post('/sso/:workspaceId/acs', async (req, res) => {
 });
 
 
+router.getWorkspaceById = getWorkspaceById;
+router.isWorkspaceProActive = isWorkspaceProActive;
+router.getWorkspaceMemberRole = getWorkspaceMemberRole;
+router.workspaceRoleAtLeast = workspaceRoleAtLeast;
+router.WORKSPACE_ROLES = WORKSPACE_ROLES;
+
 module.exports = router;
+module.exports.getWorkspaceById = getWorkspaceById;
+module.exports.isWorkspaceProActive = isWorkspaceProActive;
+module.exports.getWorkspaceMemberRole = getWorkspaceMemberRole;
+module.exports.workspaceRoleAtLeast = workspaceRoleAtLeast;
+module.exports.WORKSPACE_ROLES = WORKSPACE_ROLES;
 
 
 

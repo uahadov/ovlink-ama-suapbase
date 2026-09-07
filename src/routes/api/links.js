@@ -13,9 +13,20 @@ const {
   ensureAbsoluteUrl,
   normalizeHostName,
   getSafeHostHeader,
-  buildShortUrl
+  buildShortUrl,
+  pickFirstInputValue,
+  SHORT_CODE_RE
 } = require('../../lib/url-helpers');
-const { isSuspiciousOrPhishingUrl } = require('../../lib/url-validator');
+const {
+  getWorkspaceById,
+  isWorkspaceProActive,
+  getWorkspaceMemberRole,
+  WORKSPACE_ROLES
+} = require('./workspaces');
+const {
+  hashLinkPassword,
+  getEssentialAnalyticsValue
+} = require('../redirect');
 const {
   getPublicBaseUrl,
   buildAbsoluteUrl,
@@ -24,8 +35,11 @@ const {
   API_KEY_SCOPES,
   DEFAULT_API_KEY_SCOPES,
   normalizeApiKeyScopes,
-  logSecurityEvent
+  logSecurityEvent,
+  safeJsonStringify
 } = require('../../lib/security');
+const { REDIRECT_CONSENT_MARKER } = require('../../lib/consent');
+const { loadProOverviewPayload } = require('./api-keys');
 const { pickLang, normalizeLang } = require('../../lib/i18n');
 const {
   isProAccessActive,
@@ -38,10 +52,9 @@ const { enqueueWebhookEventForUser } = require('../../lib/webhook');
 const { createUserNotification } = require('../../lib/notifications');
 const { scanUrlAsync } = require('../../lib/safety');
 const { redisClient } = require('../../config/redis');
-const { ASSET_VERSION, isEnabledEnv } = require('../../config/index');
+const { ASSET_VERSION, isEnabledEnv, API_KEY_HASH_KEY_MATERIAL } = require('../../config/index');
 const {
   shortenLimiter,
-  apiLimiter,
   generalLimiter,
   mutationLimiter,
   reportLimiter,
@@ -65,10 +78,176 @@ function buildBanMessage(uiLang, banUntil, banReason) {
   return msg;
 }
 
+const WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL = '(user_id = ? OR workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = ?))';
+
+const WORKSPACE_LINK_MUTATION_SQL = `(user_id = ? OR (workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = ? AND role IN ('${WORKSPACE_ROLES.OWNER}', '${WORKSPACE_ROLES.ADMIN}'))))`;
+
+const API_IDEMPOTENCY_RETENTION_HOURS = 24;
+
+function normalizeIdempotencyKey(rawValue) {
+  const value = (rawValue || '').toString().trim();
+  if (!value) return '';
+  if (value.length < 8 || value.length > 120) return '';
+  if (!/^[\x21-\x7E]+$/.test(value)) return '';
+  return value;
+}
+
+function hashApiIdempotencyKey(rawKey) {
+  return crypto
+    .createHmac('sha256', API_KEY_HASH_KEY_MATERIAL)
+    .update(`ovlink:idempotency:${(rawKey || '').toString()}`)
+    .digest('hex');
+}
+
+function buildShortenIdempotencyRequestHash(payload) {
+  const compact = safeJsonStringify(payload, 3000);
+  return crypto.createHash('sha256').update(compact).digest('hex');
+}
+
+function parseStoredJsonObject(raw, fallback = null) {
+  try {
+    const parsed = JSON.parse((raw || '').toString());
+    return (parsed && typeof parsed === 'object') ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+async function reserveApiIdempotencyRecord({ userId, apiKeyId, endpoint, rawIdempotencyKey, requestHash }) {
+  const key = normalizeIdempotencyKey(rawIdempotencyKey);
+  if (!key) return { enabled: false };
+
+  const safeUserId = Number.parseInt(userId, 10);
+  const safeApiKeyId = Number.parseInt(apiKeyId, 10);
+  if (!Number.isInteger(safeUserId) || safeUserId <= 0 || !requestHash) {
+    return { enabled: false };
+  }
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const expiresAt = new Date(now.getTime() + API_IDEMPOTENCY_RETENTION_HOURS * 60 * 60 * 1000).toISOString();
+  const endpointKey = (endpoint || '').toString().trim().slice(0, 64) || 'unknown';
+  const idemHash = hashApiIdempotencyKey(key);
+
+  await dbRunAsync('DELETE FROM api_idempotency_keys WHERE expires_at <= ?', [nowIso]).catch(() => {});
+
+  try {
+    const inserted = await dbRunAsync(
+      'INSERT INTO api_idempotency_keys (user_id, api_key_id, endpoint, idempotency_hash, request_hash, status_code, response_json, created_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?)',
+      [safeUserId, Number.isInteger(safeApiKeyId) && safeApiKeyId > 0 ? safeApiKeyId : null, endpointKey, idemHash, requestHash, nowIso, nowIso, expiresAt]
+    );
+    return {
+      enabled: true,
+      recordId: inserted && inserted.lastID ? inserted.lastID : null,
+      keyHash: idemHash,
+      requestHash,
+      endpoint: endpointKey,
+    };
+  } catch (err) {
+    const msg = (err && err.message ? err.message : '').toLowerCase();
+    if (!msg.includes('unique')) throw err;
+
+    const existing = await dbGetAsync(
+      'SELECT id, request_hash, status_code, response_json, expires_at FROM api_idempotency_keys WHERE user_id = ? AND endpoint = ? AND idempotency_hash = ? LIMIT 1',
+      [safeUserId, endpointKey, idemHash]
+    ).catch(() => null);
+
+    if (!existing) {
+      return { enabled: true, replayUnavailable: true };
+    }
+    if ((existing.request_hash || '') !== requestHash) {
+      return {
+        enabled: true,
+        conflict: true,
+        statusCode: 409,
+        error: 'This Idempotency-Key was already used with a different payload.',
+      };
+    }
+    if (existing.status_code == null) {
+      return {
+        enabled: true,
+        conflict: true,
+        statusCode: 409,
+        error: 'A request with this Idempotency-Key is already in progress.',
+      };
+    }
+    const replayPayload = parseStoredJsonObject(existing.response_json, null);
+    if (!replayPayload) {
+      return {
+        enabled: true,
+        conflict: true,
+        statusCode: 409,
+        error: 'Stored idempotent response is unavailable. Please retry with a new key.',
+      };
+    }
+    return {
+      enabled: true,
+      replayed: true,
+      statusCode: Number(existing.status_code || 200),
+      payload: replayPayload,
+    };
+  }
+}
+
+async function finalizeApiIdempotencyRecord(recordId, statusCode, payload) {
+  const safeId = Number.parseInt(recordId, 10);
+  if (!Number.isInteger(safeId) || safeId <= 0) return;
+  const nowIso = new Date().toISOString();
+  await dbRunAsync(
+    'UPDATE api_idempotency_keys SET status_code = ?, response_json = ?, updated_at = ? WHERE id = ?',
+    [Number.parseInt(statusCode, 10) || 200, safeJsonStringify(payload, 6000), nowIso, safeId]
+  ).catch(() => {});
+}
+
+async function releaseApiIdempotencyRecord(recordId) {
+  const safeId = Number.parseInt(recordId, 10);
+  if (!Number.isInteger(safeId) || safeId <= 0) return;
+  await dbRunAsync('DELETE FROM api_idempotency_keys WHERE id = ?', [safeId]).catch(() => {});
+}
+
+const guestLimitStore = new Map();
+
+function getGuestKey(req) {
+  if (req && req.session) {
+    if (!req.session.guestKey) {
+      req.session.guestKey = crypto.randomBytes(16).toString('hex');
+    }
+    return req.session.guestKey;
+  }
+  return 'guest';
+}
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function buildGuestDailyLimitStoreKey(req, dayKey) {
+  const guestKey = getGuestKey(req);
+  const safeDayKey = (dayKey || '').toString().trim();
+  return `ovlink:guest-limit:${guestKey}:${safeDayKey}`;
+}
+
 function normalizeFolderName(raw) {
   const text = (raw || '').toString().replace(/\s+/g, ' ').trim();
   if (!text) return '';
   return text.slice(0, 80);
+}
+
+function parseTagsJson(jsonStr) {
+  try {
+    const arr = JSON.parse(jsonStr);
+    if (Array.isArray(arr)) return arr;
+  } catch {}
+  return [];
+}
+
+function escapeCsvCell(val) {
+  if (val === null || val === undefined) return '""';
+  let str = String(val);
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  return `"${str.replace(/"/g, '""')}"`;
 }
 
 function normalizeTagsInput(raw) {
@@ -1147,8 +1326,8 @@ router.post('/api/user/link/meta', (req, res) => {
   );
 });
 
-// KULLANICI LINK EXPORT (GET /api/user/export?format=csv)
-router.get('/api/user/export', (req, res) => {
+// KULLANICI LINK EXPORT (GET /api/user/export?format=csv, GET /api/links/export/csv)
+router.get(['/api/user/export', '/api/links/export/csv'], (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -1219,7 +1398,7 @@ router.get('/api/user/export', (req, res) => {
 
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="${baseFile}.csv"`);
-      return res.send('\uFEFF' + lines.join('\n'));
+      return res.send('\uFEFF' + lines.join('\r\n'));
     }
   );
 });
@@ -1369,4 +1548,13 @@ router.post('/api/user/import',
    WORKSPACE (PRO) — pages, API and SAML SSO endpoints
    ========================================================= */
 
+router.escapeCsvCell = escapeCsvCell;
+router.parseTagsJson = parseTagsJson;
+router.normalizeIdempotencyKey = normalizeIdempotencyKey;
+router.buildShortenIdempotencyRequestHash = buildShortenIdempotencyRequestHash;
+
 module.exports = router;
+module.exports.escapeCsvCell = escapeCsvCell;
+module.exports.parseTagsJson = parseTagsJson;
+module.exports.normalizeIdempotencyKey = normalizeIdempotencyKey;
+module.exports.buildShortenIdempotencyRequestHash = buildShortenIdempotencyRequestHash;

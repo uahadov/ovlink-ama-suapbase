@@ -15,7 +15,13 @@ const {
   normalizeConsentMode,
   buildRedirectConsentSignature,
   REDIRECT_CONSENT_MODES,
-  REDIRECT_CONSENT_MARKER
+  REDIRECT_CONSENT_MARKER,
+  normalizeConsentNext,
+  getRedirectConsentMode,
+  getConsentResumePath,
+  clearRedirectConsentMode,
+  setRedirectConsentSession,
+  setRedirectConsentMode
 } = require('../lib/consent');
 const { getRequestGeoMeta } = require('../lib/geo');
 const { createUserNotification } = require('../lib/notifications');
@@ -515,4 +521,13 @@ router.post('/verify/:short', sensitiveActionLimiter, (req, res) => {
   });
 });
 
+router.resolveFinalRedirectUrl = resolveFinalRedirectUrl;
+router.hashLinkPassword = hashLinkPassword;
+router.verifyLinkPassword = verifyLinkPassword;
+router.getEssentialAnalyticsValue = getEssentialAnalyticsValue;
+
 module.exports = router;
+module.exports.resolveFinalRedirectUrl = resolveFinalRedirectUrl;
+module.exports.hashLinkPassword = hashLinkPassword;
+module.exports.verifyLinkPassword = verifyLinkPassword;
+module.exports.getEssentialAnalyticsValue = getEssentialAnalyticsValue;

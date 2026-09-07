@@ -110,6 +110,15 @@ function hasApiKeyAuthHeader(req) {
   return /^Bearer\s+\S+/i.test(auth);
 }
 
+function getApiKeyFromRequest(req) {
+  if (!req) return '';
+  const xApiKey = (req.get('x-api-key') || '').toString().trim();
+  if (xApiKey) return xApiKey;
+  const auth = (req.get('authorization') || '').toString().trim();
+  const bearer = auth.match(/^Bearer\s+(.+)$/i);
+  return (bearer && bearer[1]) ? bearer[1].trim() : '';
+}
+
 function getConfiguredPublicBaseUrl() {
   const raw = (process.env.PUBLIC_BASE_URL || process.env.BASE_URL || '').toString().trim();
   if (!raw) return '';
@@ -253,7 +262,9 @@ module.exports = {
   buildApiKeyValue,
   getApiKeyPrefix,
   getApiKeyLast4,
+  getApiKeyFromRequest,
   hashApiKeyValue,
+  hashApiKeyValueV2,
   hashApiKeyValueLegacy,
   hashWebhookSecretValueV2,
   buildWebhookSignatureV2Key,

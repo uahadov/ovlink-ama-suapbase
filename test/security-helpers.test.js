@@ -311,3 +311,78 @@ test('pro shorten API accepts camelCase payloads and returns API-friendly errors
   }
 });
 
+test('getApiKeyFromRequest extracts API key from x-api-key and bearer authorization', () => {
+  const { getApiKeyFromRequest } = require('../src/lib/security');
+  assert.equal(getApiKeyFromRequest({ get: (h) => (h === 'x-api-key' ? 'ovk_test123' : '') }), 'ovk_test123');
+  assert.equal(getApiKeyFromRequest({ get: (h) => (h === 'authorization' ? 'Bearer ovk_bearer456' : '') }), 'ovk_bearer456');
+  assert.equal(getApiKeyFromRequest({ get: () => '' }), '');
+  assert.equal(getApiKeyFromRequest(null), '');
+});
+
+test('workspaceRoleAtLeast enforces strict hierarchy (owner >= admin >= member)', () => {
+  const { workspaceRoleAtLeast, WORKSPACE_ROLES } = require('../src/routes/api/workspaces');
+  assert.equal(workspaceRoleAtLeast(WORKSPACE_ROLES.OWNER, WORKSPACE_ROLES.MEMBER), true);
+  assert.equal(workspaceRoleAtLeast(WORKSPACE_ROLES.OWNER, WORKSPACE_ROLES.ADMIN), true);
+  assert.equal(workspaceRoleAtLeast(WORKSPACE_ROLES.OWNER, WORKSPACE_ROLES.OWNER), true);
+  assert.equal(workspaceRoleAtLeast(WORKSPACE_ROLES.ADMIN, WORKSPACE_ROLES.OWNER), false);
+  assert.equal(workspaceRoleAtLeast(WORKSPACE_ROLES.ADMIN, WORKSPACE_ROLES.MEMBER), true);
+  assert.equal(workspaceRoleAtLeast(WORKSPACE_ROLES.MEMBER, WORKSPACE_ROLES.ADMIN), false);
+  assert.equal(workspaceRoleAtLeast('unknown', WORKSPACE_ROLES.MEMBER), false);
+  assert.equal(workspaceRoleAtLeast('unknown', 'unknown'), false);
+  assert.equal(workspaceRoleAtLeast(null, null), false);
+});
+
+test('pickFirstInputValue returns first non-empty input and SHORT_CODE_RE validates codes', () => {
+  const { pickFirstInputValue, SHORT_CODE_RE } = require('../src/lib/url-helpers');
+  assert.equal(pickFirstInputValue(undefined, null, '', '  ', 'first', 'second'), 'first');
+  assert.equal(pickFirstInputValue(undefined, null, ''), '');
+  assert.equal(pickFirstInputValue(), '');
+  assert.equal(SHORT_CODE_RE.test('valid-short_123'), true);
+  assert.equal(SHORT_CODE_RE.test('invalid short!'), false);
+  assert.equal(SHORT_CODE_RE.test(''), false);
+});
+
+test('escapeCsvCell neutralizes formula injection and escapes quotes', () => {
+  const { escapeCsvCell } = require('../src/routes/api/links');
+  assert.equal(escapeCsvCell(null), '""');
+  assert.equal(escapeCsvCell(undefined), '""');
+  assert.equal(escapeCsvCell('regular text'), '"regular text"');
+  assert.equal(escapeCsvCell('text "with" quotes'), '"text ""with"" quotes"');
+  // Formula injection attempts should be prepended with a single quote
+  assert.equal(escapeCsvCell('=1+1'), '"\'=1+1"');
+  assert.equal(escapeCsvCell('+cmd'), '"\'+cmd"');
+  assert.equal(escapeCsvCell('-exec'), '"\'-exec"');
+  assert.equal(escapeCsvCell('@SUM(A1:A10)'), '"\'@SUM(A1:A10)"');
+  assert.equal(escapeCsvCell('\tcmd'), '"\'\tcmd"');
+  assert.equal(escapeCsvCell('\rcmd'), '"\'\rcmd"');
+});
+
+test('normalizeIdempotencyKey and buildShortenIdempotencyRequestHash handle edge cases safely', () => {
+  const { normalizeIdempotencyKey, buildShortenIdempotencyRequestHash } = require('../src/routes/api/links');
+  assert.equal(normalizeIdempotencyKey(''), '');
+  assert.equal(normalizeIdempotencyKey('short'), ''); // < 8 chars
+  assert.equal(normalizeIdempotencyKey('12345678'), '12345678'); // exactly 8 chars
+  assert.equal(normalizeIdempotencyKey('   12345678   '), '12345678');
+  assert.equal(normalizeIdempotencyKey('a'.repeat(121)), ''); // > 120 chars
+  assert.equal(normalizeIdempotencyKey('bad\x00key123'), ''); // non-printable
+
+  const hash1 = buildShortenIdempotencyRequestHash({ url: 'https://example.com', alias: 'test' });
+  const hash2 = buildShortenIdempotencyRequestHash({ url: 'https://example.com', alias: 'test' });
+  const hash3 = buildShortenIdempotencyRequestHash({ url: 'https://example.com/other', alias: 'test' });
+  assert.equal(typeof hash1, 'string');
+  assert.equal(hash1.length, 64);
+  assert.equal(hash1, hash2);
+  assert.notEqual(hash1, hash3);
+});
+
+test('loadProOverviewPayload returns expected structure', async () => {
+  const { loadProOverviewPayload } = require('../src/routes/api/api-keys');
+  const plan = { tier: 'pro', is_active: true };
+  const payload = await loadProOverviewPayload(999999, plan);
+  assert.equal(payload.plan, plan);
+  assert.ok(payload.limits);
+  assert.ok(payload.api_usage);
+  assert.ok(Array.isArray(payload.api_keys));
+});
+
+
