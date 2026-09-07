@@ -1,5 +1,5 @@
 // Ovlink PWA Service Worker
-const CACHE_NAME = 'ovlink-pwa-v4';
+const CACHE_NAME = 'ovlink-pwa-v5';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -64,8 +64,30 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       })
-      .catch(() => {
-        return caches.match(event.request);
+      .catch(async () => {
+        try {
+          const cachedResponse = await caches.match(event.request);
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+        } catch {}
+
+        if (event.request.mode === 'navigate') {
+          return new Response(
+            '<!DOCTYPE html><html lang="az"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline | Ovlink</title><style>body{font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0f172a;color:#f8fafc;text-align:center;padding:20px}button{background:#3b82f6;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:16px;cursor:pointer;margin-top:16px}</style></head><body><div><h2>İnternet bağlantısı yoxdur</h2><p>Zəhmət olmasa internet bağlantınızı yoxlayın və ya səhifəni yenidən başladın.</p><button onclick="window.location.reload()">Yenilə</button></div></body></html>',
+            {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: { 'Content-Type': 'text/html; charset=utf-8' }
+            }
+          );
+        }
+
+        return new Response('Network error occurred', {
+          status: 408,
+          statusText: 'Network Error',
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+        });
       })
   );
 });
