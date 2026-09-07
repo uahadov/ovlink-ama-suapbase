@@ -733,7 +733,7 @@ function createTelegramBot(db, options = {}) {
             `📬 <b>E-posta:</b> <code>${esc(result.email || pending?.to || '')}</code>\n` +
             `📌 <b>Konu:</b> ${esc(pending?.subject || '')}\n` +
             `⏰ <b>Gönderim Zamanı:</b> ${new Date().toLocaleString('tr-TR')}\n\n` +
-            `✅ <i>E-posta SMTP sunucusu üzerinden doğrudan başarıyla teslim edildi.</i>`;
+            `✅ <i>E-posta SpaceMail SMTP üzerinden iletildi və 'Sent' qovluğuna saxlanıldı.</i>`;
           await editMessageText(message.chat.id, message.message_id, updatedText);
         } catch (err) {
           console.error('[telegram-bot] mail_send error:', err.message);

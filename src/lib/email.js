@@ -25,6 +25,12 @@ if (process.env.RESEND_API_KEY) {
   }
 }
 
+const tls = require('tls');
+let MailComposer = null;
+try {
+  MailComposer = require('nodemailer/lib/mail-composer');
+} catch {}
+
 const smtpPort = Number(process.env.SMTP_PORT) || 587;
 const isSecure = process.env.SMTP_SECURE != null
   ? (process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1')
@@ -47,8 +53,67 @@ const emailTransporter = nodemailer.createTransport({
 const SMTP_FROM = process.env.FROM_EMAIL || process.env.SMTP_USER || 'Ovlink <verify@ovlink.sbs>';
 const RESEND_FROM = process.env.RESEND_FROM || process.env.FROM_EMAIL || 'Ovlink <verify@ovlink.sbs>';
 
-async function sendMail({ to, subject, html, text }) {
-  if (resendClient) {
+function appendSentMailToImap(mailOptions) {
+  return new Promise((resolve) => {
+    const imapHost = process.env.IMAP_HOST || process.env.SMTP_HOST || 'mail.spacemail.com';
+    const imapPort = Number(process.env.IMAP_PORT) || 993;
+    const user = process.env.SMTP_USER;
+    const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+    const folder = process.env.IMAP_SENT_FOLDER || 'Sent';
+
+    if (!user || !pass || !MailComposer) {
+      return resolve(false);
+    }
+
+    const mail = new MailComposer(mailOptions);
+    mail.compile().build((err, rawBuffer) => {
+      if (err || !rawBuffer) {
+        return resolve(false);
+      }
+
+      const socket = tls.connect(imapPort, imapHost, { rejectUnauthorized: false }, () => {});
+      socket.setEncoding('utf8');
+
+      let step = 0;
+      const timeout = setTimeout(() => {
+        try { socket.destroy(); } catch {}
+        resolve(false);
+      }, 8000);
+
+      socket.on('data', (chunk) => {
+        if (step === 0 && chunk.includes('* OK')) {
+          step = 1;
+          socket.write(`A01 LOGIN "${user}" "${pass}"\r\n`);
+        } else if (step === 1 && chunk.includes('A01 OK')) {
+          step = 2;
+          socket.write(`A02 APPEND "${folder}" (\\Seen) {${rawBuffer.length}}\r\n`);
+        } else if (step === 2 && chunk.includes('+')) {
+          step = 3;
+          socket.write(rawBuffer);
+          socket.write('\r\n');
+        } else if (step === 3 && chunk.includes('A02 OK')) {
+          step = 4;
+          clearTimeout(timeout);
+          try { socket.write('A03 LOGOUT\r\n'); } catch {}
+          console.log(`[imap-sent] Successfully archived sent message to SpaceMail "${folder}" folder.`);
+          resolve(true);
+        } else if (chunk.includes('A01 NO') || chunk.includes('A01 BAD') || chunk.includes('A02 NO') || chunk.includes('A02 BAD')) {
+          clearTimeout(timeout);
+          try { socket.destroy(); } catch {}
+          resolve(false);
+        }
+      });
+
+      socket.on('error', () => {
+        clearTimeout(timeout);
+        resolve(false);
+      });
+    });
+  });
+}
+
+async function sendMail({ to, subject, html, text, preferSmtp = false, saveToSent = false }) {
+  if (!preferSmtp && resendClient) {
     try {
       const resendRes = await resendClient.emails.send({
         from: RESEND_FROM,
@@ -68,14 +133,20 @@ async function sendMail({ to, subject, html, text }) {
   }
   
   try {
+    const from = SMTP_FROM;
     const smtpInfo = await emailTransporter.sendMail({
-      from: SMTP_FROM,
+      from,
       to,
       subject,
       html,
       text,
     });
     console.log(`[email] SMTP success: to=${to}, response=${smtpInfo.response}, messageId=${smtpInfo.messageId}`);
+
+    if (saveToSent || process.env.SMTP_SAVE_TO_SENT === '1') {
+      appendSentMailToImap({ from, to, subject, html, text }).catch(() => {});
+    }
+
     return smtpInfo;
   } catch (smtpErr) {
     console.error(`[email] SMTP error: to=${to}, message=${smtpErr.message}`);

@@ -150,7 +150,9 @@ async function executeB2BMail(leadId) {
     to: item.to,
     subject: item.subject,
     text: item.body,
-    html
+    html,
+    preferSmtp: true,
+    saveToSent: true
   });
 
   item.status = 'sent';
