@@ -1,20 +1,17 @@
 const express = require('express');
 const router = express.Router();
-
+const tsscmp = require('tsscmp');
 
 const { dbGetAsync, dbRunAsync } = require('../db/helpers');
 const { db } = require('../db/index');
 const { TELEGRAM_WEBHOOK_SECRET_TOKEN, WEBHOOK_HASH_KEY_MATERIAL } = require('../config/index');
+const { telegramBot, discordBot } = require('../lib/bots');
 const crypto = require('crypto');
 
-
-router.post('/api/bots/telegram/webhook', express.json(), async (req, res) => {
+router.post('/api/bots/telegram/webhook', async (req, res) => {
   if (!telegramBot || !telegramBot.isEnabled) return res.status(404).json({ error: 'Not found' });
 
-  // Verify the request actually came from Telegram (or at least from
-  // someone who knows our secret token) using constant-time comparison.
-  // Without this, anyone who discovers the webhook URL could forge
-  // "updates" impersonating any linked Telegram user.
+  // Verify the request actually came from Telegram using constant-time comparison
   const providedToken = (req.get('X-Telegram-Bot-Api-Secret-Token') || '').toString();
   if (!providedToken || !tsscmp(providedToken, TELEGRAM_WEBHOOK_SECRET_TOKEN)) {
     console.error('[telegram-bot] Secret token verification failed or missing header.');
@@ -59,7 +56,5 @@ router.post('/api/bots/discord/interactions', async (req, res) => {
   const response = await discordBot.handleInteraction(body);
   res.json(response);
 });
-
-
 
 module.exports = router;

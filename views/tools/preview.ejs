@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= title %></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/logo.ico">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; margin: 0; padding: 0; }
+    .nav-bar { background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+    .nav-brand { font-weight: 800; font-size: 20px; color: #0284c7; text-decoration: none; display: flex; align-items: center; gap: 8px; }
+    .nav-back { color: #64748b; text-decoration: none; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .nav-back:hover { color: #0284c7; }
+    
+    .tools-container { max-width: 860px; margin: 40px auto; padding: 0 20px 60px; }
+    .tool-header { text-align: center; margin-bottom: 35px; }
+    .tool-header h1 { font-size: 32px; font-weight: 800; margin-bottom: 10px; color: #0f172a; }
+    .tool-header p { font-size: 16px; color: #64748b; max-width: 600px; margin: 0 auto; line-height: 1.5; }
+    
+    .input-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); margin-bottom: 30px; display: flex; gap: 10px; }
+    .input-card input { flex: 1; border: none; outline: none; padding: 14px 18px; font-size: 16px; border-radius: 12px; }
+    .input-card button { background: #0284c7; color: white; border: none; padding: 14px 28px; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 8px; }
+    .input-card button:hover { background: #0369a1; }
+    
+    .loader { display: none; margin: 30px auto; border: 4px solid #f1f5f9; border-top: 4px solid #0284c7; border-radius: 50%; width: 36px; height: 36px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    
+    /* Platform Switcher */
+    .platform-switcher { display: none; justify-content: center; gap: 10px; margin-bottom: 25px; }
+    .platform-btn { background: #ffffff; border: 1px solid #cbd5e1; padding: 10px 20px; border-radius: 30px; font-size: 14px; font-weight: 600; cursor: pointer; color: #475569; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+    .platform-btn.active { background: #0f172a; color: white; border-color: #0f172a; }
+    
+    /* Preview Cards */
+    .preview-card-wrap { display: none; margin-bottom: 35px; }
+    .preview-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.06); transition: all 0.3s; }
+    .preview-image { width: 100%; height: 380px; object-fit: cover; background: #e2e8f0; display: block; }
+    .preview-content { padding: 18px 22px; }
+    .preview-domain { color: #64748b; font-size: 13px; font-weight: 500; margin-bottom: 6px; text-transform: lowercase; }
+    .preview-title { font-size: 18px; font-weight: 700; color: #0f172a; line-height: 1.35; margin-bottom: 8px; }
+    .preview-desc { font-size: 14px; color: #64748b; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    
+    /* AI Optimization Box */
+    .ai-box { display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 25px; margin-bottom: 35px; }
+    .ai-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .ai-title { font-size: 16px; font-weight: 700; color: #166534; display: flex; align-items: center; gap: 8px; }
+    .ai-btn { background: #16a34a; color: white; border: none; padding: 10px 22px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+    .ai-btn:hover { background: #15803d; }
+    .ai-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+    
+    .ai-variants { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 15px; }
+    .variant-card { background: white; border: 1px solid #86efac; border-radius: 10px; padding: 14px 18px; cursor: pointer; text-align: left; transition: all 0.2s; }
+    .variant-card:hover { border-color: #16a34a; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1); }
+    .variant-card.selected { border: 2px solid #16a34a; background: #f0fdf4; }
+    .variant-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #15803d; margin-bottom: 4px; }
+    .variant-text { font-size: 15px; font-weight: 600; color: #0f172a; line-height: 1.35; }
+    
+    /* CTA Box */
+    .cta-box { display: none; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 35px; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,0.04); }
+    .cta-box h2 { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+    .cta-box p { color: #64748b; font-size: 15px; margin-bottom: 25px; }
+    .cta-btn { background: #0284c7; color: white; padding: 16px 40px; font-size: 16px; font-weight: 700; text-decoration: none; border-radius: 10px; display: inline-flex; align-items: center; gap: 10px; transition: all 0.2s; }
+    .cta-btn:hover { background: #0369a1; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(2, 132, 199, 0.3); }
+  </style>
+</head>
+<body>
+
+<nav class="nav-bar">
+  <a href="/" class="nav-brand"><i class="fa-solid fa-link"></i> Ovlink</a>
+  <a href="/" class="nav-back"><i class="fa-solid fa-arrow-left"></i> Back to Homepage</a>
+</nav>
+
+<div class="tools-container">
+  <div class="tool-header">
+    <h1>Social Link Previewer & AI Optimizer</h1>
+    <p>See exactly how your link renders across Twitter/X, LinkedIn, and Facebook, and use our free AI engine to generate high-converting headlines.</p>
+  </div>
+
+  <div class="input-card">
+    <input type="url" id="urlInput" placeholder="Paste your link here (e.g. https://yoursite.com/article)..." required>
+    <button onclick="fetchPreview()"><i class="fa-solid fa-magnifying-glass"></i> Inspect Link</button>
+  </div>
+
+  <div class="loader" id="loader"></div>
+
+  <div class="platform-switcher" id="platformSwitcher">
+    <button class="platform-btn active" onclick="setPlatform('twitter', this)"><i class="fa-brands fa-x-twitter"></i> Twitter / X</button>
+    <button class="platform-btn" onclick="setPlatform('linkedin', this)"><i class="fa-brands fa-linkedin"></i> LinkedIn</button>
+    <button class="platform-btn" onclick="setPlatform('facebook', this)"><i class="fa-brands fa-facebook"></i> Facebook</button>
+  </div>
+
+  <div class="preview-card-wrap" id="previewWrap">
+    <div class="preview-card" id="previewCard">
+      <img src="" alt="Preview Image" class="preview-image" id="pImage">
+      <div class="preview-content">
+        <div class="preview-domain" id="pDomain">example.com</div>
+        <div class="preview-title" id="pTitle">Preview title will appear here</div>
+        <div class="preview-desc" id="pDesc">Preview description will appear here</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ai-box" id="aiBox">
+    <div class="ai-header">
+      <div class="ai-title"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Headline Optimization</div>
+      <button class="ai-btn" id="aiBtn" onclick="optimizeTitle()">Generate 3 Angles with AI</button>
+    </div>
+    <div id="aiVariants" class="ai-variants"></div>
+  </div>
+
+  <div class="cta-box" id="ctaBox">
+    <h2>Want clean link tracking and custom domains?</h2>
+    <p>Shorten this URL with Ovlink to access real-time geographic click tracking and device analytics.</p>
+    <a href="/" class="cta-btn" id="shortenBtn"><i class="fa-solid fa-scissors"></i> Shorten with Ovlink Now</a>
+  </div>
+</div>
+
+<script>
+  let currentMetadata = null;
+  let activePlatform = 'twitter';
+
+  function setPlatform(platform, btn) {
+    activePlatform = platform;
+    document.querySelectorAll('.platform-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const card = document.getElementById('previewCard');
+    const img = document.getElementById('pImage');
+    if (platform === 'linkedin') {
+      card.style.borderRadius = '8px';
+      img.style.height = '340px';
+    } else if (platform === 'facebook') {
+      card.style.borderRadius = '0px';
+      img.style.height = '360px';
+    } else {
+      card.style.borderRadius = '16px';
+      img.style.height = '380px';
+    }
+  }
+
+  async function fetchPreview() {
+    const rawUrl = document.getElementById('urlInput').value.trim();
+    if (!rawUrl) return alert('Please enter a valid URL');
+
+    const formattedUrl = rawUrl.startsWith('http://') || rawUrl.startsWith('https://') ? rawUrl : 'https://' + rawUrl;
+    document.getElementById('urlInput').value = formattedUrl;
+
+    document.getElementById('loader').style.display = 'block';
+    document.getElementById('platformSwitcher').style.display = 'none';
+    document.getElementById('previewWrap').style.display = 'none';
+    document.getElementById('aiBox').style.display = 'none';
+    document.getElementById('ctaBox').style.display = 'none';
+    document.getElementById('aiVariants').innerHTML = '';
+
+    try {
+      const res = await fetch('/api/tools/fetch-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: formattedUrl })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      currentMetadata = data;
+      document.getElementById('pImage').src = data.image || 'https://via.placeholder.com/800x400?text=No+OpenGraph+Image+Found';
+      document.getElementById('pTitle').innerText = data.title || 'No Title Found';
+      document.getElementById('pDesc').innerText = data.description || 'No Description Found';
+      document.getElementById('pDomain').innerText = data.domain || '';
+
+      document.getElementById('shortenBtn').href = `/?url=${encodeURIComponent(formattedUrl)}`;
+
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('platformSwitcher').style.display = 'flex';
+      document.getElementById('previewWrap').style.display = 'block';
+      document.getElementById('aiBox').style.display = 'block';
+      document.getElementById('ctaBox').style.display = 'block';
+    } catch (err) {
+      document.getElementById('loader').style.display = 'none';
+      alert('Could not inspect link: ' + err.message);
+    }
+  }
+
+  async function optimizeTitle() {
+    if (!currentMetadata) return;
+    const btn = document.getElementById('aiBtn');
+    btn.innerText = 'Analyzing...';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/tools/optimize-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: currentMetadata.title, description: currentMetadata.description })
+      });
+      const data = await res.json();
+
+      const variants = data.variants || [{ label: 'Optimized', text: data.optimizedTitle }];
+      const container = document.getElementById('aiVariants');
+      container.innerHTML = '';
+
+      variants.forEach((v, idx) => {
+        const card = document.createElement('div');
+        card.className = 'variant-card' + (idx === 0 ? ' selected' : '');
+        card.innerHTML = `
+          <div class="variant-label">${v.label}</div>
+          <div class="variant-text">${v.text}</div>
+        `;
+        card.onclick = () => {
+          document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          document.getElementById('pTitle').innerText = v.text;
+        };
+        container.appendChild(card);
+      });
+
+      if (variants[0]) {
+        document.getElementById('pTitle').innerText = variants[0].text;
+      }
+    } catch (err) {
+      alert('Error generating headline angles: ' + err.message);
+    } finally {
+      btn.innerText = 'Re-generate Angles';
+      btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>

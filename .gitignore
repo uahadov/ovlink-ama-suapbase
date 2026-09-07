@@ -147,3 +147,6 @@ database.db
 *.bak
 *.zip
 .vscode/
+
+# Marketing Bot Runtime Data
+bot_data/

@@ -1982,6 +1982,7 @@ if (document.readyState === "loading") {
   initScriptApp();
 }
 
+  function initDashboardEvents() {
   const apiSampleTabs = Array.from(document.querySelectorAll("[data-api-sample-tab]"));
   const apiSamplePanels = Array.from(document.querySelectorAll("[data-api-sample-panel]"));
   if (apiSampleTabs.length && apiSamplePanels.length) {
@@ -4226,6 +4227,14 @@ document.addEventListener("click", async (e) => {
     }
   }
 });
+
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initDashboardEvents);
+} else {
+  initDashboardEvents();
+}
 
 // =========================
 // QR Code

@@ -8,6 +8,7 @@ const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../../db/helpers');
 const {
   normalizeShortCode,
   isReservedShortAlias,
+  generateSafeShortCode,
   normalizeCustomDomainInput,
   ensureAbsoluteUrl,
   normalizeHostName,
@@ -55,36 +56,6 @@ const {
 } = require('../../middleware/auth');
 const { siteSettings } = require('../../middleware/maintenance');
 const { buildSeo } = require('../../lib/seo');
-
-const guestLimitStore = new Map();
-
-function getTodayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function getGuestKey(req) {
-  if (req && req.session) {
-    if (!req.session.guestKey) {
-      req.session.guestKey = crypto.randomBytes(16).toString('hex');
-    }
-    return req.session.guestKey;
-  }
-  return 'guest';
-}
-
-function buildGuestDailyLimitStoreKey(req, dayKey) {
-  const guestKey = getGuestKey(req);
-  const safeDayKey = (dayKey || '').toString().trim();
-  return `ovlink:guest-limit:${guestKey}:${safeDayKey}`;
-}
-
-function generateSafeShortCode(maxAttempts = 20) {
-  for (let i = 0; i < maxAttempts; i += 1) {
-    const candidate = crypto.randomBytes(6).toString('base64url');
-    if (!isReservedShortAlias(candidate)) return candidate;
-  }
-  return crypto.randomBytes(6).toString('base64url');
-}
 
 function buildBanMessage(uiLang, banUntil, banReason) {
   const lang = normalizeLang(uiLang, 'az');

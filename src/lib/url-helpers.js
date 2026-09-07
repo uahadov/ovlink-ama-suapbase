@@ -131,10 +131,19 @@ function buildAbsoluteUrlForHost(req, host, pathValue) {
   return buildAbsoluteUrl(req, normalizedPath);
 }
 
+function generateSafeShortCode(maxAttempts = 20) {
+  for (let i = 0; i < maxAttempts; i += 1) {
+    const candidate = crypto.randomBytes(6).toString('base64url');
+    if (!isReservedShortAlias(candidate)) return candidate;
+  }
+  return crypto.randomBytes(6).toString('base64url');
+}
+
 module.exports = {
   ensureAbsoluteUrl,
   normalizeShortCode,
   isReservedShortAlias,
+  generateSafeShortCode,
   pickFirstInputValue,
   normalizeCustomDomainInput,
   normalizeHostName,

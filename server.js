@@ -10,6 +10,7 @@ const { syncThreatIntelligenceFeed, scheduleWeeklySafetyScan, THREAT_FEED_SYNC_I
 const { scheduleWebhookRecoveryWorker } = require('./src/lib/webhook');
 const { initGoogleOidc } = require('./src/lib/google-auth');
 const { refreshCustomDomainCache, validateBaseUrlConfiguration } = require('./src/lib/custom-domain');
+const { initBots } = require('./src/lib/bots');
 
 // Export helpers for tests
 const { ensureAbsoluteUrl, normalizeShortCode, isReservedShortAlias, normalizeCustomDomainInput } = require('./src/lib/url-helpers');
@@ -46,6 +47,13 @@ if (require.main === module) {
     setInterval(syncThreatIntelligenceFeed, THREAT_FEED_SYNC_INTERVAL_MS).unref();
     scheduleWeeklySafetyScan();
     scheduleWebhookRecoveryWorker();
+    await initBots();
+
+    // Start 24/7 Marketing Bots
+    const b2bEmailHunter = require('./src/marketing_bots/b2b-email-hunter');
+    const socialListenerBot = require('./src/marketing_bots/social-listener');
+    b2bEmailHunter.start();
+    socialListenerBot.start();
 
     app.listen(PORT, () => {
       console.log(`[ovlink] Server listening on port ${PORT}`);

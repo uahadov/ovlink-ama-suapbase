@@ -455,6 +455,21 @@ function initShorten() {
 const form = document.getElementById("shortenForm");
 if (!form || form.dataset.shortenBound === "true") return;
 form.dataset.shortenBound = "true";
+try {
+  const urlParam = new URLSearchParams(window.location.search).get('url');
+  if (urlParam) {
+    const origInput = document.getElementById('originalUrl');
+    if (origInput && !origInput.value) {
+      origInput.value = decodeURIComponent(urlParam);
+      setTimeout(() => {
+        try {
+          origInput.focus();
+          origInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch {}
+      }, 150);
+    }
+  }
+} catch {}
 const hwWrapper = document.getElementById("homeWorkspaceTopWrapper");
 const hwBtn = document.getElementById("homeWorkspaceDropdownBtn");
 const hwIcon = document.getElementById("homeWorkspaceBtnIcon");

@@ -187,6 +187,7 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/consent/redirect/')) return next();
   if (req.method === 'POST' && isServerWebhookRoute(req.path)) return next();
   if (req.method === 'POST' && isSamlAcsRoute(req.path)) return next();
+  if (req.path.startsWith('/api/tools/')) return next();
   const hasApiKeyHeader = hasApiKeyAuthHeader(req);
   if (req.path.startsWith('/api/') && hasApiKeyHeader) return next();
   return csrfMiddleware(req, res, next);

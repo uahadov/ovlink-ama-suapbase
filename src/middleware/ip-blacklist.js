@@ -1,11 +1,13 @@
 const { getRequestIp } = require('../lib/geo');
 const { logSecurityEvent } = require('../lib/security');
+const { redisClient } = require('../config/redis');
 
 // ============================================================
-// DDoS KORUMA: IP Blacklist (bellek içi, admin tarafından yönetilir)
+// DDoS KORUMA: IP Blacklist (bellek içi L1 + Redis L2)
 // Kötü niyetli IP'leri geçici veya kalıcı olarak engeller
 // ============================================================
 const ipBlacklist = new Map(); // ip -> { blockedAt, expiresAt|null, reason }
+const REDIS_BLOCK_PREFIX = 'ovlink:blocked_ip:';
 
 function isIpBlacklisted(ip) {
   if (!ip) return false;
@@ -20,20 +22,56 @@ function isIpBlacklisted(ip) {
 
 function blockIp(ip, durationMs, reason) {
   if (!ip) return;
-  ipBlacklist.set(ip, {
+  const entry = {
     blockedAt: Date.now(),
     expiresAt: durationMs ? Date.now() + durationMs : null,
     reason: reason || 'abuse',
-  });
+  };
+  ipBlacklist.set(ip, entry);
+
+  if (redisClient && redisClient.isOpen) {
+    const key = `${REDIS_BLOCK_PREFIX}${ip}`;
+    const payload = JSON.stringify(entry);
+    if (durationMs) {
+      const ttlSec = Math.max(1, Math.ceil(durationMs / 1000));
+      redisClient.set(key, payload, { EX: ttlSec }).catch(() => {});
+    } else {
+      redisClient.set(key, payload).catch(() => {});
+    }
+  }
 }
 
-function ipBlacklistMiddleware(req, res, next) {
+function unblockIp(ip) {
+  if (!ip) return;
+  ipBlacklist.delete(ip);
+  if (redisClient && redisClient.isOpen) {
+    redisClient.del(`${REDIS_BLOCK_PREFIX}${ip}`).catch(() => {});
+  }
+}
+
+async function ipBlacklistMiddleware(req, res, next) {
   const ip = getRequestIp(req);
+  if (!ip) return next();
+
   if (isIpBlacklisted(ip)) {
     const entry = ipBlacklist.get(ip);
     logSecurityEvent(req, 'ddos.ip_blocked', 'blocked', { ip, reason: entry?.reason });
     return res.status(403).json({ error: 'Erişiminiz engellenmiştir.' });
   }
+
+  // If not in local L1 cache and Redis is available, check Redis
+  if (redisClient && redisClient.isOpen) {
+    try {
+      const redisEntryStr = await redisClient.get(`${REDIS_BLOCK_PREFIX}${ip}`);
+      if (redisEntryStr) {
+        const parsed = JSON.parse(redisEntryStr);
+        ipBlacklist.set(ip, parsed);
+        logSecurityEvent(req, 'ddos.ip_blocked', 'blocked', { ip, reason: parsed?.reason });
+        return res.status(403).json({ error: 'Erişiminiz engellenmiştir.' });
+      }
+    } catch {}
+  }
+
   next();
 }
 
@@ -82,10 +120,25 @@ function slowdownMiddleware(req, res, next) {
   next();
 }
 
+function getBlockedIps() {
+  const now = Date.now();
+  const result = [];
+  for (const [ip, entry] of ipBlacklist) {
+    if (entry.expiresAt && now > entry.expiresAt) {
+      ipBlacklist.delete(ip);
+      continue;
+    }
+    result.push({ ip, ...entry });
+  }
+  return result;
+}
+
 module.exports = {
   ipBlacklist,
   isIpBlacklisted,
   blockIp,
+  unblockIp,
+  getBlockedIps,
   ipBlacklistMiddleware,
   ipRequestCounts,
   slowdownMiddleware,

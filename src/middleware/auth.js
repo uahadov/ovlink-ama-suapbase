@@ -1,4 +1,5 @@
 const { db } = require('../db/index');
+const { dbRunAsync } = require('../db/helpers');
 const { getEffectivePlanForUser, PLAN_TIERS, PLAN_STATUS } = require('../lib/plans');
 const { logSecurityEvent } = require('../lib/security');
 
@@ -100,6 +101,20 @@ function requireApiScope(requiredScope) {
     }
     next();
   };
+}
+
+function classifyApiUsageErrorType(statusCode) {
+  if (statusCode >= 200 && statusCode < 300) return 'none';
+  if (statusCode === 429) return 'rate_limit';
+  if (statusCode >= 400 && statusCode < 500) return 'client_error';
+  return 'server_error';
+}
+
+function insertApiUsageLogRow(data) {
+  dbRunAsync(
+    'INSERT INTO api_usage_logs (user_id, api_key_id, endpoint, method, status_code, error_type, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [data.user_id, data.api_key_id, data.endpoint, data.method, data.status_code, data.error_type, data.created_at]
+  ).catch(() => {});
 }
 
 function trackProApiUsage(req, res, next) {
