@@ -141,6 +141,8 @@ database.db
 
 # Local cookie/session dumps
 *cookies*.txt
+*cookie*.json
+hacker-news-cookie.json
 
 
 # Editor/manual backup files

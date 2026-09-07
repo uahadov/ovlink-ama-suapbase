@@ -215,15 +215,42 @@ function createTelegramBot(db, options = {}) {
     }
   }
 
-  async function answerCallbackQuery(callbackQueryId, text) {
+  async function answerCallbackQuery(callbackQueryId, text, showAlert = false) {
     if (!BOT_TOKEN) return;
     try {
       await fetch(`${API_BASE}/answerCallbackQuery`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ callback_query_id: callbackQueryId, text })
+        body: JSON.stringify({ callback_query_id: callbackQueryId, text, show_alert: showAlert })
       });
     } catch (e) {}
+  }
+
+  async function editMessageText(chatId, messageId, text, opts = {}) {
+    if (!BOT_TOKEN) return null;
+    try {
+      const payload = {
+        chat_id: chatId,
+        message_id: messageId,
+        text: text.slice(0, 4096),
+        disable_web_page_preview: true,
+        parse_mode: 'HTML'
+      };
+      if (opts.keyboard) {
+        payload.reply_markup = JSON.stringify({ inline_keyboard: opts.keyboard });
+      } else {
+        payload.reply_markup = JSON.stringify({ inline_keyboard: [] });
+      }
+      const res = await fetch(`${API_BASE}/editMessageText`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return await res.json();
+    } catch (err) {
+      console.error('[telegram-bot] editMessageText error:', err.message);
+      return null;
+    }
   }
 
   function esc(t) {
@@ -642,6 +669,148 @@ function createTelegramBot(db, options = {}) {
             sendMessage(message.chat.id, t(lang, 'deleted_success', { short: shortCode }));
           }
         });
+        return;
+      }
+
+      if (data.startsWith('hn_send:')) {
+        const postId = data.replace('hn_send:', '').trim();
+        try {
+          await answerCallbackQuery(callbackQueryId, '🚀 Hacker News yorumu gönderiliyor...');
+          const { executeHnComment, getPendingHn } = require('../src/marketing_bots/pending-actions');
+          const pending = getPendingHn(postId);
+          await executeHnComment(postId);
+          const targetUrl = (pending && pending.url) || `https://news.ycombinator.com/item?id=${postId}`;
+          const updatedText = `🎯 <b>[Sosyal Müşteri Radarı] Hacker News Yorumu Yayınlandı!</b>\n\n` +
+            `👤 <b>Kullanıcı:</b> @${esc(pending?.author || 'hn_user')}\n` +
+            `❓ <b>Konu:</b> "${esc(pending?.title || '')}"\n\n` +
+            `💬 <b>Yayınlanan Yorum (@exlr):</b>\n` +
+            `<blockquote>${esc(pending?.commentText || '')}</blockquote>\n\n` +
+            `✅ <b>Hacker News'e başarıyla iletildi!</b>\n` +
+            `🔗 <a href="${esc(targetUrl)}">HN Üzerinde Gönderiyi Gör</a>`;
+          await editMessageText(message.chat.id, message.message_id, updatedText, {
+            keyboard: [[{ text: '🔗 Gönderiyi Aç (HN)', url: targetUrl }]]
+          });
+        } catch (err) {
+          console.error('[telegram-bot] hn_send error:', err.message);
+          await answerCallbackQuery(callbackQueryId, '❌ Hata: ' + err.message.slice(0, 100), true);
+          const currentText = message.text ? esc(message.text) : '';
+          const updatedText = `${currentText}\n\n⚠️ <b>Gönderim Başarısız:</b> ${esc(err.message)}`;
+          await editMessageText(message.chat.id, message.message_id, updatedText);
+        }
+        return;
+      }
+
+      if (data.startsWith('hn_skip:')) {
+        const postId = data.replace('hn_skip:', '').trim();
+        try {
+          const { skipAction, getPendingHn } = require('../src/marketing_bots/pending-actions');
+          skipAction('hn', postId);
+          await answerCallbackQuery(callbackQueryId, '❌ Fırsat iptal edildi.');
+          const pending = getPendingHn(postId);
+          const updatedText = `🎯 <b>[Sosyal Müşteri Radarı] Fırsat Atlandı / İptal Edildi</b>\n\n` +
+            `👤 <b>Kullanıcı:</b> @${esc(pending?.author || 'hn_user')}\n` +
+            `❓ <b>Konu:</b> "${esc(pending?.title || '')}"\n\n` +
+            `❌ <i>Bu gönderi atlandı ve yorum yapılmadı.</i>`;
+          const keyboard = pending && pending.url ? [[{ text: '🔗 Gönderiyi Aç', url: pending.url }]] : [];
+          await editMessageText(message.chat.id, message.message_id, updatedText, { keyboard });
+        } catch (err) {
+          console.error('[telegram-bot] hn_skip error:', err.message);
+          await answerCallbackQuery(callbackQueryId, 'Hata oluştu.');
+        }
+        return;
+      }
+
+      if (data.startsWith('mail_send:')) {
+        const leadId = data.replace('mail_send:', '').trim();
+        try {
+          await answerCallbackQuery(callbackQueryId, '📤 E-posta gönderiliyor...');
+          const { executeB2BMail, getPendingMail } = require('../src/marketing_bots/pending-actions');
+          const pending = getPendingMail(leadId);
+          const result = await executeB2BMail(leadId);
+          const updatedText = `📨 <b>[B2B Satış Avcısı] E-Posta Başarıyla Gönderildi!</b>\n\n` +
+            `👤 <b>Alıcı:</b> ${esc(result.name || pending?.name || '')} (${esc(pending?.role || '')})\n` +
+            `🏢 <b>Şirket:</b> ${esc(pending?.company || '')}\n` +
+            `📬 <b>E-posta:</b> <code>${esc(result.email || pending?.to || '')}</code>\n` +
+            `📌 <b>Konu:</b> ${esc(pending?.subject || '')}\n` +
+            `⏰ <b>Gönderim Zamanı:</b> ${new Date().toLocaleString('tr-TR')}\n\n` +
+            `✅ <i>E-posta SMTP sunucusu üzerinden doğrudan başarıyla teslim edildi.</i>`;
+          await editMessageText(message.chat.id, message.message_id, updatedText);
+        } catch (err) {
+          console.error('[telegram-bot] mail_send error:', err.message);
+          await answerCallbackQuery(callbackQueryId, '❌ Gönderilemedi: ' + err.message.slice(0, 100), true);
+          const currentText = message.text ? esc(message.text) : '';
+          const updatedText = `${currentText}\n\n⚠️ <b>Gönderim Başarısız:</b> ${esc(err.message)}`;
+          await editMessageText(message.chat.id, message.message_id, updatedText);
+        }
+        return;
+      }
+
+      if (data.startsWith('mail_skip:')) {
+        const leadId = data.replace('mail_skip:', '').trim();
+        try {
+          const { skipAction, getPendingMail } = require('../src/marketing_bots/pending-actions');
+          const pending = getPendingMail(leadId);
+          skipAction('mail', leadId);
+          await answerCallbackQuery(callbackQueryId, '❌ Aday iptal edildi.');
+          const updatedText = `📨 <b>[B2B Satış Avcısı] Aday Atlandı / İptal Edildi</b>\n\n` +
+            `👤 <b>Aday:</b> ${esc(pending?.name || '')} (${esc(pending?.company || '')})\n` +
+            `📬 <b>E-posta:</b> <code>${esc(pending?.to || '')}</code>\n\n` +
+            `❌ <i>Bu müşteri adayına e-posta gönderilmedi.</i>`;
+          await editMessageText(message.chat.id, message.message_id, updatedText);
+        } catch (err) {
+          console.error('[telegram-bot] mail_skip error:', err.message);
+          await answerCallbackQuery(callbackQueryId, 'Hata oluştu.');
+        }
+        return;
+      }
+
+      if (data.startsWith('mail_rewrite:')) {
+        const leadId = data.replace('mail_rewrite:', '').trim();
+        try {
+          await answerCallbackQuery(callbackQueryId, '🔄 AI ile yeniden yazılıyor...');
+          const { rewriteB2BMail, getPendingMail } = require('../src/marketing_bots/pending-actions');
+          const rewritten = await rewriteB2BMail(leadId);
+          const pending = getPendingMail(leadId) || {};
+
+          const safeName = esc(pending.name || '');
+          const safeRole = esc(pending.role || '');
+          const safeCompany = esc(pending.company || '');
+          const safeNiche = esc(pending.niche || '');
+          const safeEmail = esc(pending.to || '');
+          const safeSubject = esc(rewritten.subject || '');
+          const safeBody = esc(rewritten.body || '');
+          const safeReason = esc(pending.suitabilityReason || '');
+          const score = pending.suitabilityScore || 8;
+
+          const hasSmtp = Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+          const statusText = hasSmtp ? `✅ SMTP Hazır (${esc(process.env.SMTP_USER)})` : `⚠️ SMTP Ayarları Eksik`;
+
+          const updatedText = `📨 <b>[B2B Satış Avcısı] Yeni Müşteri Adayı E-Postası (Yeniden Yazıldı)!</b>\n\n` +
+            `🔍 <b>Uygunluk Analizi:</b> ${safeReason} (Skor: <b>${score}/10</b>)\n` +
+            `👤 <b>Alıcı:</b> ${safeName} (${safeRole})\n` +
+            `🏢 <b>Şirket:</b> ${safeCompany} (${safeNiche})\n` +
+            `📬 <b>E-posta Adresi:</b> <code>${safeEmail}</code>\n` +
+            `📊 <b>Durum:</b> ${statusText}\n` +
+            `🛡️ <b>CAN-SPAM / Opt-Out:</b> ✅ Dahil Edildi\n\n` +
+            `📝 <b>Yenilenen E-Posta Taslağı:</b>\n` +
+            `<blockquote><b>Konu:</b> ${safeSubject}\n\n${safeBody}</blockquote>\n\n` +
+            `👉 <i>Aşağıdaki butonla tek dokunuşla e-postayı <b>otomatik gönderebilir</b> veya iptal edebilirsin:</i>`;
+
+          const keyboard = [
+            [
+              { text: '📤 Otomatik Mail Gönder', callback_data: `mail_send:${leadId}` },
+              { text: '❌ Gönderme / İptal', callback_data: `mail_skip:${leadId}` }
+            ],
+            [
+              { text: '🔄 Yeniden Yaz (AI)', callback_data: `mail_rewrite:${leadId}` }
+            ]
+          ];
+
+          await editMessageText(message.chat.id, message.message_id, updatedText, { keyboard });
+        } catch (err) {
+          console.error('[telegram-bot] mail_rewrite error:', err.message);
+          await answerCallbackQuery(callbackQueryId, '❌ Yeniden yazma hatası: ' + err.message.slice(0, 100), true);
+        }
         return;
       }
       return;

@@ -1,13 +1,8 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-let nodemailer = null;
-try {
-  nodemailer = require('nodemailer');
-} catch {
-  // nodemailer optional
-}
 const { sendTelegramAlert } = require('./telegram-notifier');
+const { storePendingMail } = require('./pending-actions');
 
 class B2BEmailHunter {
   constructor() {
@@ -117,12 +112,106 @@ class B2BEmailHunter {
     const leads = this.loadLeads();
     let lead = leads.find(l => l.status === 'pending');
     if (!lead) {
-      // If all leads completed, recycle the queue so engine can run continuously
+      // Recycle the queue so engine can run continuously
       leads.forEach(l => { l.status = 'pending'; });
       this.saveLeads(leads);
       lead = leads[0];
     }
     return lead;
+  }
+
+  /**
+   * Analyzes whether this lead has a genuine use-case for Ovlink.
+   */
+  async analyzeLeadSuitability(lead) {
+    if (!lead || !lead.email || !lead.company || !lead.name || !lead.email.includes('@')) {
+      return {
+        isSuitable: false,
+        score: 1,
+        reason: 'E-posta adresi, şirket veya iletişim bilgisi eksik olan geçersiz aday.'
+      };
+    }
+
+    const invalidRoles = ['student', 'intern', 'unemployed', 'retired', 'unknown'];
+    const lowerRole = (lead.role || '').toLowerCase();
+    if (invalidRoles.some(r => lowerRole.includes(r))) {
+      return {
+        isSuitable: false,
+        score: 2,
+        reason: 'Adayın pozisyonu bağlantı yönetimi veya pazarlama kararları için uygun değil.'
+      };
+    }
+
+    const prompt = `
+You are the Growth Lead for Ovlink (https://ovlink.sbs).
+Ovlink provides custom branded short links, real-time click analytics, QR codes, and developer APIs.
+
+Analyze this prospect:
+Name: ${lead.name} (${lead.role})
+Company: ${lead.company}
+Niche: ${lead.niche}
+Workflow context: ${lead.context}
+
+Determine if this lead is a strong fit for Ovlink and why.
+Respond in valid JSON only:
+{
+  "is_suitable": boolean,
+  "score": number from 1 to 10,
+  "reason": "1-sentence concise explanation in Turkish of why Ovlink is suitable for this company"
+}
+`;
+
+    for (const model of this.freeModels) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
+      try {
+        const sessionId = 'suit_b2b_' + Date.now();
+        const res = await fetch(this.apiUrl, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`,
+            'x-session-id': sessionId,
+            'x-opencode-session': sessionId,
+            'x-opencode-client': 'cli',
+            'User-Agent': 'opencode/1.0.0'
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.2,
+            max_tokens: 180,
+            stream: false
+          })
+        });
+
+        clearTimeout(timeout);
+        if (!res.ok) continue;
+
+        const data = await res.json();
+        const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        if (content) {
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return {
+              isSuitable: parsed.is_suitable !== false,
+              score: Number(parsed.score) || 9,
+              reason: parsed.reason || 'Pazarlama kampanyaları ve özel alan adı yönlendirmesi için uygun aday.'
+            };
+          }
+        }
+      } catch (e) {
+        clearTimeout(timeout);
+      }
+    }
+
+    return {
+      isSuitable: true,
+      score: 9,
+      reason: `${lead.company} kampanyalarında link trafiği ve özel domain yönetimi için doğrudan tasarruf sağlar.`
+    };
   }
 
   async generateEmail(lead) {
@@ -176,7 +265,6 @@ Subject: [Short, honest 3-5 word subject line without emojis]
         clearTimeout(timeout);
 
         if (!response.ok) {
-          console.warn(`[B2B Hunter] Model ${model} returned status ${response.status}. Trying fallback...`);
           continue;
         }
 
@@ -191,16 +279,14 @@ Subject: [Short, honest 3-5 word subject line without emojis]
             content = cleanLines.join('\n').trim();
           }
 
-          const emojiCleaned = content.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+          const emojiCleaned = content.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F7FF}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
           return emojiCleaned + complianceFooter;
         }
       } catch (error) {
         clearTimeout(timeout);
-        console.warn(`[B2B Hunter] Error with model ${model}:`, error.message);
       }
     }
 
-    // High-converting human fallback if AI API is temporarily unreachable
     return `Subject: link attribution and campaign tracking at ${lead.company}\n\nHi ${lead.name},\n\nNoticed ${lead.company} is active across digital growth campaigns. Managing cross-channel links and keeping custom domain attribution clean usually creates avoidable friction.\n\nWe built Ovlink (https://ovlink.sbs) to provide lightweight custom domains and real-time click analytics without enterprise cost.\n\nWould you be open to a quick 5-minute chat this week?` + complianceFooter;
   }
 
@@ -217,57 +303,81 @@ Subject: [Short, honest 3-5 word subject line without emojis]
         return;
       }
 
-      console.log(`[B2B Hunter] Processing lead: ${lead.name} (${lead.role} @ ${lead.company}). Asking Muse Spark to craft pitch...`);
+      console.log(`[B2B Hunter] Analyzing suitability for lead: ${lead.name} (${lead.role} @ ${lead.company})...`);
+      const suitability = await this.analyzeLeadSuitability(lead);
 
-      const emailContent = await this.generateEmail(lead);
-
-      if (emailContent) {
-        console.log('\n================ B2B EMAIL GENERATED ================');
-        console.log(`To: ${lead.name} <${lead.email}>`);
-        console.log(`Niche: ${lead.niche}`);
-        console.log('Body:');
-        console.log(emailContent);
-        console.log('=====================================================\n');
-
-        let statusText = '📧 Hazırlandı & Onay Bekliyor (Admin İncelemesi)';
-
-        // Attempt SMTP dispatch if credentials exist and not in test environment
-        if (nodemailer && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.NODE_ENV !== 'test') {
-          try {
-            const transporter = nodemailer.createTransport({
-              host: process.env.SMTP_HOST || 'smtp.gmail.com',
-              port: Number(process.env.SMTP_PORT) || 587,
-              secure: false,
-              auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS
-              }
-            });
-
-            statusText = `✅ SMTP Canlı Gönderime Hazır (${process.env.SMTP_USER})`;
-          } catch (smtpErr) {
-            statusText = `⚠️ SMTP Bağlantı Uyarısı: ${smtpErr.message}`;
-          }
+      if (!suitability.isSuitable) {
+        console.log(`[B2B Hunter] Lead ${lead.name} skipped (Score: ${suitability.score}/10): ${suitability.reason}`);
+        lead.status = 'skipped';
+        const allLeads = this.loadLeads();
+        const idx = allLeads.findIndex(l => l.id === lead.id);
+        if (idx !== -1) {
+          allLeads[idx] = lead;
+          this.saveLeads(allLeads);
         }
+        return;
+      }
+
+      console.log(`[B2B Hunter] Generating custom cold email for ${lead.name}...`);
+      const rawEmailContent = await this.generateEmail(lead);
+
+      if (rawEmailContent) {
+        let subject = `Link infrastructure and campaign tracking at ${lead.company}`;
+        let body = rawEmailContent;
+        const subMatch = rawEmailContent.match(/^Subject:\s*([^\n]+)/i);
+        if (subMatch) {
+          subject = subMatch[1].trim();
+          body = rawEmailContent.replace(/^Subject:\s*[^\n]+\n+/i, '').trim();
+        }
+
+        // Store pending action so Telegram callback buttons can send email or skip
+        storePendingMail(lead.id, {
+          to: lead.email,
+          name: lead.name,
+          role: lead.role,
+          company: lead.company,
+          niche: lead.niche,
+          subject,
+          body,
+          suitabilityScore: suitability.score,
+          suitabilityReason: suitability.reason
+        });
 
         const safeName = lead.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const safeRole = lead.role.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const safeCompany = lead.company.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const safeNiche = lead.niche.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const safeEmail = lead.email.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const safeContent = emailContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeSubject = subject.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeBody = body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeReason = suitability.reason.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-        // Send Telegram notification to user
+        const hasSmtp = Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+        const statusText = hasSmtp ? `✅ SMTP Hazır (${process.env.SMTP_USER})` : `⚠️ SMTP Ayarları Eksik`;
+
+        // Send Telegram notification with Action Buttons
         const tgMsg = `📨 <b>[B2B Satış Avcısı] Yeni Müşteri Adayı E-Postası Hazırlandı!</b>\n\n` +
+          `🔍 <b>Uygunluk Analizi:</b> ${safeReason} (Skor: <b>${suitability.score}/10</b>)\n` +
           `👤 <b>Alıcı:</b> ${safeName} (${safeRole})\n` +
           `🏢 <b>Şirket:</b> ${safeCompany} (${safeNiche})\n` +
           `📬 <b>E-posta Adresi:</b> <code>${safeEmail}</code>\n` +
           `📊 <b>Durum:</b> ${statusText}\n` +
           `🛡️ <b>CAN-SPAM / Opt-Out:</b> ✅ Dahil Edildi\n\n` +
           `📝 <b>Muse Spark'ın Yazdığı E-Posta Taslağı:</b>\n` +
-          `<blockquote>${safeContent}</blockquote>`;
+          `<blockquote><b>Konu:</b> ${safeSubject}\n\n${safeBody}</blockquote>\n\n` +
+          `👉 <i>Aşağıdaki butonla tek dokunuşla e-postayı <b>otomatik gönderebilir</b> veya iptal edebilirsin:</i>`;
 
-        await sendTelegramAlert(tgMsg);
+        const keyboard = [
+          [
+            { text: '📤 Otomatik Mail Gönder', callback_data: `mail_send:${lead.id}` },
+            { text: '❌ Gönderme / İptal', callback_data: `mail_skip:${lead.id}` }
+          ],
+          [
+            { text: '🔄 Yeniden Yaz (AI)', callback_data: `mail_rewrite:${lead.id}` }
+          ]
+        ];
+
+        await sendTelegramAlert(tgMsg, { keyboard });
 
         // Update lead status in pipeline
         lead.status = 'drafted';
@@ -279,7 +389,7 @@ Subject: [Short, honest 3-5 word subject line without emojis]
           this.saveLeads(allLeads);
         }
 
-        console.log(`[B2B Hunter] Lead #${lead.id} processed and Telegram alert dispatched.`);
+        console.log(`[B2B Hunter] Lead #${lead.id} processed and Telegram action buttons dispatched.`);
       }
     } catch (error) {
       console.error('[B2B Hunter] Pipeline error:', error);
@@ -289,12 +399,10 @@ Subject: [Short, honest 3-5 word subject line without emojis]
   }
 
   start() {
-    console.log('[B2B Hunter] Starting 24/7 B2B Cold Email automation engine...');
-    // Run every 6 hours
+    console.log('[B2B Hunter] Starting 24/7 B2B Cold Email engine with suitability filter & action buttons...');
     const intervalMs = 6 * 60 * 60 * 1000;
     this.intervalId = setInterval(() => this.processQueue(), intervalMs);
 
-    // Initial check (unref to avoid blocking graceful shutdown)
     setTimeout(() => this.processQueue(), 5000).unref?.();
   }
 
