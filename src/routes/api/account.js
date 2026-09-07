@@ -11,19 +11,22 @@ const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../../db/helpers');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('../../../utils/crypto');
 const { pickLang, normalizeLang, getCookieValue } = require('../../lib/i18n');
 const { isProdRuntime } = require('../../config/index');
+const tsscmp = require('tsscmp');
 const {
   sendVerificationEmail,
   send2faEmail,
-  sendResetPasswordEmail,
+  sendPasswordResetEmail,
   sendNewDeviceLoginEmailForUser
 } = require('../../lib/email');
-const { trackUserSession: upsertUserSessionRecord } = require('../../lib/session');
+const { trackUserSession: upsertUserSessionRecord, buildVerificationExpiryIso } = require('../../lib/session');
 const { getRequestGeoMeta, maskIpForDisplay, buildNetworkFingerprintForDisplay, parseAcceptLang } = require('../../lib/geo');
-const { logSecurityEvent, getPublicBaseUrl } = require('../../lib/security');
+const { logSecurityEvent, getPublicBaseUrl, buildAbsoluteUrl } = require('../../lib/security');
 const { googleOidc, initGoogleOidc, getGoogleRedirectUri } = require('../../lib/google-auth');
 const { requireSignedIn } = require('../../middleware/auth');
 const { authLimiter, sensitiveActionLimiter } = require('../../middleware/rate-limiter');
 const { isProAccessActive, getEffectivePlanForUser, buildPlanPayload, isProExpired, downgradeExpiredProIfNeeded } = require('../../lib/plans');
+
+const tempEmailDomains = ['mailinator.com', 'tempmail.com', '10minutemail.com', 'guerrillamail.com', 'sharklasers.com', 'trashmail.com', 'yopmail.com'];
 
 function generateVerificationCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
