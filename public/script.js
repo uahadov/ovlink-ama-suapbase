@@ -4500,7 +4500,13 @@ if (document.readyState === "loading") {
   // Register PWA Service Worker for App Installation & Offline Caching
   if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+      navigator.serviceWorker.register('/sw.js?v=20260908-02')
+        .then((reg) => {
+          if (reg) {
+            reg.update().catch(() => {});
+          }
+        })
+        .catch(() => {});
     });
   }
 })();

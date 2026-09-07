@@ -1,5 +1,5 @@
 // Ovlink PWA Service Worker
-const CACHE_NAME = 'ovlink-pwa-v5';
+const CACHE_NAME = 'ovlink-pwa-v6';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -38,8 +38,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip API, admin, bot, and dynamic user routes
+  // Skip Service Worker itself, API, admin, bot, and dynamic user routes
   if (
+    url.pathname === '/sw.js' ||
+    url.pathname.endsWith('/sw.js') ||
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/admin') ||
     url.pathname.startsWith('/bot/') ||

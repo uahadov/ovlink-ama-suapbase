@@ -67,6 +67,16 @@ app.get('/admin/admin.js', (req, res) => {
   return res.sendFile(path.join(publicDir, 'admin', 'admin.js'));
 });
 
+// Explicit Service Worker route with strict no-cache to override reverse proxy defaults
+app.get(['/sw.js', '/public/sw.js'], (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Service-Worker-Allowed', '/');
+  return res.sendFile(path.join(publicDir, 'sw.js'));
+});
+
 // express.static
 app.use(express.static(publicDir, {
   maxAge: isProdRuntime ? '7d' : 0,
