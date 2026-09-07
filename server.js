@@ -47,16 +47,34 @@ if (require.main === module) {
     setInterval(syncThreatIntelligenceFeed, THREAT_FEED_SYNC_INTERVAL_MS).unref();
     scheduleWeeklySafetyScan();
     scheduleWebhookRecoveryWorker();
-    await initBots();
-
-    // Start 24/7 Marketing Bots
-    const b2bEmailHunter = require('./src/marketing_bots/b2b-email-hunter');
-    const socialListenerBot = require('./src/marketing_bots/social-listener');
-    b2bEmailHunter.start();
-    socialListenerBot.start();
 
     app.listen(PORT, () => {
       console.log(`[ovlink] Server listening on port ${PORT}`);
+
+      // Start bots & marketing background services safely without blocking or crashing the server
+      (async () => {
+        try {
+          await initBots();
+        } catch (botErr) {
+          console.warn('[startup] Telegram/Discord bots init warning:', botErr && (botErr.message || botErr));
+        }
+
+        try {
+          const b2bEmailHunter = require('./src/marketing_bots/b2b-email-hunter');
+          b2bEmailHunter.start();
+        } catch (b2bErr) {
+          console.warn('[startup] B2B Email Hunter start warning:', b2bErr && (b2bErr.message || b2bErr));
+        }
+
+        try {
+          const socialListenerBot = require('./src/marketing_bots/social-listener');
+          socialListenerBot.start();
+        } catch (socialErr) {
+          console.warn('[startup] Social Listener Bot start warning:', socialErr && (socialErr.message || socialErr));
+        }
+      })().catch(err => {
+        console.warn('[startup] Background worker warning:', err && (err.message || err));
+      });
     });
   })().catch(err => {
     console.error('[startup] fatal error before listen', err && (err.message || err));

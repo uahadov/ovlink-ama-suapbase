@@ -1,7 +1,12 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-const nodemailer = require('nodemailer');
+let nodemailer = null;
+try {
+  nodemailer = require('nodemailer');
+} catch {
+  // nodemailer optional
+}
 const { sendTelegramAlert } = require('./telegram-notifier');
 
 class B2BEmailHunter {
@@ -227,7 +232,7 @@ Subject: [Short, honest 3-5 word subject line without emojis]
         let statusText = '📧 Hazırlandı & Onay Bekliyor (Admin İncelemesi)';
 
         // Attempt SMTP dispatch if credentials exist and not in test environment
-        if (process.env.SMTP_USER && process.env.SMTP_PASS && process.env.NODE_ENV !== 'test') {
+        if (nodemailer && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.NODE_ENV !== 'test') {
           try {
             const transporter = nodemailer.createTransport({
               host: process.env.SMTP_HOST || 'smtp.gmail.com',

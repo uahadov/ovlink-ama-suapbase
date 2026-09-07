@@ -1,6 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const cheerio = require('cheerio');
+let cheerio = null;
+try {
+  cheerio = require('cheerio');
+} catch {
+  // Fallback to regex-based extraction if cheerio is not installed
+}
 
 // GET /tools/preview
 router.get('/tools/preview', (req, res) => {
@@ -32,15 +37,32 @@ router.post('/api/tools/fetch-metadata', async (req, res) => {
     }
 
     const html = await response.text();
-    const $ = cheerio.load(html);
+    let metadata;
 
-    const metadata = {
-      title: $('meta[property="og:title"]').attr('content') || $('title').text() || '',
-      description: $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || '',
-      image: $('meta[property="og:image"]').attr('content') || '',
-      url: $('meta[property="og:url"]').attr('content') || url,
-      domain: new URL(url).hostname
-    };
+    if (cheerio) {
+      const $ = cheerio.load(html);
+      metadata = {
+        title: $('meta[property="og:title"]').attr('content') || $('title').text() || '',
+        description: $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || '',
+        image: $('meta[property="og:image"]').attr('content') || '',
+        url: $('meta[property="og:url"]').attr('content') || url,
+        domain: new URL(url).hostname
+      };
+    } else {
+      const getMeta = (prop) => {
+        const m = html.match(new RegExp(`<meta[^>]+(?:property|name)=["'](?:og:)?${prop}["'][^>]+content=["']([^"']*)["']`, 'i')) ||
+                  html.match(new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+(?:property|name)=["'](?:og:)?${prop}["']`, 'i'));
+        return m ? m[1] : '';
+      };
+      const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+      metadata = {
+        title: getMeta('title') || (titleMatch ? titleMatch[1].trim() : ''),
+        description: getMeta('description'),
+        image: getMeta('image'),
+        url: getMeta('url') || url,
+        domain: new URL(url).hostname
+      };
+    }
 
     res.json(metadata);
   } catch (error) {
