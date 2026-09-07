@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { sendTelegramAlert } = require('./telegram-notifier');
 const { storePendingHn } = require('./pending-actions');
+const { cleanHtmlSnippet, escapeTelegramHtml, sanitizeAISocialReply } = require('./ai-sanitizer');
 
 class SocialListenerBot {
   constructor() {
@@ -72,9 +73,9 @@ class SocialListenerBot {
           const id = String(hit.objectID);
           if (this.seenPostIds.has(id)) continue;
 
-          const title = hit.title || hit.story_title || 'URL Shortener Discussion';
+          const title = cleanHtmlSnippet(hit.title || hit.story_title || 'URL Shortener Discussion', 140);
           const rawText = hit.comment_text || hit.story_text || title;
-          const cleanText = rawText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          const cleanText = cleanHtmlSnippet(rawText, 500);
 
           const lower = (title + ' ' + cleanText).toLowerCase();
           const matches = ['shorten', 'bitly', 'link', 'domain', 'redirect', 'analytics', 'tinyurl'].some(w => lower.includes(w));
@@ -83,9 +84,9 @@ class SocialListenerBot {
           discovered.push({
             id,
             platform: 'Hacker News',
-            title: title.slice(0, 140),
+            title,
             author: hit.author || 'community_member',
-            context: cleanText.slice(0, 400),
+            context: cleanText,
             url: `https://news.ycombinator.com/item?id=${id}`,
             createdAt: hit.created_at
           });
@@ -218,25 +219,23 @@ Answer in strictly valid JSON:
   }
 
   async generateReply(post) {
-    const prompt = `
-You are the software engineer and indie founder who built Ovlink (https://ovlink.sbs).
-Someone on Hacker News is discussing URL shorteners or link management:
-Title: "${post.title}"
-Post/Comment Content: "${post.context}"
+    const systemPrompt = `You are a software engineer and founder who built Ovlink (https://ovlink.sbs).
+ABSOLUTE PRODUCTION DIRECTIVE:
+- Output ONLY the final 2-3 sentence comment for Hacker News.
+- NEVER include any thinking process, reasoning, planning, "Here's a thinking process", "Role:", "Ground Rules:", or "Constraints:".
+- Strictly ZERO emojis or icons.
+- Natural, humble, peer-to-peer American English.
+- Always include transparent indie disclosure (e.g., "Full disclosure: I built Ovlink...").
+- Output pure plain text only.`;
 
-CRITICAL ETHICAL & QUALITY RULES:
-1. COMPLETE HONESTY & TRANSPARENCY: Never pretend to be an unrelated third-party customer. Transparently state that you built or work on Ovlink as an indie tool (e.g., "Full disclosure: I built Ovlink...").
-2. STRICTLY ZERO EMOJIS: Never use any emojis or pictorial symbols.
-3. Natural, humble, peer-to-peer American English (2 to 3 sentences maximum).
-4. No spam, no hard selling, no exaggerated claims. Genuinely address their technical points or problem.
-5. Offer Ovlink (https://ovlink.sbs) as a lightweight, honest option if they need clean custom domains, fast redirects, and privacy-respecting analytics without enterprise price bloat.
+    const userPrompt = `Discussion Title: "${post.title}"
+Post Context: "${post.context}"
 
-Output ONLY the comment text.
-`;
+Write a concise 2-3 sentence Hacker News comment sharing Ovlink as an independent, lightweight alternative with custom domains and analytics. Start directly with "Full disclosure: I built Ovlink...". Do not include any other words.`;
 
     for (const model of this.freeModels) {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 6000);
+      const timeout = setTimeout(() => controller.abort(), 7000);
 
       try {
         const sessionId = 'social_ses_' + Date.now();
@@ -253,9 +252,12 @@ Output ONLY the comment text.
           },
           body: JSON.stringify({
             model: model,
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.7,
-            max_tokens: 220,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.6,
+            max_tokens: 600,
             stream: false
           })
         });
@@ -264,17 +266,13 @@ Output ONLY the comment text.
         if (!response.ok) continue;
 
         const data = await response.json();
-        let content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-        if (content) {
-          if (content.includes('</think>')) {
-            content = content.split('</think>').pop().trim();
-          } else if (content.startsWith("Here's a thinking process")) {
-            const lines = content.split('\n');
-            const cleanLines = lines.filter(l => !l.startsWith('1.') && !l.startsWith('2.') && !l.startsWith('**') && !l.includes('Analyze'));
-            content = cleanLines.join(' ').trim();
+        const rawContent = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        if (rawContent) {
+          const sanitized = sanitizeAISocialReply(rawContent);
+          if (sanitized) {
+            return sanitized;
           }
-
-          return content.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F7FF}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+          console.warn(`[Social Listener] Model "${model}" output was rejected by sanitizer (contained thinking/defects). Trying next model...`);
         }
       } catch (err) {
         clearTimeout(timeout);
@@ -324,13 +322,11 @@ Output ONLY the comment text.
           suitabilityReason: suitability.reason
         });
 
-        const safeSnippet = post.context
-          ? post.context.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-          : 'Tartisma icerigi';
-        const safeTitle = post.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const safeAuthor = post.author.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const safeReason = suitability.reason.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const safeReply = aiReply.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeSnippet = escapeTelegramHtml(post.context || 'Tartisma icerigi');
+        const safeTitle = escapeTelegramHtml(post.title || '');
+        const safeAuthor = escapeTelegramHtml(post.author || 'community_member');
+        const safeReason = escapeTelegramHtml(suitability.reason || '');
+        const safeReply = escapeTelegramHtml(aiReply || '');
 
         const tgMsg = `🎯 <b>[Sosyal Müşteri Radarı] Canlı Fırsat Yakalandı!</b>\n\n` +
           `🔍 <b>Uygunluk Analizi:</b> ${safeReason} (Skor: <b>${suitability.score}/10</b>)\n` +

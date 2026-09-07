@@ -174,3 +174,92 @@ test('hn-client extractHmac correctly extracts HMAC token from HTML form', () =>
   const hmac = extractHmac(html);
   assert.equal(hmac, 'a1b2c3d4e5f67890abcdef1234567890abcdef12');
 });
+
+test('b2b-email-hunter.generateEmail cleanly strips thinking and returns valid subject and body', async () => {
+  const customLead = {
+    id: 'lead_test_ai',
+    name: 'David Kim',
+    role: 'Director of Operations',
+    company: 'TechBrief Daily',
+    niche: 'Tech Newsletter',
+    context: 'Managing sponsor links and click attribution'
+  };
+
+  const originalFetchLocal = global.fetch;
+  global.fetch = async (url, opts) => {
+    return {
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content: `The user wants me to write a cold email to David Kim.
+Constraints:
+1. Polite
+2. NO EMOJIS
+Let me craft this carefully.
+
+Subject: Click analytics for sponsor links
+
+Body:
+Hi David, I noticed TechBrief Daily manages sponsor links at scale. I built Ovlink as an independent platform that handles custom domains and click analytics without bloat. If this aligns with your roadmap, glad to chat. If not, no worries at all.
+
+That's 3 sentences. Let me check:
+- Sentence 1: OK
+Wait, that last one is technically two sentences joined by period.`
+            }
+          }
+        ]
+      })
+    };
+  };
+
+  try {
+    const emailData = await b2bHunter.generateEmail(customLead);
+    assert.ok(emailData);
+    assert.equal(emailData.subject, 'Click analytics for sponsor links');
+    assert.ok(!emailData.body.includes('The user wants me to write'));
+    assert.ok(!emailData.body.includes('Constraints:'));
+    assert.ok(!emailData.body.includes("That's 3 sentences"));
+    assert.ok(emailData.body.includes('Hi David, I noticed TechBrief Daily'));
+    assert.ok(emailData.body.includes('Ovlink Link Infrastructure | https://ovlink.sbs'));
+  } finally {
+    global.fetch = originalFetchLocal;
+  }
+});
+
+test('social-listener.generateReply rejects pure thinking and falls back safely', async () => {
+  const post = {
+    id: 'hn_test_ai',
+    title: 'Ask HN: Better URL shortener with analytics',
+    context: 'Looking for a clean bitly alternative with custom domains'
+  };
+
+  const originalFetchLocal = global.fetch;
+  global.fetch = async (url, opts) => {
+    return {
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content: `Here's a thinking process: - **Role:** Software engineer - **Context:** Hacker News - **Ground Rules:** Zero emojis - **Output:** Comment text only -`
+            }
+          }
+        ]
+      })
+    };
+  };
+
+  try {
+    const reply = await socialListener.generateReply(post);
+    assert.ok(reply);
+    // Must NOT contain the thinking process!
+    assert.ok(!reply.includes("Here's a thinking process"));
+    assert.ok(!reply.includes('**Role:**'));
+    assert.ok(reply.startsWith('Full disclosure: I built Ovlink'));
+  } finally {
+    global.fetch = originalFetchLocal;
+  }
+});
+

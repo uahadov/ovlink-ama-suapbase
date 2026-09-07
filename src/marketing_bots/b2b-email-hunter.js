@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { sendTelegramAlert } = require('./telegram-notifier');
 const { storePendingMail } = require('./pending-actions');
+const { sanitizeAIEmail, escapeTelegramHtml } = require('./ai-sanitizer');
 
 class B2BEmailHunter {
   constructor() {
@@ -215,30 +216,29 @@ Respond in valid JSON only:
   }
 
   async generateEmail(lead) {
-    const prompt = `
-You are the software developer and founder behind Ovlink (https://ovlink.sbs).
-Write a polite, respectful, and transparent inquiry to ${lead.name}, who is the ${lead.role} at ${lead.company}.
+    const systemPrompt = `You are an executive cold email copywriter for Ovlink (https://ovlink.sbs).
+ABSOLUTE PRODUCTION DIRECTIVE:
+- Output ONLY the Subject line and the email body.
+- NEVER include thinking process, reasoning, planning, "Here's a thinking process", "The user wants me to", "Constraints:", or "Let me craft".
+- NEVER output sentence counts or post-generation analysis like "That's 3 sentences. Let me check:".
+- Strictly ZERO emojis or icons.
+- Maximum 3 to 4 sentences in natural, polite American English.
+- Format strictly as:
+Subject: [Short 3-5 word subject line]
+
+[Email body]`;
+
+    const userPrompt = `Lead Name: ${lead.name}
+Role: ${lead.role}
+Company: ${lead.company}
 Niche: ${lead.niche}
 Context: ${lead.context}
 
-CRITICAL ETHICAL & QUALITY RULES:
-1. COMPLETE HONESTY & RESPECT: Be polite, humble, and completely transparent. Never make false claims, never use pushy sales tactics, and genuinely respect their time.
-2. STRICTLY ZERO EMOJIS: Do not use any emojis, icons, or symbols.
-3. Authentic, natural American English (maximum 3 to 4 sentences).
-4. Address their specific link or attribution workflow simply, and introduce Ovlink as an independent, lightweight platform built to make custom domains and click analytics accessible and clean.
-5. End with a zero-pressure invitation (e.g., "If this is relevant to your roadmap, I would be glad to answer any questions. If not, no worries at all.").
-
-Format your output EXACTLY like this:
-Subject: [Short, honest 3-5 word subject line without emojis]
-
-[Email body here]
-`;
-
-    const complianceFooter = `\n\n---\nOvlink Link Infrastructure | https://ovlink.sbs\nTo opt out of future updates, reply with "unsubscribe" or "stop".`;
+Write a polite, 3-4 sentence cold email introducing Ovlink as a lightweight platform for custom domains and click analytics without enterprise bloat. Start with Subject: and then the email body.`;
 
     for (const model of this.freeModels) {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 6000);
+      const timeout = setTimeout(() => controller.abort(), 7000);
 
       try {
         const sessionId = 'ses_' + Date.now();
@@ -255,39 +255,38 @@ Subject: [Short, honest 3-5 word subject line without emojis]
           },
           body: JSON.stringify({
             model: model,
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.7,
-            max_tokens: 350,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.6,
+            max_tokens: 600,
             stream: false
           })
         });
 
         clearTimeout(timeout);
-
-        if (!response.ok) {
-          continue;
-        }
+        if (!response.ok) continue;
 
         const data = await response.json();
-        let content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-        if (content) {
-          if (content.includes('</think>')) {
-            content = content.split('</think>').pop().trim();
-          } else if (content.startsWith("Here's a thinking process")) {
-            const lines = content.split('\n');
-            const cleanLines = lines.filter(l => !l.startsWith('1.') && !l.startsWith('2.') && !l.startsWith('**') && !l.includes('Analyze'));
-            content = cleanLines.join('\n').trim();
+        const rawContent = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        if (rawContent) {
+          const sanitized = sanitizeAIEmail(rawContent, lead);
+          if (sanitized) {
+            return sanitized;
           }
-
-          const emojiCleaned = content.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F7FF}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
-          return emojiCleaned + complianceFooter;
+          console.warn(`[B2B Hunter] Model "${model}" email was rejected by sanitizer (contained thinking/defects). Trying next model...`);
         }
       } catch (error) {
         clearTimeout(timeout);
       }
     }
 
-    return `Subject: link attribution and campaign tracking at ${lead.company}\n\nHi ${lead.name},\n\nNoticed ${lead.company} is active across digital growth campaigns. Managing cross-channel links and keeping custom domain attribution clean usually creates avoidable friction.\n\nWe built Ovlink (https://ovlink.sbs) to provide lightweight custom domains and real-time click analytics without enterprise cost.\n\nWould you be open to a quick 5-minute chat this week?` + complianceFooter;
+    const fallbackBody = `Hi ${lead.name},\n\nNoticed ${lead.company} is active across digital growth campaigns. Managing cross-channel links and keeping custom domain attribution clean usually creates avoidable friction.\n\nWe built Ovlink (https://ovlink.sbs) to provide lightweight custom domains and real-time click analytics without enterprise cost.\n\nWould you be open to a quick 5-minute chat this week?\n\n---\nOvlink Link Infrastructure | https://ovlink.sbs\nTo opt out of future updates, reply with "unsubscribe" or "stop".`;
+    return {
+      subject: `Link attribution and campaign tracking at ${lead.company}`,
+      body: fallbackBody
+    };
   }
 
   async processQueue() {
@@ -319,16 +318,10 @@ Subject: [Short, honest 3-5 word subject line without emojis]
       }
 
       console.log(`[B2B Hunter] Generating custom cold email for ${lead.name}...`);
-      const rawEmailContent = await this.generateEmail(lead);
+      const emailData = await this.generateEmail(lead);
 
-      if (rawEmailContent) {
-        let subject = `Link infrastructure and campaign tracking at ${lead.company}`;
-        let body = rawEmailContent;
-        const subMatch = rawEmailContent.match(/^Subject:\s*([^\n]+)/i);
-        if (subMatch) {
-          subject = subMatch[1].trim();
-          body = rawEmailContent.replace(/^Subject:\s*[^\n]+\n+/i, '').trim();
-        }
+      if (emailData && emailData.body) {
+        const { subject, body } = emailData;
 
         // Store pending action so Telegram callback buttons can send email or skip
         storePendingMail(lead.id, {
@@ -343,14 +336,14 @@ Subject: [Short, honest 3-5 word subject line without emojis]
           suitabilityReason: suitability.reason
         });
 
-        const safeName = lead.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const safeRole = lead.role.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const safeCompany = lead.company.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const safeNiche = lead.niche.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const safeEmail = lead.email.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const safeSubject = subject.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const safeBody = body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const safeReason = suitability.reason.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeName = escapeTelegramHtml(lead.name || '');
+        const safeRole = escapeTelegramHtml(lead.role || '');
+        const safeCompany = escapeTelegramHtml(lead.company || '');
+        const safeNiche = escapeTelegramHtml(lead.niche || '');
+        const safeEmail = escapeTelegramHtml(lead.email || '');
+        const safeSubject = escapeTelegramHtml(subject || '');
+        const safeBody = escapeTelegramHtml(body || '');
+        const safeReason = escapeTelegramHtml(suitability.reason || '');
 
         const hasSmtp = Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
         const statusText = hasSmtp ? `✅ SMTP Hazır (${process.env.SMTP_USER})` : `⚠️ SMTP Ayarları Eksik`;

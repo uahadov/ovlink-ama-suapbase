@@ -101,14 +101,9 @@ async function rewriteB2BMail(leadId) {
     context: item.context || '',
     email: item.to
   };
-  const rawEmailContent = await hunter.generateEmail(lead);
-  let subject = item.subject;
-  let body = rawEmailContent;
-  const subMatch = rawEmailContent.match(/^Subject:\s*([^\n]+)/i);
-  if (subMatch) {
-    subject = subMatch[1].trim();
-    body = rawEmailContent.replace(/^Subject:\s*[^\n]+\n+/i, '').trim();
-  }
+  const emailData = await hunter.generateEmail(lead);
+  const subject = emailData.subject || item.subject;
+  const body = emailData.body;
   item.subject = subject;
   item.body = body;
   item.lastRewrittenAt = new Date().toISOString();
