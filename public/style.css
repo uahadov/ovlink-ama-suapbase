@@ -2949,6 +2949,31 @@ border-radius: 20px;
 border: 2px solid rgba(37, 99, 235, 0.35);
 box-shadow: 0 14px 34px rgba(37, 99, 235, 0.12);
 }
+.pricing-card .btn,
+#pricingBuyBtn {
+display: flex !important;
+align-items: center !important;
+justify-content: center !important;
+width: 100% !important;
+min-height: 48px !important;
+padding: 12px 24px !important;
+font-size: 1.02rem !important;
+font-weight: 700 !important;
+letter-spacing: 0.01em !important;
+cursor: pointer !important;
+pointer-events: auto !important;
+position: relative !important;
+z-index: 10 !important;
+user-select: none !important;
+-webkit-user-select: none !important;
+box-sizing: border-box !important;
+text-decoration: none !important;
+touch-action: manipulation !important;
+}
+#pricingBuyBtn:active,
+.pricing-card .btn:active {
+transform: scale(0.99) !important;
+}
 .pricing-plan-label {
 font-weight: 800;
 letter-spacing: 0.02em;
@@ -3261,6 +3286,7 @@ z-index: -1;
 opacity: 0;
 transition: opacity 0.3s ease;
 filter: blur(10px);
+pointer-events: none !important;
 }
 .btn-glow:hover::before {
 animation: glowPulse 1.5s ease-in-out infinite;
@@ -3321,15 +3347,14 @@ background: #10b981 !important;
 box-shadow: 0 10px 25px rgba(16, 185, 129, 0.35) !important;
 }
 .card-hover {
-transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
-transform-style: preserve-3d;
+transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease;
 }
 .card-hover:hover {
-transform: translateY(-8px) rotateX(2deg);
-box-shadow: 0 25px 50px rgba(15, 23, 42, 0.15);
+transform: translateY(-6px);
+box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
 }
 .dark-mode .card-hover:hover {
-box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
 }
 @keyframes fadeInUp {
 from {

@@ -4,7 +4,10 @@ const { RedisStore: RateLimitRedisStore } = require('rate-limit-redis');
 const { createClient } = require('redis');
 const { isEnabledEnv, isProdRuntime } = require('./index');
 const { pool } = require('../db/pool');
-const redisUrl = (process.env.REDIS_URL || '').toString().trim();
+const isTestEnv = process.env.NODE_ENV === 'test';
+const redisUrl = (isTestEnv && !isEnabledEnv('ENABLE_REDIS_IN_TEST', false))
+  ? ''
+  : (process.env.REDIS_URL || '').toString().trim();
 const requireRedisInProd = isEnabledEnv('REQUIRE_REDIS_IN_PROD', true);
 let redisClient = null;
 
@@ -12,15 +15,30 @@ if (redisUrl) {
   redisClient = createClient({
     url: redisUrl,
     socket: {
-      reconnectStrategy: (retries) => Math.min(retries * 50, 2000),
+      reconnectStrategy: (retries) => {
+        if (process.env.NODE_ENV === 'test') return false;
+        if (!isProdRuntime && retries > 5) return false;
+        return Math.min(retries * 50, 2000);
+      },
     },
   });
+  let hasLoggedDevError = false;
   redisClient.on('error', (err) => {
+    if (process.env.NODE_ENV === 'test') return;
+    if (!isProdRuntime) {
+      if (!hasLoggedDevError) {
+        hasLoggedDevError = true;
+        console.warn('[redis] client error (local dev):', err && (err.message || err));
+      }
+      return;
+    }
     console.error('[redis] client error', err && (err.message || err));
   });
   // Initiate connection immediately so rate limiters can queue commands
   redisClient.connect().catch((err) => {
-    console.error('[redis] immediate connection failed', err && (err.message || err));
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('[redis] immediate connection failed', err && (err.message || err));
+    }
   });
 } else {
   // Redis not configured - using PostgreSQL session store as fallback (Vercel/Supabase deployment)

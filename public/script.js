@@ -302,6 +302,7 @@ function updatePricingBuyCta() {
     e.preventDefault();
     const originalText = btn.textContent;
     btn.disabled = true;
+    btn.style.pointerEvents = "none";
     btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + pickLang("Yüklənir...", "Yükleniyor...", "Loading...");
 
     try {
@@ -325,6 +326,7 @@ function updatePricingBuyCta() {
       }
       alert(pickLang("Xəta baş verdi: ", "Hata oluştu: ", "Error occurred: ") + (data && data.error ? data.error : pickLang("Bilinməyən xəta", "Bilinmeyen hata", "Unknown error")));
       btn.disabled = false;
+      btn.style.pointerEvents = "auto";
       btn.textContent = originalText;
     } catch (err) {
       if (defaultCheckoutUrl) {
@@ -333,6 +335,7 @@ function updatePricingBuyCta() {
       }
       alert(pickLang("Xəta baş verdi. Lütfən yenidən yoxlayın.", "Hata oluştu. Lütfen tekrar deneyin.", "An error occurred. Please try again."));
       btn.disabled = false;
+      btn.style.pointerEvents = "auto";
       btn.textContent = originalText;
     }
   });
