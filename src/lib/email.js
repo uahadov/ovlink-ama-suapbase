@@ -45,9 +45,9 @@ const emailTransporter = nodemailer.createTransport({
     pass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''),
   },
   family: 4,
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
+  connectionTimeout: 25000,
+  greetingTimeout: 25000,
+  socketTimeout: 35000,
 });
 
 const SMTP_FROM = process.env.FROM_EMAIL || process.env.SMTP_USER || 'Ovlink <verify@ovlink.sbs>';
@@ -149,7 +149,56 @@ function appendSentMailToImap(mailOptions) {
 }
 
 async function sendMail({ to, subject, html, text, preferSmtp = false, saveToSent = false }) {
-  if (!preferSmtp && resendClient) {
+  const trySaveToImap = (fromAddr) => {
+    if (saveToSent || process.env.SMTP_SAVE_TO_SENT === '1') {
+      appendSentMailToImap({ from: fromAddr, to, subject, html, text }).catch(err => {
+        console.warn('[email] IMAP append warning:', err?.message || err);
+      });
+    }
+  };
+
+  // 1. If preferSmtp is true, attempt SMTP first, with graceful Resend fallback
+  if (preferSmtp) {
+    try {
+      const from = SMTP_FROM;
+      const smtpInfo = await emailTransporter.sendMail({
+        from,
+        to,
+        subject,
+        html,
+        text,
+      });
+      console.log(`[email] SMTP success: to=${to}, response=${smtpInfo.response}, messageId=${smtpInfo.messageId}`);
+      trySaveToImap(from);
+      return smtpInfo;
+    } catch (smtpErr) {
+      console.warn(`[email] Preferred SMTP send failed (${smtpErr.message}); falling back to Resend API`);
+      if (resendClient) {
+        try {
+          const resendRes = await resendClient.emails.send({
+            from: RESEND_FROM,
+            to: [to],
+            subject,
+            html,
+            text,
+          });
+          if (resendRes.error) {
+            throw new Error(resendRes.error.message || JSON.stringify(resendRes.error));
+          }
+          console.log(`[email] Resend fallback success: to=${to}, id=${resendRes.data ? resendRes.data.id : 'unknown'}`);
+          trySaveToImap(RESEND_FROM);
+          return resendRes;
+        } catch (resendErr) {
+          console.error('[email] Resend fallback also failed:', resendErr.message);
+          throw new Error(`E-posta gönderilemedi (SMTP: ${smtpErr.message} | Resend: ${resendErr.message})`);
+        }
+      }
+      throw smtpErr;
+    }
+  }
+
+  // 2. Default flow: Try Resend first, fallback to SMTP
+  if (resendClient) {
     try {
       const resendRes = await resendClient.emails.send({
         from: RESEND_FROM,
@@ -162,9 +211,10 @@ async function sendMail({ to, subject, html, text, preferSmtp = false, saveToSen
         throw new Error(resendRes.error.message || JSON.stringify(resendRes.error));
       }
       console.log(`[email] Resend success: to=${to}, id=${resendRes.data ? resendRes.data.id : 'unknown'}`);
+      trySaveToImap(RESEND_FROM);
       return resendRes;
     } catch (resendErr) {
-      console.error('[email] Resend failed, trying SMTP fallback:', resendErr.message);
+      console.warn('[email] Resend failed, trying SMTP fallback:', resendErr.message);
     }
   }
   
@@ -178,11 +228,7 @@ async function sendMail({ to, subject, html, text, preferSmtp = false, saveToSen
       text,
     });
     console.log(`[email] SMTP success: to=${to}, response=${smtpInfo.response}, messageId=${smtpInfo.messageId}`);
-
-    if (saveToSent || process.env.SMTP_SAVE_TO_SENT === '1') {
-      appendSentMailToImap({ from, to, subject, html, text }).catch(() => {});
-    }
-
+    trySaveToImap(from);
     return smtpInfo;
   } catch (smtpErr) {
     console.error(`[email] SMTP error: to=${to}, message=${smtpErr.message}`);

@@ -1,6 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 
+const HN_BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'same-origin',
+  'Upgrade-Insecure-Requests': '1'
+};
+
 /**
  * Retrieves the Hacker News session cookie from file or environment.
  */
@@ -29,7 +39,77 @@ function getHackerNewsCookie() {
 }
 
 /**
- * Posts an autonomous comment on Hacker News as user @exlr using session cookies.
+ * Fetches a Hacker News page with browser headers and transient retry logic.
+ */
+async function fetchHNPage(url, cookie, retries = 1) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(12000),
+        headers: {
+          'Cookie': cookie,
+          ...HN_BROWSER_HEADERS
+        }
+      });
+      const html = await res.text();
+
+      // Check if Hacker News returned a server-side overload/outage page
+      if (html.includes("We're having some trouble serving your request")) {
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
+        }
+        throw new Error('Hacker News sunucuları şu anda aşırı yoğun ("We\'re having some trouble serving your request"). Lütfen 1-2 dakika sonra tekrar deneyin.');
+      }
+
+      return { ok: res.ok, status: res.status, html };
+    } catch (err) {
+      if (attempt < retries && !err.message.includes('aşırı yoğun')) {
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+/**
+ * Extracts form data (hmac, parent, goto) from Hacker News HTML.
+ */
+function extractCommentForm(html) {
+  if (!html) return null;
+
+  // Search inside form with action="comment" or entire snippet
+  const formMatch = html.match(/<form [^>]*action=['"]\/?comment['"][^>]*>([\s\S]*?)<\/form>/i);
+  const searchScope = formMatch ? formMatch[1] : html;
+
+  const hmacMatch = searchScope.match(/<input [^>]*name=['"]hmac['"][^>]*value=['"]([^'"]+)['"]/i) ||
+                    searchScope.match(/<input [^>]*value=['"]([^'"]+)['"][^>]*name=['"]hmac['"]/i);
+  if (!hmacMatch) return null;
+
+  const parentMatch = searchScope.match(/<input [^>]*name=['"]parent['"][^>]*value=['"]([^'"]+)['"]/i) ||
+                      searchScope.match(/<input [^>]*value=['"]([^'"]+)['"][^>]*name=['"]parent['"]/i);
+  const gotoMatch = searchScope.match(/<input [^>]*name=['"]goto['"][^>]*value=['"]([^'"]+)['"]/i) ||
+                    searchScope.match(/<input [^>]*value=['"]([^'"]+)['"][^>]*name=['"]goto['"]/i);
+
+  return {
+    hmac: hmacMatch[1],
+    parent: parentMatch ? parentMatch[1] : null,
+    goto: gotoMatch ? gotoMatch[1] : null
+  };
+}
+
+/**
+ * Extracts HMAC token from Hacker News comment HTML.
+ */
+function extractHmac(html) {
+  const form = extractCommentForm(html);
+  return form ? form.hmac : null;
+}
+
+/**
+ * Posts an autonomous comment on Hacker News using session cookies.
+ * Supports both top-level stories (item?id=) and comments/replies (reply?id=).
  * @param {string|number} postId - Target item ID to reply to
  * @param {string} text - Comment text to post
  * @returns {Promise<{success: boolean, user: string, url: string}>}
@@ -40,51 +120,63 @@ async function postHackerNewsComment(postId, text) {
     throw new Error('Hacker News oturum çerezi bulunamadı (hacker-news-cookie.json eksik).');
   }
 
+  // 1. Fetch item page
   const itemUrl = `https://news.ycombinator.com/item?id=${postId}`;
-  const getRes = await fetch(itemUrl, {
-    signal: AbortSignal.timeout(10000),
-    headers: {
-      'Cookie': cookie,
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+  const itemRes = await fetchHNPage(itemUrl, cookie, 1);
+  if (!itemRes.ok) {
+    throw new Error(`Hacker News gönderisine ulaşılamadı (HTTP ${itemRes.status})`);
+  }
+
+  const html = itemRes.html;
+
+  // 2. Validate active login: Only <a id="me"> indicates an active session
+  const meMatch = html.match(/<a [^>]*id=['"]me['"][^>]*>([^<]+)<\/a>/i);
+  if (!meMatch) {
+    if (html.includes('login?goto=') || html.includes('<a href="login">')) {
+      throw new Error('Hacker News oturumunun süresi dolmuş. Lütfen hacker-news-cookie.json çerezini yenileyin.');
     }
-  });
+    throw new Error('Hacker News oturumu doğrulanamadı. Çerez geçersiz veya süresi dolmuş (hacker-news-cookie.json).');
+  }
+  const username = meMatch[1];
 
-  if (!getRes.ok) {
-    throw new Error(`Hacker News gönderisine ulaşılamadı (HTTP ${getRes.status})`);
+  // 3. Find the comment form (try story page first, then reply page for comments)
+  let formData = extractCommentForm(html);
+  let pageUrl = itemUrl;
+
+  if (!formData) {
+    const replyUrl = `https://news.ycombinator.com/reply?id=${postId}`;
+    const replyRes = await fetchHNPage(replyUrl, cookie, 1);
+    if (replyRes.html) {
+      formData = extractCommentForm(replyRes.html);
+      if (formData) {
+        pageUrl = replyUrl;
+      }
+    }
   }
 
-  const html = await getRes.text();
-
-  // Validate active login
-  const userMatch = html.match(/<a [^>]*id=['"]me['"][^>]*>([^<]+)<\/a>/i) ||
-                    html.match(/<a href="user\?id=([^"]+)">/i);
-  if (!userMatch) {
-    throw new Error('Hacker News oturumunun süresi dolmuş. Lütfen hacker-news-cookie.json çerezini yenileyin.');
-  }
-  const username = userMatch[1];
-
-  // Extract dynamic HMAC token from comment form
-  const hmac = extractHmac(html);
-  if (!hmac) {
-    throw new Error('Hacker News yorum formu HMAC tokeni bulunamadı. Gönderi yoruma kapalı veya kilitli olabilir.');
+  if (!formData || !formData.hmac) {
+    if (html.includes('locked') || html.includes('closed') || html.includes('story is closed')) {
+      throw new Error('Hacker News gönderisi yoruma kapalı veya kilitli.');
+    }
+    throw new Error('Hacker News yorum formu veya HMAC tokeni bulunamadı. Gönderi kilitli, silinmiş veya yoruma kapatılmış olabilir.');
   }
 
-  // Prepare submission payload
+  // 4. Prepare submission payload
   const bodyParams = new URLSearchParams();
-  bodyParams.append('parent', String(postId));
-  bodyParams.append('goto', `item?id=${postId}`);
-  bodyParams.append('hmac', hmac);
+  bodyParams.append('parent', formData.parent || String(postId));
+  bodyParams.append('goto', formData.goto || `item?id=${postId}`);
+  bodyParams.append('hmac', formData.hmac);
   bodyParams.append('text', text);
 
   const postRes = await fetch('https://news.ycombinator.com/comment', {
     method: 'POST',
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(15000),
     headers: {
       'Cookie': cookie,
       'Content-Type': 'application/x-www-form-urlencoded',
-      'Referer': itemUrl,
+      'Referer': pageUrl,
       'Origin': 'https://news.ycombinator.com',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+      ...HN_BROWSER_HEADERS
     },
     body: bodyParams.toString(),
     redirect: 'manual'
@@ -108,17 +200,28 @@ async function postHackerNewsComment(postId, text) {
 }
 
 /**
- * Extracts HMAC token from Hacker News comment HTML.
+ * Verifies if the stored Hacker News cookie has an active, valid session.
  */
-function extractHmac(html) {
-  if (!html) return null;
-  const hmacMatch = html.match(/<input [^>]*name=['"]hmac['"][^>]*value=['"]([^'"]+)['"]/i) ||
-                    html.match(/value=['"]([^'"]+)['"][^>]*name=['"]hmac['"]/i);
-  return hmacMatch ? hmacMatch[1] : null;
+async function verifyHackerNewsCookie() {
+  const cookie = getHackerNewsCookie();
+  if (!cookie) return { valid: false, error: 'Çerez dosyası bulunamadı.' };
+  try {
+    const res = await fetchHNPage('https://news.ycombinator.com/news', cookie, 1);
+    if (!res.ok) return { valid: false, error: `Hacker News yanıt vermedi (HTTP ${res.status})` };
+    const meMatch = res.html.match(/<a [^>]*id=['"]me['"][^>]*>([^<]+)<\/a>/i);
+    if (!meMatch) {
+      return { valid: false, error: 'Oturum açılmamış. Çerez geçersiz veya süresi dolmuş.' };
+    }
+    return { valid: true, username: meMatch[1] };
+  } catch (err) {
+    return { valid: false, error: err.message };
+  }
 }
 
 module.exports = {
   getHackerNewsCookie,
   postHackerNewsComment,
-  extractHmac
+  extractHmac,
+  extractCommentForm,
+  verifyHackerNewsCookie
 };

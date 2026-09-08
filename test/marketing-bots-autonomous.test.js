@@ -503,4 +503,114 @@ test('appendSentMailToImap escapes folder quotes, completes TLS handshake, and a
   }
 });
 
+test('hn-client: extractCommentForm parses hmac, parent, goto from story and reply forms', () => {
+  const { extractCommentForm, extractHmac } = require('../src/marketing_bots/hn-client');
+
+  // Story page form
+  const storyHtml = `
+    <form method="post" action="comment">
+      <input type="hidden" name="parent" value="49601655">
+      <input type="hidden" name="goto" value="item?id=49601655">
+      <input type="hidden" name="hmac" value="8f12a9c3d4e5f6">
+      <textarea name="text"></textarea>
+    </form>
+  `;
+  const form1 = extractCommentForm(storyHtml);
+  assert.ok(form1);
+  assert.strictEqual(form1.hmac, '8f12a9c3d4e5f6');
+  assert.strictEqual(form1.parent, '49601655');
+  assert.strictEqual(form1.goto, 'item?id=49601655');
+  assert.strictEqual(extractHmac(storyHtml), '8f12a9c3d4e5f6');
+
+  // Reply page form
+  const replyHtml = `
+    <form method="post" action="/comment">
+      <input type="hidden" name="parent" value="49602983">
+      <input type="hidden" name="goto" value="item?id=49601655#49602983">
+      <input type="hidden" name="hmac" value="7e34b1a2c5d8">
+      <textarea name="text"></textarea>
+    </form>
+  `;
+  const form2 = extractCommentForm(replyHtml);
+  assert.ok(form2);
+  assert.strictEqual(form2.hmac, '7e34b1a2c5d8');
+  assert.strictEqual(form2.parent, '49602983');
+  assert.strictEqual(form2.goto, 'item?id=49601655#49602983');
+  assert.strictEqual(extractHmac(replyHtml), '7e34b1a2c5d8');
+
+  // Empty or invalid HTML
+  assert.strictEqual(extractCommentForm(''), null);
+  assert.strictEqual(extractCommentForm('<div>No form here</div>'), null);
+});
+
+test('hn-client: postHackerNewsComment falls back to reply?id= when item has no comment box', async () => {
+  const { postHackerNewsComment } = require('../src/marketing_bots/hn-client');
+
+  const origFetch = global.fetch;
+  const origCookie = process.env.HACKER_NEWS_COOKIE;
+  process.env.HACKER_NEWS_COOKIE = 'user=testuser&mocktoken123';
+
+  const requestedUrls = [];
+  global.fetch = async (url, opts) => {
+    requestedUrls.push(url);
+
+    // 1. Item URL (comment item without direct form)
+    if (url.includes('item?id=49602983')) {
+      return {
+        ok: true,
+        status: 200,
+        text: async () => `
+          <html><body>
+            <span class="pagetop"><a id="me" href="user?id=testuser">testuser</a></span>
+            <div class="comment">Great comment here</div>
+            <a href="reply?id=49602983">reply</a>
+          </body></html>
+        `
+      };
+    }
+
+    // 2. Reply URL (has the form)
+    if (url.includes('reply?id=49602983')) {
+      return {
+        ok: true,
+        status: 200,
+        text: async () => `
+          <html><body>
+            <span class="pagetop"><a id="me" href="user?id=testuser">testuser</a></span>
+            <form method="post" action="comment">
+              <input type="hidden" name="parent" value="49602983">
+              <input type="hidden" name="goto" value="item?id=49601655#49602983">
+              <input type="hidden" name="hmac" value="mock_reply_hmac_999">
+              <textarea name="text"></textarea>
+            </form>
+          </body></html>
+        `
+      };
+    }
+
+    // 3. Comment submission
+    if (url.includes('comment')) {
+      return {
+        status: 302,
+        headers: new Headers({ location: 'item?id=49602983' }),
+        text: async () => ''
+      };
+    }
+
+    return { ok: false, status: 404, text: async () => 'Not found' };
+  };
+
+  try {
+    const res = await postHackerNewsComment('49602983', 'Test autonomous reply');
+    assert.ok(res.success);
+    assert.strictEqual(res.user, 'testuser');
+    assert.ok(requestedUrls.some(u => u.includes('reply?id=49602983')), 'Should have fetched reply?id=49602983');
+  } finally {
+    global.fetch = origFetch;
+    if (origCookie) process.env.HACKER_NEWS_COOKIE = origCookie;
+    else delete process.env.HACKER_NEWS_COOKIE;
+  }
+});
+
+
 
