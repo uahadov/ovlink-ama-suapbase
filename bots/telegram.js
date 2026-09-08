@@ -228,6 +228,18 @@ function createTelegramBot(db, options = {}) {
     }
   }
 
+  async function deleteMessage(chatId, messageId) {
+    if (!BOT_TOKEN || !chatId || !messageId) return;
+    try {
+      await fetch(`${API_BASE}/deleteMessage`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(5000),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, message_id: messageId })
+      });
+    } catch (e) {}
+  }
+
   async function answerCallbackQuery(callbackQueryId, text, showAlert = false) {
     if (!BOT_TOKEN) return;
     try {
@@ -649,6 +661,82 @@ function createTelegramBot(db, options = {}) {
     await sendMessage(chat.id, t(lang, 'select_lang'), { keyboard });
   }
 
+  async function handleHnLogin(chat, args) {
+    const raw = (args.text || '').replace(/^\/hn_login\s*/i, '').trim();
+    if (args.messageId) {
+      await deleteMessage(chat.id, args.messageId);
+    }
+
+    const parts = raw.split(/\s+/);
+    if (parts.length < 2) {
+      return sendMessage(chat.id, `📌 <b>Hacker News Avtomatik Giriş:</b>\n\nİstifadə qaydası:\n<code>/hn_login &lt;istifadəçi_adı&gt; &lt;şifrə&gt;</code>\n\n<i>🛡️ Qeyd: Göndərdiyiniz mesaj şifrəniz görünməsin deyə çatdan dərhal avtomatik silinir.</i>`);
+    }
+
+    const [username, ...passParts] = parts;
+    const password = passParts.join(' ');
+
+    const waitMsg = await sendMessage(chat.id, `⏳ Hacker News hesabına daxil olunur (@${esc(username)})...`);
+
+    try {
+      const { loginHackerNews } = require('../src/marketing_bots/hn-client');
+      const res = await loginHackerNews(username, password);
+      const successText = `✅ <b>Hacker News Hesabı Uğurla Bağlandı!</b>\n\n` +
+        `👤 <b>İstifadəçi:</b> @${esc(res.user)}\n` +
+        `🔑 <b>Sessiya:</b> 2 illik aktiv çərəz saxlanıldı.\n\n` +
+        `🚀 <b>Artıq heç vaxt əllə çərəz kopyalamağa ehtiyac yoxdur!</b>\n` +
+        `Bot hər dəfə avtomatik daxil olacaq və şərhləri problemsiz yayımlayacaq.`;
+      if (waitMsg && waitMsg.result) {
+        await editMessageText(chat.id, waitMsg.result.message_id, successText);
+      } else {
+        await sendMessage(chat.id, successText);
+      }
+    } catch (err) {
+      const errText = `❌ <b>Giriş Uğursuz Oldu:</b> ${esc(err.message)}\n\nLütfən istifadəçi adı və şifrənin düzgünlüyünü yoxlayın.`;
+      if (waitMsg && waitMsg.result) {
+        await editMessageText(chat.id, waitMsg.result.message_id, errText);
+      } else {
+        await sendMessage(chat.id, errText);
+      }
+    }
+  }
+
+  async function handleHnCookie(chat, args) {
+    const raw = (args.text || '').replace(/^\/hn_cookie\s*/i, '').trim();
+    if (args.messageId) {
+      await deleteMessage(chat.id, args.messageId);
+    }
+    if (!raw) {
+      return sendMessage(chat.id, `📌 <b>Hacker News Çərəz Yeniləmə:</b>\n\nİstifadə qaydası:\n<code>/hn_cookie &lt;cookie_dəyəri&gt;</code>`);
+    }
+
+    try {
+      const { saveRawHackerNewsCookie, verifyHackerNewsCookie } = require('../src/marketing_bots/hn-client');
+      saveRawHackerNewsCookie(raw);
+      const verify = await verifyHackerNewsCookie();
+      if (verify.valid) {
+        await sendMessage(chat.id, `✅ <b>Hacker News Çərəzi Yeniləndi!</b>\n\n👤 <b>İstifadəçi:</b> @${esc(verify.username)}\n🟢 <b>Status:</b> Aktiv və etibarlıdır.`);
+      } else {
+        await sendMessage(chat.id, `⚠️ Çərəz yadda saxlanıldı, lakin aktivlik testi uğursuz oldu: ${esc(verify.error || 'Naməlum')}`);
+      }
+    } catch (err) {
+      await sendMessage(chat.id, `❌ Çərəz yenilənmədi: ${esc(err.message)}`);
+    }
+  }
+
+  async function handleHnStatus(chat) {
+    const { verifyHackerNewsCookie, getHackerNewsCookie } = require('../src/marketing_bots/hn-client');
+    const cookie = getHackerNewsCookie();
+    if (!cookie) {
+      return sendMessage(chat.id, `⚠️ <b>Hacker News:</b> Çərəz və ya hesab təyin edilməyib.\n\nBağlamaq üçün:\n<code>/hn_login &lt;istifadəçi&gt; &lt;şifrə&gt;</code>`);
+    }
+    const check = await verifyHackerNewsCookie();
+    if (check.valid) {
+      return sendMessage(chat.id, `🟢 <b>Hacker News Status:</b> Aktiv\n👤 <b>İstifadəçi:</b> @${esc(check.username)}\n✅ Göndərişlərə tam hazırdır.`);
+    } else {
+      return sendMessage(chat.id, `🔴 <b>Hacker News Status:</b> Sessiya bitib / qeyri-aktiv.\n⚠️ <b>Səbəb:</b> ${esc(check.error)}\n\nAvtomatik yeniləmək üçün:\n<code>/hn_login &lt;istifadəçi&gt; &lt;şifrə&gt;</code>`);
+    }
+  }
+
   async function processUpdate(update) {
     if (update.callback_query) {
       const callbackQueryId = update.callback_query.id;
@@ -884,6 +972,9 @@ function createTelegramBot(db, options = {}) {
       case '/upgrade': return handleUpgrade(chat);
       case '/lang':
       case '/language': return handleLang(chat);
+      case '/hn_login': return handleHnLogin(chat, { text, messageId: message.message_id });
+      case '/hn_cookie': return handleHnCookie(chat, { text, messageId: message.message_id });
+      case '/hn_status': return handleHnStatus(chat);
       default: return handlePlainUrl(chat, { text, messageId: message.message_id });
     }
   }

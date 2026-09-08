@@ -612,5 +612,37 @@ test('hn-client: postHackerNewsComment falls back to reply?id= when item has no 
   }
 });
 
+test('hn-client: loginHackerNews parses Set-Cookie and saves to cookie file', async () => {
+  const { loginHackerNews, saveRawHackerNewsCookie } = require('../src/marketing_bots/hn-client');
+
+  const origFetch = global.fetch;
+  global.fetch = async (url, opts) => {
+    if (url.includes('login')) {
+      const headers = new Headers();
+      headers.append('set-cookie', 'user=mock_user_123&authtoken456; Domain=news.ycombinator.com; Path=/; Expires=Wed, 08-Sep-2027 00:00:00 GMT; HttpOnly; Secure');
+      return {
+        status: 302,
+        headers,
+        text: async () => ''
+      };
+    }
+    return { ok: false, status: 404, text: async () => 'Not found' };
+  };
+
+  try {
+    const res = await loginHackerNews('mock_user_123', 'secret_password_789');
+    assert.ok(res.success);
+    assert.strictEqual(res.user, 'mock_user_123');
+    assert.ok(res.cookie.includes('mock_user_123'));
+
+    // Test saveRawHackerNewsCookie
+    const saved = saveRawHackerNewsCookie('user=raw_user_abc&token_xyz; Path=/');
+    assert.strictEqual(saved, true);
+  } finally {
+    global.fetch = origFetch;
+  }
+});
+
+
 
 
