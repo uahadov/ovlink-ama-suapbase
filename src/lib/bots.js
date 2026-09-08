@@ -1,5 +1,5 @@
 const { db } = require('../db/index');
-const { buildShortUrl, ensureAbsoluteUrl, generateSafeShortCode } = require('./url-helpers');
+const { buildShortUrl, ensureAbsoluteUrl, generateSafeShortCode, isReservedShortAlias } = require('./url-helpers');
 const { isProAccessActive } = require('./plans');
 const { normalizeLang, pickLang } = require('./i18n');
 const { logSecurityEvent } = require('./security');
@@ -11,6 +11,7 @@ const botOptions = {
   buildShortUrl,
   ensureAbsoluteUrl,
   generateSafeShortCode,
+  isReservedShortAlias,
   isProAccessActive,
   normalizeLang,
   pickLang,

@@ -263,3 +263,244 @@ test('social-listener.generateReply rejects pure thinking and falls back safely'
   }
 });
 
+test('bots/shared createShortLink blocks reserved system aliases', async () => {
+  const { createBotShared } = require('../bots/shared');
+  const mockDb = {
+    get: (_sql, _params, cb) => cb(null, null),
+    run: (_sql, _params, cb) => cb(null)
+  };
+  const shared = createBotShared(mockDb, {
+    isReservedShortAlias: (alias) => ['login', 'admin', 'pricing', 'api', 'terms'].includes(alias),
+    generateSafeShortCode: () => 'rnd123'
+  });
+
+  const resReserved = await shared.createShortLink(null, 'https://google.com', 'admin');
+  assert.deepEqual(resReserved, { error: 'alias_taken' });
+
+  const resAllowed = await shared.createShortLink(null, 'https://google.com', 'myblog123');
+  assert.ok(resAllowed.short);
+  assert.equal(resAllowed.short, 'myblog123');
+});
+
+test('pending-actions recovers safely from malformed state and caps entries at 200', () => {
+  const pendingActions = require('../src/marketing_bots/pending-actions');
+  const filePath = path.join(__dirname, '../bot_data/pending_actions.json');
+  const backup = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : null;
+
+  try {
+    // 1. Simulate corrupted/empty structure
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify({ hn: null, mail: null }), 'utf8');
+
+    // Should not throw
+    assert.equal(pendingActions.getPendingHn('nonexistent'), null);
+    assert.equal(pendingActions.getPendingMail('nonexistent'), null);
+
+    // 2. Sliding window pruning to 200 items
+    for (let i = 0; i < 220; i++) {
+      pendingActions.storePendingHn(`post_${i}`, { title: `Test ${i}` });
+    }
+
+    const fileContent = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const hnKeys = Object.keys(fileContent.hn || {});
+    assert.ok(hnKeys.length <= 200, `Expected <= 200 keys, found ${hnKeys.length}`);
+    assert.ok(!hnKeys.includes('post_0'), 'Oldest item post_0 should have been pruned');
+    assert.ok(hnKeys.includes('post_219'), 'Latest item post_219 should be present');
+  } finally {
+    if (backup) {
+      fs.writeFileSync(filePath, backup, 'utf8');
+    }
+  }
+});
+
+test('public/lang.js updates_release_20260908_pwa translation keys exist across az, tr, and en', () => {
+  const { translations } = require('../public/lang');
+  const requiredKeys = [
+    'updates_release_20260908_pwa_title',
+    'updates_release_20260908_pwa_badge',
+    'updates_release_20260908_pwa_desc',
+    'updates_release_20260908_pwa_item1',
+    'updates_release_20260908_pwa_item2'
+  ];
+
+  for (const lang of ['az', 'tr', 'en']) {
+    assert.ok(translations[lang], `Language pack ${lang} must exist`);
+    for (const key of requiredKeys) {
+      assert.ok(translations[lang][key], `Key "${key}" must exist and not be empty in ${lang}`);
+      assert.equal(typeof translations[lang][key], 'string');
+      assert.ok(translations[lang][key].trim().length > 0);
+    }
+  }
+});
+
+test('bots/shared createShortLink retries on unique collision for random codes', async () => {
+  const { createBotShared } = require('../bots/shared');
+  let runCount = 0;
+  const mockDb = {
+    get: (_sql, _params, cb) => cb(null, null),
+    run: (_sql, params, cb) => {
+      runCount++;
+      // Fail first attempt with UNIQUE constraint
+      if (runCount === 1) {
+        return cb(new Error('UNIQUE constraint failed: urls.short'));
+      }
+      // Succeed on second attempt
+      cb(null);
+    }
+  };
+
+  let codeCount = 0;
+  const shared = createBotShared(mockDb, {
+    generateSafeShortCode: () => `code_${++codeCount}`,
+    isReservedShortAlias: () => false
+  });
+
+  const res = await shared.createShortLink(null, 'https://example.com');
+  assert.ok(res);
+  assert.ok(!res.error);
+  assert.equal(res.short, 'code_2');
+  assert.equal(runCount, 2);
+});
+
+test('telegram-notifier falls back to plain text when Telegram returns parse error', async () => {
+  const { sendTelegramAlert } = require('../src/marketing_bots/telegram-notifier');
+
+  const origFetch = global.fetch;
+  const origToken = process.env.TELEGRAM_BOT_TOKEN;
+  const origChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+
+  process.env.TELEGRAM_BOT_TOKEN = 'mock_token_123';
+  process.env.TELEGRAM_ADMIN_CHAT_ID = 'mock_chat_123';
+
+  const calls = [];
+  global.fetch = async (url, opts) => {
+    const payload = JSON.parse(opts.body);
+    calls.push(payload);
+    if (payload.parse_mode === 'HTML') {
+      return {
+        ok: true,
+        json: async () => ({
+          ok: false,
+          error_code: 400,
+          description: "Bad Request: can't parse entities: Unclosed <blockquote> tag"
+        })
+      };
+    }
+    return {
+      ok: true,
+      json: async () => ({ ok: true, result: { message_id: 12345 } })
+    };
+  };
+
+  try {
+    const alertSent = await sendTelegramAlert('<blockquote>Unclosed tag test');
+    assert.strictEqual(alertSent, true);
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].parse_mode, 'HTML');
+    assert.equal(calls[1].parse_mode, undefined);
+    assert.equal(calls[1].text, 'Unclosed tag test');
+  } finally {
+    global.fetch = origFetch;
+    process.env.TELEGRAM_BOT_TOKEN = origToken;
+    process.env.TELEGRAM_ADMIN_CHAT_ID = origChatId;
+  }
+});
+
+test('appendSentMailToImap escapes folder quotes, completes TLS handshake, and aborts immediately on error', async () => {
+  const { appendSentMailToImap } = require('../src/lib/email');
+  const tls = require('tls');
+  const EventEmitter = require('events');
+
+  // 1. Missing credentials returns false
+  const origUser = process.env.SMTP_USER;
+  const origPass = process.env.SMTP_PASS;
+  delete process.env.SMTP_USER;
+  delete process.env.SMTP_PASS;
+
+  const noCreds = await appendSentMailToImap({ to: 'test@example.com', subject: 'Hi', text: 'Hello' });
+  assert.strictEqual(noCreds, false);
+
+  process.env.SMTP_USER = 'test@spacemail.com';
+  process.env.SMTP_PASS = 'secret123';
+  process.env.IMAP_SENT_FOLDER = 'Sent "Quotes" & Special';
+
+  const origConnect = tls.connect;
+  const socketWrites = [];
+
+  class MockSocket extends EventEmitter {
+    constructor() {
+      super();
+      this.destroyed = false;
+    }
+    setEncoding() {}
+    write(data) {
+      socketWrites.push(data.toString());
+      if (data.toString().includes('A01 LOGIN')) {
+        process.nextTick(() => this.emit('data', 'A01 OK LOGIN completed\r\n'));
+      } else if (data.toString().includes('A02 APPEND')) {
+        process.nextTick(() => this.emit('data', '+ Ready for literal data\r\n'));
+      } else if (data.toString().includes('From:')) {
+        process.nextTick(() => this.emit('data', 'A02 OK APPEND completed [APPENDUID 1 23]\r\n'));
+      }
+    }
+    end() {
+      this.destroyed = true;
+      process.nextTick(() => this.emit('close'));
+    }
+    destroy() {
+      this.destroyed = true;
+      process.nextTick(() => this.emit('close'));
+    }
+  }
+
+  // 2. Successful append with escaped folder name
+  tls.connect = (port, host, options, cb) => {
+    const sock = new MockSocket();
+    process.nextTick(() => {
+      sock.emit('data', '* OK [CAPABILITY IMAP4rev1] SpaceMail Ready\r\n');
+    });
+    return sock;
+  };
+
+  try {
+    const success = await appendSentMailToImap({
+      from: 'test@spacemail.com',
+      to: 'target@example.com',
+      subject: 'Test Subject',
+      text: 'Test Body'
+    });
+    assert.strictEqual(success, true);
+    // Verify folder was escaped: Sent \"Quotes\" & Special
+    const appendCmd = socketWrites.find(w => w.startsWith('A02 APPEND'));
+    assert.ok(appendCmd, 'A02 APPEND command must be written');
+    assert.ok(appendCmd.includes('"Sent \\"Quotes\\" & Special"'), `Expected escaped folder, got: ${appendCmd}`);
+
+    // 3. Fast abort on * NO or * BYE without waiting for timeout
+    socketWrites.length = 0;
+    tls.connect = (port, host, options, cb) => {
+      const sock = new MockSocket();
+      process.nextTick(() => {
+        sock.emit('data', '* BYE Server connection rejected\r\n');
+      });
+      return sock;
+    };
+
+    const startTime = Date.now();
+    const failRes = await appendSentMailToImap({
+      from: 'test@spacemail.com',
+      to: 'target@example.com',
+      subject: 'Test Subject',
+      text: 'Test Body'
+    });
+    const elapsed = Date.now() - startTime;
+    assert.strictEqual(failRes, false);
+    assert.ok(elapsed < 2000, `Must abort fast on BYE, took ${elapsed}ms`);
+  } finally {
+    tls.connect = origConnect;
+    if (origUser) process.env.SMTP_USER = origUser; else delete process.env.SMTP_USER;
+    if (origPass) process.env.SMTP_PASS = origPass; else delete process.env.SMTP_PASS;
+    delete process.env.IMAP_SENT_FOLDER;
+  }
+});
+
+

@@ -70,6 +70,7 @@ router.post('/api/polar/create-checkout', async (req, res) => {
 
     const response = await fetch('https://api.polar.sh/v1/checkouts/', {
       method: 'POST',
+      signal: AbortSignal.timeout(10000),
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
@@ -129,6 +130,7 @@ router.post('/api/polar/portal-session', async (req, res) => {
 
     const response = await fetch('https://api.polar.sh/v1/customer-sessions/', {
       method: 'POST',
+      signal: AbortSignal.timeout(10000),
       headers: {
         'Authorization': `Bearer ${process.env.POLAR_ACCESS_TOKEN}`,
         'Content-Type': 'application/json'
@@ -174,14 +176,14 @@ router.post('/api/polar/webhook', async (req, res) => {
     let reason;
     let advice;
     if (!hasWebhookHeaders) {
-      reason = ' (request carries no Standard Webhooks headers ÔÇö not a Polar delivery; likely a probe or malformed request)';
-      advice = 'Not a Polar delivery (missing webhook headers) ÔÇö no action needed.';
+      reason = ' (request carries no Standard Webhooks headers — not a Polar delivery; likely a probe or malformed request)';
+      advice = 'Not a Polar delivery (missing webhook headers) — no action needed.';
     } else if (ageSec !== null && ageSec > 300) {
-      reason = ' (stale event: ' + ageSec + 's old ÔÇö replay protection rejected it; expected for Polar retries/redeliveries of old events)';
-      advice = 'Stale event (' + ageSec + 's old, replay protection) ÔÇö not an error if secret is correct.';
+      reason = ' (stale event: ' + ageSec + 's old — replay protection rejected it; expected for Polar retries/redeliveries of old events)';
+      advice = 'Stale event (' + ageSec + 's old, replay protection) — not an error if secret is correct.';
     } else {
       reason = ' (signature mismatch: secret len=' + secret.length + ', whsec_prefix=' + secret.startsWith('whsec_') + ', event age=' + (ageSec === null ? 'n/a' : ageSec + 's') + ')';
-      advice = 'Signature mismatch ÔÇö copy the current secret from the Polar endpoint into POLAR_WEBHOOK_SECRET and restart (running secret len=' + secret.length + ').';
+      advice = 'Signature mismatch — copy the current secret from the Polar endpoint into POLAR_WEBHOOK_SECRET and restart (running secret len=' + secret.length + ').';
     }
     console.error('[polar-webhook] Signature verification failed' + reason);
     sendOpsAlert('polar_signature', 'Polar webhook rejected', ('Event rejected. ' + advice));

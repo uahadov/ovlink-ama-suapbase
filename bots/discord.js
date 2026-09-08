@@ -191,6 +191,7 @@ function createDiscordBot(db, options = {}) {
       // Open DM channel
       const dmRes = await fetch(`${API_BASE}/users/@me/channels`, {
         method: 'POST',
+        signal: AbortSignal.timeout(10000),
         headers: { 'Authorization': `Bot ${BOT_TOKEN}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipient_id: userId }),
       });
@@ -202,6 +203,7 @@ function createDiscordBot(db, options = {}) {
 
       const res = await fetch(`${API_BASE}/channels/${dm.id}/messages`, {
         method: 'POST',
+        signal: AbortSignal.timeout(10000),
         headers: { 'Authorization': `Bot ${BOT_TOKEN}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });

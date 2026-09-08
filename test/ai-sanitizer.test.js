@@ -23,6 +23,13 @@ test('decodeHtmlEntities decodes hex, dec and named entities cleanly', () => {
   // Double encoded entities
   const doubleEncoded = '&amp;#x27; and &amp;quot;';
   assert.equal(decodeHtmlEntities(doubleEncoded), "' and \"");
+
+  // Astral plane unicode entities (emojis > 0xFFFF)
+  const astralDecimal = 'Launch &#128640; Grin &#128512;';
+  assert.equal(decodeHtmlEntities(astralDecimal), 'Launch 🚀 Grin 😀');
+
+  const astralHex = 'Rocket &#x1F680; Smile &#x1F600;';
+  assert.equal(decodeHtmlEntities(astralHex), 'Rocket 🚀 Smile 😀');
 });
 
 test('cleanHtmlSnippet strips tags, decodes entities, and trims at word boundary', () => {
@@ -114,3 +121,54 @@ That's 2 sentences. Let me check:
   assert.ok(!result.includes("That's 2 sentences"));
   assert.ok(!result.includes('Comment:'));
 });
+
+test('sanitizeAIEmail correctly preserves international recipient names in greeting', () => {
+  const aiOutput = `Subject: Ovlink analytics for tech team
+Body:
+Hi Özgür, I noticed your team is managing affiliate campaigns across multiple regions. Ovlink provides lightweight link analytics with custom domains. Let me know if you would like a brief walkthrough.
+
+---
+Ovlink Link Infrastructure | https://ovlink.sbs
+To opt out of future updates, reply with "unsubscribe" or "stop".`;
+
+  const result = sanitizeAIEmail(aiOutput, { company: 'GlobalTech' });
+  assert.ok(result);
+  assert.equal(result.subject, 'Ovlink analytics for tech team');
+  assert.ok(result.body.includes('Hi Özgür, I noticed your team'));
+});
+
+test('sanitizeAISocialReply allows comments up to 1500 chars', () => {
+  const longComment = `Full disclosure: I built Ovlink (https://ovlink.sbs). ` + 'A'.repeat(1200);
+  const result = sanitizeAISocialReply(longComment);
+  assert.ok(result);
+  assert.equal(result.length, longComment.length);
+
+  const tooLongComment = `Full disclosure: I built Ovlink (https://ovlink.sbs). ` + 'B'.repeat(1600);
+  const rejected = sanitizeAISocialReply(tooLongComment);
+  assert.equal(rejected, null, 'Comments exceeding 1500 chars must be rejected');
+});
+
+test('sanitizeAIEmail strips Note: and Notes: post-checks and rejects sentence counter leaks', () => {
+  const emailWithNote = `Subject: Ovlink infrastructure
+Body:
+Hi Alex, I saw your recent discussion on multi-tenant link branding. Ovlink provides vanity domain routing and analytics without enterprise pricing overhead. Let me know if you would like to test our API integration.
+
+Note: I kept the response focused on developer tooling without marketing buzzwords.`;
+
+  const cleanEmail = sanitizeAIEmail(emailWithNote, { company: 'AlexCorp' });
+  assert.ok(cleanEmail);
+  assert.ok(!cleanEmail.body.includes('Note:'));
+  assert.ok(!cleanEmail.body.includes('marketing buzzwords'));
+
+  // Defective email with sentence check leak that survived at root
+  const emailWithSentenceLeak = `Subject: Ovlink infrastructure
+Body:
+Hi Alex, I saw your recent discussion on multi-tenant link branding. Ovlink provides vanity domain routing and analytics without enterprise pricing overhead.
+That's 2 sentences. Let me check:
+- Sentence 1: OK`;
+  const sanitized = sanitizeAIEmail(emailWithSentenceLeak, { company: 'AlexCorp' });
+  assert.ok(sanitized);
+  assert.ok(!sanitized.body.includes("That's 2 sentences"));
+  assert.ok(!sanitized.body.includes("Let me check"));
+});
+

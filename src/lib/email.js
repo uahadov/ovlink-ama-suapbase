@@ -55,60 +55,96 @@ const RESEND_FROM = process.env.RESEND_FROM || process.env.FROM_EMAIL || 'Ovlink
 
 function appendSentMailToImap(mailOptions) {
   return new Promise((resolve) => {
-    const imapHost = process.env.IMAP_HOST || process.env.SMTP_HOST || 'mail.spacemail.com';
-    const imapPort = Number(process.env.IMAP_PORT) || 993;
-    const user = process.env.SMTP_USER;
-    const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
-    const folder = process.env.IMAP_SENT_FOLDER || 'Sent';
+    try {
+      const defaultImapHost = (process.env.SMTP_HOST && process.env.SMTP_HOST.includes('spacemail'))
+        ? 'mail.spacemail.com'
+        : (process.env.SMTP_HOST && process.env.SMTP_HOST.includes('gmail'))
+          ? 'imap.gmail.com'
+          : (process.env.SMTP_HOST || 'mail.spacemail.com');
+      const imapHost = process.env.IMAP_HOST || defaultImapHost;
+      const imapPort = Number(process.env.IMAP_PORT) || 993;
+      const user = process.env.SMTP_USER;
+      const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+      const folder = process.env.IMAP_SENT_FOLDER || 'Sent';
 
-    if (!user || !pass || !MailComposer) {
-      return resolve(false);
-    }
-
-    const mail = new MailComposer(mailOptions);
-    mail.compile().build((err, rawBuffer) => {
-      if (err || !rawBuffer) {
+      if (!user || !pass || !MailComposer) {
         return resolve(false);
       }
 
-      const socket = tls.connect(imapPort, imapHost, { rejectUnauthorized: false }, () => {});
-      socket.setEncoding('utf8');
+      const safeUser = user.replace(/["\\]/g, '\\$&');
+      const safePass = pass.replace(/["\\]/g, '\\$&');
+      const safeFolder = folder.replace(/["\\]/g, '\\$&');
 
-      let step = 0;
-      const timeout = setTimeout(() => {
-        try { socket.destroy(); } catch {}
-        resolve(false);
-      }, 8000);
-
-      socket.on('data', (chunk) => {
-        if (step === 0 && chunk.includes('* OK')) {
-          step = 1;
-          socket.write(`A01 LOGIN "${user}" "${pass}"\r\n`);
-        } else if (step === 1 && chunk.includes('A01 OK')) {
-          step = 2;
-          socket.write(`A02 APPEND "${folder}" (\\Seen) {${rawBuffer.length}}\r\n`);
-        } else if (step === 2 && chunk.includes('+')) {
-          step = 3;
-          socket.write(rawBuffer);
-          socket.write('\r\n');
-        } else if (step === 3 && chunk.includes('A02 OK')) {
-          step = 4;
-          clearTimeout(timeout);
-          try { socket.write('A03 LOGOUT\r\n'); } catch {}
-          console.log(`[imap-sent] Successfully archived sent message to SpaceMail "${folder}" folder.`);
-          resolve(true);
-        } else if (chunk.includes('A01 NO') || chunk.includes('A01 BAD') || chunk.includes('A02 NO') || chunk.includes('A02 BAD')) {
-          clearTimeout(timeout);
-          try { socket.destroy(); } catch {}
-          resolve(false);
+      const mail = new MailComposer(mailOptions);
+      mail.compile().build((err, rawBuffer) => {
+        if (err || !rawBuffer) {
+          return resolve(false);
         }
-      });
 
-      socket.on('error', () => {
-        clearTimeout(timeout);
-        resolve(false);
+        let socket;
+        try {
+          socket = tls.connect(imapPort, imapHost, { rejectUnauthorized: false }, () => {});
+        } catch {
+          return resolve(false);
+        }
+        socket.setEncoding('utf8');
+
+        let finished = false;
+        let timeout;
+
+        const done = (result) => {
+          if (finished) return;
+          finished = true;
+          if (timeout) clearTimeout(timeout);
+          try {
+            if (socket && !socket.destroyed) {
+              socket.destroy();
+            }
+          } catch {}
+          resolve(result);
+        };
+
+        timeout = setTimeout(() => done(false), 8000);
+        if (typeof timeout.unref === 'function') timeout.unref();
+
+        let step = 0;
+
+        socket.on('data', (chunk) => {
+          if (finished) return;
+
+          if (step === 0 && chunk.includes('* OK')) {
+            step = 1;
+            socket.write(`A01 LOGIN "${safeUser}" "${safePass}"\r\n`);
+          } else if (step === 1 && chunk.includes('A01 OK')) {
+            step = 2;
+            socket.write(`A02 APPEND "${safeFolder}" (\\Seen) {${rawBuffer.length}}\r\n`);
+          } else if (step === 2 && chunk.includes('+')) {
+            step = 3;
+            socket.write(rawBuffer);
+            socket.write('\r\n');
+          } else if (step === 3 && chunk.includes('A02 OK')) {
+            step = 4;
+            try {
+              socket.write('A03 LOGOUT\r\n');
+              socket.end();
+            } catch {}
+            console.log(`[imap-sent] Successfully archived sent message to SpaceMail "${safeFolder}" folder.`);
+            done(true);
+          } else if (
+            chunk.includes('A01 NO') || chunk.includes('A01 BAD') ||
+            chunk.includes('A02 NO') || chunk.includes('A02 BAD') ||
+            chunk.includes('* BYE') || chunk.includes('* NO')
+          ) {
+            done(false);
+          }
+        });
+
+        socket.on('close', () => done(false));
+        socket.on('error', () => done(false));
       });
-    });
+    } catch {
+      resolve(false);
+    }
   });
 }
 
@@ -461,5 +497,6 @@ module.exports = {
   sendNewDeviceLoginEmail,
   sendNewDeviceLoginEmailForUser,
   sendWorkspaceInviteEmail,
-  escapeHtml
+  escapeHtml,
+  appendSentMailToImap
 };

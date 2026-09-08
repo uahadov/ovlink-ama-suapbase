@@ -48,6 +48,7 @@ class SocialListenerBot {
       const dir = path.dirname(this.dataPath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       const arr = Array.from(this.seenPostIds).slice(-500);
+      this.seenPostIds = new Set(arr);
       fs.writeFileSync(this.dataPath, JSON.stringify(arr, null, 2), 'utf8');
     } catch (e) {
       console.warn('[Social Listener] Could not save seen posts:', e.message);
@@ -59,12 +60,7 @@ class SocialListenerBot {
     for (const query of this.queries) {
       try {
         const url = `https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(query)}&tags=(story,comment)&hitsPerPage=8`;
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 6000);
-
-        const res = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeout);
-
+        const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
         if (!res.ok) continue;
         const data = await res.json();
         const hits = data.hits || [];
@@ -157,13 +153,11 @@ Answer in strictly valid JSON:
 `;
 
     for (const model of this.freeModels) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 6000);
       try {
         const sessionId = 'suit_' + Date.now();
         const res = await fetch(this.apiUrl, {
           method: 'POST',
-          signal: controller.signal,
+          signal: AbortSignal.timeout(6000),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${this.apiKey}`,
@@ -181,7 +175,6 @@ Answer in strictly valid JSON:
           })
         });
 
-        clearTimeout(timeout);
         if (!res.ok) continue;
 
         const data = await res.json();
@@ -199,7 +192,6 @@ Answer in strictly valid JSON:
           }
         }
       } catch (e) {
-        clearTimeout(timeout);
       }
     }
 
@@ -234,14 +226,11 @@ Post Context: "${post.context}"
 Write a concise 2-3 sentence Hacker News comment sharing Ovlink as an independent, lightweight alternative with custom domains and analytics. Start directly with "Full disclosure: I built Ovlink...". Do not include any other words.`;
 
     for (const model of this.freeModels) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 7000);
-
       try {
         const sessionId = 'social_ses_' + Date.now();
         const response = await fetch(this.apiUrl, {
           method: 'POST',
-          signal: controller.signal,
+          signal: AbortSignal.timeout(7000),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${this.apiKey}`,
@@ -262,7 +251,6 @@ Write a concise 2-3 sentence Hacker News comment sharing Ovlink as an independen
           })
         });
 
-        clearTimeout(timeout);
         if (!response.ok) continue;
 
         const data = await response.json();
@@ -275,7 +263,6 @@ Write a concise 2-3 sentence Hacker News comment sharing Ovlink as an independen
           console.warn(`[Social Listener] Model "${model}" output was rejected by sanitizer (contained thinking/defects). Trying next model...`);
         }
       } catch (err) {
-        clearTimeout(timeout);
       }
     }
 
@@ -368,6 +355,7 @@ Write a concise 2-3 sentence Hacker News comment sharing Ovlink as an independen
     console.log('[Social Listener] Starting 24/7 live social media monitoring engine with suitability filter & autonomous actions...');
     const intervalMs = 2 * 60 * 60 * 1000;
     this.intervalId = setInterval(() => this.scanNetworks(), intervalMs);
+    if (typeof this.intervalId.unref === 'function') this.intervalId.unref();
 
     setTimeout(() => this.scanNetworks(), 3000).unref?.();
   }

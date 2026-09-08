@@ -163,13 +163,11 @@ Respond in valid JSON only:
 `;
 
     for (const model of this.freeModels) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 6000);
       try {
         const sessionId = 'suit_b2b_' + Date.now();
         const res = await fetch(this.apiUrl, {
           method: 'POST',
-          signal: controller.signal,
+          signal: AbortSignal.timeout(6000),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${this.apiKey}`,
@@ -187,7 +185,6 @@ Respond in valid JSON only:
           })
         });
 
-        clearTimeout(timeout);
         if (!res.ok) continue;
 
         const data = await res.json();
@@ -204,7 +201,6 @@ Respond in valid JSON only:
           }
         }
       } catch (e) {
-        clearTimeout(timeout);
       }
     }
 
@@ -237,14 +233,11 @@ Context: ${lead.context}
 Write a polite, 3-4 sentence cold email introducing Ovlink as a lightweight platform for custom domains and click analytics without enterprise bloat. Start with Subject: and then the email body.`;
 
     for (const model of this.freeModels) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 7000);
-
       try {
         const sessionId = 'ses_' + Date.now();
         const response = await fetch(this.apiUrl, {
           method: 'POST',
-          signal: controller.signal,
+          signal: AbortSignal.timeout(7000),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${this.apiKey}`,
@@ -265,7 +258,6 @@ Write a polite, 3-4 sentence cold email introducing Ovlink as a lightweight plat
           })
         });
 
-        clearTimeout(timeout);
         if (!response.ok) continue;
 
         const data = await response.json();
@@ -278,7 +270,6 @@ Write a polite, 3-4 sentence cold email introducing Ovlink as a lightweight plat
           console.warn(`[B2B Hunter] Model "${model}" email was rejected by sanitizer (contained thinking/defects). Trying next model...`);
         }
       } catch (error) {
-        clearTimeout(timeout);
       }
     }
 
@@ -345,8 +336,11 @@ Write a polite, 3-4 sentence cold email introducing Ovlink as a lightweight plat
         const safeBody = escapeTelegramHtml(body || '');
         const safeReason = escapeTelegramHtml(suitability.reason || '');
 
+        const safeSnippet = escapeTelegramHtml(lead.context || '');
+        const safeBodySnippet = safeBody.length > 1500 ? safeBody.slice(0, 1500) + '...' : safeBody;
+
         const hasSmtp = Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
-        const statusText = hasSmtp ? `✅ SMTP Hazır (${process.env.SMTP_USER})` : `⚠️ SMTP Ayarları Eksik`;
+        const statusText = hasSmtp ? `✅ SMTP Hazır (${escapeTelegramHtml(process.env.SMTP_USER)})` : `⚠️ SMTP Ayarları Eksik`;
 
         // Send Telegram notification with Action Buttons
         const tgMsg = `📨 <b>[B2B Satış Avcısı] Yeni Müşteri Adayı E-Postası Hazırlandı!</b>\n\n` +
@@ -357,7 +351,7 @@ Write a polite, 3-4 sentence cold email introducing Ovlink as a lightweight plat
           `📊 <b>Durum:</b> ${statusText}\n` +
           `🛡️ <b>CAN-SPAM / Opt-Out:</b> ✅ Dahil Edildi\n\n` +
           `📝 <b>Muse Spark'ın Yazdığı E-Posta Taslağı:</b>\n` +
-          `<blockquote><b>Konu:</b> ${safeSubject}\n\n${safeBody}</blockquote>\n\n` +
+          `<blockquote><b>Konu:</b> ${safeSubject}\n\n${safeBodySnippet}</blockquote>\n\n` +
           `👉 <i>Aşağıdaki butonla tek dokunuşla e-postayı <b>otomatik gönderebilir</b> veya iptal edebilirsin:</i>`;
 
         const keyboard = [
@@ -378,14 +372,26 @@ Write a polite, 3-4 sentence cold email introducing Ovlink as a lightweight plat
         const allLeads = this.loadLeads();
         const idx = allLeads.findIndex(l => l.id === lead.id);
         if (idx !== -1) {
-          allLeads[idx] = lead;
+          allLeads[idx].status = 'drafted';
+          allLeads[idx].lastDraftedAt = lead.lastDraftedAt;
           this.saveLeads(allLeads);
         }
 
         console.log(`[B2B Hunter] Lead #${lead.id} processed and Telegram action buttons dispatched.`);
+      } else {
+        // Disqualified
+        lead.status = 'disqualified';
+        lead.disqualifiedReason = suitability.reason;
+        const allLeads = this.loadLeads();
+        const idx = allLeads.findIndex(l => l.id === lead.id);
+        if (idx !== -1) {
+          allLeads[idx].status = 'disqualified';
+          allLeads[idx].disqualifiedReason = suitability.reason;
+          this.saveLeads(allLeads);
+        }
       }
-    } catch (error) {
-      console.error('[B2B Hunter] Pipeline error:', error);
+    } catch (err) {
+      console.error('[B2B Hunter] Error processing queue:', err.message);
     } finally {
       this.isRunning = false;
     }
@@ -395,6 +401,7 @@ Write a polite, 3-4 sentence cold email introducing Ovlink as a lightweight plat
     console.log('[B2B Hunter] Starting 24/7 B2B Cold Email engine with suitability filter & action buttons...');
     const intervalMs = 6 * 60 * 60 * 1000;
     this.intervalId = setInterval(() => this.processQueue(), intervalMs);
+    if (typeof this.intervalId.unref === 'function') this.intervalId.unref();
 
     setTimeout(() => this.processQueue(), 5000).unref?.();
   }

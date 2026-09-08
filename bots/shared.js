@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 function createBotShared(db, options = {}) {
-  const { buildShortUrl, ensureAbsoluteUrl, generateSafeShortCode, isProAccessActive, normalizeLang, pickLang, logSecurityEvent } = options;
+  const { buildShortUrl, ensureAbsoluteUrl, generateSafeShortCode, isReservedShortAlias, isProAccessActive, normalizeLang, pickLang, logSecurityEvent } = options;
 
   function normalizeUrl(raw) {
     const url = (raw || '').toString().trim();
@@ -134,6 +134,7 @@ function createBotShared(db, options = {}) {
     if (customAlias) {
       const alias = normalizeAlias(customAlias);
       if (!alias) return { error: 'invalid_alias' };
+      if (isReservedShortAlias && isReservedShortAlias(alias)) return { error: 'alias_taken' };
       const exists = await new Promise((resolve) => {
         db.get('SELECT id FROM urls WHERE short = ?', [alias], (err, row) => resolve(!!row));
       });
@@ -144,20 +145,28 @@ function createBotShared(db, options = {}) {
     }
 
     const createdAt = new Date().toISOString();
-    return new Promise((resolve) => {
-      db.run(
-        'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [original, short, createdAt, userId || null, '', null, maxClicks || null, null],
-        function (err) {
-          if (err) {
-            const msg = (err.message || '').toLowerCase();
-            if (msg.includes('unique')) return resolve({ error: 'alias_taken' });
-            return resolve({ error: 'db_error' });
+    const tryInsert = (candidateShort, attemptsLeft) => {
+      return new Promise((resolve) => {
+        db.run(
+          'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [original, candidateShort, createdAt, userId || null, '', null, maxClicks || null, null],
+          function (err) {
+            if (err) {
+              const msg = (err.message || '').toLowerCase();
+              if (msg.includes('unique')) {
+                if (!customAlias && attemptsLeft > 0) {
+                  return resolve(tryInsert(generateSafeShortCode(), attemptsLeft - 1));
+                }
+                return resolve({ error: 'alias_taken' });
+              }
+              return resolve({ error: 'db_error' });
+            }
+            resolve({ short: candidateShort, original, created_at: createdAt });
           }
-          resolve({ short, original, created_at: createdAt });
-        }
-      );
-    });
+        );
+      });
+    };
+    return tryInsert(short, 3);
   }
 
   async function getDailyLinkCount(userId) {

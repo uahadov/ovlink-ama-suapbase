@@ -22,16 +22,32 @@ function loadActions() {
   ensureActionsFile();
   try {
     const raw = fs.readFileSync(ACTIONS_FILE, 'utf8');
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      if (!parsed.hn || typeof parsed.hn !== 'object') parsed.hn = {};
+      if (!parsed.mail || typeof parsed.mail !== 'object') parsed.mail = {};
+      return parsed;
+    }
   } catch (e) {
-    return { hn: {}, mail: {} };
   }
+  return { hn: {}, mail: {} };
 }
 
 function saveActions(data) {
   try {
     const dir = path.dirname(ACTIONS_FILE);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+    // Prune entries to keep most recent 200 to prevent unbounded disk/memory growth
+    if (data && typeof data === 'object') {
+      for (const type of ['hn', 'mail']) {
+        const entries = Object.entries(data[type] || {});
+        if (entries.length > 200) {
+          data[type] = Object.fromEntries(entries.slice(-200));
+        }
+      }
+    }
+
     fs.writeFileSync(ACTIONS_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (e) {
     console.warn('[Pending Actions] Error saving actions:', e.message);
@@ -102,8 +118,8 @@ async function rewriteB2BMail(leadId) {
     email: item.to
   };
   const emailData = await hunter.generateEmail(lead);
-  const subject = emailData.subject || item.subject;
-  const body = emailData.body;
+  const subject = (emailData && emailData.subject) || item.subject;
+  const body = (emailData && emailData.body) || item.body;
   item.subject = subject;
   item.body = body;
   item.lastRewrittenAt = new Date().toISOString();

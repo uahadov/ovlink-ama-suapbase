@@ -921,6 +921,11 @@ const translations = {
         ws_accept_invited_email: "Dəvət olunan ünvan:",
         ws_accept_already: "Siz bu workspace-in üzvüsünüz.",
         ws_accept_invalid: "Bu dəvət etibarsızdır, vaxtı bitib və ya ləğv edilib.",
+        updates_release_20260908_pwa_title: "PWA & Çevrimdışı Dayanıqlıq Təkmilləşdirməsi",
+        updates_release_20260908_pwa_badge: "08.09.2026",
+        updates_release_20260908_pwa_desc: "Offline rejimdə etibarlı xəta səhifəsi, Service Worker keş yeniləmələri və ani versiya sinxronizasiyası tətbiq edildi.",
+        updates_release_20260908_pwa_item1: "Offline Qoruması: Şəbəkə kəsildikdə və ya server əlçatmaz olduqda brauzer xətası yerinə etibarlı ehtiyat səhifəsi göstərilir.",
+        updates_release_20260908_pwa_item2: "Ani Keş İnvalidasiyası: Service Worker önbelleği versiyalandı və brauzer yeniləmələri dərhal tətbiq edilir.",
         updates_release_20260907_marketing_title: "Sosial Link Önizləyicisi, AI Başlıq Optimizatoru və Böyümə Alətləri",
         updates_release_20260907_marketing_badge: "07.09.2026",
         updates_release_20260907_marketing_desc: "Linklərin Twitter, LinkedIn və Facebook üzərindəki görünüşünü simulyasiya edən və yapay zəka ilə viral başlıq variantları təklif edən pulsuz Sosial Link Önizləyici istifadəyə verildi.",
@@ -1904,6 +1909,11 @@ const translations = {
         ws_accept_invited_email: "Davet edilen adres:",
         ws_accept_already: "Bu workspace'in üyesisiniz.",
         ws_accept_invalid: "Bu davet geçersiz, süresi dolmuş veya iptal edilmiş.",
+        updates_release_20260908_pwa_title: "PWA ve Çevrimdışı Dayanıklılık İyileştirmesi",
+        updates_release_20260908_pwa_badge: "08.09.2026",
+        updates_release_20260908_pwa_desc: "Çevrimdışı modda güvenilir hata sayfası, Service Worker önbellek güncellemeleri ve anlık sürüm senkronizasyonu uygulandı.",
+        updates_release_20260908_pwa_item1: "Çevrimdışı Koruması: Ağ kesildiğinde veya sunucuya ulaşılamadığında tarayıcı hatası yerine güvenilir yedek sayfa gösterilir.",
+        updates_release_20260908_pwa_item2: "Anlık Önbellek Geçersiz kılma: Service Worker önbelleği sürümlendi ve tarayıcı güncellemeleri anında uygulanır.",
         updates_release_20260907_marketing_title: "Sosyal Link Önizleyici, Yapay Zeka Başlık Optimize Edici ve Büyüme Araçları",
         updates_release_20260907_marketing_badge: "07.09.2026",
         updates_release_20260907_marketing_desc: "Bağlantıların Twitter, LinkedIn ve Facebook üzerindeki görünümünü simüle eden ve yapay zeka ile yüksek tıklamalı başlık alternatifleri sunan ücretsiz Sosyal Link Önizleyici yayına alındı.",
@@ -2939,6 +2949,11 @@ const translations = {
         ws_accept_invited_email: "Invited address:",
         ws_accept_already: "You are already a member of this workspace.",
         ws_accept_invalid: "This invitation is invalid, expired or revoked.",
+        updates_release_20260908_pwa_title: "PWA & Offline Resilience Improvements",
+        updates_release_20260908_pwa_badge: "08.09.2026",
+        updates_release_20260908_pwa_desc: "Deployed resilient offline fallback page, Service Worker cache invalidation, and instant client version synchronization.",
+        updates_release_20260908_pwa_item1: "Offline Protection: If network disconnects or server is unreachable, a helpful fallback UI is shown instead of browser error.",
+        updates_release_20260908_pwa_item2: "Instant Cache Invalidation: Service Worker caching is versioned and client updates apply immediately.",
         updates_release_20260907_marketing_title: "Social Link Previewer, AI Headline Optimizer & Growth Tools",
         updates_release_20260907_marketing_badge: "07.09.2026",
         updates_release_20260907_marketing_desc: "Launched free Social Link Previewer to simulate how links appear across Twitter/X, LinkedIn, and Facebook, with AI headline generation for high CTR.",
@@ -3007,6 +3022,7 @@ const translations = {
 
 // Varsayılan dil (localStorage > cookie > AZ)
 function getCookieLang() {
+    if (typeof document === "undefined" || !document.cookie) return '';
     const match = document.cookie.match(/(?:^|; )lang_default=([^;]+)/);
     return match ? decodeURIComponent(match[1]) : '';
 }
@@ -3027,7 +3043,12 @@ function detectBrowserLang() {
 
 let currentLang = isValidLang(storedLang) ? storedLang : (isValidLang(cookieLang) ? cookieLang : detectBrowserLang());
 
+function getCurrentLanguage() {
+    return currentLang;
+}
+
 function applyLanguage() {
+    if (typeof document === "undefined") return;
     const elements = document.querySelectorAll("[data-i18n]");
     elements.forEach(el => {
         const key = el.getAttribute("data-i18n");
@@ -3165,5 +3186,10 @@ if (typeof document !== "undefined") {
         initLangUi();
     }
 }
+
+if (typeof module !== "undefined" && module.exports) {
+    module.exports = { translations, setLanguage, getCurrentLanguage };
+}
+
 
 

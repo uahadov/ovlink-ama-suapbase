@@ -186,10 +186,23 @@ function createTelegramBot(db, options = {}) {
       if (opts.keyboard) payload.reply_markup = JSON.stringify({ inline_keyboard: opts.keyboard });
       const res = await fetch(`${API_BASE}/sendMessage`, {
         method: 'POST',
+        signal: AbortSignal.timeout(10000),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      return await res.json();
+      const data = await res.json();
+      if (!data.ok && payload.parse_mode && data.description && (data.description.includes("can't parse entities") || data.description.includes('entity'))) {
+        payload.parse_mode = undefined;
+        payload.text = text.replace(/<[^>]+>/g, '').slice(0, 4096);
+        const retryRes = await fetch(`${API_BASE}/sendMessage`, {
+          method: 'POST',
+          signal: AbortSignal.timeout(10000),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        return await retryRes.json();
+      }
+      return data;
     } catch (err) {
       console.error('[telegram-bot] sendMessage error:', err.message);
       return null;
@@ -207,7 +220,7 @@ function createTelegramBot(db, options = {}) {
       }
       formData.append('photo', new Blob([imageBuffer], { type: 'image/png' }), 'qr.png');
       if (opts.replyToMessageId) formData.append('reply_to_message_id', String(opts.replyToMessageId));
-      const res = await fetch(`${API_BASE}/sendPhoto`, { method: 'POST', body: formData });
+      const res = await fetch(`${API_BASE}/sendPhoto`, { method: 'POST', signal: AbortSignal.timeout(15000), body: formData });
       return await res.json();
     } catch (err) {
       console.error('[telegram-bot] sendPhoto error:', err.message);
@@ -220,6 +233,7 @@ function createTelegramBot(db, options = {}) {
     try {
       await fetch(`${API_BASE}/answerCallbackQuery`, {
         method: 'POST',
+        signal: AbortSignal.timeout(10000),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ callback_query_id: callbackQueryId, text, show_alert: showAlert })
       });
@@ -243,10 +257,23 @@ function createTelegramBot(db, options = {}) {
       }
       const res = await fetch(`${API_BASE}/editMessageText`, {
         method: 'POST',
+        signal: AbortSignal.timeout(10000),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      return await res.json();
+      const data = await res.json();
+      if (!data.ok && payload.parse_mode && data.description && (data.description.includes("can't parse entities") || data.description.includes('entity'))) {
+        payload.parse_mode = undefined;
+        payload.text = text.replace(/<[^>]+>/g, '').slice(0, 4096);
+        const retryRes = await fetch(`${API_BASE}/editMessageText`, {
+          method: 'POST',
+          signal: AbortSignal.timeout(10000),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        return await retryRes.json();
+      }
+      return data;
     } catch (err) {
       console.error('[telegram-bot] editMessageText error:', err.message);
       return null;
@@ -695,7 +722,13 @@ function createTelegramBot(db, options = {}) {
           await answerCallbackQuery(callbackQueryId, '❌ Hata: ' + err.message.slice(0, 100), true);
           const currentText = message.text ? esc(message.text) : '';
           const updatedText = `${currentText}\n\n⚠️ <b>Gönderim Başarısız:</b> ${esc(err.message)}`;
-          await editMessageText(message.chat.id, message.message_id, updatedText);
+          const retryKeyboard = [
+            [
+              { text: '🔄 Tekrar Dene', callback_data: `hn_send:${postId}` },
+              { text: '❌ Gönderme / İptal', callback_data: `hn_skip:${postId}` }
+            ]
+          ];
+          await editMessageText(message.chat.id, message.message_id, updatedText, { keyboard: retryKeyboard });
         }
         return;
       }
@@ -740,7 +773,16 @@ function createTelegramBot(db, options = {}) {
           await answerCallbackQuery(callbackQueryId, '❌ Gönderilemedi: ' + err.message.slice(0, 100), true);
           const currentText = message.text ? esc(message.text) : '';
           const updatedText = `${currentText}\n\n⚠️ <b>Gönderim Başarısız:</b> ${esc(err.message)}`;
-          await editMessageText(message.chat.id, message.message_id, updatedText);
+          const retryKeyboard = [
+            [
+              { text: '🔄 Tekrar Dene', callback_data: `mail_send:${leadId}` },
+              { text: '❌ Gönderme / İptal', callback_data: `mail_skip:${leadId}` }
+            ],
+            [
+              { text: '🔄 Yeniden Yaz (AI)', callback_data: `mail_rewrite:${leadId}` }
+            ]
+          ];
+          await editMessageText(message.chat.id, message.message_id, updatedText, { keyboard: retryKeyboard });
         }
         return;
       }

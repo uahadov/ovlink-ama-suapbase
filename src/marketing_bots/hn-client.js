@@ -16,6 +16,10 @@ function getHackerNewsCookie() {
       if (Array.isArray(parsed)) {
         return parsed.map(c => `${c.name}=${c.value}`).join('; ');
       }
+      if (parsed && typeof parsed === 'object') {
+        if (typeof parsed.cookie === 'string') return parsed.cookie;
+        return Object.entries(parsed).map(([k, v]) => `${k}=${v}`).join('; ');
+      }
     } catch (e) {
       console.warn('[HN Client] Error parsing hacker-news-cookie.json:', e.message);
     }
@@ -38,6 +42,7 @@ async function postHackerNewsComment(postId, text) {
 
   const itemUrl = `https://news.ycombinator.com/item?id=${postId}`;
   const getRes = await fetch(itemUrl, {
+    signal: AbortSignal.timeout(10000),
     headers: {
       'Cookie': cookie,
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
@@ -73,6 +78,7 @@ async function postHackerNewsComment(postId, text) {
 
   const postRes = await fetch('https://news.ycombinator.com/comment', {
     method: 'POST',
+    signal: AbortSignal.timeout(10000),
     headers: {
       'Cookie': cookie,
       'Content-Type': 'application/x-www-form-urlencoded',

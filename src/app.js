@@ -1,4 +1,5 @@
 const express = require('express');
+require('express-async-errors');
 const compression = require('compression');
 const path = require('path');
 const expressSession = require('express-session');

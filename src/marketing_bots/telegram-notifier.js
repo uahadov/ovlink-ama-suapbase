@@ -26,14 +26,32 @@ async function sendTelegramAlert(text, options = {}) {
       payload.reply_markup = { inline_keyboard: options.keyboard };
     }
 
-    const response = await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+    let response = await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
       method: 'POST',
+      signal: AbortSignal.timeout(10000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
+    let data = await response.json();
     if (!data.ok) {
+      if (payload.parse_mode && data.description && (data.description.includes("can't parse entities") || data.description.includes('entity'))) {
+        console.warn('[Telegram Notifier] HTML entity error; retrying in plain text:', data.description);
+        const plainPayload = {
+          ...payload,
+          parse_mode: undefined,
+          text: text.replace(/<[^>]+>/g, '').slice(0, 4000)
+        };
+        const retryRes = await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+          method: 'POST',
+          signal: AbortSignal.timeout(10000),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(plainPayload)
+        });
+        const retryData = await retryRes.json();
+        if (retryData.ok) return true;
+        data = retryData;
+      }
       console.error('[Telegram Notifier] Telegram API error:', data.description);
       return false;
     }
