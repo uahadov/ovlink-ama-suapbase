@@ -1015,9 +1015,10 @@ function createTelegramBot(db, options = {}) {
           const copyMsg = `📋 <b>Kopyalamaq üçün hazır Reddit rəyi:</b>\n\n` +
             `<code>${esc(pending.commentText)}</code>\n\n` +
             `🔗 <i>Yuxarıdakı mətni kopyalayıb birbaşa aşağıdakı linkdən Reddit-də cavab yaza bilərsiniz:</i>`;
+          const targetUrl = (pending && pending.url && pending.url.startsWith('http')) ? pending.url : 'https://reddit.com';
           await sendMessage(message.chat.id, copyMsg, {
             keyboard: [
-              [{ text: '💬 Redditdə Aç və Yapışdır', url: pending.url }]
+              [{ text: '💬 Redditdə Aç və Yapışdır', url: targetUrl }]
             ]
           });
         } catch (err) {
@@ -1038,7 +1039,8 @@ function createTelegramBot(db, options = {}) {
             `📍 <b>Subreddit:</b> r/${esc(pending?.subreddit || 'SaaS')}\n` +
             `📌 <b>Mövzu:</b> "${esc(pending?.title || '')}"\n\n` +
             `❌ <i>Bu mövzu keçildi və heç bir rəy yazılmadı.</i>`;
-          const keyboard = pending && pending.url ? [[{ text: '🔗 Redditdə Gör', url: pending.url }]] : [];
+          const targetUrl = (pending && pending.url && pending.url.startsWith('http')) ? pending.url : null;
+          const keyboard = targetUrl ? [[{ text: '🔗 Redditdə Gör', url: targetUrl }]] : [];
           await editMessageText(message.chat.id, message.message_id, updatedText, { keyboard });
         } catch (err) {
           console.error('[telegram-bot] reddit_skip error:', err.message);
@@ -1061,6 +1063,7 @@ function createTelegramBot(db, options = {}) {
           const safeSnippet = esc(pending.context || '');
           const safeReply = esc(rewritten.commentText || '');
           const score = pending.suitabilityScore || 7;
+          const targetUrl = (pending.url && pending.url.startsWith('http')) ? pending.url : 'https://reddit.com';
 
           const updatedText = `🟠 <b>[Reddit Müştəri Radarı] Yeni Rəy Hazırlandı (Yeniden Yazıldı)!</b>\n\n` +
             `🔍 <b>Uyğunluq Analizi:</b> ${esc(pending.suitabilityReason || '')} (Skor: <b>${score}/10</b>)\n` +
@@ -1073,7 +1076,7 @@ function createTelegramBot(db, options = {}) {
 
           const keyboard = [
             [
-              { text: '💬 Redditdə Aç və Cavabla', url: pending.url },
+              { text: '💬 Redditdə Aç və Cavabla', url: targetUrl },
               { text: '📋 Rəy Mətnini Kopyala', callback_data: `reddit_copy:${postId}` }
             ],
             [
