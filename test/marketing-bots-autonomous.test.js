@@ -643,6 +643,18 @@ test('hn-client: loginHackerNews parses Set-Cookie and saves to cookie file', as
   }
 });
 
+test('email: B2B cold email sender configuration and status', async () => {
+  const { getB2BStatus, verifyAndSaveB2BPassword } = require('../src/lib/email');
+
+  // Should reject empty password
+  const emptyRes = await verifyAndSaveB2BPassword('');
+  assert.strictEqual(emptyRes.valid, false);
+
+  const status = await getB2BStatus();
+  assert.strictEqual(status.user, process.env.B2B_SMTP_USER || 'support@ovlink.sbs');
+});
+
+
 
 
 

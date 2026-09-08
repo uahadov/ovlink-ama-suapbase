@@ -3,6 +3,8 @@ const { pickLang, normalizeLang } = require('./i18n');
 const { getConfiguredPublicBaseUrl } = require('./security');
 const { db } = require('../db/index');
 const { decryptAES256GCM } = require('../../utils/crypto');
+const fs = require('fs');
+const path = require('path');
 
 function escapeHtml(value) {
   return (value || '').toString().replace(/[&<>"']/g, (ch) => ({
@@ -53,7 +55,7 @@ const emailTransporter = nodemailer.createTransport({
 const SMTP_FROM = process.env.FROM_EMAIL || process.env.SMTP_USER || 'Ovlink <verify@ovlink.sbs>';
 const RESEND_FROM = process.env.RESEND_FROM || process.env.FROM_EMAIL || 'Ovlink <verify@ovlink.sbs>';
 
-function appendSentMailToImap(mailOptions) {
+function appendSentMailToImap(mailOptions, credentials = {}) {
   return new Promise((resolve) => {
     try {
       const defaultImapHost = (process.env.SMTP_HOST && process.env.SMTP_HOST.includes('spacemail'))
@@ -63,8 +65,8 @@ function appendSentMailToImap(mailOptions) {
           : (process.env.SMTP_HOST || 'mail.spacemail.com');
       const imapHost = process.env.IMAP_HOST || defaultImapHost;
       const imapPort = Number(process.env.IMAP_PORT) || 993;
-      const user = process.env.SMTP_USER;
-      const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+      const user = credentials.user || process.env.SMTP_USER;
+      const pass = (credentials.pass || process.env.SMTP_PASS || '').replace(/\s+/g, '');
       const folder = process.env.IMAP_SENT_FOLDER || 'Sent';
 
       if (!user || !pass || !MailComposer) {
@@ -128,7 +130,7 @@ function appendSentMailToImap(mailOptions) {
               socket.write('A03 LOGOUT\r\n');
               socket.end();
             } catch {}
-            console.log(`[imap-sent] Successfully archived sent message to SpaceMail "${safeFolder}" folder.`);
+            console.log(`[imap-sent] Successfully archived sent message to SpaceMail "${safeFolder}" folder (${user}).`);
             done(true);
           } else if (
             chunk.includes('A01 NO') || chunk.includes('A01 BAD') ||
@@ -148,20 +150,50 @@ function appendSentMailToImap(mailOptions) {
   });
 }
 
-async function sendMail({ to, subject, html, text, preferSmtp = false, saveToSent = false }) {
+async function sendMail({ to, subject, html, text, preferSmtp = false, saveToSent = false, isB2B = false }) {
+  const b2bUser = process.env.B2B_SMTP_USER || 'support@ovlink.sbs';
+  const b2bPass = (process.env.B2B_SMTP_PASS || '').replace(/\s+/g, '');
+  const useB2B = Boolean(isB2B && b2bPass);
+
+  const activeTransporter = useB2B
+    ? nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'mail.spacemail.com',
+        port: smtpPort,
+        secure: isSecure,
+        auth: { user: b2bUser, pass: b2bPass },
+        family: 4,
+        connectionTimeout: 25000,
+        greetingTimeout: 25000,
+        socketTimeout: 35000,
+      })
+    : emailTransporter;
+
+  const activeFrom = isB2B
+    ? (process.env.B2B_FROM_EMAIL || `Ovlink Support <${b2bUser}>`)
+    : SMTP_FROM;
+
+  const activeResendFrom = isB2B
+    ? (process.env.B2B_FROM_EMAIL || `Ovlink Support <${b2bUser}>`)
+    : RESEND_FROM;
+
+  const imapCreds = useB2B
+    ? { user: b2bUser, pass: b2bPass }
+    : { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS };
+
   const trySaveToImap = (fromAddr) => {
     if (saveToSent || process.env.SMTP_SAVE_TO_SENT === '1') {
-      appendSentMailToImap({ from: fromAddr, to, subject, html, text }).catch(err => {
+      appendSentMailToImap({ from: fromAddr, to, subject, html, text }, imapCreds).catch(err => {
         console.warn('[email] IMAP append warning:', err?.message || err);
       });
     }
   };
 
-  // 1. If preferSmtp is true, attempt SMTP first, with graceful Resend fallback
-  if (preferSmtp) {
+  // 1. If preferSmtp is true and credentials are valid for the sender, attempt SMTP first
+  const shouldTrySmtp = preferSmtp && (!isB2B || useB2B);
+  if (shouldTrySmtp) {
     try {
-      const from = SMTP_FROM;
-      const smtpInfo = await emailTransporter.sendMail({
+      const from = activeFrom;
+      const smtpInfo = await activeTransporter.sendMail({
         from,
         to,
         subject,
@@ -176,7 +208,7 @@ async function sendMail({ to, subject, html, text, preferSmtp = false, saveToSen
       if (resendClient) {
         try {
           const resendRes = await resendClient.emails.send({
-            from: RESEND_FROM,
+            from: activeResendFrom,
             to: [to],
             subject,
             html,
@@ -186,7 +218,7 @@ async function sendMail({ to, subject, html, text, preferSmtp = false, saveToSen
             throw new Error(resendRes.error.message || JSON.stringify(resendRes.error));
           }
           console.log(`[email] Resend fallback success: to=${to}, id=${resendRes.data ? resendRes.data.id : 'unknown'}`);
-          trySaveToImap(RESEND_FROM);
+          trySaveToImap(activeResendFrom);
           return resendRes;
         } catch (resendErr) {
           console.error('[email] Resend fallback also failed:', resendErr.message);
@@ -201,7 +233,7 @@ async function sendMail({ to, subject, html, text, preferSmtp = false, saveToSen
   if (resendClient) {
     try {
       const resendRes = await resendClient.emails.send({
-        from: RESEND_FROM,
+        from: activeResendFrom,
         to: [to],
         subject,
         html,
@@ -211,28 +243,32 @@ async function sendMail({ to, subject, html, text, preferSmtp = false, saveToSen
         throw new Error(resendRes.error.message || JSON.stringify(resendRes.error));
       }
       console.log(`[email] Resend success: to=${to}, id=${resendRes.data ? resendRes.data.id : 'unknown'}`);
-      trySaveToImap(RESEND_FROM);
+      trySaveToImap(activeResendFrom);
       return resendRes;
     } catch (resendErr) {
       console.warn('[email] Resend failed, trying SMTP fallback:', resendErr.message);
     }
   }
   
-  try {
-    const from = SMTP_FROM;
-    const smtpInfo = await emailTransporter.sendMail({
-      from,
-      to,
-      subject,
-      html,
-      text,
-    });
-    console.log(`[email] SMTP success: to=${to}, response=${smtpInfo.response}, messageId=${smtpInfo.messageId}`);
-    trySaveToImap(from);
-    return smtpInfo;
-  } catch (smtpErr) {
-    console.error(`[email] SMTP error: to=${to}, message=${smtpErr.message}`);
-    throw smtpErr;
+  if (!isB2B || useB2B) {
+    try {
+      const from = activeFrom;
+      const smtpInfo = await activeTransporter.sendMail({
+        from,
+        to,
+        subject,
+        html,
+        text,
+      });
+      console.log(`[email] SMTP success: to=${to}, response=${smtpInfo.response}, messageId=${smtpInfo.messageId}`);
+      trySaveToImap(from);
+      return smtpInfo;
+    } catch (smtpErr) {
+      console.error(`[email] SMTP send failed:`, smtpErr.message);
+      throw smtpErr;
+    }
+  } else {
+    throw new Error('support@ovlink.sbs üçün SpaceMail SMTP şifrəsi (B2B_SMTP_PASS) təyin edilməyib və Resend uğursuz oldu.');
   }
 }
 
@@ -536,6 +572,91 @@ function sendWorkspaceInviteEmail(to, workspaceName, inviteUrl, lang = 'az') {
   return sendMail({ to, subject, html, text });
 }
 
+function verifySpaceMailCredentials(user, pass) {
+  return new Promise((resolve) => {
+    try {
+      const s = tls.connect(993, 'mail.spacemail.com', () => {});
+      s.setEncoding('utf8');
+      let step = 0;
+      let resolved = false;
+
+      const done = (val) => {
+        if (!resolved) {
+          resolved = true;
+          try { s.destroy(); } catch {}
+          resolve(val);
+        }
+      };
+
+      s.on('data', (c) => {
+        if (step === 0 && c.includes('* OK')) {
+          step = 1;
+          s.write(`A01 LOGIN "${user}" "${pass}"\r\n`);
+        } else if (step === 1) {
+          try { s.write('A02 LOGOUT\r\n'); } catch {}
+          done(c.includes('A01 OK'));
+        }
+      });
+      s.on('error', () => done(false));
+      setTimeout(() => done(false), 5000);
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+async function verifyAndSaveB2BPassword(rawPassword, user = 'support@ovlink.sbs') {
+  const cleanPass = (rawPassword || '').trim().replace(/^["']|["']$/g, '');
+  if (!cleanPass) {
+    return { valid: false, error: 'Şifrə boş ola bilməz.' };
+  }
+
+  const isValid = await verifySpaceMailCredentials(user, cleanPass);
+  if (!isValid) {
+    return { valid: false, error: 'SpaceMail IMAP girişi rədd edildi (yanlış şifrə).' };
+  }
+
+  // Update in-memory environment
+  process.env.B2B_SMTP_USER = user;
+  process.env.B2B_SMTP_PASS = cleanPass;
+  process.env.B2B_FROM_EMAIL = `Ovlink Support <${user}>`;
+
+  // Safely persist to .env file
+  try {
+    const envPath = path.resolve('.env');
+    let content = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+
+    const updateOrAppend = (key, val) => {
+      const reg = new RegExp(`^${key}=.*$`, 'm');
+      if (reg.test(content)) {
+        content = content.replace(reg, `${key}="${val}"`);
+      } else {
+        content = content.trimEnd() + `\n${key}="${val}"\n`;
+      }
+    };
+
+    updateOrAppend('B2B_SMTP_USER', user);
+    updateOrAppend('B2B_SMTP_PASS', cleanPass);
+    updateOrAppend('B2B_FROM_EMAIL', `Ovlink Support <${user}>`);
+
+    fs.writeFileSync(envPath, content, 'utf8');
+  } catch (err) {
+    console.warn('[email] Could not write to .env:', err.message);
+  }
+
+  return { valid: true, user };
+}
+
+async function getB2BStatus() {
+  const user = process.env.B2B_SMTP_USER || 'support@ovlink.sbs';
+  const pass = (process.env.B2B_SMTP_PASS || '').replace(/\s+/g, '');
+  if (!pass) {
+    return { user, hasPass: false, connected: false };
+  }
+  const connected = await verifySpaceMailCredentials(user, pass);
+  return { user, hasPass: true, connected };
+}
+
 module.exports = {
   sendMail,
   sendVerificationEmail,
@@ -544,5 +665,8 @@ module.exports = {
   sendNewDeviceLoginEmailForUser,
   sendWorkspaceInviteEmail,
   escapeHtml,
-  appendSentMailToImap
+  appendSentMailToImap,
+  verifySpaceMailCredentials,
+  verifyAndSaveB2BPassword,
+  getB2BStatus
 };

@@ -737,6 +737,65 @@ function createTelegramBot(db, options = {}) {
     }
   }
 
+  async function handleB2BPass(chat, args) {
+    const raw = (args.text || '').replace(/^\/(?:support_pass|b2b_pass)\s*/i, '').trim();
+    if (args.messageId) {
+      await deleteMessage(chat.id, args.messageId);
+    }
+
+    if (!raw) {
+      return sendMessage(chat.id, `📌 <b>SpaceMail (support@ovlink.sbs) Şifrə Tənzimləməsi:</b>\n\nİstifadə qaydası:\n<code>/support_pass &lt;şifrəniz&gt;</code>\n\n<i>🛡️ Qeyd: Göndərdiyiniz mesaj şifrəniz görünməsin deyə çatdan dərhal avtomatik silinir.</i>`);
+    }
+
+    const waitMsg = await sendMessage(chat.id, '⏳ SpaceMail (support@ovlink.sbs) hesabı yoxlanılır...');
+
+    try {
+      const { verifyAndSaveB2BPassword } = require('../src/lib/email');
+      const res = await verifyAndSaveB2BPassword(raw);
+      if (res.valid) {
+        const text = `✅ <b>support@ovlink.sbs Hesabı Uğurla Qoşuldu!</b>\n\n` +
+          `📬 <b>E-poçt:</b> support@ovlink.sbs\n` +
+          `🔒 <b>IMAP & SMTP:</b> Uğurla təsdiqləndi.\n` +
+          `📁 <b>Sent Qovluğu:</b> Avtomatik sinxronizasiya aktivdir.\n\n` +
+          `🚀 Artıq göndərilən bütün B2B e-postaları birbaşa SpaceMail webmail panelinizdəki <b>Sent</b> qovluğunda görünəcək!`;
+        if (waitMsg && waitMsg.result) {
+          await editMessageText(chat.id, waitMsg.result.message_id, text);
+        } else {
+          await sendMessage(chat.id, text);
+        }
+      } else {
+        const errText = `❌ <b>Giriş Uğursuz Oldu:</b> SpaceMail bu şifrəni qəbul etmədi.\n\nLütfən Spaceship panelində <code>support@ovlink.sbs</code> qutusu üçün təyin etdiyiniz düzgün şifrəni daxil edin.`;
+        if (waitMsg && waitMsg.result) {
+          await editMessageText(chat.id, waitMsg.result.message_id, errText);
+        } else {
+          await sendMessage(chat.id, errText);
+        }
+      }
+    } catch (err) {
+      const errText = `❌ <b>Xəta:</b> ${esc(err.message)}`;
+      if (waitMsg && waitMsg.result) {
+        await editMessageText(chat.id, waitMsg.result.message_id, errText);
+      } else {
+        await sendMessage(chat.id, errText);
+      }
+    }
+  }
+
+  async function handleB2BStatus(chat) {
+    const { getB2BStatus } = require('../src/lib/email');
+    const status = await getB2BStatus();
+    let text = `📬 <b>B2B E-poçt Göndərici Statusu:</b>\n\n` +
+      `📧 <b>Ünvan:</b> <code>${esc(status.user)}</code>\n` +
+      `🔑 <b>Şifrə Təyin Edilib:</b> ${status.hasPass ? '✅ Bəli' : '❌ Xeyr'}\n` +
+      `📡 <b>SpaceMail Bağlantısı:</b> ${status.connected ? '🟢 Aktiv' : '🔴 Qeyri-aktiv'}\n` +
+      `📁 <b>IMAP Sent Sinxronu:</b> ${status.connected ? '✅ Aktiv' : '⚠️ Gözləmədə'}\n\n`;
+
+    if (!status.connected) {
+      text += `💡 Şifrəni qoşmaq üçün:\n<code>/support_pass &lt;şifrəniz&gt;</code>`;
+    }
+    return sendMessage(chat.id, text);
+  }
+
   async function processUpdate(update) {
     if (update.callback_query) {
       const callbackQueryId = update.callback_query.id;
@@ -975,6 +1034,9 @@ function createTelegramBot(db, options = {}) {
       case '/hn_login': return handleHnLogin(chat, { text, messageId: message.message_id });
       case '/hn_cookie': return handleHnCookie(chat, { text, messageId: message.message_id });
       case '/hn_status': return handleHnStatus(chat);
+      case '/support_pass':
+      case '/b2b_pass': return handleB2BPass(chat, { text, messageId: message.message_id });
+      case '/b2b_status': return handleB2BStatus(chat);
       default: return handlePlainUrl(chat, { text, messageId: message.message_id });
     }
   }
