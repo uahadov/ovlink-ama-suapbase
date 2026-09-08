@@ -228,24 +228,31 @@ function sanitizeAISocialReply(rawText) {
   if (delimiterMatch) {
     text = delimiterMatch[1].trim();
   } else {
-    // Check if it contains "Full disclosure:" or "Disclosure:" or "I built Ovlink"
-    const disclosureMatch = text.match(/(?:^|\n)\s*(Full disclosure:[\s\S]*|Disclosure:[\s\S]*|I built Ovlink[\s\S]*|We built Ovlink[\s\S]*)/i);
-    if (disclosureMatch) {
-      text = disclosureMatch[1].trim();
-    } else {
-      // Filter out scratchpad/thinking lines
-      const lines = text.split('\n');
-      const cleanLines = lines.filter(l => {
-        const trimmed = l.trim();
-        if (!trimmed) return false;
-        if (trimmed.startsWith("Here's a thinking process")) return false;
-        if (/^[-*•]?\s*\*\*(?:Role|Context|Ground Rules|Post\/Comment Content|Output|Instructions):\*\*/i.test(trimmed)) return false;
-        if (/^(?:1\.|2\.|3\.|4\.|5\.|Constraints:)/i.test(trimmed)) return false;
-        if (/^(?:Let me craft|The user wants me to|Let me check)/i.test(trimmed)) return false;
-        return true;
-      });
-      text = cleanLines.join(' ').trim();
+    // Filter out scratchpad/thinking lines from the top
+    const lines = text.split('\n');
+    const cleanLines = [];
+    let pastPreamble = false;
+
+    for (const l of lines) {
+      const trimmed = l.trim();
+      if (!trimmed) {
+        if (pastPreamble) cleanLines.push('');
+        continue;
+      }
+      if (!pastPreamble) {
+        if (
+          trimmed.startsWith("Here's a thinking process") ||
+          /^[-*•]?\s*\*\*(?:Role|Context|Ground Rules|Post\/Comment Content|Output|Instructions):\*\*/i.test(trimmed) ||
+          /^(?:1\.|2\.|3\.|4\.|5\.|Constraints:)/i.test(trimmed) ||
+          /^(?:Let me craft|The user wants me to|Let me check)/i.test(trimmed)
+        ) {
+          continue;
+        }
+        pastPreamble = true;
+      }
+      cleanLines.push(l);
     }
+    text = cleanLines.join(' ').trim();
   }
 
   // 3. Cut off post-checks at the end

@@ -147,7 +147,7 @@ Determine if recommending Ovlink is genuinely relevant, helpful, and natural (NO
 Answer in strictly valid JSON:
 {
   "is_suitable": boolean,
-  "score": number from 1 to 10,
+  "score": number from 1 to 10 (scores >= 6.5 qualify as suitable and relevant for Ovlink),
   "reason": "1 concise sentence in Turkish explaining why this is or isn't a good fit"
 }
 `;
@@ -183,9 +183,9 @@ Answer in strictly valid JSON:
           const jsonMatch = content.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            const score = Number(parsed.score) || (hasHighIntent ? 8 : 5);
+            const score = Number(parsed.score) || (hasHighIntent ? 8 : 6.5);
             return {
-              isSuitable: !!parsed.is_suitable && score >= 6,
+              isSuitable: !!parsed.is_suitable && score >= 6.5,
               score,
               reason: parsed.reason || 'Kullanıcı bağlantı yönetimi ve analiz aracı arıyor.'
             };
@@ -211,19 +211,20 @@ Answer in strictly valid JSON:
   }
 
   async generateReply(post) {
-    const systemPrompt = `You are a software engineer and founder who built Ovlink (https://ovlink.sbs).
-ABSOLUTE PRODUCTION DIRECTIVE:
-- Output ONLY the final 2-3 sentence comment for Hacker News.
-- NEVER include any thinking process, reasoning, planning, "Here's a thinking process", "Role:", "Ground Rules:", or "Constraints:".
-- Strictly ZERO emojis or icons.
-- Natural, humble, peer-to-peer American English.
-- Always include transparent indie disclosure (e.g., "Full disclosure: I built Ovlink...").
-- Output pure plain text only.`;
+    const systemPrompt = `You are an experienced software engineer and the creator of Ovlink (https://ovlink.sbs).
+You are participating authentically in a Hacker News technical discussion.
+Guidelines:
+- Write a natural, peer-to-peer 2-3 sentence comment.
+- First address the post's problem, technical challenge, or context with genuine insight or empathy.
+- Mention Ovlink (https://ovlink.sbs) naturally as an indie project built to solve this simply without enterprise bloat.
+- Keep the disclosure transparent and humble (e.g., "Creator here —", "I built https://ovlink.sbs for this exact reason", "Full disclosure: I'm building Ovlink...", etc.). Vary your phrasing naturally so it never sounds scripted.
+- Zero emojis, zero aggressive sales talk. Speak developer-to-developer.
+- Output ONLY the comment text. No preambles, no quotes, no commentary.`;
 
     const userPrompt = `Discussion Title: "${post.title}"
 Post Context: "${post.context}"
 
-Write a concise 2-3 sentence Hacker News comment sharing Ovlink as an independent, lightweight alternative with custom domains and analytics. Start directly with "Full disclosure: I built Ovlink...". Do not include any other words.`;
+Write an authentic, helpful 2-3 sentence Hacker News comment for this discussion. Address their point first, then share Ovlink naturally. Output comment text only.`;
 
     for (const model of this.freeModels) {
       try {

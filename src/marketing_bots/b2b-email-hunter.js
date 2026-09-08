@@ -157,7 +157,7 @@ Determine if this lead is a strong fit for Ovlink and why.
 Respond in valid JSON only:
 {
   "is_suitable": boolean,
-  "score": number from 1 to 10,
+  "score": number from 1 to 10 (scores >= 6.5 qualify as suitable prospects for Ovlink),
   "reason": "1-sentence concise explanation in Turkish of why Ovlink is suitable for this company"
 }
 `;
@@ -193,9 +193,10 @@ Respond in valid JSON only:
           const jsonMatch = content.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
+            const score = Number(parsed.score) || 8;
             return {
-              isSuitable: parsed.is_suitable !== false,
-              score: Number(parsed.score) || 9,
+              isSuitable: parsed.is_suitable !== false && score >= 6.5,
+              score,
               reason: parsed.reason || 'Pazarlama kampanyaları ve özel alan adı yönlendirmesi için uygun aday.'
             };
           }
@@ -206,21 +207,24 @@ Respond in valid JSON only:
 
     return {
       isSuitable: true,
-      score: 9,
+      score: 8,
       reason: `${lead.company} kampanyalarında link trafiği ve özel domain yönetimi için doğrudan tasarruf sağlar.`
     };
   }
 
   async generateEmail(lead) {
-    const systemPrompt = `You are an executive cold email copywriter for Ovlink (https://ovlink.sbs).
-ABSOLUTE PRODUCTION DIRECTIVE:
+    const systemPrompt = `You are the founder of Ovlink (https://ovlink.sbs).
+You write warm, natural, peer-to-peer cold emails to founders and operators.
+Guidelines:
 - Output ONLY the Subject line and the email body.
-- NEVER include thinking process, reasoning, planning, "Here's a thinking process", "The user wants me to", "Constraints:", or "Let me craft".
-- NEVER output sentence counts or post-generation analysis like "That's 3 sentences. Let me check:".
-- Strictly ZERO emojis or icons.
-- Maximum 3 to 4 sentences in natural, polite American English.
-- Format strictly as:
-Subject: [Short 3-5 word subject line]
+- Tone: Friendly, conversational, respectful, and zero-pressure. Never sound like a pushy corporate salesperson or aggressive SDR.
+- Avoid stiff clichés like "enterprise bloat", "10-minute walkthrough", or pushy calendar requests.
+- Tailor the 3-4 sentence message to their specific company and workflow context.
+- Present Ovlink as an independent, lightweight tool for branded custom domains and real-time click tracking that saves time and money.
+- End with a low-friction, zero-pressure invitation (e.g., "Thought I'd share in case it's helpful — worth a look, or all set for now?").
+- Strictly zero emojis.
+- Format:
+Subject: [Engaging, relevant 3-5 word subject line]
 
 [Email body]`;
 
@@ -230,7 +234,7 @@ Company: ${lead.company}
 Niche: ${lead.niche}
 Context: ${lead.context}
 
-Write a polite, 3-4 sentence cold email introducing Ovlink as a lightweight platform for custom domains and click analytics without enterprise bloat. Start with Subject: and then the email body.`;
+Write a natural, friendly, 3-4 sentence cold email to ${lead.name} introducing Ovlink. Keep it warm and zero-pressure. Start with Subject: and then the email body.`;
 
     for (const model of this.freeModels) {
       try {
