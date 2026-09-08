@@ -1002,6 +1002,93 @@ function createTelegramBot(db, options = {}) {
         }
         return;
       }
+
+      if (data.startsWith('reddit_copy:')) {
+        const postId = data.replace('reddit_copy:', '').trim();
+        try {
+          const { getPendingReddit } = require('../src/marketing_bots/pending-actions');
+          const pending = getPendingReddit(postId);
+          if (!pending || !pending.commentText) {
+            return answerCallbackQuery(callbackQueryId, 'Rəy mətni tapılmadı.');
+          }
+          await answerCallbackQuery(callbackQueryId, '📋 Rəy mətni hazırlandı!');
+          const copyMsg = `📋 <b>Kopyalamaq üçün hazır Reddit rəyi:</b>\n\n` +
+            `<code>${esc(pending.commentText)}</code>\n\n` +
+            `🔗 <i>Yuxarıdakı mətni kopyalayıb birbaşa aşağıdakı linkdən Reddit-də cavab yaza bilərsiniz:</i>`;
+          await sendMessage(message.chat.id, copyMsg, {
+            keyboard: [
+              [{ text: '💬 Redditdə Aç və Yapışdır', url: pending.url }]
+            ]
+          });
+        } catch (err) {
+          console.error('[telegram-bot] reddit_copy error:', err.message);
+          await answerCallbackQuery(callbackQueryId, 'Xəta baş verdi.');
+        }
+        return;
+      }
+
+      if (data.startsWith('reddit_skip:')) {
+        const postId = data.replace('reddit_skip:', '').trim();
+        try {
+          const { skipAction, getPendingReddit } = require('../src/marketing_bots/pending-actions');
+          const pending = getPendingReddit(postId);
+          skipAction('reddit', postId);
+          await answerCallbackQuery(callbackQueryId, '❌ Mövzu atlandı.');
+          const updatedText = `🟠 <b>[Reddit Müştəri Radarı] Mövzu Atlandı / İmtina Edildi</b>\n\n` +
+            `📍 <b>Subreddit:</b> r/${esc(pending?.subreddit || 'SaaS')}\n` +
+            `📌 <b>Mövzu:</b> "${esc(pending?.title || '')}"\n\n` +
+            `❌ <i>Bu mövzu keçildi və heç bir rəy yazılmadı.</i>`;
+          const keyboard = pending && pending.url ? [[{ text: '🔗 Redditdə Gör', url: pending.url }]] : [];
+          await editMessageText(message.chat.id, message.message_id, updatedText, { keyboard });
+        } catch (err) {
+          console.error('[telegram-bot] reddit_skip error:', err.message);
+          await answerCallbackQuery(callbackQueryId, 'Xəta baş verdi.');
+        }
+        return;
+      }
+
+      if (data.startsWith('reddit_rewrite:')) {
+        const postId = data.replace('reddit_rewrite:', '').trim();
+        try {
+          await answerCallbackQuery(callbackQueryId, '🔄 AI ilə rəy yenidən yazılır...');
+          const { rewriteRedditReply, getPendingReddit } = require('../src/marketing_bots/pending-actions');
+          const rewritten = await rewriteRedditReply(postId);
+          const pending = getPendingReddit(postId) || {};
+
+          const safeTitle = esc(pending.title || '');
+          const safeAuthor = esc(pending.author || 'reddit_user');
+          const safeSub = esc(pending.subreddit || 'SaaS');
+          const safeSnippet = esc(pending.context || '');
+          const safeReply = esc(rewritten.commentText || '');
+          const score = pending.suitabilityScore || 7;
+
+          const updatedText = `🟠 <b>[Reddit Müştəri Radarı] Yeni Rəy Hazırlandı (Yeniden Yazıldı)!</b>\n\n` +
+            `🔍 <b>Uyğunluq Analizi:</b> ${esc(pending.suitabilityReason || '')} (Skor: <b>${score}/10</b>)\n` +
+            `📍 <b>Subreddit:</b> r/${safeSub}\n` +
+            `👤 <b>Müəllif:</b> u/${safeAuthor}\n` +
+            `📌 <b>Mövzu:</b> "${safeTitle}"\n` +
+            `💬 <b>Mətn:</b>\n<i>${safeSnippet}</i>\n\n` +
+            `🤖 <b>Yeni Hazırlanan Rəy:</b>\n` +
+            `<blockquote>${safeReply}</blockquote>`;
+
+          const keyboard = [
+            [
+              { text: '💬 Redditdə Aç və Cavabla', url: pending.url },
+              { text: '📋 Rəy Mətnini Kopyala', callback_data: `reddit_copy:${postId}` }
+            ],
+            [
+              { text: '🔄 Yenidən Yaz', callback_data: `reddit_rewrite:${postId}` },
+              { text: '⏭️ Keç / İmtina', callback_data: `reddit_skip:${postId}` }
+            ]
+          ];
+
+          await editMessageText(message.chat.id, message.message_id, updatedText, { keyboard });
+        } catch (err) {
+          console.error('[telegram-bot] reddit_rewrite error:', err.message);
+          await answerCallbackQuery(callbackQueryId, 'Xəta: ' + err.message.slice(0, 80), true);
+        }
+        return;
+      }
       return;
     }
 

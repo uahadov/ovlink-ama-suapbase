@@ -2,8 +2,9 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { sendTelegramAlert } = require('./telegram-notifier');
-const { storePendingHn } = require('./pending-actions');
+const { storePendingHn, storePendingReddit } = require('./pending-actions');
 const { cleanHtmlSnippet, escapeTelegramHtml, sanitizeAISocialReply } = require('./ai-sanitizer');
+const redditClient = require('./reddit-client');
 
 class SocialListenerBot {
   constructor() {
@@ -270,36 +271,87 @@ Write an authentic, helpful 2-3 sentence Hacker News comment for this discussion
     return 'Full disclosure: I built Ovlink (https://ovlink.sbs). If you need clean link tracking and custom domains without enterprise pricing tiers, it offers fast redirects and instant analytics.';
   }
 
+  async generateRedditReply(post) {
+    const subreddit = post.subreddit || 'SaaS';
+    const systemPrompt = `You are an indie software engineer and the creator of Ovlink (https://ovlink.sbs).
+You are replying to a real user in r/${subreddit} on Reddit.
+Reddit community culture rules:
+- Be authentic, conversational, humble, and helpful. Never sound like a corporate marketer, bot, or salesperson.
+- Directly answer their technical question, pain point, or discussion first (1-2 sentences).
+- If relevant, mention Ovlink (https://ovlink.sbs) naturally as an indie tool you built to solve this exact problem simply without enterprise pricing bloat.
+- Transparently state you built it (e.g., "Creator here —", "I built https://ovlink.sbs for this...", "Full disclosure: I'm the builder of Ovlink...").
+- Keep it concise (2-3 sentences max). Zero emojis. Output ONLY the comment text.`;
+
+    const userPrompt = `Subreddit: r/${subreddit}
+Post Title: "${post.title}"
+Context: "${post.context}"
+
+Write an authentic, helpful 2-3 sentence Reddit reply for this discussion. Address their point first, then share Ovlink naturally. Output comment text only.`;
+
+    for (const model of this.freeModels) {
+      try {
+        const sessionId = 'reddit_ses_' + Date.now();
+        const response = await fetch(this.apiUrl, {
+          method: 'POST',
+          signal: AbortSignal.timeout(7000),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`,
+            'x-session-id': sessionId,
+            'x-opencode-session': sessionId,
+            'x-opencode-client': 'cli',
+            'User-Agent': 'opencode/1.0.0'
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.6,
+            max_tokens: 600,
+            stream: false
+          })
+        });
+
+        if (!response.ok) continue;
+
+        const data = await response.json();
+        const rawContent = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        if (rawContent) {
+          const sanitized = sanitizeAISocialReply(rawContent);
+          if (sanitized) {
+            return sanitized;
+          }
+        }
+      } catch (err) {}
+    }
+
+    return `Creator here — I built Ovlink (https://ovlink.sbs) as an indie alternative specifically for clean custom domains and real-time analytics without steep enterprise pricing. Happy to answer any questions about it!`;
+  }
+
   async scanNetworks() {
     if (this.isRunning) return;
     this.isRunning = true;
 
     try {
-      console.log(`[Social Listener] Live radar active. Scanning Hacker News discussions...`);
-      const livePosts = await this.fetchLiveDiscussions();
+      // 1. Hacker News Scan
+      console.log('[Social Listener] Scanning Hacker News discussions...');
+      const liveHnPosts = await this.fetchLiveDiscussions();
 
-      if (livePosts.length === 0) {
-        console.log('[Social Listener] No new unread discussions found in this cycle.');
-        return;
-      }
+      let alertedInThisCycle = false;
 
-      console.log(`[Social Listener] Discovered ${livePosts.length} discussions. Analyzing suitability for Ovlink...`);
-
-      for (const post of livePosts) {
+      for (const post of liveHnPosts) {
         this.seenPostIds.add(post.id);
 
-        // Perform Suitability Analysis before disturbing user
         const suitability = await this.analyzeSuitability(post);
-        console.log(`[Social Listener] Item #${post.id} suitability: ${suitability.isSuitable} (Score: ${suitability.score}/10) - ${suitability.reason}`);
+        console.log(`[Social Listener] HN Item #${post.id} suitability: ${suitability.isSuitable} (Score: ${suitability.score}/10) - ${suitability.reason}`);
 
-        if (!suitability.isSuitable) {
-          continue;
-        }
+        if (!suitability.isSuitable) continue;
 
-        console.log(`[Social Listener] High-quality lead identified: "${post.title}". Generating reply...`);
+        console.log(`[Social Listener] Qualified HN lead identified: "${post.title}". Generating reply...`);
         const aiReply = await this.generateReply(post);
 
-        // Store pending action so Telegram callback button can execute comment
         storePendingHn(post.id, {
           title: post.title,
           author: post.author,
@@ -310,41 +362,99 @@ Write an authentic, helpful 2-3 sentence Hacker News comment for this discussion
           suitabilityReason: suitability.reason
         });
 
-        const safeSnippet = escapeTelegramHtml(post.context || 'Tartisma icerigi');
+        const safeSnippet = escapeTelegramHtml(post.context || 'Müzakirə məzmunu');
         const safeTitle = escapeTelegramHtml(post.title || '');
         const safeAuthor = escapeTelegramHtml(post.author || 'community_member');
         const safeReason = escapeTelegramHtml(suitability.reason || '');
         const safeReply = escapeTelegramHtml(aiReply || '');
 
-        const tgMsg = `🎯 <b>[Sosyal Müşteri Radarı] Canlı Fırsat Yakalandı!</b>\n\n` +
-          `🔍 <b>Uygunluk Analizi:</b> ${safeReason} (Skor: <b>${suitability.score}/10</b>)\n` +
-          `📍 <b>Platform:</b> ${post.platform}\n` +
-          `👤 <b>Kullanıcı:</b> @${safeAuthor}\n` +
-          `❓ <b>Konu:</b> "${safeTitle}"\n` +
-          `💬 <b>Gönderi / Yorum:</b>\n<i>${safeSnippet}</i>\n\n` +
-          `🤖 <b>Hazırlanan Yanıt:</b>\n` +
+        const tgMsg = `🎯 <b>[Hacker News Radarı] Canlı Fürsət Tapıldı!</b>\n\n` +
+          `🔍 <b>Uyğunluq Analizi:</b> ${safeReason} (Skor: <b>${suitability.score}/10</b>)\n` +
+          `📍 <b>Platforma:</b> Hacker News\n` +
+          `👤 <b>İstifadəçi:</b> @${safeAuthor}\n` +
+          `❓ <b>Mövzu:</b> "${safeTitle}"\n` +
+          `💬 <b>Göndəriş / Şərh:</b>\n<i>${safeSnippet}</i>\n\n` +
+          `🤖 <b>Hazırlanan Rəy:</b>\n` +
           `<blockquote>${safeReply}</blockquote>\n\n` +
-          `👉 <i>Aşağıdaki butona tıklayarak @exlr çerezleri ile yorumu <b>otomatik yayınlayabilir</b> veya iptal edebilirsiniz:</i>`;
+          `👉 <i>Aşağıdakı düymə ilə şərhi <b>avtomatik dərc edə</b> və ya ləğv edə bilərsiniz:</i>`;
 
         const keyboard = [
           [
-            { text: '🚀 Otomatik Yanıtla (HN)', callback_data: `hn_send:${post.id}` },
-            { text: '❌ Gönderme / İptal', callback_data: `hn_skip:${post.id}` }
+            { text: '🚀 Avtomatik Şərh Yaz (HN)', callback_data: `hn_send:${post.id}` },
+            { text: '❌ Göndərmə / Keç', callback_data: `hn_skip:${post.id}` }
           ],
           [
-            { text: '🔗 Gönderiyi Aç (Hacker News)', url: post.url }
+            { text: '🔗 Mövzunu Aç (Hacker News)', url: post.url }
           ]
         ];
 
         await sendTelegramAlert(tgMsg, { keyboard });
         this.saveSeenPosts();
-        console.log(`[Social Listener] Alert dispatched for qualified item #${post.id}`);
-
-        // Limit to 1 notification per cycle to prevent noise
+        alertedInThisCycle = true;
         break;
       }
-
       this.saveSeenPosts();
+
+      // 2. Reddit Scan (if not already alerted to prevent noise)
+      if (!alertedInThisCycle) {
+        console.log('[Social Listener] Scanning Reddit discussions...');
+        const liveRedditPosts = await redditClient.fetchLiveDiscussions();
+
+        for (const post of liveRedditPosts) {
+          redditClient.seenPostIds.add(post.id);
+
+          const suitability = await this.analyzeSuitability(post);
+          console.log(`[Social Listener] Reddit Item #${post.id} suitability: ${suitability.isSuitable} (Score: ${suitability.score}/10) - ${suitability.reason}`);
+
+          if (!suitability.isSuitable) continue;
+
+          console.log(`[Social Listener] Qualified Reddit lead identified: "${post.title}". Generating reply...`);
+          const aiReply = await this.generateRedditReply(post);
+
+          storePendingReddit(post.id, {
+            subreddit: post.subreddit,
+            title: post.title,
+            author: post.author,
+            context: post.context,
+            url: post.url,
+            commentText: aiReply,
+            suitabilityScore: suitability.score,
+            suitabilityReason: suitability.reason
+          });
+
+          const safeSnippet = escapeTelegramHtml(post.context || 'Müzakirə məzmunu');
+          const safeTitle = escapeTelegramHtml(post.title || '');
+          const safeAuthor = escapeTelegramHtml(post.author || 'reddit_user');
+          const safeReason = escapeTelegramHtml(suitability.reason || '');
+          const safeReply = escapeTelegramHtml(aiReply || '');
+
+          const tgMsg = `🟠 <b>[Reddit Müştəri Radarı] Canlı Fürsət Tapıldı!</b>\n\n` +
+            `🔍 <b>Uyğunluq Analizi:</b> ${safeReason} (Skor: <b>${suitability.score}/10</b>)\n` +
+            `📍 <b>Subreddit:</b> r/${escapeTelegramHtml(post.subreddit || 'SaaS')}\n` +
+            `👤 <b>Müəllif:</b> u/${safeAuthor}\n` +
+            `📌 <b>Mövzu:</b> "${safeTitle}"\n` +
+            `💬 <b>Mətn:</b>\n<i>${safeSnippet}</i>\n\n` +
+            `🤖 <b>Hazırlanan Rəy (Birbaşa kopyalayıb yapışdıra bilərsiniz):</b>\n` +
+            `<blockquote>${safeReply}</blockquote>`;
+
+          const keyboard = [
+            [
+              { text: '💬 Redditdə Aç və Cavabla', url: post.url },
+              { text: '📋 Rəy Mətnini Kopyala', callback_data: `reddit_copy:${post.id}` }
+            ],
+            [
+              { text: '🔄 Yenidən Yaz', callback_data: `reddit_rewrite:${post.id}` },
+              { text: '⏭️ Keç / İmtina', callback_data: `reddit_skip:${post.id}` }
+            ]
+          ];
+
+          await sendTelegramAlert(tgMsg, { keyboard });
+          redditClient.saveSeenPosts();
+          alertedInThisCycle = true;
+          break;
+        }
+        redditClient.saveSeenPosts();
+      }
     } catch (error) {
       console.error('[Social Listener] Error scanning networks:', error.message);
     } finally {

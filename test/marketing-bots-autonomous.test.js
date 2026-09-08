@@ -654,6 +654,34 @@ test('email: B2B cold email sender configuration and status', async () => {
   assert.strictEqual(status.user, process.env.B2B_SMTP_USER || 'support@ovlink.sbs');
 });
 
+test('reddit-client and pending-actions: stores, retrieves, and skips reddit items', async () => {
+  const { storePendingReddit, getPendingReddit, skipAction } = require('../src/marketing_bots/pending-actions');
+
+  const testId = 'test_reddit_' + Date.now();
+  storePendingReddit(testId, {
+    subreddit: 'SaaS',
+    title: 'Looking for a clean Bitly alternative',
+    author: 'tech_founder',
+    context: 'Need custom domain support without enterprise price jumps',
+    url: 'https://reddit.com/r/SaaS/comments/test1',
+    commentText: 'Creator here — I built Ovlink...',
+    suitabilityScore: 8.5,
+    suitabilityReason: 'Direct match for custom domain URL shortener'
+  });
+
+  const pending = getPendingReddit(testId);
+  assert.ok(pending);
+  assert.strictEqual(pending.platform, 'Reddit');
+  assert.strictEqual(pending.subreddit, 'SaaS');
+  assert.strictEqual(pending.status, 'pending');
+  assert.strictEqual(pending.suitabilityScore, 8.5);
+
+  skipAction('reddit', testId);
+  const skipped = getPendingReddit(testId);
+  assert.strictEqual(skipped.status, 'skipped');
+});
+
+
 
 
 

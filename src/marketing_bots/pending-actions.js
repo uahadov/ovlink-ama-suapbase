@@ -26,11 +26,12 @@ function loadActions() {
     if (parsed && typeof parsed === 'object') {
       if (!parsed.hn || typeof parsed.hn !== 'object') parsed.hn = {};
       if (!parsed.mail || typeof parsed.mail !== 'object') parsed.mail = {};
+      if (!parsed.reddit || typeof parsed.reddit !== 'object') parsed.reddit = {};
       return parsed;
     }
   } catch (e) {
   }
-  return { hn: {}, mail: {} };
+  return { hn: {}, mail: {}, reddit: {} };
 }
 
 function saveActions(data) {
@@ -40,7 +41,7 @@ function saveActions(data) {
 
     // Prune entries to keep most recent 200 to prevent unbounded disk/memory growth
     if (data && typeof data === 'object') {
-      for (const type of ['hn', 'mail']) {
+      for (const type of ['hn', 'mail', 'reddit']) {
         const entries = Object.entries(data[type] || {});
         if (entries.length > 200) {
           data[type] = Object.fromEntries(entries.slice(-200));
@@ -99,6 +100,52 @@ function getPendingHn(postId) {
 function getPendingMail(leadId) {
   const actions = loadActions();
   return actions.mail[String(leadId)] || null;
+}
+
+function storePendingReddit(postId, data) {
+  const actions = loadActions();
+  actions.reddit[String(postId)] = {
+    postId: String(postId),
+    platform: 'Reddit',
+    subreddit: data.subreddit || 'SaaS',
+    title: data.title || '',
+    author: data.author || '',
+    context: data.context || '',
+    url: data.url || 'https://reddit.com',
+    commentText: data.commentText || '',
+    suitabilityScore: data.suitabilityScore || 0,
+    suitabilityReason: data.suitabilityReason || '',
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+  saveActions(actions);
+}
+
+function getPendingReddit(postId) {
+  const actions = loadActions();
+  return actions.reddit[String(postId)] || null;
+}
+
+async function rewriteRedditReply(postId) {
+  const actions = loadActions();
+  const item = actions.reddit[String(postId)];
+  if (!item) {
+    throw new Error('Reddit gönderisi hafızada bulunamadı veya süresi doldu.');
+  }
+  const listener = require('./social-listener');
+  const post = {
+    id: item.postId,
+    title: item.title,
+    author: item.author,
+    context: item.context,
+    url: item.url,
+    subreddit: item.subreddit
+  };
+  const newComment = await listener.generateRedditReply(post);
+  item.commentText = newComment;
+  item.lastRewrittenAt = new Date().toISOString();
+  saveActions(actions);
+  return { commentText: newComment, item };
 }
 
 async function rewriteB2BMail(leadId) {
@@ -215,16 +262,23 @@ function skipAction(type, id) {
         }
       }
     } catch {}
+  } else if (type === 'reddit' && actions.reddit[String(id)]) {
+    actions.reddit[String(id)].status = 'skipped';
+    actions.reddit[String(id)].skippedAt = new Date().toISOString();
+    saveActions(actions);
   }
 }
 
 module.exports = {
   storePendingHn,
   storePendingMail,
+  storePendingReddit,
   getPendingHn,
   getPendingMail,
+  getPendingReddit,
   executeHnComment,
   executeB2BMail,
   rewriteB2BMail,
+  rewriteRedditReply,
   skipAction
 };
