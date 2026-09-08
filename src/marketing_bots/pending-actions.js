@@ -269,6 +269,25 @@ function skipAction(type, id) {
   }
 }
 
+async function executeRedditComment(postId) {
+  const actions = loadActions();
+  const item = actions.reddit[String(postId)];
+  if (!item) {
+    throw new Error('Reddit rəyi yaddaşda tapılmadı.');
+  }
+  if (item.status === 'posted') {
+    throw new Error('Bu Reddit rəyi artıq əvvəlcədən göndərilib.');
+  }
+
+  const redditBrowser = require('./reddit-browser');
+  const result = await redditBrowser.postComment(item.url, item.commentText);
+  item.status = 'posted';
+  item.postedAt = new Date().toISOString();
+  saveActions(actions);
+
+  return result;
+}
+
 module.exports = {
   storePendingHn,
   storePendingMail,
@@ -278,6 +297,7 @@ module.exports = {
   getPendingReddit,
   executeHnComment,
   executeB2BMail,
+  executeRedditComment,
   rewriteB2BMail,
   rewriteRedditReply,
   skipAction

@@ -681,6 +681,18 @@ test('reddit-client and pending-actions: stores, retrieves, and skips reddit ite
   assert.strictEqual(skipped.status, 'skipped');
 });
 
+test('reddit-browser: enforces daily limit of 5 comments per day', () => {
+  const redditBrowser = require('../src/marketing_bots/reddit-browser');
+  const status = redditBrowser.getDailyStatus();
+
+  assert.strictEqual(typeof status.date, 'string');
+  assert.strictEqual(typeof status.count, 'number');
+  assert.strictEqual(status.maxPerDay, 5);
+  assert.strictEqual(typeof status.remaining, 'number');
+  assert.strictEqual(typeof status.canPost, 'boolean');
+  assert.ok(status.remaining <= 5);
+});
+
 
 
 

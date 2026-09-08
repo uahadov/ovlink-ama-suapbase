@@ -796,6 +796,18 @@ function createTelegramBot(db, options = {}) {
     return sendMessage(chat.id, text);
   }
 
+  async function handleRedditLimit(chat) {
+    const redditBrowser = require('../src/marketing_bots/reddit-browser');
+    const status = redditBrowser.getDailyStatus();
+    const text = `🟠 <b>Reddit Gündəlik Limit Statusu:</b>\n\n` +
+      `📅 <b>Tarix:</b> ${status.date}\n` +
+      `📤 <b>Paylaşılan Rəy:</b> <b>${status.count} / ${status.maxPerDay}</b>\n` +
+      `⏳ <b>Qalan Kvota:</b> <b>${status.remaining}</b>\n` +
+      `🛡️ <b>Vəziyyət:</b> ${status.canPost ? '🟢 Paylaşım Aktivdir' : '🔴 Gündəlik Limit Dolub'}\n\n` +
+      `ℹ️ <i>Reddit anti-spam və ban qorunması məqsədilə gündəlik maksimum 5 rəy limiti təyin edilmişdir.</i>`;
+    return sendMessage(chat.id, text);
+  }
+
   async function processUpdate(update) {
     if (update.callback_query) {
       const callbackQueryId = update.callback_query.id;
@@ -1003,6 +1015,34 @@ function createTelegramBot(db, options = {}) {
         return;
       }
 
+      if (data.startsWith('reddit_post:')) {
+        const postId = data.replace('reddit_post:', '').trim();
+        try {
+          const { executeRedditComment, getPendingReddit } = require('../src/marketing_bots/pending-actions');
+          const pending = getPendingReddit(postId);
+          if (!pending || !pending.commentText) {
+            return answerCallbackQuery(callbackQueryId, 'Rəy mətni tapılmadı.');
+          }
+
+          await answerCallbackQuery(callbackQueryId, '🚀 Rəy Chrome ilə Reddit-ə avtomatik göndərilir...');
+          const result = await executeRedditComment(postId);
+
+          const targetUrl = (pending && pending.url && pending.url.startsWith('http')) ? pending.url : 'https://reddit.com';
+          const updatedText = `✅ <b>[Reddit Radarı] Rəy Uğurla Paylaşıldı!</b>\n\n` +
+            `📍 <b>Subreddit:</b> r/${esc(pending.subreddit || 'SaaS')}\n` +
+            `📌 <b>Mövzu:</b> "${esc(pending.title || '')}"\n` +
+            `📊 <b>Gündəlik Limit:</b> <b>${result.postedToday} / ${result.maxPerDay}</b> (Qalan: <b>${result.remainingToday}</b>)\n\n` +
+            `🤖 <b>Paylaşılan Rəy:</b>\n<blockquote>${esc(pending.commentText)}</blockquote>`;
+
+          const keyboard = [[{ text: '🔗 Redditdə Rəyi Gör', url: targetUrl }]];
+          await editMessageText(message.chat.id, message.message_id, updatedText, { keyboard });
+        } catch (err) {
+          console.error('[telegram-bot] reddit_post error:', err.message);
+          await answerCallbackQuery(callbackQueryId, '❌ Xəta: ' + err.message.slice(0, 100), true);
+        }
+        return;
+      }
+
       if (data.startsWith('reddit_copy:')) {
         const postId = data.replace('reddit_copy:', '').trim();
         try {
@@ -1074,13 +1114,22 @@ function createTelegramBot(db, options = {}) {
             `🤖 <b>Yeni Hazırlanan Rəy:</b>\n` +
             `<blockquote>${safeReply}</blockquote>`;
 
+          const redditBrowser = require('../src/marketing_bots/reddit-browser');
+          const dailyStatus = redditBrowser.getDailyStatus();
+          const postBtnText = dailyStatus.canPost
+            ? `🚀 Reddit-də Paylaş (${dailyStatus.count}/${dailyStatus.maxPerDay})`
+            : `🔒 Limit Doldu (${dailyStatus.count}/${dailyStatus.maxPerDay})`;
+
           const keyboard = [
             [
-              { text: '💬 Redditdə Aç və Cavabla', url: targetUrl },
-              { text: '📋 Rəy Mətnini Kopyala', callback_data: `reddit_copy:${postId}` }
+              { text: postBtnText, callback_data: `reddit_post:${postId}` },
+              { text: '💬 Redditdə Aç', url: targetUrl }
             ],
             [
-              { text: '🔄 Yenidən Yaz', callback_data: `reddit_rewrite:${postId}` },
+              { text: '📋 Rəy Mətnini Kopyala', callback_data: `reddit_copy:${postId}` },
+              { text: '🔄 Yenidən Yaz', callback_data: `reddit_rewrite:${postId}` }
+            ],
+            [
               { text: '⏭️ Keç / İmtina', callback_data: `reddit_skip:${postId}` }
             ]
           ];
@@ -1127,6 +1176,8 @@ function createTelegramBot(db, options = {}) {
       case '/support_pass':
       case '/b2b_pass': return handleB2BPass(chat, { text, messageId: message.message_id });
       case '/b2b_status': return handleB2BStatus(chat);
+      case '/reddit_limit':
+      case '/reddit_quota': return handleRedditLimit(chat);
       default: return handlePlainUrl(chat, { text, messageId: message.message_id });
     }
   }

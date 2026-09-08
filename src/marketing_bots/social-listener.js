@@ -437,13 +437,22 @@ Write an authentic, helpful 2-3 sentence Reddit reply for this discussion. Addre
             `🤖 <b>Hazırlanan Rəy (Birbaşa kopyalayıb yapışdıra bilərsiniz):</b>\n` +
             `<blockquote>${safeReply}</blockquote>`;
 
+          const redditBrowser = require('./reddit-browser');
+          const dailyStatus = redditBrowser.getDailyStatus();
+          const postBtnText = dailyStatus.canPost
+            ? `🚀 Reddit-də Paylaş (${dailyStatus.count}/${dailyStatus.maxPerDay})`
+            : `🔒 Limit Doldu (${dailyStatus.count}/${dailyStatus.maxPerDay})`;
+
           const keyboard = [
             [
-              { text: '💬 Redditdə Aç və Cavabla', url: post.url },
-              { text: '📋 Rəy Mətnini Kopyala', callback_data: `reddit_copy:${post.id}` }
+              { text: postBtnText, callback_data: `reddit_post:${post.id}` },
+              { text: '💬 Redditdə Aç', url: post.url }
             ],
             [
-              { text: '🔄 Yenidən Yaz', callback_data: `reddit_rewrite:${post.id}` },
+              { text: '📋 Rəy Mətnini Kopyala', callback_data: `reddit_copy:${post.id}` },
+              { text: '🔄 Yenidən Yaz', callback_data: `reddit_rewrite:${post.id}` }
+            ],
+            [
               { text: '⏭️ Keç / İmtina', callback_data: `reddit_skip:${post.id}` }
             ]
           ];
