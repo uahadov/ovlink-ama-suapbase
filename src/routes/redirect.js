@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
+const tsscmp = require('tsscmp');
 
 const { db } = require('../db/index');
 const { dbGetAsync, dbRunAsync } = require('../db/helpers');
@@ -25,7 +26,6 @@ const {
 } = require('../lib/consent');
 const { getRequestGeoMeta } = require('../lib/geo');
 const { createUserNotification } = require('../lib/notifications');
-const { enqueueWebhookEventForUser } = require('../lib/webhook');
 const { sensitiveActionLimiter } = require('../middleware/rate-limiter');
 const { getRequestHostName, getShortHostAccess } = require('../lib/custom-domain');
 const { normalizeLang, pickLang } = require('../lib/i18n');
@@ -60,7 +60,10 @@ async function hashLinkPassword(plain) {
 }
 
 async function verifyLinkPassword(hashed, plain) {
-  if (!hashed) return false;
+  if (!hashed || !plain) return false;
+  if (!isBcryptHash(hashed)) {
+    return tsscmp(String(plain), String(hashed));
+  }
   return bcryptCompare(plain, hashed);
 }
 
@@ -180,43 +183,49 @@ function handleRedirection(req, res, row, passwordVerified = false) {
     return res.status(410).render('error-expired', { csrfToken: res.locals._csrf });
   }
 
-  // 2. Maksimum Klik Kontrolü
-  db.get('SELECT COUNT(*) as count FROM clicks WHERE url_id = ?', [row.id], (err, result) => {
-    if (result && row.max_clicks && result.count >= row.max_clicks) {
-      if (row.user_id) {
-        createUserNotification(db, row.user_id, 'limit', {
-          titleAz: 'Klik limiti doldu',
-          titleTr: 'Tıklama limiti doldu',
-          titleEn: 'Click limit reached',
-          bodyAz: `Qısa link: ${row.short}. Maksimum klik limiti bitdi.`,
-          bodyTr: `Kısa link: ${row.short}. Maksimum tıklama limiti doldu.`,
-          bodyEn: `Short link: ${row.short}. Maximum click limit reached.`,
-          linkShort: row.short,
-          eventKey: `limit_${row.short}`,
-        });
-      }
-      return res.status(410).render('error-max-clicks', { csrfToken: res.locals._csrf });
-    }
-
+  const proceedRedirect = () => {
     // 3. Şifrə Kontrolü
     if (row.link_password && !passwordVerified) {
       return res.redirect(`/proceed/${encodeURIComponent(short)}`);
     }
 
-    // 4. Abuse / Təhlükə Xəbərdarlığı Kontrolü
-    if (row.abuse_score >= 4 && !req.query.confirm) {
+    // 4. Abuse / Təhlükə Xəbərdarlığı Kontrolü (dangerous = 1 və ya şikayət sayı >= 4)
+    if ((row.dangerous == 1 || (row.reports && row.reports >= 4)) && !req.query.confirm) {
       return res.render('error-warning', { csrfToken: res.locals._csrf, short });
     }
-
 
     // 5. Tracking (Klik qeydiyyatı)
     recordClickEvent(req, row, consentMode);
 
-    // 6. Final Yönlendirmə (Cihaz Hedefleme ve A/B Testi)
+    // 6. Final Yönləndirmə (Cihaz Hədəfləmə və A/B Testi)
     const targetUrl = resolveFinalRedirectUrl(req, row);
     if (!targetUrl) return send404(res);
-    res.redirect(targetUrl);
-  });
+    return res.redirect(targetUrl);
+  };
+
+  // 2. Maksimum Klik Kontrolü (yalnız limit qoyulubsa DB sorğusu atılır)
+  if (row.max_clicks && Number(row.max_clicks) > 0) {
+    db.get('SELECT COUNT(*) as count FROM clicks WHERE url_id = ?', [row.id], (err, result) => {
+      if (result && result.count >= Number(row.max_clicks)) {
+        if (row.user_id) {
+          createUserNotification(db, row.user_id, 'limit', {
+            titleAz: 'Klik limiti doldu',
+            titleTr: 'Tıklama limiti doldu',
+            titleEn: 'Click limit reached',
+            bodyAz: `Qısa link: ${row.short}. Maksimum klik limiti bitdi.`,
+            bodyTr: `Kısa link: ${row.short}. Maksimum tıklama limiti doldu.`,
+            bodyEn: `Short link: ${row.short}. Maximum click limit reached.`,
+            linkShort: row.short,
+            eventKey: `limit_${row.short}`,
+          });
+        }
+        return res.status(410).render('error-max-clicks', { csrfToken: res.locals._csrf });
+      }
+      return proceedRedirect();
+    });
+  } else {
+    return proceedRedirect();
+  }
 }
 
 router.get('/consent/redirect/:short', (req, res) => {

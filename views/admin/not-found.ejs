@@ -1,13 +1,28 @@
 <%- include('partials/layout-top', {
-  title: 'Admin · Not Found',
-  heading: 'Not Found',
-  subtitle: 'The requested admin page does not exist.',
+  title: 'Admin · Not Found (404)',
+  heading: 'Page Not Found',
+  subtitle: 'The requested administrative resource or endpoint does not exist',
   active: 'home',
   admin,
   csrfToken,
   topRightHtml: null,
 }) %>
 
-<div class="alert">404 · Page not found</div>
+<div class="m-card" style="max-width: 520px; margin: 40px auto; text-align: center; padding: 48px 28px;">
+  <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--c-border); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--c-muted); margin: 0 auto 18px;">
+    <i class="fa-solid fa-compass-drafting"></i>
+  </div>
+  <h2 style="font-size: 22px; font-weight: 800; color: var(--c-white); margin: 0 0 8px; letter-spacing: -0.02em;">404 · Resource Not Found</h2>
+  <p style="color: var(--c-muted); font-size: 13.5px; line-height: 1.6; margin: 0 0 28px;">
+    The requested short link, user profile, or console route could not be located in the database ledger.
+  </p>
+  <div class="row" style="justify-content: center; gap: 12px;">
+    <a class="m-cta m-cta--white" href="/admin/reports">
+      <i class="fa-solid fa-arrow-left"></i>
+      <span>Return to Console</span>
+    </a>
+    <a class="m-cta m-cta--outline" href="/admin/links">All Links</a>
+  </div>
+</div>
 
 <%- include('partials/layout-bottom') %>

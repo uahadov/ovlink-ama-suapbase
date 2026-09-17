@@ -31,12 +31,14 @@ const transporter = nodemailer.createTransport({
   connectionTimeout: 10000,
 });
 
+const testRecipient = process.argv[2] || process.env.TEST_EMAIL_TO || 'qorxusuzqorxaq@gmail.com';
+
 async function sendTestEmail() {
     try {
-        console.log('\nEmail gonderiliyor...\n');
+        console.log(`\nEmail gönderiliyor -> ${testRecipient}...\n`);
         const result = await transporter.sendMail({
             from: process.env.FROM_EMAIL,
-            to: 'qorxusuzqorxaq@gmail.com',
+            to: testRecipient,
             subject: 'Ovlink Test Email - Verification Code: 123456',
             text: 'Test mesaj - Dogrulama Kodu: 123456',
             html: `

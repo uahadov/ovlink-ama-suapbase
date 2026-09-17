@@ -95,7 +95,10 @@ async function verifyCustomDomainDns(domain, verificationToken) {
   const token = sanitizeDnsTxtValue(verificationToken);
 
   const txtValues = await resolveTxtValues(txtHost);
-  const ownershipVerified = !!token && txtValues.some((v) => tsscmp(v, token));
+  const ownershipVerified = !!token && txtValues.some((v) => {
+    if (typeof v !== 'string') return false;
+    return tsscmp(v, token) || tsscmp(v, `ovlink-verify=${token}`);
+  });
 
   const cnameValues = await resolveCnameValues(domain);
   const domainAddresses = await resolveAddressValues(domain);

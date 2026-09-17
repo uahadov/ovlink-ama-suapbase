@@ -1,50 +1,84 @@
 <%- include('partials/layout-top', {
-  title: 'Admin · Billing Events',
-  heading: 'Billing Events',
-  subtitle: 'Polar webhook history with processing outcomes',
+  title: 'Admin · Billing Webhooks',
+  heading: 'Billing & Polar Events',
+  subtitle: 'Inbound Polar webhook telemetry, subscription lifecycle events, and checkout outcomes',
   active: 'billing',
   admin,
   csrfToken,
   topRightHtml: null,
 }) %>
 
-<div class="card">
-  <% if (error) { %>
-    <div class="alert"><%= error %></div>
-  <% } %>
+<% if (error) { %>
+  <div class="alert alert--danger" style="margin-bottom: 20px;">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span><%= error %></span>
+  </div>
+<% } %>
+
+<div class="m-card" style="padding: 0; overflow: hidden;">
+  <div class="m-dash-panel-header" style="padding: 20px 24px; border-bottom: 1px solid var(--c-border); margin-bottom: 0;">
+    <h3 class="m-dash-panel-title">
+      <i class="fa-solid fa-receipt" style="color: var(--c-muted);"></i>
+      <span>Polar Inbound Webhook Ledger</span>
+    </h3>
+    <span class="badge"><%= (rows && rows.length) || 0 %> Logged Events</span>
+  </div>
+
   <% if (!rows || rows.length === 0) { %>
-    <div class="alert">No billing events yet. Events appear here once Polar webhooks are received.</div>
+    <div style="text-align: center; padding: 48px 20px; color: var(--c-faint);">
+      <div style="font-size: 14px; font-weight: 500;">No billing events recorded yet.</div>
+      <div style="font-size: 12.5px; color: var(--c-muted); margin-top: 4px;">Webhook payloads will stream here once subscription or checkout events arrive from Polar.</div>
+    </div>
   <% } else { %>
-    <div class="table-wrap">
-      <table class="table">
+    <div class="m-table-wrap" style="border: none; border-radius: 0;">
+      <table class="m-table">
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Event</th>
-            <th>Webhook ID</th>
-            <th>Product</th>
-            <th>User</th>
+            <th>Event Timestamp</th>
+            <th>Event Type</th>
+            <th>Webhook Ref</th>
+            <th>Product ID</th>
+            <th>Target User</th>
             <th>Outcome</th>
-            <th>Detail</th>
+            <th>Payload Details</th>
           </tr>
         </thead>
         <tbody>
           <% rows.forEach((r) => { %>
             <tr>
-              <td><%= r.created_at ? new Date(r.created_at).toLocaleString() : '-' %></td>
-              <td><span class="kbd"><%= r.event_type || '-' %></span></td>
-              <td><div class="cell-url"><%= r.webhook_id || '-' %></div></td>
-              <td><div class="cell-url"><%= r.product_id || '-' %></div></td>
+              <td style="white-space: nowrap; font-size: 12px; color: var(--c-muted); font-family: var(--font-mono);">
+                <%= r.created_at ? new Date(r.created_at).toLocaleString() : '-' %>
+              </td>
+              <td>
+                <span class="kbd"><%= r.event_type || '-' %></span>
+              </td>
+              <td>
+                <span class="kbd" style="font-size: 11px; opacity: 0.85;"><%= (r.webhook_id || '-').slice(0, 18) %></span>
+              </td>
+              <td>
+                <span style="font-size: 12px; font-family: var(--font-mono); color: var(--c-muted);"><%= r.product_id || '-' %></span>
+              </td>
               <td>
                 <% if (r.user_id) { %>
-                  <a href="/admin/site-users/<%= r.user_id %>">#<%= r.user_id %></a>
-                <% } else { %>-<% } %>
+                  <a class="badge" href="/admin/site-users/<%= r.user_id %>" style="color: var(--c-white);">
+                    <i class="fa-solid fa-user" style="font-size: 9px; margin-right: 4px;"></i>#<%= r.user_id %>
+                  </a>
+                <% } else { %>
+                  <span style="color: var(--c-faint); font-size: 12px;">None</span>
+                <% } %>
               </td>
               <td>
-                <% const ok = (r.outcome === 'activated' || r.outcome === 'revoked' || r.outcome === 'canceled'); %>
-                <span class="kbd <%= ok ? '' : 'muted' %>"><%= r.outcome %></span>
+                <% if (r.outcome === 'activated') { %>
+                  <span class="pill pill--ok"><i class="fa-solid fa-check" style="font-size: 10px;"></i> Activated</span>
+                <% } else if (r.outcome === 'revoked' || r.outcome === 'canceled') { %>
+                  <span class="pill pill--danger"><i class="fa-solid fa-xmark" style="font-size: 10px;"></i> <%= r.outcome %></span>
+                <% } else { %>
+                  <span class="pill"><%= r.outcome || 'processed' %></span>
+                <% } %>
               </td>
-              <td><div class="cell-url"><%= r.detail || '-' %></div></td>
+              <td>
+                <div class="cell-url" style="font-size: 12px; font-family: var(--font-mono);" title="<%= r.detail || '' %>"><%= r.detail || '-' %></div>
+              </td>
             </tr>
           <% }) %>
         </tbody>

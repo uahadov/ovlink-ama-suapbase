@@ -1,24 +1,240 @@
 <!doctype html>
-<html lang="en">
+<html lang="<%= (typeof defaultLang !== 'undefined' && defaultLang) ? defaultLang : 'az' %>">
 
 <head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="icon" href="/favicon.ico?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="apple-touch-icon" href="/logo.png?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= (typeof csrfToken !== 'undefined') ? csrfToken : '' %>">
-  <title data-i18n="error_max_clicks_title">Klik Limiti Doldu - Ovlink</title>
-  <link rel="icon" href="/logo.ico" />
+  <title data-i18n="error_max_clicks_title">Yönləndirmə Limiti Doldu - Ovlink</title>
+  <meta name="robots" content="noindex,nofollow" />
+  
   <link rel="manifest" href="/site.webmanifest" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
   <link rel="stylesheet" href="/home.css?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>" />
+
+  <style nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
+    /* ================================================================
+       OVLINK MONOLITH — MAX CLICKS REACHED GATEWAY (DESIGN.md STRICT)
+       ================================================================ */
+    .ovx.max-clicks-page {
+      min-height: 100vh;
+      background: var(--c-bg);
+      color: var(--c-text);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .ovx.max-clicks-page .m-page-shell {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: calc(var(--nav-h) + 40px) 24px 64px;
+      position: relative;
+    }
+
+    /* Monolith Gateway Card: Pitch black / surface, hairline border, generous negative space */
+    .ovx.max-clicks-page .m-gateway-card,
+    .ovx.max-clicks-page .m-gateway-card--threat {
+      background: var(--c-surface) !important;
+      border: 1px solid var(--c-border) !important;
+      border-color: var(--c-border) !important;
+      border-radius: 20px;
+      padding: clamp(36px, 6vw, 56px) clamp(24px, 5vw, 44px);
+      text-align: center;
+      max-width: 580px;
+      width: 100%;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6) !important;
+      transition: border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+    }
+
+    .ovx.max-clicks-page .m-gateway-card:hover,
+    .ovx.max-clicks-page .m-gateway-card--threat:hover {
+      border-color: var(--c-border-hi) !important;
+    }
+
+    /* Precision Instrument Gauge (Minimalist Monolith icon) */
+    .ovx .m-limit-icon-wrap {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 24px auto;
+      border-radius: 50%;
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border-hi);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: transform 0.3s var(--ease), border-color 0.3s var(--ease);
+    }
+
+    .ovx.max-clicks-page .m-gateway-card:hover .m-limit-icon-wrap {
+      transform: scale(1.04);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .ovx .m-anim-gauge {
+      transform-origin: 24px 24px;
+      animation: mGaugeTick 2.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes mGaugeTick {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(8deg); }
+    }
+
+    /* Custom Cursor Absolute Guarantee */
+    #mCursorArrow {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      pointer-events: none !important;
+      z-index: 99999999 !important;
+      will-change: transform;
+    }
+    #mCursorRing {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      pointer-events: none !important;
+      z-index: 99999998 !important;
+      will-change: transform;
+    }
+
+    /* Monolith Eyebrow Pill */
+    .ovx .m-limit-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--c-border-hi);
+      color: var(--c-muted);
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .ovx .m-limit-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.65);
+    }
+
+    /* Typography */
+    .ovx .m-limit-title {
+      font-size: clamp(24px, 4vw, 32px);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: var(--c-white);
+      margin: 0 0 14px 0;
+      line-height: 1.25;
+    }
+
+    .ovx .m-limit-desc {
+      font-size: 15px;
+      color: var(--c-muted);
+      line-height: 1.6;
+      max-width: 480px;
+      margin: 0 auto 30px auto;
+    }
+
+    /* Bento Key-Value Micro Grid */
+    .ovx .m-limit-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--c-border);
+      border: 1px solid var(--c-border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .ovx .m-limit-meta-item {
+      background: var(--c-surface-2);
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: left;
+    }
+
+    .ovx .m-limit-meta-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--c-faint);
+    }
+
+    .ovx .m-limit-meta-value {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--c-text);
+    }
+
+    /* Muted Hint Note */
+    .ovx .m-limit-hint {
+      font-size: 13px;
+      color: var(--c-muted);
+      line-height: 1.55;
+      max-width: 460px;
+      margin: 0 auto 28px auto;
+    }
+
+    /* Action buttons row */
+    .ovx .m-limit-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 540px) {
+      .ovx .m-limit-meta-grid {
+        grid-template-columns: 1fr;
+      }
+      .ovx .m-limit-actions .m-cta {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
 </head>
 
-<body class="ovx home-page error-page">
+<body class="ovx home-page gateway-page max-clicks-page">
 
-  <!-- Ambient Cursor Glow -->
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Custom Monolith Cursor -->
+  <div id="mCursorArrow" aria-hidden="true">
+    <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4.5 3.5L27 13.5L16.5 17.5L12 28.5L4.5 3.5Z" fill="#0a0a0a" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div id="mCursorRing" aria-hidden="true"></div>
   <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (typeof siteSettings !== 'undefined' && siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
@@ -30,96 +246,65 @@
     </div>
   <% } %>
 
-  <!-- Minimal Brand Header with Language Switcher -->
-  <header class="m-minimal-nav">
-    <a href="/" class="m-brand" aria-label="Ovlink Homepage" style="display:flex; align-items:center; gap:10px; text-decoration:none;">
-      <img src="/logo.webp" alt="Ovlink" width="28" height="28" style="border-radius:6px;">
-      <span style="font-weight:700; font-size:16px; color:var(--c-white); letter-spacing:-0.02em;">Ovlink</span>
-    </a>
+  <%- include('partials/home-navbar') %>
 
-    <!-- Language Dropdown -->
-    <div class="m-nav-actions" style="display:flex; align-items:center; gap:8px;">
-      <div class="m-lang-picker" style="position:relative;">
-        <button id="langToggleBtn" type="button" class="m-btn m-btn-ghost" style="padding:6px 14px; font-size:12.5px; font-weight:700;" aria-label="Dil seçimi">
-          AZ
-        </button>
-        <div id="langDropdown" class="m-lang-menu" style="display:none; position:absolute; right:0; top:calc(100% + 6px); background:#111; border:1px solid var(--c-border); border-radius:10px; padding:6px; z-index:100; min-width:90px; box-shadow:0 8px 24px rgba(0,0,0,0.6);">
-          <button class="m-lang-opt lang-option" data-lang="az" type="button" style="display:block; width:100%; text-align:left; background:none; border:none; color:var(--c-white); padding:6px 10px; font-size:12px; border-radius:6px; cursor:pointer;">Azərbaycan</button>
-          <button class="m-lang-opt lang-option" data-lang="tr" type="button" style="display:block; width:100%; text-align:left; background:none; border:none; color:var(--c-white); padding:6px 10px; font-size:12px; border-radius:6px; cursor:pointer;">Türkçe</button>
-          <button class="m-lang-opt lang-option" data-lang="en" type="button" style="display:block; width:100%; text-align:left; background:none; border:none; color:var(--c-white); padding:6px 10px; font-size:12px; border-radius:6px; cursor:pointer;">English</button>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <main class="m-page-shell" style="display:flex; align-items:center; justify-content:center; padding: 40px 16px 80px 16px;">
-    <div class="shell" style="max-width: 620px; width: 100%;">
+  <main class="m-page-shell" id="mainContent">
+    <div class="shell" style="max-width: 580px; width: 100%;">
 
       <div class="m-gateway-card m-gateway-card--threat">
 
-        <!-- Animated Overload Gauge Meter SVG -->
-        <div class="m-gateway-svg-wrap" aria-hidden="true">
-          <svg width="96" height="96" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="44" stroke="rgba(239,68,68,0.2)" stroke-width="1.5" fill="none"/>
-            <circle cx="50" cy="50" r="34" stroke="rgba(239,68,68,0.08)" stroke-width="1" fill="rgba(239,68,68,0.03)"/>
-            
-            <!-- Gauge Arc Track -->
-            <path d="M 22 66 A 34 34 0 1 1 78 66" stroke="rgba(255,255,255,0.12)" stroke-width="6" stroke-linecap="round"/>
-            <path d="M 22 66 A 34 34 0 1 1 78 66" stroke="url(#overloadGaugeGrad)" stroke-width="6" stroke-linecap="round"/>
-            
-            <!-- Overload Needle with Warning Animation -->
-            <line class="m-anim-gauge" x1="50" y1="50" x2="72" y2="60" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
-            <circle cx="50" cy="50" r="5.5" fill="#ef4444"/>
-            <circle cx="50" cy="50" r="2.5" fill="#ffffff"/>
-
-            <defs>
-              <linearGradient id="overloadGaugeGrad" x1="22" y1="50" x2="78" y2="50" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#3b82f6"/>
-                <stop offset="0.55" stop-color="#f59e0b"/>
-                <stop offset="1" stop-color="#ef4444"/>
-              </linearGradient>
-            </defs>
+        <!-- Precision Instrument Gauge (Linear/Monolith Minimalist Meter) -->
+        <div class="m-limit-icon-wrap" aria-hidden="true">
+          <svg width="44" height="44" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Background Arc Track (240 deg) -->
+            <path d="M 12 36 A 16 16 0 1 1 36 36" stroke="rgba(255, 255, 255, 0.12)" stroke-width="2.5" stroke-linecap="round" fill="none" />
+            <!-- Active Full Arc -->
+            <path d="M 12 36 A 16 16 0 1 1 36 36" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none" stroke-dasharray="68" stroke-dashoffset="0" />
+            <!-- Pivot Center -->
+            <circle cx="24" cy="24" r="3" fill="#ffffff" />
+            <!-- Needle pointing to max / full (has m-anim-gauge) -->
+            <line class="m-anim-gauge" x1="24" y1="24" x2="35" y2="33" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" />
           </svg>
         </div>
 
-        <!-- Status Badge -->
+        <!-- Status Eyebrow Badge -->
         <div>
-          <div class="m-gateway-badge m-gateway-badge--red">
-            <span class="m-live-dot" style="background:#ef4444;" aria-hidden="true"></span>
-            <span data-i18n="error_max_clicks_status">429 · KLİK LİMİTİ DOLDU</span>
+          <div class="m-limit-badge">
+            <span class="m-limit-badge-dot" aria-hidden="true"></span>
+            <span data-i18n="error_max_clicks_status">410 · LİMİT DOLDU</span>
           </div>
         </div>
 
         <!-- Title & Subtitle -->
-        <h1 class="m-gateway-title" data-i18n="error_max_clicks_title">Klik Limiti Doldu</h1>
-        <p class="m-gateway-desc" data-i18n="error_max_clicks_msg">Bu keçid müəllif tərəfindən təyin edilmiş maksimum klik kvotasına çatmışdır.</p>
+        <h1 class="m-limit-title" data-i18n="error_max_clicks_title">Yönləndirmə Limiti Doldu</h1>
+        <p class="m-limit-desc" data-i18n="error_max_clicks_msg">Bu qısa keçid üçün müəllifi tərəfindən təyin edilmiş maksimum yönləndirmə sayına çatılmışdır və link fəaliyyətini dayandırmışdır.</p>
 
-        <!-- Diagnostic info note -->
-        <div class="m-gateway-diag-box" style="margin-bottom: 24px; text-align: left;">
-          <div class="m-diag-row">
-            <span class="m-diag-label">Kvtota Vəziyyəti</span>
-            <span class="m-diag-val" style="color: #f87171;">Maksimum Hədd Aşılıb (100%)</span>
+        <!-- Bento Metadata Micro Grid -->
+        <div class="m-limit-meta-grid" role="region" aria-label="Link status">
+          <div class="m-limit-meta-item">
+            <span class="m-limit-meta-label" data-i18n="error_max_clicks_diag_status_label">Link Vəziyyəti</span>
+            <span class="m-limit-meta-value" data-i18n="error_max_clicks_diag_status_val">Deaktivdir (Limit Doldu)</span>
           </div>
-          <div class="m-diag-row">
-            <span class="m-diag-label">Yönləndirmə</span>
-            <span class="m-diag-val">Dayandırılıb</span>
+          <div class="m-limit-meta-item">
+            <span class="m-limit-meta-label" data-i18n="error_max_clicks_diag_redirect_label">Yönləndirmə</span>
+            <span class="m-limit-meta-value" data-i18n="error_max_clicks_diag_redirect_val">Dayandırılıb</span>
           </div>
         </div>
 
-        <!-- Pro Upsell Hint -->
-        <p style="font-size: 13.5px; color: var(--c-muted); max-width: 460px; margin: 0 auto 28px auto; line-height: 1.55;" data-i18n="error_max_clicks_pro_hint">
-          Limitsiz kliklər və qabaqcıl analitika üçün Ovlink Pro planına keçid edin.
+        <!-- Educational Hint (Custom limits are 100% free for all users) -->
+        <p class="m-limit-hint" data-i18n="error_max_clicks_hint">
+          Siz də Ovlink vasitəsilə qısa linklər yaradarkən istənilən sayda klik və ya yönləndirmə limiti təyin edə bilərsiniz.
         </p>
 
         <!-- Dual Action Row -->
-        <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-          <a href="/" class="m-btn m-btn-solid" style="display:inline-flex; align-items:center; gap:8px; padding: 12px 24px; border-radius: 999px; text-decoration:none;">
-            <i class="fa-solid fa-house"></i>
+        <div class="m-limit-actions">
+          <a href="/" class="m-cta m-cta--white">
+            <i class="fa-solid fa-house" aria-hidden="true"></i>
             <span data-i18n="error_max_clicks_home">Ana Səhifə</span>
           </a>
-          <a href="/pro" class="m-btn m-btn-ghost" style="display:inline-flex; align-items:center; gap:8px; padding: 12px 22px; border-radius: 999px; text-decoration:none;">
-            <i class="fa-solid fa-crown" style="color:#fbbf24;"></i>
-            <span data-i18n="error_max_clicks_pricing_cta">Pro Planına Baxın</span>
+          <a href="/#shortenSection" class="m-cta m-cta--outline">
+            <i class="fa-solid fa-link" aria-hidden="true"></i>
+            <span data-i18n="error_max_clicks_shorten_cta">Öz Linkini Qısalt</span>
           </a>
         </div>
 
@@ -128,14 +313,104 @@
     </div>
   </main>
 
-  <footer style="text-align:center; padding:24px 16px; border-top:1px solid var(--c-border); color:var(--c-faint); font-size:12.5px;">
-    <span>&copy; <%= new Date().getFullYear() %> Ovlink Safe Edge Network. All rights reserved.</span>
-  </footer>
+  <%- include('partials/home-footer') %>
 
-  <script <% if (typeof nonce !== 'undefined' && nonce) { %>nonce="<%= nonce %>"<% } %> src="/lang.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
-  <script <% if (typeof nonce !== 'undefined' && nonce) { %>nonce="<%= nonce %>"<% } %> src="/home.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
-  <script <% if (typeof nonce !== 'undefined' && nonce) { %>nonce="<%= nonce %>"<% } %> src="/script.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
+  <script nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>" src="/lang.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
+  <script nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>" src="/script.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
+  <script nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
+    (function () {
+      var isMobile = !matchMedia('(hover:hover)').matches;
+
+      /* ─── 1. Precision Custom Cursor Engine ─── */
+      var arrow = document.getElementById('mCursorArrow');
+      var ring = document.getElementById('mCursorRing');
+      var glow = document.getElementById('cursorGlow');
+
+      if (arrow && ring && !isMobile) {
+        document.body.classList.add('has-custom-cursor');
+        var mx = -100, my = -100, rx = -100, ry = -100;
+        var rafId = null;
+
+        function loop() {
+          rx += (mx - rx) * 0.15;
+          ry += (my - ry) * 0.15;
+          ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+          if (Math.abs(mx - rx) > 0.1 || Math.abs(my - ry) > 0.1) {
+            rafId = requestAnimationFrame(loop);
+          } else {
+            rx = mx;
+            ry = my;
+            ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+            rafId = null;
+          }
+        }
+
+        function updatePos(e) {
+          mx = e.clientX;
+          my = e.clientY;
+          arrow.style.transform = 'translate(' + mx + 'px,' + my + 'px)';
+          if (glow) {
+            glow.style.left = mx + 'px';
+            glow.style.top = my + 'px';
+            glow.style.opacity = '1';
+          }
+          if (!rafId) {
+            rafId = requestAnimationFrame(loop);
+          }
+        }
+
+        window.addEventListener('mousemove', updatePos, { passive: true });
+        window.addEventListener('pointermove', updatePos, { passive: true });
+
+        document.addEventListener('mouseover', function (e) {
+          var interactive = e.target && e.target.closest && e.target.closest('a, button, input, textarea, select, label, [role="button"], .m-cta, .m-btn-solid, .m-btn-ghost, .m-lang-item');
+          if (interactive) {
+            arrow.classList.add('hover');
+            ring.classList.add('hover');
+          } else {
+            arrow.classList.remove('hover');
+            ring.classList.remove('hover');
+          }
+        }, { passive: true });
+
+        document.addEventListener('mousedown', function () {
+          arrow.classList.add('clicking');
+          ring.classList.add('clicking');
+        });
+
+        document.addEventListener('mouseup', function () {
+          arrow.classList.remove('clicking');
+          ring.classList.remove('clicking');
+        });
+
+        document.addEventListener('mouseleave', function () {
+          arrow.classList.add('hidden');
+          ring.classList.add('hidden');
+          if (glow) glow.style.opacity = '0';
+        });
+
+        document.addEventListener('mouseenter', function () {
+          arrow.classList.remove('hidden');
+          ring.classList.remove('hidden');
+        });
+      }
+
+      /* ─── 2. Tactile Button Ripple Effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left = (e.clientX - r.left - size / 2) + 'px';
+          span.style.top = (e.clientY - r.top - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function () { span.remove(); }, 600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>
-

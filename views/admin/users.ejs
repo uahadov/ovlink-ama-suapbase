@@ -1,7 +1,7 @@
 <%- include('partials/layout-top', {
-  title: 'Admin · Users',
-  heading: 'Admin Users',
-  subtitle: 'Admin and moderator accounts',
+  title: 'Admin · Staff Users',
+  heading: 'Staff & Role Management',
+  subtitle: 'Internal console administrator and moderator credentials with role-based access control (RBAC)',
   active: 'users',
   admin,
   csrfToken,
@@ -9,62 +9,97 @@
 }) %>
 
 <% if (typeof error === 'string' && error) { %>
-  <div class="alert alert--error"><%= error %></div>
-  <div class="spacer"></div>
+  <div class="alert alert--danger" style="margin-bottom: 20px;">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span><%= error %></span>
+  </div>
 <% } %>
 
-<div class="grid">
-  <div class="card">
-    <h2>Create User</h2>
-    <div class="spacer"></div>
-    <form class="form" method="POST" action="/admin/users/create">
+<div class="grid-2">
+  <!-- Provision Staff Account Form Card -->
+  <div class="m-card" style="height: fit-content;">
+    <div class="m-dash-panel-header" style="margin-bottom: 14px;">
+      <h3 class="m-dash-panel-title">
+        <i class="fa-solid fa-user-plus" style="color: var(--c-muted);"></i>
+        <span>Provision Staff Account</span>
+      </h3>
+    </div>
+    <p style="color: var(--c-muted); font-size: 13px; margin: 0 0 18px; line-height: 1.5;">
+      Create a console credential for team operators. Roles restrict access to sensitive audit logs and deletion actions.
+    </p>
+
+    <form method="POST" action="/admin/users/create">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
 
-      <div class="field">
-        <label for="email">Email</label>
-        <input class="input" id="email" name="email" type="email" required />
+      <div class="field" style="margin-bottom: 12px;">
+        <label for="email" class="m-adv-label">Staff Email Address</label>
+        <input class="m-adv-input" id="email" name="email" type="email" placeholder="staff@ovlink.sbs" required />
       </div>
 
-      <div class="field">
-        <label for="password">Password (min 10)</label>
-        <input class="input" id="password" name="password" type="password" required />
+      <div class="field" style="margin-bottom: 12px;">
+        <label for="password" class="m-adv-label">Initial Password (Minimum 10 Characters)</label>
+        <input class="m-adv-input" id="password" name="password" type="password" placeholder="••••••••••••" required />
       </div>
 
-      <div class="field">
-        <label for="role">Role</label>
-        <select id="role" name="role">
-          <option value="admin">admin</option>
-          <option value="moderator">moderator</option>
+      <div class="field" style="margin-bottom: 16px;">
+        <label for="role" class="m-adv-label">RBAC Security Role</label>
+        <select class="m-adv-select" id="role" name="role">
+          <option value="admin">Administrator (Full Console & Deletion Access)</option>
+          <option value="moderator">Moderator (Triage & Link Review Only)</option>
         </select>
       </div>
 
-      <button class="btn" type="submit">Create</button>
+      <button class="m-cta m-cta--white" type="submit">
+        <i class="fa-solid fa-shield"></i>
+        <span>Provision Staff User</span>
+      </button>
     </form>
   </div>
 
-  <div class="card">
-    <h2>Existing Users</h2>
-    <div class="spacer"></div>
+  <!-- Active Staff Directory Table Card -->
+  <div class="m-card" style="padding: 0; overflow: hidden;">
+    <div class="m-dash-panel-header" style="padding: 20px 24px; border-bottom: 1px solid var(--c-border); margin-bottom: 0;">
+      <h3 class="m-dash-panel-title">
+        <i class="fa-solid fa-users-gear" style="color: var(--c-muted);"></i>
+        <span>Active Staff Directory</span>
+      </h3>
+      <span class="badge"><%= (rows && rows.length) || 0 %> Accounts</span>
+    </div>
+
     <% if (!rows || rows.length === 0) { %>
-      <div class="alert">No admin users found.</div>
+      <div style="text-align: center; padding: 48px 20px; color: var(--c-faint);">
+        <div style="font-size: 14px;">No admin staff accounts found.</div>
+      </div>
     <% } else { %>
-      <div class="table-wrap">
-        <table class="table">
+      <div class="m-table-wrap" style="border: none; border-radius: 0;">
+        <table class="m-table">
           <thead>
             <tr>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Created</th>
-              <th>Last Login</th>
+              <th>Staff Email</th>
+              <th>Assigned Role</th>
+              <th>Created At</th>
+              <th>Last Console Sign-In</th>
             </tr>
           </thead>
           <tbody>
             <% rows.forEach((u) => { %>
               <tr>
-                <td><%= u.email %></td>
-                <td><span class="badge"><%= u.role %></span></td>
-                <td><%= u.created_at ? new Date(u.created_at).toLocaleString() : '-' %></td>
-                <td><%= u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '-' %></td>
+                <td>
+                  <div style="font-weight: 600; color: var(--c-white);"><%= u.email %></div>
+                </td>
+                <td>
+                  <% if (u.role === 'admin') { %>
+                    <span class="pill pill--ok"><i class="fa-solid fa-shield-halved" style="font-size: 10px;"></i> Admin</span>
+                  <% } else { %>
+                    <span class="pill"><i class="fa-solid fa-user-check" style="font-size: 10px;"></i> Moderator</span>
+                  <% } %>
+                </td>
+                <td style="white-space: nowrap; font-size: 12px; color: var(--c-muted); font-family: var(--font-mono);">
+                  <%= u.created_at ? new Date(u.created_at).toLocaleDateString() : '-' %>
+                </td>
+                <td style="white-space: nowrap; font-size: 12px; color: var(--c-muted); font-family: var(--font-mono);">
+                  <%= u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Never' %>
+                </td>
               </tr>
             <% }) %>
           </tbody>

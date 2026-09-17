@@ -11,9 +11,10 @@ const RESERVED_SHORT_ALIASES = new Set([
   'updates', 'verify', 'why-ovlink', 'api-guide', 'workspaces',
   // System and route namespaces
   'admin', 'api', 'auth', 'consent', 'proceed', 'qrcode', 'verify-email', 'logout',
+  'ads', 'tools', 'bot', 'bots', 'health',
   // Reserved root-like names
   'robots', 'robots.txt', 'sitemap', 'sitemap.xml', 'bingsiteauth', 'yandex',
-  'yandex_71461f9fd9f723bc'
+  'yandex_71461f9fd9f723bc', 'favicon.ico'
 ]);
 
 const CUSTOM_DOMAIN_RE = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i;
@@ -33,9 +34,7 @@ function ensureAbsoluteUrl(url) {
 }
 
 function normalizeShortAlias(raw) {
-  const short = (raw || '').toString().trim();
-  if (!SHORT_CODE_RE.test(short)) return '';
-  return short.toLowerCase();
+  return (raw || '').toString().trim().toLowerCase();
 }
 
 function isReservedShortAlias(raw) {
@@ -153,6 +152,7 @@ module.exports = {
   ensureAbsoluteUrl,
   normalizeShortCode,
   isReservedShortAlias,
+  isShortAliasReserved: isReservedShortAlias,
   generateSafeShortCode,
   pickFirstInputValue,
   isLocalOrPrivateHost,

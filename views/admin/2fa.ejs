@@ -1,61 +1,67 @@
 <!doctype html>
 <html lang="en">
   <head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="icon" href="/favicon.ico?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Admin 2FA</title>
+    <title>Admin 2FA Verification · Ovlink Console</title>
     <meta name="robots" content="noindex,nofollow" />
-    <link rel="icon" href="/logo.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/admin/admin.css" />
+    <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="/home.css?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>" />
+    <link rel="stylesheet" href="/admin/admin.css?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>" />
   </head>
-  <body class="admin-login-page">
+  <body class="ovx home-page auth-page admin-login-page">
     <div id="cursorGlow" aria-hidden="true"></div>
-    <header class="admin-login-nav">
-      <div class="container admin-login-nav__inner">
-        <a class="admin-login-brand" href="/" aria-label="Ovlink home">
-          <img src="/logo.webp" alt="Ovlink" />
-        </a>
-        <a class="btn btn--secondary" href="/admin/login">Back to login</a>
-      </div>
-    </header>
 
-    <main class="admin-login-main">
-      <section class="container admin-login-hero">
-        <div class="admin-login-chip">Ovlink - Admin Security</div>
-        <h1 class="admin-login-title">Two-Factor Verification</h1>
-        <p class="admin-login-subtitle">Enter the 6-digit code from your authenticator app.</p>
+    <main class="m-auth-shell" id="mainContent">
+      <div class="m-auth-container">
+        <div class="m-auth-head">
+          <div class="m-auth-eyebrow admin-login-chip">
+            <i class="fa-solid fa-key" style="color: var(--c-white);" aria-hidden="true"></i>
+            <span>Ovlink · Security Gate</span>
+          </div>
+          <h1 class="m-auth-title admin-login-title">Two-Factor Auth</h1>
+          <p class="m-auth-sub admin-login-subtitle">Enter the 6-digit TOTP code from your authenticator application</p>
+        </div>
 
-        <div class="login-card admin-login-card">
-          <div class="login-head admin-login-head">
-            <div class="brand__logo admin-login-logo-wrap" aria-hidden="true">
-              <img src="/logo.webp" alt="" class="admin-login-logo" />
-            </div>
+        <div class="m-auth-card admin-login-card">
+          <div class="m-auth-glyph brand__logo admin-login-logo-wrap" aria-hidden="true">
+            <img src="/home-logo.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" alt="Ovlink" class="admin-login-logo" width="34" height="34" data-fallback="/logo.webp" />
           </div>
 
           <% if (typeof error === 'string' && error) { %>
-            <div class="alert alert--error"><%= error %></div>
-            <div class="spacer"></div>
+            <div class="alert alert--danger" style="margin-bottom: 18px;">
+              <i class="fa-solid fa-triangle-exclamation" style="margin-top: 2px;"></i>
+              <span><%= error %></span>
+            </div>
           <% } %>
 
           <form class="form" method="POST" action="/admin/2fa/verify">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
 
-            <div class="field">
-              <label for="token">2FA CODE</label>
-              <div class="field-input-wrap">
-                <span class="field-icon">#</span>
-                <input class="input" id="token" name="token" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" autofocus required />
+            <div class="m-auth-field">
+              <label for="token" class="m-adv-label">Authenticator Security Code (6 Digits)</label>
+              <div class="m-auth-input-wrap">
+                <input class="m-auth-input m-auth-code-input" id="token" name="token" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="123456" autofocus required />
               </div>
             </div>
 
-            <button class="btn btn--block" type="submit">Verify</button>
-            <a class="btn btn--secondary btn--block" href="/admin/login">Back to login</a>
+            <button class="m-cta m-cta--white m-auth-submit" type="submit">
+              <span>Verify & Continue</span>
+              <i class="fa-solid fa-shield-check" style="font-size: 12px;"></i>
+            </button>
+            <a class="m-cta m-cta--outline m-cta--sm" href="/admin/login" style="width: 100%; margin-top: 10px; justify-content: center;">
+              <span>Cancel</span>
+            </a>
           </form>
         </div>
-      </section>
+      </div>
     </main>
 
     <script nonce="<%= nonce %>" src="/admin/admin.js?v=<%= assetVersion %>" defer></script>

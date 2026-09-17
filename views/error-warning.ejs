@@ -2,23 +2,34 @@
 <html lang="en">
 
 <head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="icon" href="/favicon.ico?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="apple-touch-icon" href="/logo.png?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= (typeof csrfToken !== 'undefined') ? csrfToken : '' %>">
   <title data-i18n="danger_title">Xəbərdarlıq - Ovlink</title>
-  <link rel="icon" href="/logo.ico" />
+  
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   
   <link rel="stylesheet" href="/home.css?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>" />
 </head>
 
 <body class="ovx home-page error-page">
 
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
   <!-- Ambient Cursor Glow -->
+  <div id="mCursorArrow" class="m-cursor-arrow" aria-hidden="true"></div>
+  <div id="mCursorRing" class="m-cursor-ring" aria-hidden="true"></div>
   <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (typeof siteSettings !== 'undefined' && siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
@@ -30,29 +41,9 @@
     </div>
   <% } %>
 
-  <!-- Minimal Brand Header with Language Switcher -->
-  <header class="m-minimal-nav">
-    <a href="/" class="m-brand" aria-label="Ovlink Homepage" style="display:flex; align-items:center; gap:10px; text-decoration:none;">
-      <img src="/logo.webp" alt="Ovlink" width="28" height="28" style="border-radius:6px;">
-      <span style="font-weight:700; font-size:16px; color:var(--c-white); letter-spacing:-0.02em;">Ovlink</span>
-    </a>
+  <%- include('partials/home-navbar') %>
 
-    <!-- Language Dropdown -->
-    <div class="m-nav-actions" style="display:flex; align-items:center; gap:8px;">
-      <div class="m-lang-picker" style="position:relative;">
-        <button id="langToggleBtn" type="button" class="m-btn m-btn-ghost" style="padding:6px 14px; font-size:12.5px; font-weight:700;" aria-label="Dil seçimi">
-          AZ
-        </button>
-        <div id="langDropdown" class="m-lang-menu" style="display:none; position:absolute; right:0; top:calc(100% + 6px); background:#111; border:1px solid var(--c-border); border-radius:10px; padding:6px; z-index:100; min-width:90px; box-shadow:0 8px 24px rgba(0,0,0,0.6);">
-          <button class="m-lang-opt lang-option" data-lang="az" type="button" style="display:block; width:100%; text-align:left; background:none; border:none; color:var(--c-white); padding:6px 10px; font-size:12px; border-radius:6px; cursor:pointer;">Azərbaycan</button>
-          <button class="m-lang-opt lang-option" data-lang="tr" type="button" style="display:block; width:100%; text-align:left; background:none; border:none; color:var(--c-white); padding:6px 10px; font-size:12px; border-radius:6px; cursor:pointer;">Türkçe</button>
-          <button class="m-lang-opt lang-option" data-lang="en" type="button" style="display:block; width:100%; text-align:left; background:none; border:none; color:var(--c-white); padding:6px 10px; font-size:12px; border-radius:6px; cursor:pointer;">English</button>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <main class="m-page-shell" style="display:flex; align-items:center; justify-content:center; padding: 40px 16px 80px 16px;">
+  <main class="m-page-shell" id="mainContent" style="display:flex; align-items:center; justify-content:center; padding: 40px 16px 80px 16px;">
     <div class="shell" style="max-width: 620px; width: 100%;">
 
       <div class="m-gateway-card m-gateway-card--warning">
@@ -87,12 +78,12 @@
         <!-- Destination Warning Diagnostic Box -->
         <div class="m-gateway-diag-box" style="margin-bottom: 24px; text-align: left;">
           <div class="m-diag-row">
-            <span class="m-diag-label">Təhlükəsizlik Statusu</span>
-            <span class="m-diag-val" style="color: #fbbf24;">İstifadəçi Şikayətləri Qeydə Alınıb</span>
+            <span class="m-diag-label" data-i18n="danger_diag_status_label">Təhlükəsizlik Statusu</span>
+            <span class="m-diag-val" style="color: #fbbf24;" data-i18n="danger_diag_status_val">İstifadəçi Şikayətləri Qeydə Alınıb</span>
           </div>
           <div class="m-diag-row">
-            <span class="m-diag-label">Tövsiyə Olunan</span>
-            <span class="m-diag-val">Mənbəyə etibar etmirsinizsə daxil olmayın</span>
+            <span class="m-diag-label" data-i18n="danger_diag_advice_label">Tövsiyə Olunan</span>
+            <span class="m-diag-val" data-i18n="danger_diag_advice_val">Mənbəyə etibar etmirsinizsə daxil olmayın</span>
           </div>
         </div>
 
@@ -113,13 +104,27 @@
     </div>
   </main>
 
-  <footer style="text-align:center; padding:24px 16px; border-top:1px solid var(--c-border); color:var(--c-faint); font-size:12.5px;">
-    <span>&copy; <%= new Date().getFullYear() %> Ovlink Safe Edge Network. All rights reserved.</span>
-  </footer>
+  <%- include('partials/home-footer') %>
 
-  <script <% if (typeof nonce !== 'undefined' && nonce) { %>nonce="<%= nonce %>"<% } %> src="/lang.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
-  <script <% if (typeof nonce !== 'undefined' && nonce) { %>nonce="<%= nonce %>"<% } %> src="/home.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
-  <script <% if (typeof nonce !== 'undefined' && nonce) { %>nonce="<%= nonce %>"<% } %> src="/script.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
+  <script nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>" src="/lang.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
+  <script nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>" src="/script.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
+  <script nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
+    (function () {
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left = (e.clientX - r.left - size / 2) + 'px';
+          span.style.top = (e.clientY - r.top - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function () { span.remove(); }, 600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>

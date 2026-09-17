@@ -66,7 +66,8 @@ test('Admin Console Monolith Redesign & Orphan Partials Cleanup', async (t) => {
     assert.equal(html.includes('family=Inter'), true, 'Must load Inter Google font');
     assert.equal(html.includes('family=JetBrains+Mono'), true, 'Must load JetBrains Mono Google font');
     assert.equal(html.includes('/admin/admin.css'), true, 'Must link to /admin/admin.css');
-    assert.equal(html.includes('/logo.webp'), true, 'Must use /logo.webp');
+    assert.equal(html.includes('/home-logo.svg'), true, 'Must use Monolith /home-logo.svg');
+    assert.equal(html.includes('/logo.webp'), true, 'Must include /logo.webp fallback');
     assert.equal(html.includes('bootstrap.min.css'), false, 'Must not include bootstrap.min.css');
     assert.equal(html.includes('bootstrap.bundle.min.js'), false, 'Must not include bootstrap.bundle.min.js');
     assert.equal(html.includes('admin-login-card'), true, 'Must include admin-login-card container');
@@ -80,7 +81,8 @@ test('Admin Console Monolith Redesign & Orphan Partials Cleanup', async (t) => {
     assert.equal(content.includes('id="cursorGlow"'), true, 'Must include #cursorGlow ambient cursor');
     assert.equal(content.includes('family=Inter'), true, 'Must load Inter Google font');
     assert.equal(content.includes('family=JetBrains+Mono'), true, 'Must load JetBrains Mono Google font');
-    assert.equal(content.includes('/logo.webp'), true, 'Must use /logo.webp');
+    assert.equal(content.includes('/home-logo.svg'), true, 'Must use Monolith /home-logo.svg');
+    assert.equal(content.includes('/logo.webp'), true, 'Must include /logo.webp fallback');
     assert.equal(content.includes('/logo.png'), false, 'Must not use legacy /logo.png');
   });
 
@@ -91,7 +93,8 @@ test('Admin Console Monolith Redesign & Orphan Partials Cleanup', async (t) => {
     assert.equal(content.includes('id="cursorGlow"'), true, 'Must include #cursorGlow ambient cursor');
     assert.equal(content.includes('family=Inter'), true, 'Must load Inter Google font');
     assert.equal(content.includes('family=JetBrains+Mono'), true, 'Must load JetBrains Mono Google font');
-    assert.equal(content.includes('/logo.webp'), true, 'Must use /logo.webp');
+    assert.equal(content.includes('/home-logo.svg'), true, 'Must use Monolith /home-logo.svg');
+    assert.equal(content.includes('/logo.webp'), true, 'Must include /logo.webp fallback');
     assert.equal(content.includes('/logo.png'), false, 'Must not use legacy /logo.png');
     assert.equal(content.includes('admin-shell'), true, 'Must include admin-shell');
     assert.equal(content.includes('sidebar'), true, 'Must include sidebar');

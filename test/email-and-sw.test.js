@@ -51,7 +51,7 @@ test('Monolith Email Templates & PWA Service Worker Offline HUD', async (t) => {
     const emailSrc = fs.readFileSync(path.join(__dirname, '../src/lib/email.js'), 'utf8');
     assert.equal(emailSrc.includes('SECURITY · RESET'), true, 'Must have SECURITY · RESET badge');
     assert.equal(emailSrc.includes('DIRECT LINK:'), true, 'Must include fallback direct link box');
-    assert.equal(emailSrc.includes('background-color: #2563eb'), true, 'Must include electric blue primary action button');
+    assert.equal(emailSrc.includes('background-color: #ffffff'), true, 'Must include Monolith solid white primary action button');
   });
 
   await t.test('4. New Device Sign-in Email contains telemetry table and caution alert', () => {
@@ -60,7 +60,7 @@ test('Monolith Email Templates & PWA Service Worker Offline HUD', async (t) => {
     assert.equal(emailSrc.includes('deviceTitle'), true, 'Must include device telemetry title');
     assert.equal(emailSrc.includes('countryTitle'), true, 'Must include country telemetry title');
     assert.equal(emailSrc.includes('methodTitle'), true, 'Must include method telemetry title');
-    assert.equal(emailSrc.includes('rgba(245, 158, 11, 0.08)'), true, 'Must include yellow caution notice');
+    assert.equal(emailSrc.includes('rgba(255, 255, 255, 0.03)'), true, 'Must include Monolith subtle caution notice');
   });
 
   await t.test('5. Workspace Invite Email contains Monolith shell, badge, and invitation button', () => {

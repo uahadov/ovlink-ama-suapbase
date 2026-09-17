@@ -1,103 +1,162 @@
 <!doctype html>
 <html lang="en">
   <head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="icon" href="/favicon.ico?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title><%= title %></title>
     <meta name="robots" content="noindex,nofollow" />
-    <link rel="icon" href="/logo.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/admin/admin.css" />
+    <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="/home.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+    <link rel="stylesheet" href="/admin/admin.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
     <meta name="csrf-token" content="<%= csrfToken %>" />
   </head>
-  <body class="admin-page">
+  <body class="ovx home-page admin-page">
     <div id="cursorGlow" aria-hidden="true"></div>
     <div class="admin-shell">
-      <aside class="sidebar">
+      <aside class="sidebar" id="adminSidebar">
         <div class="sidebar__brand">
-          <div class="brand">
-            <img class="brand__logo-img" src="/logo.webp" alt="Ovlink" />
+          <a href="/admin/reports" class="brand">
+            <img class="brand__logo-img" src="/home-logo.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" alt="Ovlink" data-fallback="/logo.webp" />
             <div>
               <div class="brand__title">Ovlink Console</div>
-              <div class="sidebar__meta"><%= admin && admin.email ? admin.email : '' %> · <%= admin && admin.role ? admin.role : '' %></div>
+              <div class="sidebar__meta"><%= (typeof admin !== 'undefined' && admin && admin.email) ? admin.email : '' %> · <%= (typeof admin !== 'undefined' && admin && admin.role) ? admin.role : '' %></div>
             </div>
-          </div>
+          </a>
+          <button type="button" class="sidebar-close-btn" id="adminSidebarClose" aria-label="Close navigation">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
 
         <nav class="nav">
+          <div class="nav__group-label">Moderation</div>
           <a href="/admin/reports" class="<%= active === 'reports' ? 'active' : '' %>">
-            <span>Reports</span>
-            <span class="badge">Moderation</span>
+            <span class="row" style="gap:10px;">
+              <i class="fa-solid fa-flag nav-icon" aria-hidden="true"></i>
+              <span>Reports</span>
+            </span>
+            <span class="badge">Abuse</span>
           </a>
           <a href="/admin/links" class="<%= active === 'links' ? 'active' : '' %>">
-            <span>Links</span>
-            <span class="badge">All</span>
+            <span class="row" style="gap:10px;">
+              <i class="fa-solid fa-link nav-icon" aria-hidden="true"></i>
+              <span>Links</span>
+            </span>
+            <span class="badge">Directory</span>
           </a>
           <a href="/admin/domains" class="<%= active === 'domains' ? 'active' : '' %>">
-            <span>Domains</span>
-            <span class="badge">Blocklist</span>
+            <span class="row" style="gap:10px;">
+              <i class="fa-solid fa-globe nav-icon" aria-hidden="true"></i>
+              <span>Domains</span>
+            </span>
+            <span class="badge">Filter</span>
           </a>
           <a href="/admin/site-users" class="<%= active === 'site-users' ? 'active' : '' %>">
-            <span>Users</span>
-            <span class="badge">App</span>
+            <span class="row" style="gap:10px;">
+              <i class="fa-solid fa-users nav-icon" aria-hidden="true"></i>
+              <span>App Users</span>
+            </span>
+            <span class="badge">Accounts</span>
           </a>
-          <% if (admin && admin.role === 'admin') { %>
+
+          <% if (typeof admin !== 'undefined' && admin && admin.role === 'admin') { %>
+            <div class="nav__group-label" style="margin-top: 6px;">Administration</div>
             <a href="/admin/users" class="<%= active === 'users' ? 'active' : '' %>">
-              <span>Admin Users</span>
+              <span class="row" style="gap:10px;">
+                <i class="fa-solid fa-user-shield nav-icon" aria-hidden="true"></i>
+                <span>Admin Users</span>
+              </span>
               <span class="badge">RBAC</span>
             </a>
             <a href="/admin/settings" class="<%= active === 'settings' ? 'active' : '' %>">
-              <span>Settings</span>
-              <span class="badge">Site</span>
+              <span class="row" style="gap:10px;">
+                <i class="fa-solid fa-sliders nav-icon" aria-hidden="true"></i>
+                <span>Settings</span>
+              </span>
+              <span class="badge">System</span>
             </a>
             <a href="/admin/2fa/setup" class="<%= active === '2fa' ? 'active' : '' %>">
-              <span>Admin 2FA</span>
+              <span class="row" style="gap:10px;">
+                <i class="fa-solid fa-key nav-icon" aria-hidden="true"></i>
+                <span>Admin 2FA</span>
+              </span>
               <span class="badge">Security</span>
             </a>
             <a href="/admin/auth-logs" class="<%= active === 'auth-logs' ? 'active' : '' %>">
-              <span>Admin Auth Logs</span>
-              <span class="badge">Security</span>
+              <span class="row" style="gap:10px;">
+                <i class="fa-solid fa-clock-rotate-left nav-icon" aria-hidden="true"></i>
+                <span>Auth Logs</span>
+              </span>
+              <span class="badge">Telemetry</span>
             </a>
           <% } %>
+
+          <div class="nav__group-label" style="margin-top: 6px;">Audit & Operations</div>
           <a href="/admin/audit" class="<%= active === 'audit' ? 'active' : '' %>">
-            <span>Audit Log</span>
-            <span class="badge">Trail</span>
+            <span class="row" style="gap:10px;">
+              <i class="fa-solid fa-clipboard-list nav-icon" aria-hidden="true"></i>
+              <span>Audit Trail</span>
+            </span>
+            <span class="badge">Events</span>
           </a>
-          <% if (admin && admin.role === 'admin') { %>
+          <% if (typeof admin !== 'undefined' && admin && admin.role === 'admin') { %>
             <a href="/admin/billing" class="<%= active === 'billing' ? 'active' : '' %>">
-              <span>Billing Events</span>
+              <span class="row" style="gap:10px;">
+                <i class="fa-solid fa-receipt nav-icon" aria-hidden="true"></i>
+                <span>Billing Events</span>
+              </span>
               <span class="badge">Polar</span>
             </a>
             <a href="/admin/ip-blocklist" class="<%= active === 'ip-blocklist' ? 'active' : '' %>">
-              <span>IP Blocklist</span>
-              <span class="badge">Abuse</span>
+              <span class="row" style="gap:10px;">
+                <i class="fa-solid fa-ban nav-icon" aria-hidden="true"></i>
+                <span>IP Blocklist</span>
+              </span>
+              <span class="badge">Firewall</span>
             </a>
           <% } %>
 
           <div class="spacer"></div>
 
-          <a href="/" class="<%= active === 'home' ? 'active' : '' %>">
-            <span>Website</span>
-            <span class="badge">Back</span>
-          </a>
+          <div class="nav__footer">
+            <a href="/" class="<%= active === 'home' ? 'active' : '' %>">
+              <span class="row" style="gap:10px;">
+                <i class="fa-solid fa-arrow-left nav-icon" aria-hidden="true"></i>
+                <span>Back to Site</span>
+              </span>
+              <span class="badge">Public</span>
+            </a>
 
-          <form method="POST" action="/admin/logout" class="nav__logout">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-            <button class="btn btn--ghost btn--block" type="submit">Logout</button>
-          </form>
+            <form method="POST" action="/admin/logout" style="margin-top: 4px;">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+              <button class="btn btn--secondary btn--block" type="submit" style="font-size:12.5px; padding:8px 12px; gap:8px;">
+                <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+                <span>Logout</span>
+              </button>
+            </form>
+          </div>
         </nav>
       </aside>
 
       <main class="main">
         <header class="topbar">
-          <div class="hgroup">
-            <h1><%= heading %></h1>
-            <p><%= subtitle %></p>
+          <div class="topbar__left">
+            <button type="button" class="mobile-toggle-btn" id="adminMobileToggle" aria-label="Open navigation drawer">
+              <i class="fa-solid fa-bars"></i>
+            </button>
+            <div class="hgroup">
+              <h1><%= heading %></h1>
+              <p><%= subtitle %></p>
+            </div>
           </div>
-          <div class="row">
-            <button id="adminThemeToggle" type="button" class="btn btn--ghost" aria-label="Toggle theme">
+          <div class="topbar__actions">
+            <button id="adminThemeToggle" type="button" class="btn btn--ghost btn--sm" aria-label="Toggle theme">
+              <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
               <span id="adminThemeToggleText">Dark mode</span>
             </button>
             <% if (topRightHtml) { %>
@@ -106,8 +165,3 @@
           </div>
         </header>
         <div class="content">
-
-
-
-
-

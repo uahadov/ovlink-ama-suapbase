@@ -488,7 +488,16 @@ function ensureDbTables() {
     ).then(({ rows }) => {
       const def = rows && rows[0] && rows[0].def ? String(rows[0].def) : '';
       if (/ON DELETE SET NULL/i.test(def)) return undefined;
-      return pool.query('DO $$ BEGIN ALTER TABLE security_events DROP CONSTRAINT IF EXISTS ' + conname + '; BEGIN ALTER TABLE security_events ADD CONSTRAINT ' + conname + ' FOREIGN KEY (' + column + ') REFERENCES ' + refTable + '(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_object THEN NULL; END; END $$');
+      return pool.query(
+        'DO $$ BEGIN ' +
+        'ALTER TABLE security_events DROP CONSTRAINT IF EXISTS ' + conname + '; ' +
+        'UPDATE security_events SET ' + column + ' = NULL WHERE ' + column + ' IS NOT NULL AND ' + column + ' NOT IN (SELECT id FROM ' + refTable + '); ' +
+        'BEGIN ' +
+        'ALTER TABLE security_events ADD CONSTRAINT ' + conname + ' FOREIGN KEY (' + column + ') REFERENCES ' + refTable + '(id) ON DELETE SET NULL; ' +
+        'EXCEPTION WHEN duplicate_object THEN NULL; ' +
+        'END; ' +
+        'END $$'
+      );
     }).catch((err) => {
       console.error('[migrate] security_events FK normalization skipped:', err && err.message);
     });

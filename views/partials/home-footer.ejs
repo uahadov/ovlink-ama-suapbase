@@ -79,7 +79,7 @@
   </button>
 </div>
 
-<script nonce="<%= nonce %>">
+<script nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
 (function(){
   var cookieBanner = document.getElementById('cookieBanner');
   var acceptCookieBtn = document.getElementById('acceptCookieBtn');
@@ -118,6 +118,8 @@
     arrow.setAttribute('aria-hidden', 'true');
     arrow.innerHTML = '<svg width="30" height="30" viewBox="0 0 32 32" fill="none"><path d="M4.5 3.5L27 13.5L16.5 17.5L12 28.5L4.5 3.5Z" fill="#0a0a0a" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     document.body.appendChild(arrow);
+  } else if (!arrow.querySelector('svg')) {
+    arrow.innerHTML = '<svg width="30" height="30" viewBox="0 0 32 32" fill="none"><path d="M4.5 3.5L27 13.5L16.5 17.5L12 28.5L4.5 3.5Z" fill="#0a0a0a" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
 
   if (!ring) {

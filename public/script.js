@@ -1815,15 +1815,39 @@ async function trySyncSessionFromServer() {
       });
       if (data.user.settings) {
         window.__userSettings = data.user.settings;
-        if (data.user.settings.ui_lang) {
-          currentLang = data.user.settings.ui_lang;
-          localStorage.setItem("lang", currentLang);
+        const activeLocalLang = (typeof localStorage !== "undefined")
+          ? (localStorage.getItem("lang") || localStorage.getItem("ovlink_lang"))
+          : null;
+        const validLangs = ["az", "tr", "en"];
+        if (validLangs.includes(activeLocalLang)) {
+          if (data.user.settings.ui_lang && data.user.settings.ui_lang !== activeLocalLang) {
+            try {
+              const metaCsrf = document.querySelector('meta[name="csrf-token"]');
+              const csrfToken = metaCsrf ? metaCsrf.getAttribute('content') : '';
+              fetch('/api/user/ui-lang', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'CSRF-Token': csrfToken, 'x-csrf-token': csrfToken },
+                body: JSON.stringify({ lang: activeLocalLang, _csrf: csrfToken })
+              }).catch(() => {});
+            } catch (_) {}
+          }
+          if (typeof setLanguage === 'function') {
+            setLanguage(activeLocalLang);
+          } else {
+            currentLang = activeLocalLang;
+            if (typeof applyLanguage === 'function') applyLanguage();
+          }
+        } else if (data.user.settings.ui_lang && validLangs.includes(data.user.settings.ui_lang)) {
+          if (typeof setLanguage === 'function') {
+            setLanguage(data.user.settings.ui_lang);
+          } else {
+            currentLang = data.user.settings.ui_lang;
+            localStorage.setItem("lang", currentLang);
+            if (typeof applyLanguage === 'function') applyLanguage();
+          }
         }
         if (data.user.settings.ui_theme) {
           applyTheme(data.user.settings.ui_theme);
-        }
-        if (typeof applyLanguage === 'function') {
-          applyLanguage();
         }
       }
       window.__userEmail = data.user.email || '';
@@ -1864,6 +1888,8 @@ function renderNavbarAuth() {
   const userProBadge = document.getElementById("navUserProBadge");
   const logoutBtnMobile = document.getElementById("navLogoutBtnMobile");
   const emailEl = document.getElementById("navUserEmail");
+  const wsM = document.getElementById("navAuthWorkspacesM");
+  const accM = document.getElementById("navAuthAccountM");
   const adminLink = document.getElementById("navAdminLink");
 
   const s = getClientSession();
@@ -1898,15 +1924,23 @@ function renderNavbarAuth() {
     user?.removeAttribute("hidden");
     userM?.classList.remove("d-none");
     userM?.removeAttribute("hidden");
+    wsM?.removeAttribute("hidden");
+    wsM?.classList.remove("d-none");
+    accM?.removeAttribute("hidden");
+    accM?.classList.remove("d-none");
     logoutBtnMobile?.removeAttribute("hidden");
     logoutBtnMobile?.classList.remove("d-none");
 
     if (userProBadge) {
-      userProBadge.toggleAttribute("hidden", !isPro);
+      userProBadge.textContent = isPro ? "PRO" : "FREE";
+      userProBadge.className = isPro ? "m-user-plan-pill m-user-plan-pill--pro" : "m-user-plan-pill m-user-plan-pill--free";
+      userProBadge.removeAttribute("hidden");
     }
 
     if (emailEl) {
-      if (typeof tKey === 'function') {
+      if (window.__userEmail) {
+        emailEl.textContent = window.__userEmail;
+      } else if (typeof tKey === 'function') {
         emailEl.textContent = tKey("nav_my_account", "Hesabım");
       } else if (typeof getText === 'function') {
         emailEl.textContent = getText("nav_my_account", "Hesabım");
@@ -1917,6 +1951,10 @@ function renderNavbarAuth() {
     user?.setAttribute("hidden", "");
     userM?.classList.add("d-none");
     userM?.setAttribute("hidden", "");
+    wsM?.setAttribute("hidden", "");
+    wsM?.classList.add("d-none");
+    accM?.setAttribute("hidden", "");
+    accM?.classList.add("d-none");
     logoutBtnMobile?.setAttribute("hidden", "");
     logoutBtnMobile?.classList.add("d-none");
 
@@ -1928,6 +1966,14 @@ function renderNavbarAuth() {
     loginM?.removeAttribute("hidden");
     regM?.classList.remove("d-none");
     regM?.removeAttribute("hidden");
+
+    if (userProBadge) {
+      userProBadge.textContent = "FREE";
+      userProBadge.className = "m-user-plan-pill m-user-plan-pill--free";
+    }
+    if (emailEl) {
+      emailEl.textContent = "user@ovlink.st";
+    }
 
     if (pricingItem) {
       pricingItem.classList.remove("d-none");
@@ -2953,6 +2999,12 @@ if (document.readyState === "loading") {
         if (payload.lang) {
           currentLang = payload.lang;
           localStorage.setItem("lang", payload.lang);
+          localStorage.setItem("ovlink_lang", payload.lang);
+          try {
+            document.cookie = 'lang_default=' + encodeURIComponent(payload.lang) + '; path=/; max-age=31536000; SameSite=Lax';
+            document.cookie = 'ovlink_lang=' + encodeURIComponent(payload.lang) + '; path=/; max-age=31536000; SameSite=Lax';
+            document.cookie = 'lang=' + encodeURIComponent(payload.lang) + '; path=/; max-age=31536000; SameSite=Lax';
+          } catch (_) {}
           if (typeof applyLanguage === 'function') {
             applyLanguage();
           }

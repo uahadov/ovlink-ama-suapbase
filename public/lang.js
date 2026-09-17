@@ -10,6 +10,11 @@ const translations = {
         skip_to_content: "Məzmuna keç",
         nav_logout: "Çıxış",
         nav_my_account: "Hesabım",
+        nav_dashboard: "İdarə Paneli",
+        nav_workspaces: "İş Sahələri",
+        nav_account_settings: "Hesab Parametrləri",
+        nav_notifications: "Bildirişlər",
+        nav_menu_nav: "Naviqasiya",
         auth_or: "və ya",
         login_google: "Google ilə giriş",
         register_google: "Google ilə qeydiyyat",
@@ -93,6 +98,7 @@ const translations = {
         verify_code: "Təsdiqləmə Kodu",
         verify_btn: "Təsdiqlə və Bitir",
         resend_code: "Kodu Yenidən Göndər",
+        change_email: "E-poçtu dəyiş",
         have_account: "Artıq hesabınız var?",
         login_link: "Giriş edin",
         dashboard_total_links: "Ümumi Link",
@@ -417,12 +423,26 @@ const translations = {
         error_expired_status: "410 MÜDDƏTİ BİTMİŞ LİNK",
         error_expired_home: "Ana Səhifəyə Qayıt",
 
-        error_max_clicks_title: "Klik Limiti Doldu",
-        error_max_clicks_msg: "Bu link üçün icazə verilən maksimum klik sayına çatılmışdır.",
-        error_max_clicks_status: "429 KLİK LİMİTİ DOLDU",
-        error_max_clicks_pro_hint: "Limitsiz klik və təhlil üçün Ovlink Pro planına yüksəldə bilərsiniz.",
-        error_max_clicks_pricing_cta: "Pro Planını Gör",
+        error_max_clicks_title: "Yönləndirmə Limiti Doldu",
+        error_max_clicks_msg: "Bu qısa keçid üçün müəllifi tərəfindən təyin edilmiş maksimum yönləndirmə sayına çatılmışdır və link fəaliyyətini dayandırmışdır.",
+        error_max_clicks_status: "410 · LİMİT DOLDU",
+        error_max_clicks_hint: "Siz də Ovlink vasitəsilə qısa linklər yaradarkən istənilən sayda klik və ya yönləndirmə limiti təyin edə bilərsiniz.",
+        error_max_clicks_diag_status_label: "Link Vəziyyəti",
+        error_max_clicks_diag_status_val: "Deaktivdir (Limit Doldu)",
+        error_max_clicks_diag_redirect_label: "Yönləndirmə",
+        error_max_clicks_diag_redirect_val: "Dayandırılıb",
+        error_max_clicks_pro_hint: "Siz də Ovlink vasitəsilə qısa linklər yaradarkən istənilən sayda klik və ya yönləndirmə limiti təyin edə bilərsiniz.",
+        error_max_clicks_pricing_cta: "Öz Linkini Qısalt",
+        error_max_clicks_shorten_cta: "Öz Linkini Qısalt",
         error_max_clicks_home: "Ana Səhifə",
+        error_expired_diag_status_label: "Status",
+        error_expired_diag_status_val: "TTL Vaxt Aşımı (Müddəti Bitib)",
+        error_expired_diag_target_label: "Hədəf Resurs",
+        error_expired_diag_target_val: "Müvəqqəti Giriş Dayandırılıb",
+        danger_diag_status_label: "Təhlükəsizlik Statusu",
+        danger_diag_status_val: "İstifadəçi Şikayətləri Qeydə Alınıb",
+        danger_diag_advice_label: "Tövsiyə Olunan",
+        danger_diag_advice_val: "Mənbəyə etibar etmirsinizsə daxil olmayın",
 
         error_banned_title: "Giriş Məhdudlaşdırılıb",
         error_banned_msg: "Bu hesab və ya IP ünvanı platforma təhlükəsizlik qaydalarını pozduğu üçün məhdudlaşdırılmışdır.",
@@ -1078,7 +1098,25 @@ const translations = {
         ws_accept_invited_email: "Dəvət olunan ünvan:",
         ws_accept_already: "Siz bu workspace-in üzvüsünüz.",
         ws_accept_invalid: "Bu dəvət etibarsızdır, vaxtı bitib və ya ləğv edilib.",
-                        updates_release_20260917_emails_title: "Monolith E-poçt Şablonları və Oflayn PWA HUD",
+        updates_release_20260917_limits_title: "Monolith Link Limiti və Xəta Səhifələri Redizaynı",
+        updates_release_20260917_limits_badge: "17.09.2026",
+        updates_release_20260917_limits_desc: "Maksimum klik limitinə çatan qısa keçidlərin xəbərdarlıq ekranı və bütün sistem xəta səhifələri Monolith dizaynına tam uyğunlaşdırıldı, Pro tələbi aradan qaldırıldı və qlobal naviqasiya inteqrasiya edildi.",
+        updates_release_20260917_limits_item1: "Pulsuz İstifadəçi Limiti Aydınlığı: Fərdi yönləndirmə limiti bütün istifadəçilər üçün 100% pulsuz xüsusiyyət kimi düzəldildi, çaşdırıcı Pro ödəniş tələbi və düymələri tam çıxarıldı.",
+        updates_release_20260917_limits_item2: "Monolith Universal Header və Footer: Loqo, işlək çoxdilli menyu (AZ/TR/EN), autentifikasiya qapısı və hüquqi alt menyu bütün xəta səhifələrinə inteqrasiya olundu.",
+        updates_release_20260917_limits_item3: "Tam Lokallaşdırma və İnteraktivlik: Diaqnostika göstəriciləri tam i18n tərcümələri ilə təmin edildi, hədd aşımı ölçən dinamik SVG animasiyası və ambient kursor aktivləşdirildi.",
+        updates_release_20260917_acc_title: "Monolith Hesab Naviqasiya Mərkəzi və Açılan Menyu",
+        updates_release_20260917_acc_badge: "17.09.2026",
+        updates_release_20260917_acc_desc: "Tək istifadəçi ikonu əvəzinə fırlanan ox indikatorlu, toxunuşa həssas Monolith hesab düyməsi və İdarə Paneli, İş Sahələri, Hesab Parametrləri və Bildirişlərə birbaşa çıxış verən zəngin naviqasiya mərkəzi istifadəyə verildi.",
+        updates_release_20260917_acc_item1: "İntuitiv Hesab Həbi: Təbii hesab ikonu, lokallaşdırılmış ad və 180 dərəcə dönən ox ilə təchiz olunmuş vahid Monolith düyməsi.",
+        updates_release_20260917_acc_item2: "Zəngin Açılan Naviqasiya: İstifadəçi e-poçtu və PRO/FREE statusu, İdarə Paneli, İş Sahələri, Hesab Parametrləri və Bildiriş mərkəzinə rahat keçidlər.",
+        updates_release_20260917_acc_item3: "Tam Hadisə Sabitliyi: Bütün səhifələrdə toqquşan klik dinləyiciləri aradan qaldırıldı, menyu etibarlı açılma və kənara kliklə yumşaq bağlanma mexanizmi ilə təmin edildi.",
+        updates_release_20260917_lang_title: "Universal Naviqasiya və Dil Dəyişdirici Sabitliyi",
+        updates_release_20260917_lang_badge: "17.09.2026",
+        updates_release_20260917_lang_desc: "Ana səhifə və bütün köməkçi səhifələrdə dil seçimi menyusunun açılma dayanıqlığı təmin edildi, hadisə toqquşmaları aradan qaldırıldı və real vaxt tərcümə sinxronizasiyası gücləndirildi.",
+        updates_release_20260917_lang_item1: "Birtoxunuşlu Açılma Sabitliyi: Dil və istifadəçi menyularında təkrarlanan hadisə dinləyiciləri ləğv edildi, z-index qatı gücləndirildi və klik toqquşmaları tamamilə həll edildi.",
+        updates_release_20260917_lang_item2: "Dərhal Canlı Dil Dəyişimi: AZ, TR və EN dilləri arasında keçid zamanı interfeys ikonları və mürəkkəb elementlər pozulmadan tam səliqə ilə yenilənir.",
+        updates_release_20260917_lang_item3: "Mobil Menyu Uyğunluğu: Mobil görünüşdə dil menyusunun yuxarıya doğru asan açılması və kənara kliklə bağlanan universal menyu idarəçisi.",
+        updates_release_20260917_emails_title: "Monolith E-poçt Şablonları və Oflayn PWA HUD",
         updates_release_20260917_emails_badge: "17.09.2026",
         updates_release_20260917_emails_desc: "Bütün tranzaksiya e-poçtları (təsdiqləmə kodları, şifrə sıfırlama, təhlükəsizlik bildirişləri və dəvətlər) Monolith qaranlıq kətanına keçirildi, oflayn PWA ekranı kibernetik HUD ilə yeniləndi.",
         updates_release_20260917_emails_item1: "Zifiri Qaranlıq Tranzaksiya E-poçtları: #0a0a0a kətan, #111111 kart strukturu, JetBrains Mono 6 rəqəmli monospace kod bloku və bütün e-poçt müştəriləri ilə tam uyğunluq.",
@@ -1326,6 +1364,11 @@ const translations = {
         skip_to_content: "İçeriğe atla",
         nav_logout: "Çıkış",
         nav_my_account: "Hesabım",
+        nav_dashboard: "Kontrol Paneli",
+        nav_workspaces: "Çalışma Alanları",
+        nav_account_settings: "Hesap Ayarları",
+        nav_notifications: "Bildirimler",
+        nav_menu_nav: "Gezinme",
         auth_or: "veya",
         login_google: "Google ile giriş",
         register_google: "Google ile kayıt",
@@ -1375,6 +1418,7 @@ const translations = {
         verify_code: "Doğrulama Kodu",
         verify_btn: "Doğrula ve Bitir",
         resend_code: "Kodu Yeniden Gönder",
+        change_email: "E-postayı değiştir",
         have_account: "Zaten hesabınız var mı?",
         login_link: "Giriş Yapın",
         dashboard_total_links: "Toplam Link",
@@ -1697,12 +1741,26 @@ const translations = {
         error_expired_status: "410 SÜRESİ DOLMUŞ BAĞLANTI",
         error_expired_home: "Ana Sayfaya Dön",
 
-        error_max_clicks_title: "Tıklama Limitine Ulaşıldı",
-        error_max_clicks_msg: "Bu bağlantı için belirlenen maksimum tıklama sınırına ulaşılmıştır.",
-        error_max_clicks_status: "429 TIKLAMA LİMİTİ DOLDU",
-        error_max_clicks_pro_hint: "Sınırsız yönlendirme ve analiz için Ovlink Pro planına geçebilirsiniz.",
-        error_max_clicks_pricing_cta: "Pro Planını Gör",
+        error_max_clicks_title: "Yönlendirme Sınırına Ulaşıldı",
+        error_max_clicks_msg: "Bu kısa bağlantı için oluşturan kişi tarafından belirlenen maksimum yönlendirme sınırına ulaşılmıştır ve bağlantı artık aktif değildir.",
+        error_max_clicks_status: "410 · LİMİT DOLDU",
+        error_max_clicks_hint: "Siz de Ovlink ile kısa bağlantılar oluştururken dilediğiniz sayıda tıklama veya yönlendirme sınırı belirleyebilirsiniz.",
+        error_max_clicks_diag_status_label: "Bağlantı Durumu",
+        error_max_clicks_diag_status_val: "Devre Dışı (Limit Doldu)",
+        error_max_clicks_diag_redirect_label: "Yönlendirme",
+        error_max_clicks_diag_redirect_val: "Durduruldu",
+        error_max_clicks_pro_hint: "Siz de Ovlink ile kısa bağlantılar oluştururken dilediğiniz sayıda tıklama veya yönlendirme sınırı belirleyebilirsiniz.",
+        error_max_clicks_pricing_cta: "Kendi Bağlantını Kısalt",
+        error_max_clicks_shorten_cta: "Kendi Bağlantını Kısalt",
         error_max_clicks_home: "Ana Sayfa",
+        error_expired_diag_status_label: "Durum",
+        error_expired_diag_status_val: "TTL Zaman Aşımı (Süresi Doldu)",
+        error_expired_diag_target_label: "Hedef Kaynak",
+        error_expired_diag_target_val: "Geçici Erişim Durduruldu",
+        danger_diag_status_label: "Güvenlik Durumu",
+        danger_diag_status_val: "Kullanıcı Şikayetleri Kaydedildi",
+        danger_diag_advice_label: "Tavsiye Edilen",
+        danger_diag_advice_val: "Kaynağa güvenmiyorsanız devam etmeyin",
 
         error_banned_title: "Erişim Kısıtlandı",
         error_banned_msg: "Bu hesap veya IP adresi platform güvenlik kurallarını ihlal ettiği için kısıtlanmıştır.",
@@ -1766,7 +1824,25 @@ const translations = {
         error_alias_taken: "Bu özel link zaten kullanılmış",
         error_invalid_url: "Lütfen geçerli bir URL girin.",
         error_link_not_found: "Böyle Bir Link Bulunamadı.",
-                                updates_release_20260917_emails_title: "Monolith E-posta Şablonları ve Çevrimdışı PWA HUD",
+        updates_release_20260917_limits_title: "Monolith Bağlantı Sınırı ve Hata Sayfaları Yeniden Tasarımı",
+        updates_release_20260917_limits_badge: "17.09.2026",
+        updates_release_20260917_limits_desc: "Maksimum tıklama sınırına ulaşan kısa bağlantıların uyarı ekranı ve tüm sistem hata sayfaları Monolith tasarımına tam uyarlandı, Pro yükseltme dayatması kaldırıldı ve evrensel gezinme entegre edildi.",
+        updates_release_20260917_limits_item1: "Ücretsiz Kullanıcı Limiti Netliği: Özel yönlendirme sınırı tüm kullanıcılar için %100 ücretsiz bir özellik olarak netleştirildi, yanıltıcı Pro ödeme zorunluluğu ve butonları kaldırıldı.",
+        updates_release_20260917_limits_item2: "Monolith Evrensel Başlık ve Altbilgi: Logo, çalışan çok dilli menü (AZ/TR/EN), kimlik doğrulama kontrolleri ve yasal altbilgi tüm hata sayfalarına entegre edildi.",
+        updates_release_20260917_limits_item3: "Tam Yerelleştirme ve Etkileşim: Tanılama kutuları eksiksiz i18n çevirileri ile donatıldı, aşırı yük göstergeli dinamik SVG animasyonu ve ortam imleci etkinleştirildi.",
+        updates_release_20260917_acc_title: "Monolith Hesap Gezinme Merkezi ve Açılır Menü",
+        updates_release_20260917_acc_badge: "17.09.2026",
+        updates_release_20260917_acc_desc: "Tek kullanıcı ikonu yerine dönen ok göstergeli, dokunmatik Monolith hesap butonu ve Kontrol Paneli, Çalışma Alanları, Hesap Ayarları ve Bildirimlere doğrudan erişim sağlayan zengin gezinme merkezi yayına alındı.",
+        updates_release_20260917_acc_item1: "Sezgisel Hesap Butonu: Doğal hesap simgesi, yerelleştirilmiş başlık ve 180 derece dönen ok göstergeli tek parça Monolith butonu.",
+        updates_release_20260917_acc_item2: "Zengin Açılır Menü: Kullanıcı e-postası ve PRO/FREE durumu, Kontrol Paneli, Çalışma Alanları, Hesap Ayarları ve Bildirimler merkezine hızlı erişim.",
+        updates_release_20260917_acc_item3: "Tam Etkinlik Kararlılığı: Tüm sayfalardaki çakışan tıklama dinleyicileri giderildi, menü güvenilir açılma ve dışarı tıklamayla yumuşak kapanma mekanizmasıyla güçlendirildi.",
+        updates_release_20260917_lang_title: "Evrensel Navigasyon ve Dil Değiştirici Kararlılığı",
+        updates_release_20260917_lang_badge: "17.09.2026",
+        updates_release_20260917_lang_desc: "Ana sayfa ve tüm alt sayfalarda dil seçimi menüsünün açılma kararlılığı sağlandı, olay çakışmaları giderildi ve gerçek zamanlı çeviri senkronizasyonu güçlendirildi.",
+        updates_release_20260917_lang_item1: "Tek Dokunuş Açılma Kararlılığı: Dil ve kullanıcı menülerinde yinelenen olay dinleyicileri kaldırıldı, z-index katmanı güçlendirildi ve tıklama çakışmaları tamamen çözüldü.",
+        updates_release_20260917_lang_item2: "Anında Canlı Dil Değişimi: AZ, TR ve EN dilleri arasında geçişte arayüz ikonları ve karmaşık bileşenler bozulmadan kusursuzca güncellenir.",
+        updates_release_20260917_lang_item3: "Mobil Menü Uyumu: Mobil görünümde dil menüsünün yukarı doğru rahatça açılması ve dışarı tıklamayla kapanan evrensel menü yöneticisi.",
+        updates_release_20260917_emails_title: "Monolith E-posta Şablonları ve Çevrimdışı PWA HUD",
         updates_release_20260917_emails_badge: "17.09.2026",
         updates_release_20260917_emails_desc: "Tüm işlem e-postaları (doğrulama kodları, şifre sıfırlama, güvenlik bildirimleri ve davetler) Monolith karanlık tuvaline geçirildi, çevrimdışı PWA ekranı sibernetik HUD ile yenilendi.",
         updates_release_20260917_emails_item1: "Zifiri Karanlık İşlem E-postaları: #0a0a0a tuval, #111111 kart yapısı, JetBrains Mono 6 haneli monospace kod kutusu ve tüm e-posta istemcileriyle tam uyumluluk.",
@@ -2520,6 +2596,11 @@ const translations = {
         skip_to_content: "Skip to content",
         nav_logout: "Logout",
         nav_my_account: "My Account",
+        nav_dashboard: "Dashboard",
+        nav_workspaces: "Workspaces",
+        nav_account_settings: "Account Settings",
+        nav_notifications: "Notifications",
+        nav_menu_nav: "Navigation",
         auth_or: "or",
         login_google: "Continue with Google",
         register_google: "Sign up with Google",
@@ -2569,6 +2650,7 @@ const translations = {
         verify_code: "Verification Code",
         verify_btn: "Verify and Finish",
         resend_code: "Resend Code",
+        change_email: "Change email",
         have_account: "Already have an account?",
         login_link: "Sign In",
         dashboard_total_links: "Total Links",
@@ -2893,12 +2975,26 @@ const translations = {
         error_expired_status: "410 LINK EXPIRED",
         error_expired_home: "Return to Homepage",
 
-        error_max_clicks_title: "Click Limit Reached",
-        error_max_clicks_msg: "This link has reached its maximum authorized redirect capacity limit.",
-        error_max_clicks_status: "429 CAPACITY LIMIT REACHED",
-        error_max_clicks_pro_hint: "Upgrade to Ovlink Pro for unlimited link volume and uncapped click routing.",
-        error_max_clicks_pricing_cta: "View Pro Plans",
+        error_max_clicks_title: "Redirect Limit Reached",
+        error_max_clicks_msg: "This short link has reached the maximum redirect limit set by its creator and is no longer active.",
+        error_max_clicks_status: "410 · LIMIT REACHED",
+        error_max_clicks_hint: "You can also set custom click or redirect limits when creating short links with Ovlink.",
+        error_max_clicks_diag_status_label: "Link Status",
+        error_max_clicks_diag_status_val: "Inactive (Limit Reached)",
+        error_max_clicks_diag_redirect_label: "Redirects",
+        error_max_clicks_diag_redirect_val: "Stopped",
+        error_max_clicks_pro_hint: "You can also set custom click or redirect limits when creating short links with Ovlink.",
+        error_max_clicks_pricing_cta: "Shorten Your Own Link",
+        error_max_clicks_shorten_cta: "Shorten Your Own Link",
         error_max_clicks_home: "Homepage",
+        error_expired_diag_status_label: "Status",
+        error_expired_diag_status_val: "TTL Expired",
+        error_expired_diag_target_label: "Target Resource",
+        error_expired_diag_target_val: "Temporary Access Terminated",
+        danger_diag_status_label: "Security Status",
+        danger_diag_status_val: "User Complaints Recorded",
+        danger_diag_advice_label: "Recommendation",
+        danger_diag_advice_val: "Do not proceed unless you trust this source",
 
         error_banned_title: "Access Restricted",
         error_banned_msg: "This account or IP address has been restricted due to a violation of platform safety policies.",
@@ -2962,7 +3058,25 @@ const translations = {
         error_alias_taken: "This custom link is already in use",
         error_invalid_url: "Please enter a valid URL.",
         error_link_not_found: "Link not found.",
-                                updates_release_20260917_emails_title: "Monolith Email Templates & Offline PWA HUD",
+        updates_release_20260917_limits_title: "Monolith Link Limit & Gateway Error Views Redesign",
+        updates_release_20260917_limits_badge: "17.09.2026",
+        updates_release_20260917_limits_desc: "The redirect limit reached screen and all sibling error gateways were redesigned to Monolith dark minimalism, removing erroneous Pro plan paywalls and unifying global navigation.",
+        updates_release_20260917_limits_item1: "Free Feature Clarity: Replaced confusing Pro upgrade upsell with accurate notice that creator redirect limits are 100% free and customizable for all users.",
+        updates_release_20260917_limits_item2: "Universal Navbar & Footer: Integrated the official Monolith logo, interactive language dropdown, session-aware account menu, and legal footer across all error gateways.",
+        updates_release_20260917_limits_item3: "Strict i18n & Sensory Polish: Added diagnostic translation keys across AZ/TR/EN, animated overload gauge meter SVG, and precision Monolith cursor glow.",
+        updates_release_20260917_acc_title: "Monolith Account Navigation Hub & Dropdown Menu",
+        updates_release_20260917_acc_badge: "17.09.2026",
+        updates_release_20260917_acc_desc: "Replaced the isolated user icon with a tactile Monolith account pill trigger featuring a rotating chevron and a comprehensive navigation hub linking directly to Dashboard, Workspaces, Account Settings, and Notifications.",
+        updates_release_20260917_acc_item1: "Intuitive Account Trigger: Unified pill button with account glyph, localized label, and 180-degree animated chevron.",
+        updates_release_20260917_acc_item2: "Rich Dropdown Hub: Displays user email and PRO/FREE badge, alongside quick-links to Dashboard, Workspaces, Account Settings, and Notifications.",
+        updates_release_20260917_acc_item3: "Complete Event Reliability: Eliminated conflicting document click handlers across all pages, ensuring instantaneous and reliable menu open/close behavior.",
+        updates_release_20260917_lang_title: "Universal Navbar & Language Switcher Reliability",
+        updates_release_20260917_lang_badge: "17.09.2026",
+        updates_release_20260917_lang_desc: "Ensured robust opening behavior for the language selector menu across homepage and secondary pages, eliminated event handler clashes, and strengthened live translation synchronization.",
+        updates_release_20260917_lang_item1: "One-Touch Open Reliability: Removed duplicate dropdown event listeners in page templates, elevated popup z-index layering, and resolved all click dismiss collisions.",
+        updates_release_20260917_lang_item2: "Instant Live Language Switching: Preserved UI icons and nested elements when switching between AZ, TR, and EN across desktop and mobile components.",
+        updates_release_20260917_lang_item3: "Mobile Menu Optimization: Styled language popup to open upward cleanly in mobile overlays with outside-click dismissal.",
+        updates_release_20260917_emails_title: "Monolith Email Templates & Offline PWA HUD",
         updates_release_20260917_emails_badge: "17.09.2026",
         updates_release_20260917_emails_desc: "All transactional email templates (verification codes, password resets, security alerts, and invitations) were redesigned to the Monolith dark canvas, and the PWA offline screen overhauled with a cyber HUD.",
         updates_release_20260917_emails_item1: "Pitch-Black Transactional Emails: #0a0a0a canvas, #111111 card surfaces, JetBrains Mono 6-digit code pill, and resilient email client compatibility.",
@@ -2972,7 +3086,7 @@ const translations = {
         updates_release_20260917_admin_badge: "17.09.2026",
         updates_release_20260917_admin_desc: "The entire management console (/admin/*), login pages, and audit logs were overhauled into the pitch-black Monolith design system, and orphaned legacy partials removed.",
         updates_release_20260917_admin_item1: "Pitch-Black Cyber Console: All 17 admin subpages restyled with pitch-black canvas (#0a0a0a), card surfaces (#111111), hairline borders, and Inter & JetBrains Mono typography.",
-        updates_release_20260917_admin_item2: "Ambient Glow & Auth Security: Interactive #cursorGlow follow cursor on admin auth screens, hardened audit log tables, and unified /logo.webp assets.",
+        updates_release_20260917_admin_item2: "Ambient Glow & Auth Security: Interactive #cursorGlow follow cursor on admin auth screens, hardened audit log tables, and unified Monolith /home-logo.svg vector brand assets.",
         updates_release_20260917_admin_item3: "Codebase Optimization: Complete deletion of orphaned legacy partials (public-navbar, public-footer, cookie-banner) with zero broken references.",
         updates_release_20260917_dash_title: "Monolith Dashboard & 100% Bootstrap-Free Modals Redesign",
         updates_release_20260917_dash_badge: "17.09.2026",
@@ -3767,8 +3881,18 @@ const translations = {
 // Varsayılan dil (localStorage > cookie > browser > AZ)
 function getCookieLang() {
     if (typeof document === "undefined" || !document.cookie) return '';
-    const match = document.cookie.match(/(?:^|;\s*)(?:lang_default|lang|ovlink_lang)=([^;]+)/);
-    return match ? decodeURIComponent(match[1]).trim().toLowerCase() : '';
+    const getVal = (name) => {
+        const m = document.cookie.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
+        return m ? decodeURIComponent(m[1]).trim().toLowerCase() : '';
+    };
+    const valid = ['az', 'tr', 'en'];
+    const d = getVal('lang_default');
+    if (valid.includes(d)) return d;
+    const o = getVal('ovlink_lang');
+    if (valid.includes(o)) return o;
+    const l = getVal('lang');
+    if (valid.includes(l)) return l;
+    return '';
 }
 
 const storedLang = typeof localStorage !== "undefined" ? (localStorage.getItem("lang") || localStorage.getItem("ovlink_lang")) : null;
@@ -3795,6 +3919,8 @@ try {
     }
     if (typeof document !== "undefined") {
         document.cookie = 'lang_default=' + encodeURIComponent(currentLang) + '; path=/; max-age=31536000; SameSite=Lax';
+        document.cookie = 'ovlink_lang=' + encodeURIComponent(currentLang) + '; path=/; max-age=31536000; SameSite=Lax';
+        document.cookie = 'lang=' + encodeURIComponent(currentLang) + '; path=/; max-age=31536000; SameSite=Lax';
     }
 } catch(_) {}
 
@@ -3916,12 +4042,30 @@ function setLanguage(lang) {
         }
         if (typeof document !== "undefined") {
             document.cookie = 'lang_default=' + encodeURIComponent(currentLang) + '; path=/; max-age=31536000; SameSite=Lax';
+            document.cookie = 'ovlink_lang=' + encodeURIComponent(currentLang) + '; path=/; max-age=31536000; SameSite=Lax';
+            document.cookie = 'lang=' + encodeURIComponent(currentLang) + '; path=/; max-age=31536000; SameSite=Lax';
         }
     } catch {}
     applyLanguage();
     if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
         window.dispatchEvent(new CustomEvent("ovlink:languageChanged", { detail: { lang: currentLang } }));
     }
+    // Background sync to server so user account in DB updates immediately
+    try {
+        if (typeof fetch === "function") {
+            const metaCsrf = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = metaCsrf ? metaCsrf.getAttribute('content') : '';
+            fetch('/api/user/ui-lang', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'CSRF-Token': csrfToken,
+                    'x-csrf-token': csrfToken
+                },
+                body: JSON.stringify({ lang: currentLang, _csrf: csrfToken })
+            }).catch(() => {});
+        }
+    } catch (_) {}
 }
 
 function toggleLanguage() {

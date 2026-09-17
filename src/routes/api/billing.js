@@ -385,9 +385,9 @@ router.post('/api/polar/webhook', async (req, res) => {
         [
           targetUser.id,
           'system',
-          'Ovlink Pro Aktiv Edildi! ­şææ',
-          'Ovlink Pro Aktif Edildi! ­şææ',
-          'Ovlink Pro Activated! ­şææ',
+          'Ovlink Pro Aktiv Edildi! 🎉',
+          'Ovlink Pro Aktif Edildi! 🎉',
+          'Ovlink Pro Activated! 🎉',
           'Pro abunəliyiniz uğurla aktivləşdirildi. Bütün limitsiz imkanlardan dərhal istifadə edə bilərsiniz.',
           'Pro üyeliğiniz başarıyla aktifleştirildi. Tüm sınırsız özelliklerden hemen yararlanabilirsiniz.',
           'Your Pro subscription has been successfully activated. Enjoy full access to all premium features.',

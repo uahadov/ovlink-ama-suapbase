@@ -1,96 +1,133 @@
 <%- include('partials/layout-top', {
-  title: 'Admin · Links',
-  heading: 'Links',
-  subtitle: 'All short links',
+  title: 'Admin · Links Directory',
+  heading: 'Links Directory',
+  subtitle: 'Platform-wide short link inventory, health telemetry, and moderation index',
   active: 'links',
   admin,
   csrfToken,
   topRightHtml: null,
 }) %>
 
-<div class="card">
-  <form class="row" method="GET" action="/admin/links">
-    <div class="field field--grow">
-      <label for="q">Search (short / URL / user)</label>
-      <input class="input" id="q" name="q" value="<%= q || '' %>" placeholder="abc123 or https://..." />
-    </div>
+<div class="m-card" style="margin-bottom: 24px;">
+  <form method="GET" action="/admin/links">
+    <div style="display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap;">
+      <div style="flex: 2; min-width: 240px;">
+        <label for="q" class="m-adv-label">Search Query (Code / URL / Email)</label>
+        <input class="m-adv-input" id="q" name="q" value="<%= q || '' %>" placeholder="e.g. abc123, example.com, or user@mail..." />
+      </div>
 
-    <div class="field">
-      <label for="status">Filter</label>
-      <select class="input" id="status" name="status">
-        <option value="" <%= !status ? 'selected' : '' %>>All</option>
-        <option value="reported" <%= status === 'reported' ? 'selected' : '' %>>Reported</option>
-        <option value="dangerous" <%= status === 'dangerous' ? 'selected' : '' %>>Dangerous</option>
-        <option value="disabled" <%= status === 'disabled' ? 'selected' : '' %>>Disabled</option>
-        <option value="password" <%= status === 'password' ? 'selected' : '' %>>Password protected</option>
-      </select>
-    </div>
+      <div style="flex: 1; min-width: 160px;">
+        <label for="status" class="m-adv-label">Health State</label>
+        <select class="m-adv-select" id="status" name="status" style="width: 100%;">
+          <option value="" <%= !status ? 'selected' : '' %>>All Links</option>
+          <option value="reported" <%= status === 'reported' ? 'selected' : '' %>>Reported</option>
+          <option value="dangerous" <%= status === 'dangerous' ? 'selected' : '' %>>Dangerous</option>
+          <option value="disabled" <%= status === 'disabled' ? 'selected' : '' %>>Disabled</option>
+          <option value="password" <%= status === 'password' ? 'selected' : '' %>>Password Protected</option>
+        </select>
+      </div>
 
-    <div class="field">
-      <label for="sort">Sort</label>
-      <select class="input" id="sort" name="sort">
-        <option value="" <%= !sort ? 'selected' : '' %>>Newest</option>
-        <option value="clicks" <%= sort === 'clicks' ? 'selected' : '' %>>Clicks</option>
-        <option value="reports" <%= sort === 'reports' ? 'selected' : '' %>>Reports</option>
-      </select>
-    </div>
+      <div style="flex: 1; min-width: 150px;">
+        <label for="sort" class="m-adv-label">Sort Order</label>
+        <select class="m-adv-select" id="sort" name="sort" style="width: 100%;">
+          <option value="" <%= !sort ? 'selected' : '' %>>Newest First</option>
+          <option value="clicks" <%= sort === 'clicks' ? 'selected' : '' %>>Most Clicks</option>
+          <option value="reports" <%= sort === 'reports' ? 'selected' : '' %>>Most Reports</option>
+        </select>
+      </div>
 
-    <div class="field">
-      <label>&nbsp;</label>
-      <button class="btn" type="submit">Apply</button>
+      <div>
+        <button class="m-cta m-cta--white" type="submit" style="height: 42px;">
+          <i class="fa-solid fa-magnifying-glass" style="font-size: 11px;"></i>
+          <span>Filter</span>
+        </button>
+      </div>
     </div>
   </form>
 </div>
 
-<div class="spacer"></div>
+<div class="m-card" style="padding: 0; overflow: hidden;">
+  <div class="m-dash-panel-header" style="padding: 20px 24px; border-bottom: 1px solid var(--c-border); margin-bottom: 0;">
+    <h2 class="m-dash-panel-title">
+      <i class="fa-solid fa-link" style="color: var(--c-muted);"></i>
+      <span>Indexed Short Links</span>
+    </h2>
+    <span class="badge" style="font-size: 11px;"><%= total || 0 %> Total Records</span>
+  </div>
 
-<div class="card">
   <% if (!rows || rows.length === 0) { %>
-    <div class="alert">No results found.</div>
+    <div style="text-align: center; padding: 56px 20px; color: var(--c-faint);">
+      <i class="fa-solid fa-inbox" style="font-size: 32px; display: block; margin-bottom: 12px; opacity: 0.5;"></i>
+      <div style="font-size: 15px; font-weight: 600; color: var(--c-white);">No short links found</div>
+      <div style="font-size: 13px; color: var(--c-muted); margin-top: 4px;">Try adjusting your query keywords or filter criteria.</div>
+    </div>
   <% } else { %>
-    <div class="table-wrap">
-      <table class="table">
+    <div class="m-table-wrap" style="border: none; border-radius: 0;">
+      <table class="m-table">
         <thead>
           <tr>
-            <th>Short</th>
-            <th>Destination</th>
-            <th>User</th>
-            <th>Created</th>
+            <th>Short Code</th>
+            <th>Destination Target</th>
+            <th>Creator / Owner</th>
+            <th>Created At</th>
             <th>Clicks</th>
             <th>Reports</th>
             <th>Status</th>
-            <th></th>
+            <th style="text-align: right; padding-right: 24px;">Action</th>
           </tr>
         </thead>
         <tbody>
           <% rows.forEach((r) => { %>
             <tr>
-              <td><span class="kbd"><%= r.short %></span></td>
-              <td><div class="cell-url"><%= r.original %></div></td>
-              <td><%= r.owner_email || '-' %></td>
-              <td><%= r.created_at ? new Date(r.created_at).toLocaleString() : '-' %></td>
-              <td><span class="pill"><%= r.clicks_count || 0 %></span></td>
-              <td><span class="pill pill--warn"><%= r.reports || 0 %></span></td>
               <td>
-                <% if (r.disabled) { %>
-                  <span class="pill pill--danger">Disabled</span>
-                <% } else if (r.dangerous) { %>
-                  <span class="pill pill--warn">Dangerous</span>
+                <span class="kbd"><%= r.short %></span>
+              </td>
+              <td>
+                <div class="cell-url" title="<%= r.original %>"><%= r.original %></div>
+              </td>
+              <td>
+                <span style="font-size: 12.5px; color: <%= r.owner_email ? 'var(--c-text)' : 'var(--c-faint)' %>;">
+                  <%= r.owner_email || 'Guest / Anonymous' %>
+                </span>
+              </td>
+              <td style="white-space: nowrap; color: var(--c-muted); font-size: 12px; font-family: var(--font-mono);">
+                <%= r.created_at ? new Date(r.created_at).toLocaleDateString() : '-' %>
+              </td>
+              <td>
+                <span class="pill"><i class="fa-solid fa-chart-simple" style="font-size: 10px; color: var(--c-muted);"></i> <%= r.clicks_count || 0 %></span>
+              </td>
+              <td>
+                <% if ((r.reports || 0) > 0) { %>
+                  <span class="pill pill--danger"><i class="fa-solid fa-triangle-exclamation" style="font-size: 10px;"></i> <%= r.reports %></span>
                 <% } else { %>
-                  <span class="pill pill--ok">Active</span>
-                <% } %>
-                <% if (r.has_password) { %>
-                  <span class="pill">Password</span>
+                  <span class="pill m-badge-reports--zero">0</span>
                 <% } %>
               </td>
-              <td><a class="btn btn--secondary" href="/admin/links/<%= encodeURIComponent(r.short) %>">Details</a></td>
+              <td>
+                <div class="row" style="gap: 6px;">
+                  <% if (r.disabled) { %>
+                    <span class="pill pill--danger">Disabled</span>
+                  <% } else if (r.dangerous) { %>
+                    <span class="pill pill--warn">Dangerous</span>
+                  <% } else { %>
+                    <span class="pill pill--ok">Active</span>
+                  <% } %>
+                  <% if (r.has_password) { %>
+                    <span class="pill" title="Password protected"><i class="fa-solid fa-lock" style="font-size: 10px; color: #fde68a;"></i></span>
+                  <% } %>
+                </div>
+              </td>
+              <td style="text-align: right; padding-right: 24px;">
+                <a class="m-cta m-cta--outline m-cta--sm" href="/admin/links/<%= encodeURIComponent(r.short) %>">
+                  <span>Inspect</span>
+                  <i class="fa-solid fa-arrow-right" style="font-size: 10px;"></i>
+                </a>
+              </td>
             </tr>
           <% }) %>
         </tbody>
       </table>
     </div>
-
-    <div class="spacer"></div>
 
     <% const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize)); %>
     <% const qParams = [
@@ -99,15 +136,24 @@
       sort ? ('sort=' + encodeURIComponent(sort)) : null,
     ].filter(Boolean).join('&'); %>
 
-    <div class="row" aria-label="pagination">
-      <span class="badge">Total: <%= total %></span>
-      <span class="badge">Page: <%= page %> / <%= totalPages %></span>
-      <% if (page > 1) { %>
-        <a class="btn btn--ghost" href="/admin/links?<%= qParams ? (qParams + '&') : '' %>page=<%= page - 1 %>">Previous</a>
-      <% } %>
-      <% if (page < totalPages) { %>
-        <a class="btn btn--ghost" href="/admin/links?<%= qParams ? (qParams + '&') : '' %>page=<%= page + 1 %>">Next</a>
-      <% } %>
+    <div class="pagination-bar">
+      <div>
+        <span>Showing page <strong style="color: var(--c-white);"><%= page %></strong> of <strong style="color: var(--c-white);"><%= totalPages %></strong> (<%= total || 0 %> links)</span>
+      </div>
+      <div class="row" style="gap: 8px;">
+        <% if (page > 1) { %>
+          <a class="m-cta m-cta--outline m-cta--sm" href="/admin/links?<%= qParams ? (qParams + '&') : '' %>page=<%= page - 1 %>">
+            <i class="fa-solid fa-chevron-left" style="font-size: 10px;"></i>
+            <span>Previous</span>
+          </a>
+        <% } %>
+        <% if (page < totalPages) { %>
+          <a class="m-cta m-cta--outline m-cta--sm" href="/admin/links?<%= qParams ? (qParams + '&') : '' %>page=<%= page + 1 %>">
+            <span>Next</span>
+            <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>
+          </a>
+        <% } %>
+      </div>
     </div>
   <% } %>
 </div>

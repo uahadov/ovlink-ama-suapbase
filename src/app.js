@@ -42,6 +42,9 @@ app.set('trust proxy', useTrustProxy ? trustProxyHops : false);
 const publicDir = path.join(__dirname, '..', 'public');
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
+if (!isProdRuntime || process.env.DISABLE_VIEW_CACHE === '1' || process.env.FRONTEND_ONLY === '1') {
+  app.disable('view cache');
+}
 
 // Apply ALL middleware in EXACT SAME order as server.js
 app.use(compression());
@@ -184,6 +187,7 @@ function requiresInlineCsrfRoute(pathname) {
     || path === '/register'
     || path === '/forgot-password'
     || path === '/reset-password'
+    || path === '/workspaces/accept'
     || path.startsWith('/proceed/')
     || path.startsWith('/consent/redirect/');
 }
@@ -228,7 +232,7 @@ app.use(adSandboxMiddleware);
 app.use(noindexMiddleware);
 
 app.use((req, res, next) => {
-  const p = (req.path || '').toString().trim().toLowerCase();
+  const p = (req.path || '').toString().replace(/\/+/g, '/').trim().toLowerCase();
   if (p === '/agents' || p === '/agents.md') {
     return res.status(404).send('Not found');
   }

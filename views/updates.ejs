@@ -13,7 +13,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
 
@@ -84,7 +86,67 @@
       <!-- Monolith Timeline -->
       <div class="m-timeline">
 
-                <!-- Entry 0: Monolith Email Templates & Offline PWA HUD -->
+        <!-- Entry: Monolith Link Limit & Gateway Error Views Redesign -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-gauge-high" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260917_limits_title">Monolith Link Limiti və Xəta Səhifələri Redizaynı</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260917_limits_badge">17.09.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260917_limits_desc">Maksimum klik limitinə çatan qısa keçidlərin xəbərdarlıq ekranı və bütün sistem xəta səhifələri Monolith dizaynına tam uyğunlaşdırıldı, Pro tələbi aradan qaldırıldı və qlobal naviqasiya inteqrasiya edildi.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20260917_limits_item1">Pulsuz İstifadəçi Limiti Aydınlığı: Fərdi yönləndirmə limiti bütün istifadəçilər üçün 100% pulsuz xüsusiyyət kimi düzəldildi, çaşdırıcı Pro ödəniş tələbi və düymələri tam çıxarıldı.</li>
+              <li data-i18n="updates_release_20260917_limits_item2">Monolith Universal Header və Footer: Loqo, işlək çoxdilli menyu (AZ/TR/EN), autentifikasiya qapısı və hüquqi alt menyu bütün xəta səhifələrinə inteqrasiya olundu.</li>
+              <li data-i18n="updates_release_20260917_limits_item3">Tam Lokallaşdırma və İnteraktivlik: Diaqnostika göstəriciləri tam i18n tərcümələri ilə təmin edildi, hədd aşımı ölçən dinamik SVG animasiyası və ambient kursor aktivləşdirildi.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry: Monolith Account Navigation Hub -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-circle-user" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260917_acc_title">Monolith Hesab Naviqasiya Mərkəzi və Açılan Menyu</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260917_acc_badge">17.09.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260917_acc_desc">Tək istifadəçi ikonu əvəzinə fırlanan ox indikatorlu, toxunuşa həssas Monolith hesab düyməsi və İdarə Paneli, İş Sahələri, Hesab Parametrləri və Bildirişlərə birbaşa çıxış verən zəngin naviqasiya mərkəzi istifadəyə verildi.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20260917_acc_item1">İntuitiv Hesab Həbi: Təbii hesab ikonu, lokallaşdırılmış ad və 180 dərəcə dönən ox ilə təchiz olunmuş vahid Monolith düyməsi.</li>
+              <li data-i18n="updates_release_20260917_acc_item2">Zəngin Açılan Naviqasiya: İstifadəçi e-poçtu və PRO/FREE statusu, İdarə Paneli, İş Sahələri, Hesab Parametrləri və Bildiriş mərkəzinə rahat keçidlər.</li>
+              <li data-i18n="updates_release_20260917_acc_item3">Tam Hadisə Sabitliyi: Bütün səhifələrdə toqquşan klik dinləyiciləri aradan qaldırıldı, menyu etibarlı açılma və kənara kliklə yumşaq bağlanma mexanizmi ilə təmin edildi.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry 0: Universal Navbar & Language Switcher Reliability -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-language" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260917_lang_title">Universal Naviqasiya və Dil Dəyişdirici Sabitliyi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260917_lang_badge">17.09.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260917_lang_desc">Ana səhifə və bütün köməkçi səhifələrdə dil seçimi menyusunun açılma dayanıqlığı təmin edildi, hadisə toqquşmaları aradan qaldırıldı və real vaxt tərcümə sinxronizasiyası gücləndirildi.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20260917_lang_item1">Birtoxunuşlu Açılma Sabitliyi: Dil və istifadəçi menyularında təkrarlanan hadisə dinləyiciləri ləğv edildi, z-index qatı gücləndirildi və klik toqquşmaları tamamilə həll edildi.</li>
+              <li data-i18n="updates_release_20260917_lang_item2">Dərhal Canlı Dil Dəyişimi: AZ, TR və EN dilləri arasında keçid zamanı interfeys ikonları və mürəkkəb elementlər pozulmadan tam səliqə ilə yenilənir.</li>
+              <li data-i18n="updates_release_20260917_lang_item3">Mobil Menyu Uyğunluğu: Mobil görünüşdə dil menyusunun yuxarıya doğru asan açılması və kənara kliklə bağlanan universal menyu idarəçisi.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry 0: Monolith Email Templates & Offline PWA HUD -->
         <article class="m-timeline-item">
           <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
           <div class="m-timeline-card">
@@ -602,52 +664,7 @@
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>">
     (function () {
-      /* ─── Navbar interactive logic ─── */
-      function setupDropdown(btnId, panelId) {
-        var btn = document.getElementById(btnId);
-        var panel = document.getElementById(panelId);
-        if (!btn || !panel) return;
-        btn.addEventListener('click', function(e) {
-          e.stopPropagation();
-          var isExpanded = panel.classList.contains('open');
-          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
-          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
-          if (!isExpanded) {
-            panel.classList.add('open');
-            btn.setAttribute('aria-expanded', 'true');
-          }
-        });
-      }
-      setupDropdown('langToggleBtn', 'ovxLangPanel');
-      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
-      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
-      document.addEventListener('click', function() {
-        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
-        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
-      });
-
-      /* ─── Mobile Menu ─── */
-      var burger = document.getElementById('mBurger');
-      var mobileMenu = document.getElementById('mMobileMenu');
-      var mClose = document.getElementById('mMobileClose');
-      function closeMobileMenu() {
-        if (mobileMenu && mobileMenu.classList.contains('open')) {
-          mobileMenu.classList.remove('open');
-          document.body.style.overflow = '';
-          if (burger) burger.setAttribute('aria-expanded', 'false');
-        }
-      }
-      if (burger && mobileMenu) {
-        burger.addEventListener('click', function(){
-          mobileMenu.classList.add('open');
-          document.body.style.overflow = 'hidden';
-          burger.setAttribute('aria-expanded', 'true');
-        });
-      }
-      if (mClose) mClose.addEventListener('click', closeMobileMenu);
-      document.addEventListener('keydown', function(e){
-        if (e.key === 'Escape') closeMobileMenu();
-      });
+      /* ─── Navbar dropdowns & mobile menu are managed by partials/home-navbar ─── */
 
       /* ─── Button ripple effect ─── */
       document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function(btn) {

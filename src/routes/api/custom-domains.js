@@ -12,15 +12,33 @@ const { isProAccessActive, getEffectivePlanForUser, PLAN_TIERS } = require('../.
 const { db } = require('../../db/index');
 const { encryptAES256GCM, decryptAES256GCM } = require('../../../utils/crypto');
 
+function decryptVerificationToken(token) {
+  if (!token) return '';
+  try {
+    const decrypted = decryptAES256GCM(token);
+    return decrypted || token;
+  } catch {
+    return token;
+  }
+}
+
 function buildCustomDomainPayload(row) {
   if (!row) return null;
+  const token = decryptVerificationToken(row.verification_token);
+  const txtHost = getCustomDomainTxtHost(row.domain);
+  const targetHost = getCustomDomainTargetHost();
   return {
     id: row.id,
     domain: row.domain,
     status: row.status,
-    verification_token: row.verification_token,
-    txt_host: getCustomDomainTxtHost(row.domain),
-    target_host: getCustomDomainTargetHost(),
+    verification_token: token,
+    txt_host: txtHost,
+    target_host: targetHost,
+    verification: {
+      txt_host: txtHost,
+      txt_value: token,
+      cname_target: targetHost,
+    },
     created_at: row.created_at,
     verified_at: row.verified_at,
     last_checked_at: row.last_checked_at,
@@ -142,7 +160,7 @@ router.post('/api/domains/verify', (req, res) => {
 
       (async () => {
         try {
-          const result = await verifyCustomDomainDns(row.domain, decryptAES256GCM(row.verification_token));
+          const result = await verifyCustomDomainDns(row.domain, decryptVerificationToken(row.verification_token));
           const now = new Date().toISOString();
           const status = !result.ownershipVerified
             ? 'pending_verification'

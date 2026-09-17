@@ -93,7 +93,7 @@ test('Phase 4 Final Views Redesign: Zero Bootstrap, Monolith compliance, and i18
     assert.equal(html.includes('m-gateway-card--threat'), true, 'must include threat gateway card');
     assert.equal(html.includes('m-anim-gauge'), true, 'must include overload gauge animation');
     assert.equal(html.includes('data-i18n="error_max_clicks_title"'), true, 'must include localized title');
-    assert.equal(html.includes('href="/pro"'), true, 'must include pro upgrade link');
+    assert.equal(html.includes('data-i18n="error_max_clicks_shorten_cta"'), true, 'must include shorten cta');
   });
 
   await t.test('5. error-banned view adheres to Monolith dark theme, 0 Bootstrap, countdown preservation, and lockout SVG', async () => {

@@ -5,6 +5,11 @@ const homeTranslations = {
     nav_register: "Qeydiyyat",
     nav_logout: "Çıxış",
     nav_my_account: "Hesabım",
+    nav_dashboard: "İdarə Paneli",
+    nav_workspaces: "İş Sahələri",
+    nav_account_settings: "Hesab Parametrləri",
+    nav_notifications: "Bildirişlər",
+    nav_menu_nav: "Naviqasiya",
     navx_how: "Necə işləyir",
     navx_why: "Niyə Ovlink",
     navx_pro: "Pro",
@@ -237,6 +242,11 @@ const homeTranslations = {
     nav_register: "Kayıt ol",
     nav_logout: "Çıkış",
     nav_my_account: "Hesabım",
+    nav_dashboard: "Kontrol Paneli",
+    nav_workspaces: "Çalışma Alanları",
+    nav_account_settings: "Hesap Ayarları",
+    nav_notifications: "Bildirimler",
+    nav_menu_nav: "Gezinme",
     navx_how: "Nasıl çalışır",
     navx_why: "Neden Ovlink",
     navx_pro: "Pro",
@@ -469,6 +479,11 @@ const homeTranslations = {
     nav_register: "Sign up",
     nav_logout: "Log out",
     nav_my_account: "My Account",
+    nav_dashboard: "Dashboard",
+    nav_workspaces: "Workspaces",
+    nav_account_settings: "Account Settings",
+    nav_notifications: "Notifications",
+    nav_menu_nav: "Navigation",
     navx_how: "How it works",
     navx_why: "Why Ovlink",
     navx_pro: "Pro",
@@ -698,8 +713,19 @@ const homeTranslations = {
 };
 
 function getCookieLangHome() {
-  const match = document.cookie.match(/(?:^|;\s*)(?:lang_default|lang|ovlink_lang)=([^;]+)/);
-  return match ? decodeURIComponent(match[1]).trim().toLowerCase() : '';
+  if (typeof document === 'undefined' || !document.cookie) return '';
+  const getVal = (name) => {
+    const m = document.cookie.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
+    return m ? decodeURIComponent(m[1]).trim().toLowerCase() : '';
+  };
+  const valid = ['az', 'tr', 'en'];
+  const d = getVal('lang_default');
+  if (valid.includes(d)) return d;
+  const o = getVal('ovlink_lang');
+  if (valid.includes(o)) return o;
+  const l = getVal('lang');
+  if (valid.includes(l)) return l;
+  return '';
 }
 
 const isValidHomeLang = (v) => v === 'az' || v === 'tr' || v === 'en';
@@ -727,6 +753,8 @@ try {
   }
   if (typeof document !== 'undefined') {
     document.cookie = 'lang_default=' + encodeURIComponent(currentHomeLang) + '; path=/; max-age=31536000; SameSite=Lax';
+    document.cookie = 'ovlink_lang=' + encodeURIComponent(currentHomeLang) + '; path=/; max-age=31536000; SameSite=Lax';
+    document.cookie = 'lang=' + encodeURIComponent(currentHomeLang) + '; path=/; max-age=31536000; SameSite=Lax';
   }
 } catch(_) {}
 
@@ -743,6 +771,8 @@ function applyHomeLanguage() {
     if (!value) return;
     if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
       el.placeholder = value;
+    } else if (value.includes('<') && value.includes('>')) {
+      el.innerHTML = value;
     } else {
       el.textContent = value;
     }
@@ -838,12 +868,30 @@ function setHomeLanguage(lang) {
     }
     if (typeof document !== 'undefined') {
       document.cookie = 'lang_default=' + encodeURIComponent(lang) + '; path=/; max-age=31536000; SameSite=Lax';
+      document.cookie = 'ovlink_lang=' + encodeURIComponent(lang) + '; path=/; max-age=31536000; SameSite=Lax';
+      document.cookie = 'lang=' + encodeURIComponent(lang) + '; path=/; max-age=31536000; SameSite=Lax';
     }
   } catch {}
   applyHomeLanguage();
   if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
     window.dispatchEvent(new CustomEvent('ovlink:languageChanged', { detail: { lang: currentHomeLang } }));
   }
+  // Background sync to server so user account in DB updates immediately
+  try {
+    if (typeof fetch === 'function') {
+      const metaCsrf = document.querySelector('meta[name="csrf-token"]');
+      const csrfToken = metaCsrf ? metaCsrf.getAttribute('content') : '';
+      fetch('/api/user/ui-lang', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'CSRF-Token': csrfToken,
+          'x-csrf-token': csrfToken
+        },
+        body: JSON.stringify({ lang: currentHomeLang, _csrf: csrfToken })
+      }).catch(() => {});
+    }
+  } catch (_) {}
 }
 
 window.ovlinkI18n = {
@@ -865,6 +913,8 @@ function initHomeLangUi() {
   applyHomeLanguage();
   const langOptions = typeof document !== 'undefined' && typeof document.querySelectorAll === 'function' ? document.querySelectorAll('.lang-option, .m-lang-item') : [];
   langOptions.forEach((option) => {
+    if (option.__langItemInit) return;
+    option.__langItemInit = true;
     option.addEventListener('click', (e) => {
       e.preventDefault();
       const selected = option.getAttribute('data-lang');

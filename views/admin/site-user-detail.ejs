@@ -1,282 +1,311 @@
 <%- include('partials/layout-top', {
-  title: 'Admin · User',
-  heading: (user && user.email) ? user.email : 'User',
-  subtitle: 'Account details and moderation actions',
+  title: 'Admin · User Profile',
+  heading: (user && user.email) ? user.email : 'User Profile',
+  subtitle: 'Account posture, links telemetry, API/webhook tokens, and administrative enforcement',
   active: 'site-users',
   admin,
   csrfToken,
-  topRightHtml: '<a class="btn btn--ghost" href="/admin/site-users">Back</a>',
+  topRightHtml: '<a class="m-cta m-cta--outline m-cta--sm" href="/admin/site-users"><i class="fa-solid fa-arrow-left"></i><span>Back to users</span></a>',
 }) %>
 
-<div class="grid">
-  <div class="card">
-    <div class="row row--spread">
+<!-- Top User Overview Card -->
+<div class="m-card" style="margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div class="admin-user-avatar">
+        <i class="fa-solid fa-user"></i>
+      </div>
       <div>
-        <div class="badge">User ID: <%= user.id %></div>
-        <div class="spacer"></div>
-        <% if (user.email_verified == 1) { %>
-          <span class="pill pill--ok">Verified</span>
-        <% } else { %>
-          <span class="pill pill--warn">Unverified</span>
-        <% } %>
-        <% if (banActive) { %>
-          <span class="pill pill--danger pill--ml">Banned</span>
-        <% } %>
-        <% const planTier = (user.plan_tier || 'free').toLowerCase(); %>
-        <% const planStatus = (user.plan_status || 'active').toLowerCase(); %>
-        <% const expiresMs = user.pro_expires_at ? Date.parse(user.pro_expires_at) : NaN; %>
-        <% const proExpired = planTier === 'pro' && (Number.isNaN(expiresMs) || expiresMs <= Date.now()); %>
-        <% if (planActive) { %>
-          <span class="pill pill--ok pill--ml">Pro Active</span>
-        <% } else if (planTier === 'pro' && planStatus === 'paused') { %>
-          <span class="pill pill--warn pill--ml">Pro Paused</span>
-        <% } else if (proExpired) { %>
-          <span class="pill pill--warn pill--ml">Pro Expired</span>
-        <% } else { %>
-          <span class="pill pill--ml">Free</span>
-        <% } %>
-      </div>
-      <div class="badge">Created: <%= user.created_at ? new Date(user.created_at).toLocaleString() : '-' %></div>
-    </div>
-
-    <div class="spacer"></div>
-
-    <div class="grid">
-      <div class="card card--muted">
-        <div class="badge">Links</div>
-        <div class="metric"><%= summary.link_count || 0 %></div>
-      </div>
-      <div class="card card--muted">
-        <div class="badge">Total Clicks</div>
-        <div class="metric"><%= summary.total_clicks || 0 %></div>
-      </div>
-      <div class="card card--warn">
-        <div class="badge">Open Reports</div>
-        <div class="metric"><%= summary.open_reports || 0 %></div>
-      </div>
-      <div class="card card--warn">
-        <div class="badge">Dangerous Links</div>
-        <div class="metric"><%= summary.dangerous_links || 0 %></div>
-      </div>
-      <div class="card card--muted">
-        <div class="badge">API Keys (active/total)</div>
-        <div class="metric"><%= apiKeyStats && Number.isFinite(apiKeyStats.active) ? apiKeyStats.active : 0 %> / <%= apiKeyStats && Number.isFinite(apiKeyStats.total) ? apiKeyStats.total : 0 %></div>
-      </div>
-      <div class="card card--muted">
-        <div class="badge">Webhooks (active/total)</div>
-        <div class="metric"><%= webhookStats && Number.isFinite(webhookStats.active) ? webhookStats.active : 0 %> / <%= webhookStats && Number.isFinite(webhookStats.total) ? webhookStats.total : 0 %></div>
+        <div style="font-size: 18px; font-weight: 700; color: var(--c-white); letter-spacing: -0.02em;"><%= user.email %></div>
+        <div class="row" style="gap: 8px; margin-top: 6px; flex-wrap: wrap;">
+          <span class="badge">User #<%= user.id %></span>
+          <% if (user.email_verified == 1) { %>
+            <span class="pill pill--ok"><i class="fa-solid fa-circle-check" style="font-size: 10px;"></i> Verified</span>
+          <% } else { %>
+            <span class="pill pill--warn">Unverified</span>
+          <% } %>
+          <% if (banActive) { %>
+            <span class="pill pill--danger"><i class="fa-solid fa-ban" style="font-size: 10px;"></i> Banned</span>
+          <% } %>
+          <% const planTier = (user.plan_tier || 'free').toLowerCase(); %>
+          <% const planStatus = (user.plan_status || 'active').toLowerCase(); %>
+          <% const expiresMs = user.pro_expires_at ? Date.parse(user.pro_expires_at) : NaN; %>
+          <% const proExpired = planTier === 'pro' && (Number.isNaN(expiresMs) || expiresMs <= Date.now()); %>
+          <% if (planActive) { %>
+            <span class="pill pill--ok"><i class="fa-solid fa-crown" style="font-size: 10px;"></i> Pro Active</span>
+          <% } else if (planTier === 'pro' && planStatus === 'paused') { %>
+            <span class="pill pill--warn">Pro Paused</span>
+          <% } else if (proExpired) { %>
+            <span class="pill pill--warn">Pro Expired</span>
+          <% } else { %>
+            <span class="pill" style="opacity: 0.7;">Free Tier</span>
+          <% } %>
+        </div>
       </div>
     </div>
-
-    <div class="spacer"></div>
-
-    <div class="row">
-      <span class="badge">Last Login: <%= user.last_login_at ? new Date(user.last_login_at).toLocaleString() : '-' %></span>
-      <span class="badge">Plan: <%= (user.plan_tier || 'free') %> · <%= (user.plan_status || 'active') %></span>
-      <% if (user.pro_expires_at) { %>
-        <span class="badge">Pro Expires: <%= user.pro_expires_at %></span>
-      <% } %>
-      <% if (banActive && user.ban_until) { %>
-        <span class="badge">Ban Until: <%= user.ban_until %></span>
-      <% } %>
+    <div style="font-size: 12px; color: var(--c-muted); font-family: var(--font-mono);">
+      Registered: <%= user.created_at ? new Date(user.created_at).toLocaleString() : '-' %>
     </div>
+  </div>
 
-    <% if (banActive && user.ban_reason) { %>
-      <div class="spacer"></div>
-      <div class="alert alert--warn"><strong>Ban Reason:</strong> <%= user.ban_reason %></div>
+  <div class="spacer" style="height: 20px;"></div>
+
+  <!-- 6-Metric Bento Grid -->
+  <div class="bento-grid" style="margin-bottom: 0;">
+    <div class="bento-card">
+      <div>
+        <div class="bento-label">Short Links</div>
+        <div class="bento-val"><%= summary.link_count || 0 %></div>
+      </div>
+      <div class="bento-icon"><i class="fa-solid fa-link"></i></div>
+    </div>
+    <div class="bento-card">
+      <div>
+        <div class="bento-label">Total Clicks</div>
+        <div class="bento-val"><%= summary.total_clicks || 0 %></div>
+      </div>
+      <div class="bento-icon"><i class="fa-solid fa-chart-simple"></i></div>
+    </div>
+    <div class="bento-card">
+      <div>
+        <div class="bento-label">Open Reports</div>
+        <div class="bento-val" style="color: <%= (summary.open_reports || 0) > 0 ? '#f87171' : 'var(--c-white)' %>;"><%= summary.open_reports || 0 %></div>
+      </div>
+      <div class="bento-icon"><i class="fa-solid fa-flag"></i></div>
+    </div>
+    <div class="bento-card">
+      <div>
+        <div class="bento-label">Dangerous Links</div>
+        <div class="bento-val" style="color: <%= (summary.dangerous_links || 0) > 0 ? '#f87171' : 'var(--c-white)' %>;"><%= summary.dangerous_links || 0 %></div>
+      </div>
+      <div class="bento-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    </div>
+    <div class="bento-card">
+      <div>
+        <div class="bento-label">API Keys (Act/Tot)</div>
+        <div class="bento-val"><%= apiKeyStats && Number.isFinite(apiKeyStats.active) ? apiKeyStats.active : 0 %> / <%= apiKeyStats && Number.isFinite(apiKeyStats.total) ? apiKeyStats.total : 0 %></div>
+      </div>
+      <div class="bento-icon"><i class="fa-solid fa-key"></i></div>
+    </div>
+    <div class="bento-card">
+      <div>
+        <div class="bento-label">Webhooks (Act/Tot)</div>
+        <div class="bento-val"><%= webhookStats && Number.isFinite(webhookStats.active) ? webhookStats.active : 0 %> / <%= webhookStats && Number.isFinite(webhookStats.total) ? webhookStats.total : 0 %></div>
+      </div>
+      <div class="bento-icon"><i class="fa-solid fa-bell"></i></div>
+    </div>
+  </div>
+
+  <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--c-border); display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--c-muted);">
+    <span>Last Login: <strong style="color: var(--c-white);"><%= user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Never' %></strong></span>
+    <span>·</span>
+    <span>Plan Tier: <strong style="color: var(--c-white);"><%= (user.plan_tier || 'free').toUpperCase() %> (<%= (user.plan_status || 'active').toUpperCase() %>)</strong></span>
+    <% if (user.pro_expires_at) { %>
+      <span>·</span>
+      <span>Pro Expiry: <strong style="color: var(--c-white);"><%= new Date(user.pro_expires_at).toLocaleDateString() %></strong></span>
+    <% } %>
+    <% if (banActive && user.ban_until) { %>
+      <span>·</span>
+      <span style="color: #fca5a5;">Banned Until: <strong><%= new Date(user.ban_until).toLocaleDateString() %></strong></span>
     <% } %>
   </div>
 
-  <div class="card">
-    <h3 class="section-title">Moderation</h3>
+  <% if (banActive && user.ban_reason) { %>
+    <div class="alert alert--danger" style="margin-top: 14px; margin-bottom: 0;">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <div><strong>Enforcement Reason:</strong> <%= user.ban_reason %></div>
+    </div>
+  <% } %>
+</div>
 
-    <% if (admin && admin.role === 'admin') { %>
+<div class="grid-2" style="margin-bottom: 24px;">
+  <!-- Account Enforcement & Ban Controls -->
+  <div class="m-card">
+    <div class="m-dash-panel-header" style="margin-bottom: 16px;">
+      <h3 class="m-dash-panel-title">
+        <i class="fa-solid fa-gavel" style="color: var(--c-muted);"></i>
+        <span>Account Enforcement</span>
+      </h3>
+    </div>
+
+    <% if (typeof admin !== 'undefined' && admin && admin.role === 'admin') { %>
       <% if (banActive) { %>
-        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/unban">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-          <button class="btn" type="submit" data-confirm="Unban this user now?">Unban</button>
-        </form>
+        <div style="padding: 12px 0;">
+          <p style="color: #fca5a5; font-size: 13.5px; margin: 0 0 16px; line-height: 1.5;">This account is currently suspended from signing in and generating links.</p>
+          <form method="POST" action="/admin/site-users/<%= user.id %>/unban">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <button class="m-cta m-cta--white" type="submit" data-confirm="Unban and restore this user account immediately?">
+              <i class="fa-solid fa-unlock"></i>
+              <span>Unban User Account</span>
+            </button>
+          </form>
+        </div>
       <% } else { %>
-        <div class="grid">
-          <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/ban">
+        <div class="col" style="gap: 16px;">
+          <!-- Temp Ban Form -->
+          <form class="m-card" style="padding: 18px; background: var(--c-surface-2);" method="POST" action="/admin/site-users/<%= user.id %>/ban">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
             <input type="hidden" name="mode" value="temp" />
-
-            <div class="field">
-              <label for="days">Temporary ban (days)</label>
-              <input class="input" id="days" name="days" type="number" min="1" max="365" value="7" />
+            <div style="font-weight: 600; font-size: 13px; color: var(--c-white); margin-bottom: 8px;">Temporary Ban</div>
+            <div class="field" style="margin-bottom: 10px;">
+              <label for="days" class="m-adv-label">Duration (Days)</label>
+              <input class="m-adv-input" id="days" name="days" type="number" min="1" max="365" value="7" />
             </div>
-
-            <div class="field">
-              <label for="reasonT">Reason</label>
-              <textarea class="input" id="reasonT" name="reason" rows="3" placeholder="spam / abuse"></textarea>
+            <div class="field" style="margin-bottom: 12px;">
+              <label for="reasonT" class="m-adv-label">Reason Note</label>
+              <textarea class="m-adv-input" id="reasonT" name="reason" rows="2" placeholder="e.g. spam / terms violation"></textarea>
             </div>
-
-            <button class="btn" type="submit" data-confirm="Apply temporary ban?">Temp Ban</button>
+            <button class="m-cta m-cta--outline m-cta--sm" type="submit" data-confirm="Apply temporary ban to this user?">
+              <i class="fa-solid fa-clock"></i>
+              <span>Apply Temp Ban</span>
+            </button>
           </form>
 
-          <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/ban">
+          <!-- Permanent Ban Form -->
+          <form class="m-card" style="padding: 18px; background: var(--c-surface-2);" method="POST" action="/admin/site-users/<%= user.id %>/ban">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
             <input type="hidden" name="mode" value="perm" />
-
-            <div class="field">
-              <label for="reasonP">Permanent ban reason</label>
-              <textarea class="input" id="reasonP" name="reason" rows="3" placeholder="severe abuse"></textarea>
+            <div style="font-weight: 600; font-size: 13px; color: #f87171; margin-bottom: 8px;">Permanent Exclusion</div>
+            <div class="field" style="margin-bottom: 12px;">
+              <label for="reasonP" class="m-adv-label">Permanent Ban Reason</label>
+              <textarea class="m-adv-input" id="reasonP" name="reason" rows="3" placeholder="e.g. severe phishing / malicious infrastructure"></textarea>
             </div>
-
-            <button class="btn btn--danger" type="submit" data-confirm="Apply permanent ban?">Permanent Ban</button>
+            <button class="m-cta m-cta--danger m-cta--sm" type="submit" data-confirm="Apply PERMANENT ban to this user account?">
+              <i class="fa-solid fa-ban"></i>
+              <span>Permanent Ban</span>
+            </button>
           </form>
         </div>
       <% } %>
     <% } else { %>
-      <div class="alert">Only admins can apply ban/unban actions.</div>
+      <div class="alert" style="margin-top: 10px;">Only administrators possess permission to modify ban posture.</div>
     <% } %>
   </div>
 
-  <div class="card">
-    <h3 class="section-title">Subscription & Pro Controls</h3>
+  <!-- Subscription & Pro Controls -->
+  <div class="m-card">
+    <div class="m-dash-panel-header" style="margin-bottom: 16px;">
+      <h3 class="m-dash-panel-title">
+        <i class="fa-solid fa-crown" style="color: var(--c-muted);"></i>
+        <span>Subscription Controls</span>
+      </h3>
+    </div>
 
-    <% if (admin && admin.role === 'admin') { %>
-      <div class="alert">
-        Current: <strong><%= user.plan_tier || 'free' %></strong> · <strong><%= user.plan_status || 'active' %></strong>
-        <% if (user.pro_expires_at) { %>
-          · Expires: <strong><%= user.pro_expires_at %></strong>
-        <% } %>
-      </div>
-
-      <div class="grid">
-        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/subscription">
+    <% if (typeof admin !== 'undefined' && admin && admin.role === 'admin') { %>
+      <div class="col" style="gap: 16px;">
+        <!-- Activate Pro -->
+        <form class="m-card" style="padding: 18px; background: var(--c-surface-2);" method="POST" action="/admin/site-users/<%= user.id %>/subscription">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
           <input type="hidden" name="action" value="activate" />
-
-          <div class="field">
-            <label for="activateDurationValue">Activate Pro duration</label>
-            <input class="input" id="activateDurationValue" name="duration_value" type="number" min="1" max="525600" value="30" />
+          <div style="font-weight: 600; font-size: 13px; color: var(--c-white); margin-bottom: 8px;">Activate Pro Tier</div>
+          <div class="row" style="gap: 8px; margin-bottom: 10px;">
+            <div class="field" style="flex: 1;">
+              <label for="activateDurationValue" class="m-adv-label">Duration</label>
+              <input class="m-adv-input" id="activateDurationValue" name="duration_value" type="number" min="1" max="525600" value="30" />
+            </div>
+            <div class="field" style="flex: 1;">
+              <label for="activateDurationUnit" class="m-adv-label">Unit</label>
+              <select class="m-adv-select" id="activateDurationUnit" name="duration_unit">
+                <option value="minute">Minute</option>
+                <option value="hour">Hour</option>
+                <option value="day" selected>Day</option>
+                <option value="month">Month</option>
+                <option value="year">Year</option>
+              </select>
+            </div>
           </div>
-          <div class="field">
-            <label for="activateDurationUnit">Duration unit</label>
-            <select class="input" id="activateDurationUnit" name="duration_unit">
-              <option value="minute">Minute</option>
-              <option value="hour">Hour</option>
-              <option value="day" selected>Day</option>
-              <option value="month">Month</option>
-              <option value="year">Year</option>
-            </select>
+          <div class="field" style="margin-bottom: 12px;">
+            <label for="activateReason" class="m-adv-label">Reason Note</label>
+            <input class="m-adv-input" id="activateReason" name="reason" placeholder="manual promotional upgrade" />
           </div>
-          <div class="field">
-            <label for="activateReason">Reason (optional)</label>
-            <textarea class="input" id="activateReason" name="reason" rows="2" placeholder="manual upgrade"></textarea>
-          </div>
-          <button class="btn btn--secondary" type="submit" data-confirm="Activate Pro for this user?">Activate Pro</button>
+          <button class="m-cta m-cta--white m-cta--sm" type="submit" data-confirm="Activate Pro for this user?">Activate Pro</button>
         </form>
 
-        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/subscription">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-          <input type="hidden" name="action" value="extend" />
+        <!-- Quick Subscription Actions -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <form method="POST" action="/admin/site-users/<%= user.id %>/subscription" style="display: inline;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <input type="hidden" name="action" value="pause" />
+            <button class="m-cta m-cta--outline m-cta--sm" type="submit" data-confirm="Pause this Pro subscription?">
+              <i class="fa-solid fa-pause"></i>
+              <span>Pause Pro</span>
+            </button>
+          </form>
 
-          <div class="field">
-            <label for="extendDurationValue">Extend Pro by</label>
-            <input class="input" id="extendDurationValue" name="duration_value" type="number" min="1" max="525600" value="30" />
-          </div>
-          <div class="field">
-            <label for="extendDurationUnit">Duration unit</label>
-            <select class="input" id="extendDurationUnit" name="duration_unit">
-              <option value="minute">Minute</option>
-              <option value="hour">Hour</option>
-              <option value="day" selected>Day</option>
-              <option value="month">Month</option>
-              <option value="year">Year</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="extendReason">Reason (optional)</label>
-            <textarea class="input" id="extendReason" name="reason" rows="2" placeholder="renewal"></textarea>
-          </div>
-          <button class="btn" type="submit" data-confirm="Extend this user's Pro access?">Extend Pro</button>
-        </form>
-      </div>
+          <form method="POST" action="/admin/site-users/<%= user.id %>/subscription" style="display: inline;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <input type="hidden" name="action" value="resume" />
+            <button class="m-cta m-cta--outline m-cta--sm" type="submit" data-confirm="Resume this Pro subscription?">
+              <i class="fa-solid fa-play"></i>
+              <span>Resume Pro</span>
+            </button>
+          </form>
 
-      <div class="spacer"></div>
+          <form method="POST" action="/admin/site-users/<%= user.id %>/subscription" style="display: inline;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <input type="hidden" name="action" value="downgrade" />
+            <button class="m-cta m-cta--danger m-cta--sm" type="submit" data-confirm="Downgrade user to Free and revoke Pro features?">
+              <i class="fa-solid fa-arrow-down"></i>
+              <span>Downgrade</span>
+            </button>
+          </form>
 
-      <div class="grid">
-        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/subscription">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-          <input type="hidden" name="action" value="pause" />
-          <div class="field">
-            <label for="pauseReason">Pause reason (optional)</label>
-            <textarea class="input" id="pauseReason" name="reason" rows="2" placeholder="temporary hold"></textarea>
-          </div>
-          <button class="btn btn--ghost" type="submit" data-confirm="Pause this Pro subscription?">Pause Pro</button>
-        </form>
-
-        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/subscription">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-          <input type="hidden" name="action" value="resume" />
-          <div class="field">
-            <label for="resumeReason">Resume reason (optional)</label>
-            <textarea class="input" id="resumeReason" name="reason" rows="2" placeholder="resume access"></textarea>
-          </div>
-          <button class="btn btn--secondary" type="submit" data-confirm="Resume this Pro subscription?">Resume Pro</button>
-        </form>
-
-        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/subscription">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-          <input type="hidden" name="action" value="downgrade" />
-          <div class="field">
-            <label for="downgradeReason">Downgrade reason (optional)</label>
-            <textarea class="input" id="downgradeReason" name="reason" rows="2" placeholder="policy or request"></textarea>
-          </div>
-          <button class="btn btn--danger" type="submit" data-confirm="Downgrade user to Free and revoke Pro access now?">Downgrade to Free</button>
-        </form>
-      </div>
-
-      <div class="spacer"></div>
-
-      <div class="row">
-        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/api-keys/revoke-all">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-          <button class="btn btn--ghost" type="submit" data-confirm="Revoke all active API keys for this user?">Revoke All API Keys</button>
-        </form>
-
-        <form class="form" method="POST" action="/admin/site-users/<%= user.id %>/webhooks/deactivate-all">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-          <button class="btn btn--ghost" type="submit" data-confirm="Disable all active webhooks for this user?">Disable All Webhooks</button>
-        </form>
+          <form method="POST" action="/admin/site-users/<%= user.id %>/api-keys/revoke-all" style="display: inline;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <button class="m-cta m-cta--outline m-cta--sm" type="submit" data-confirm="Revoke all active API keys for this user?">
+              <i class="fa-solid fa-key"></i>
+              <span>Revoke Keys</span>
+            </button>
+          </form>
+        </div>
       </div>
     <% } else { %>
-      <div class="alert">Only admins can modify subscriptions and Pro controls.</div>
+      <div class="alert" style="margin-top: 10px;">Only administrators can manage subscriptions.</div>
     <% } %>
   </div>
 </div>
 
-<div class="spacer"></div>
-
-<div class="card">
-  <h3 class="section-title">User Links</h3>
+<!-- Created Links Table Card -->
+<div class="m-card" style="padding: 0; overflow: hidden; margin-bottom: 24px;">
+  <div class="m-dash-panel-header" style="padding: 20px 24px; border-bottom: 1px solid var(--c-border); margin-bottom: 0;">
+    <h3 class="m-dash-panel-title">
+      <i class="fa-solid fa-link" style="color: var(--c-muted);"></i>
+      <span>Created Short Links</span>
+    </h3>
+    <span class="badge"><%= totalLinks || 0 %> Total Links</span>
+  </div>
 
   <% if (!links || links.length === 0) { %>
-    <div class="alert">This user has no links.</div>
+    <div style="text-align: center; padding: 48px 20px; color: var(--c-faint);">
+      <div style="font-size: 14px;">No short links created by this user.</div>
+    </div>
   <% } else { %>
-    <div class="table-wrap">
-      <table class="table">
+    <div class="m-table-wrap" style="border: none; border-radius: 0;">
+      <table class="m-table">
         <thead>
           <tr>
-            <th>Short</th>
-            <th>Target</th>
+            <th>Short Code</th>
+            <th>Target Destination</th>
             <th>Clicks</th>
             <th>Reports</th>
             <th>Status</th>
-            <th>Password</th>
-            <th></th>
+            <th>Security</th>
+            <th style="text-align: right; padding-right: 20px;">Action</th>
           </tr>
         </thead>
         <tbody>
           <% links.forEach((l) => { %>
             <tr>
               <td><span class="kbd"><%= l.short %></span></td>
-              <td><div class="cell-url"><%= l.original %></div></td>
+              <td><div class="cell-url" title="<%= l.original %>"><%= l.original %></div></td>
               <td><span class="pill"><%= l.clicks_count || 0 %></span></td>
-              <td><span class="pill pill--warn"><%= l.reports || 0 %></span></td>
+              <td>
+                <% if ((l.reports || 0) > 0) { %>
+                  <span class="pill pill--danger"><%= l.reports %></span>
+                <% } else { %>
+                  <span class="pill m-badge-reports--zero">0</span>
+                <% } %>
+              </td>
               <td>
                 <% if (l.disabled) { %>
                   <span class="pill pill--danger">Disabled</span>
@@ -286,17 +315,18 @@
                   <span class="pill pill--ok">Active</span>
                 <% } %>
               </td>
-              <td class="u-nowrap">
+              <td>
                 <% if (l.has_password) { %>
-                  <% const sid = 'linkpass-' + l.id; %>
-                  <span id="<%= sid %>" class="kbd" data-secret-value="<%= l.link_password %>" data-secret-revealed="0">••••••</span>
-                  <button class="btn btn--ghost" data-secret-toggle="<%= sid %>">Show</button>
+                  <span class="pill"><i class="fa-solid fa-lock" style="font-size: 9px; color: #fde68a;"></i> Password</span>
                 <% } else { %>
-                  <span class="badge">-</span>
+                  <span style="color: var(--c-faint); font-size: 12px;">Public</span>
                 <% } %>
               </td>
-              <td>
-                <a class="btn btn--secondary" href="/admin/links/<%= encodeURIComponent(l.short) %>">Details</a>
+              <td style="text-align: right; padding-right: 20px;">
+                <a class="m-cta m-cta--outline m-cta--sm" href="/admin/links/<%= encodeURIComponent(l.short) %>">
+                  <span>Inspect</span>
+                  <i class="fa-solid fa-arrow-right" style="font-size: 10px;"></i>
+                </a>
               </td>
             </tr>
           <% }) %>
@@ -304,66 +334,72 @@
       </table>
     </div>
 
-    <div class="spacer"></div>
-
     <% const totalPages = Math.max(1, Math.ceil((totalLinks || 0) / pageSize)); %>
-    <div class="row" aria-label="pagination">
-      <span class="badge">Total: <%= totalLinks %></span>
-      <span class="badge">Page: <%= page %> / <%= totalPages %></span>
-      <% if (page > 1) { %>
-        <a class="btn btn--ghost" href="/admin/site-users/<%= user.id %>?page=<%= page - 1 %>">Previous</a>
-      <% } %>
-      <% if (page < totalPages) { %>
-        <a class="btn btn--ghost" href="/admin/site-users/<%= user.id %>?page=<%= page + 1 %>">Next</a>
-      <% } %>
+    <div class="pagination-bar">
+      <div>
+        <span>Page <strong style="color: var(--c-white);"><%= page %></strong> of <strong style="color: var(--c-white);"><%= totalPages %></strong></span>
+      </div>
+      <div class="row" style="gap: 8px;">
+        <% if (page > 1) { %>
+          <a class="m-cta m-cta--outline m-cta--sm" href="/admin/site-users/<%= user.id %>?page=<%= page - 1 %>">Previous</a>
+        <% } %>
+        <% if (page < totalPages) { %>
+          <a class="m-cta m-cta--outline m-cta--sm" href="/admin/site-users/<%= user.id %>?page=<%= page + 1 %>">Next</a>
+        <% } %>
+      </div>
     </div>
   <% } %>
 </div>
 
-<div class="spacer"></div>
+<!-- Webhook Event Deliveries Card -->
+<div class="m-card" style="padding: 0; overflow: hidden;">
+  <div class="m-dash-panel-header" style="padding: 20px 24px; border-bottom: 1px solid var(--c-border); margin-bottom: 0;">
+    <h3 class="m-dash-panel-title">
+      <i class="fa-solid fa-paper-plane" style="color: var(--c-muted);"></i>
+      <span>Recent Webhook Event Deliveries</span>
+    </h3>
+  </div>
 
-<div class="card">
-  <h3 class="section-title">Recent Webhook Deliveries</h3>
   <% if (!recentDeliveries || recentDeliveries.length === 0) { %>
-    <div class="alert">No webhook deliveries for this user yet.</div>
+    <div style="text-align: center; padding: 48px 20px; color: var(--c-faint);">
+      <div style="font-size: 14px;">No webhook event deliveries recorded for this user.</div>
+    </div>
   <% } else { %>
-    <div class="table-wrap">
-      <table class="table">
+    <div class="m-table-wrap" style="border: none; border-radius: 0;">
+      <table class="m-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Webhook</th>
-            <th>Event</th>
-            <th>Status</th>
-            <th>Attempt</th>
-            <th>HTTP</th>
-            <th>Created</th>
-            <th>Next Retry</th>
+            <th>Delivery ID</th>
+            <th>Webhook ID</th>
+            <th>Event Type</th>
+            <th>State</th>
+            <th>Attempts</th>
+            <th>HTTP Status</th>
+            <th>Dispatched At</th>
           </tr>
         </thead>
         <tbody>
           <% recentDeliveries.forEach((d) => { %>
             <tr>
               <td><span class="kbd"><%= d.id %></span></td>
-              <td><%= d.webhook_id || '-' %></td>
-              <td><%= d.event_type || '-' %></td>
+              <td><span class="kbd"><%= d.webhook_id || '-' %></span></td>
+              <td><span style="font-weight: 600; font-size: 12px;"><%= d.event_type || '-' %></span></td>
               <td>
                 <% if (d.status === 'delivered') { %>
                   <span class="pill pill--ok">Delivered</span>
                 <% } else if (d.status === 'failed') { %>
                   <span class="pill pill--danger">Failed</span>
                 <% } else if (d.status === 'retry_scheduled') { %>
-                  <span class="pill pill--warn">Retry</span>
-                <% } else if (d.status === 'cancelled') { %>
-                  <span class="pill">Cancelled</span>
+                  <span class="pill pill--warn">Retry Pending</span>
                 <% } else { %>
                   <span class="pill"><%= d.status || 'queued' %></span>
                 <% } %>
               </td>
               <td><%= d.attempt || 0 %></td>
-              <td><%= d.http_status || '-' %></td>
-              <td><%= d.created_at ? new Date(d.created_at).toLocaleString() : '-' %></td>
-              <td><%= d.next_retry_at ? new Date(d.next_retry_at).toLocaleString() : '-' %></td>
+              <td><span class="badge" style="font-family: var(--font-mono);"><%= d.http_status || '-' %></span></td>
+              <td style="white-space: nowrap; font-size: 12px; color: var(--c-muted); font-family: var(--font-mono);">
+                <%= d.created_at ? new Date(d.created_at).toLocaleString() : '-' %>
+              </td>
             </tr>
           <% }) %>
         </tbody>

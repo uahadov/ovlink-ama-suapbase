@@ -246,5 +246,156 @@ test('Regression tests for 5 verified fixes', async (t) => {
     assert.ok(del && del.id, 'Delivery row must exist');
   });
 
+  // 4. Redirect Warning Screen for Reported or Dangerous Links
+  await t.test('4. Redirect warning screen triggers when reports >= 4 or dangerous = 1', async () => {
+    const shortDangerous = `warn_${Date.now()}_d`;
+    const shortReported = `warn_${Date.now()}_r`;
+    createdShorts.push(shortDangerous, shortReported);
+
+    await helpers.dbRunAsync(
+      'INSERT INTO urls (original, short, dangerous, reports, created_at) VALUES (?, ?, 1, 0, ?)',
+      ['https://example.com/destination', shortDangerous, new Date().toISOString()]
+    );
+    await helpers.dbRunAsync(
+      'INSERT INTO urls (original, short, dangerous, reports, created_at) VALUES (?, ?, 0, 5, ?)',
+      ['https://example.com/destination', shortReported, new Date().toISOString()]
+    );
+
+    // Initial visit redirects to consent page if not consented, or direct if consent cookie set
+    const consentRes = await fetch(`${baseUrl}/${shortDangerous}`, { redirect: 'manual' });
+    assert.equal(consentRes.status, 302, 'Should redirect to consent');
+
+    // Visit consent and grant consent
+    const consentPostRes = await fetch(`${baseUrl}/consent/redirect/${shortDangerous}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'decision=continue&next=redirect',
+      redirect: 'manual',
+    });
+    const consentCookie = consentPostRes.headers.get('set-cookie') || '';
+
+    // Now visit with consent: should render warning screen because dangerous = 1
+    const warnRes = await fetch(`${baseUrl}/${shortDangerous}`, {
+      headers: { 'Cookie': consentCookie },
+    });
+    assert.equal(warnRes.status, 200);
+    const warnHtml = await warnRes.text();
+    assert.ok(warnHtml.includes('m-gateway-card--warning'), 'Must render warning card for dangerous link');
+
+    // When confirm=true is passed, it should proceed to destination
+    const confirmRes = await fetch(`${baseUrl}/${shortDangerous}?confirm=true`, {
+      headers: { 'Cookie': consentCookie },
+      redirect: 'manual',
+    });
+    assert.equal(confirmRes.status, 302, 'Should proceed to redirect when confirmed');
+    assert.equal(confirmRes.headers.get('location'), 'https://example.com/destination');
+
+    // Reported link (reports >= 4) should also render warning
+    const consentPostRes2 = await fetch(`${baseUrl}/consent/redirect/${shortReported}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'decision=continue&next=redirect',
+      redirect: 'manual',
+    });
+    const consentCookie2 = consentPostRes2.headers.get('set-cookie') || '';
+    const warnRes2 = await fetch(`${baseUrl}/${shortReported}`, {
+      headers: { 'Cookie': consentCookie2 },
+    });
+    assert.equal(warnRes2.status, 200);
+    const warnHtml2 = await warnRes2.text();
+    assert.ok(warnHtml2.includes('m-gateway-card--warning'), 'Must render warning card for heavily reported link');
+  });
+
+  // 5. Workspaces Accept CSRF Cookie Initialization
+  await t.test('5. GET /workspaces/accept sends connect.sid cookie for CSRF protection', async () => {
+    const res = await fetch(`${baseUrl}/workspaces/accept?token=dummy_test_token`);
+    const setCookies = (typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : [res.headers.get('set-cookie')]) || [];
+    const sidCookie = setCookies.find((c) => c && c.startsWith('connect.sid='));
+    assert.ok(sidCookie, 'GET /workspaces/accept must set connect.sid cookie on first visit');
+  });
+
+  // 6. Link Deletion Cascading Cleanup of Clicks and Reports
+  await t.test('6. Deleting a link cleans up associated clicks and reports', async () => {
+    const user = await seedUser();
+    const session = await loginSession(user.email);
+    const shortCode = `del_${Date.now()}`;
+
+    // Create link
+    await helpers.dbRunAsync(
+      'INSERT INTO urls (original, short, user_id, created_at) VALUES (?, ?, ?, ?)',
+      ['https://example.com/to-delete', shortCode, user.id, new Date().toISOString()]
+    );
+    const urlRow = await helpers.dbGetAsync('SELECT id FROM urls WHERE short = ?', [shortCode]);
+
+    // Insert associated click and report
+    await helpers.dbRunAsync(
+      'INSERT INTO clicks (url_id, click_time, browser, os, country) VALUES (?, ?, ?, ?, ?)',
+      [urlRow.id, new Date().toISOString(), 'Chrome', 'Windows', 'US']
+    );
+    await helpers.dbRunAsync(
+      'INSERT INTO reports (short, created_at, reason, user_id) VALUES (?, ?, ?, ?)',
+      [shortCode, new Date().toISOString(), 'spam', user.id]
+    );
+
+    const clickBefore = await helpers.dbGetAsync('SELECT id FROM clicks WHERE url_id = ?', [urlRow.id]);
+    const reportBefore = await helpers.dbGetAsync('SELECT id FROM reports WHERE short = ?', [shortCode]);
+    assert.ok(clickBefore, 'Click record must exist before deletion');
+    assert.ok(reportBefore, 'Report record must exist before deletion');
+
+    // Delete link via POST /api/user/delete
+    const delRes = await fetch(`${baseUrl}/api/user/delete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': session.cookie,
+        'x-csrf-token': session.csrfToken,
+      },
+      body: `short=${encodeURIComponent(shortCode)}&_csrf=${encodeURIComponent(session.csrfToken)}`,
+      redirect: 'manual',
+    });
+    assert.equal(delRes.status, 302, 'Delete must redirect to dashboard');
+
+    // Verify click and report are cleaned up
+    const clickAfter = await helpers.dbGetAsync('SELECT id FROM clicks WHERE url_id = ?', [urlRow.id]);
+    const reportAfter = await helpers.dbGetAsync('SELECT id FROM reports WHERE short = ?', [shortCode]);
+    assert.equal(clickAfter, undefined, 'Click must be deleted when URL is deleted');
+    assert.equal(reportAfter, undefined, 'Report must be deleted when URL is deleted');
+
+    // Also test bulk delete cleanup
+    const bulkShort = `blk_${Date.now()}`;
+    await helpers.dbRunAsync(
+      'INSERT INTO urls (original, short, user_id, created_at) VALUES (?, ?, ?, ?)',
+      ['https://example.com/to-bulk-delete', bulkShort, user.id, new Date().toISOString()]
+    );
+    const bulkUrlRow = await helpers.dbGetAsync('SELECT id FROM urls WHERE short = ?', [bulkShort]);
+    await helpers.dbRunAsync(
+      'INSERT INTO clicks (url_id, click_time, browser, os, country) VALUES (?, ?, ?, ?, ?)',
+      [bulkUrlRow.id, new Date().toISOString(), 'Safari', 'macOS', 'AZ']
+    );
+    await helpers.dbRunAsync(
+      'INSERT INTO reports (short, created_at, reason, user_id) VALUES (?, ?, ?, ?)',
+      [bulkShort, new Date().toISOString(), 'malware', user.id]
+    );
+
+    const bulkRes = await fetch(`${baseUrl}/api/user/delete-bulk`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': session.cookie,
+        'x-csrf-token': session.csrfToken,
+      },
+      body: JSON.stringify({ shorts: [bulkShort], _csrf: session.csrfToken }),
+    });
+    assert.equal(bulkRes.status, 200, 'Bulk delete must succeed');
+
+    const bulkClickAfter = await helpers.dbGetAsync('SELECT id FROM clicks WHERE url_id = ?', [bulkUrlRow.id]);
+    const bulkReportAfter = await helpers.dbGetAsync('SELECT id FROM reports WHERE short = ?', [bulkShort]);
+    const bulkUrlAfter = await helpers.dbGetAsync('SELECT id FROM urls WHERE short = ?', [bulkShort]);
+    assert.equal(bulkClickAfter, undefined, 'Bulk delete must clean up clicks');
+    assert.equal(bulkReportAfter, undefined, 'Bulk delete must clean up reports');
+    assert.equal(bulkUrlAfter, undefined, 'Bulk delete must remove url row');
+  });
+
+  if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
   await new Promise((resolve) => server.close(resolve));
 });

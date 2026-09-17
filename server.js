@@ -11,6 +11,7 @@ const { scheduleWebhookRecoveryWorker } = require('./src/lib/webhook');
 const { initGoogleOidc } = require('./src/lib/google-auth');
 const { refreshCustomDomainCache, validateBaseUrlConfiguration } = require('./src/lib/custom-domain');
 const { initBots } = require('./src/lib/bots');
+const { isEnabledEnv } = require('./src/config/index');
 
 // Export helpers for tests
 const { ensureAbsoluteUrl, normalizeShortCode, isReservedShortAlias, normalizeCustomDomainInput } = require('./src/lib/url-helpers');
@@ -21,7 +22,7 @@ const { normalizeConsentMode, normalizeConsentNext, buildRedirectConsentSignatur
 const { normalizeFutureExpiryInput, isIsoTimeExpired } = require('./src/lib/plans');
 const { isBlockedWebhookIp, isBlockedWebhookHostname, validateOutboundWebhookUrl } = require('./src/lib/url-validator');
 const { resolveFinalRedirectUrl } = require('./src/routes/redirect');
-const { dbRunAsync, dbGetAsync, dbAllAsync } = require('./src/db/helpers');
+const { dbRunAsync, dbGetAsync, dbAllAsync, withTransaction } = require('./src/db/helpers');
 const { pool } = require('./src/db/pool');
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -44,13 +45,23 @@ if (require.main === module) {
 
     await initGoogleOidc();
     refreshCustomDomainCache();
-    syncThreatIntelligenceFeed();
-    setInterval(syncThreatIntelligenceFeed, THREAT_FEED_SYNC_INTERVAL_MS).unref();
-    scheduleWeeklySafetyScan();
-    scheduleWebhookRecoveryWorker();
+
+    const isFrontendOnly = isEnabledEnv('FRONTEND_ONLY', false) || isEnabledEnv('WEB_ONLY', false) || isEnabledEnv('DISABLE_BOTS', false);
+
+    if (!isFrontendOnly) {
+      syncThreatIntelligenceFeed();
+      setInterval(syncThreatIntelligenceFeed, THREAT_FEED_SYNC_INTERVAL_MS).unref();
+      scheduleWeeklySafetyScan();
+      scheduleWebhookRecoveryWorker();
+    }
 
     app.listen(PORT, HOST, () => {
       console.log(`[ovlink] Server listening on ${HOST}:${PORT}`);
+
+      if (isFrontendOnly) {
+        console.log('[startup] Frontend-only mode active: background bots and marketing workers disabled.');
+        return;
+      }
 
       // Start bots & marketing background services safely without blocking or crashing the server
       (async () => {
@@ -121,6 +132,7 @@ module.exports = {
     dbRunAsync,
     dbGetAsync,
     dbAllAsync,
+    withTransaction,
     closeDbPool: () => pool.end(),
     isDbMigrationQueueDrained: () => !db._isSerializing && db._queue.length === 0 && !db._isProcessingQueue,
   },

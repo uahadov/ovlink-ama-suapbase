@@ -9,8 +9,16 @@ const siteSettings = {
   abuse_email_alert: '',
 };
 
+function getEffectiveSettings() {
+  if (global.__siteSettings && typeof global.__siteSettings === 'object') {
+    Object.assign(siteSettings, global.__siteSettings);
+  }
+  return siteSettings;
+}
+
 function maintenanceMiddleware(req, res, next) {
-  if (siteSettings.maintenance_enabled !== '1') return next();
+  const current = getEffectiveSettings();
+  if (current.maintenance_enabled !== '1') return next();
 
   const isAdminSession = !!(req.session && req.session.adminUserId);
   const isAdminRoute = req.path.startsWith('/admin');
@@ -31,19 +39,20 @@ function maintenanceMiddleware(req, res, next) {
 
   return res.status(503).render('maintenance', {
     csrfToken: res.locals._csrf,
-    maintenanceMessageAz: siteSettings.maintenance_message_az || '',
-    maintenanceMessageTr: siteSettings.maintenance_message_tr || '',
-    maintenanceMessageEn: siteSettings.maintenance_message_en || ''
+    maintenanceMessageAz: current.maintenance_message_az || '',
+    maintenanceMessageTr: current.maintenance_message_tr || '',
+    maintenanceMessageEn: current.maintenance_message_en || ''
   });
 }
 
 function attachSiteSettingsMiddleware(req, res, next) {
-  res.locals.siteSettings = siteSettings;
+  res.locals.siteSettings = getEffectiveSettings();
   next();
 }
 
 module.exports = {
   siteSettings,
+  getEffectiveSettings,
   maintenanceMiddleware,
   attachSiteSettingsMiddleware
 };

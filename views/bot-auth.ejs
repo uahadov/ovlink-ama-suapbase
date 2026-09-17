@@ -1,18 +1,22 @@
 <!doctype html>
 <html lang="az">
 <head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="icon" href="/favicon.ico?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="apple-touch-icon" href="/logo.png?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title data-i18n="bot_auth_title">Bot Doğrulaması - Ovlink</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
-  <link rel="icon" href="/logo.ico" />
+  <title data-i18n="bot_auth_title">Bot Doğrulaması - Ovlink</title>
+  
   <link rel="manifest" href="/site.webmanifest" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
 </head>
@@ -40,7 +44,7 @@
     <div class="shell">
 
       <!-- Centered Monolith Bot Auth Card -->
-      <div class="m-bot-card m-reveal">
+      <div class="m-bot-card">
 
         <!-- Platform Header -->
         <div class="m-bot-avatar <%= platform === 'telegram' ? 'm-bot-avatar--telegram' : 'm-bot-avatar--discord' %>" aria-hidden="true">
@@ -243,52 +247,7 @@
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>">
     (function () {
-      /* ─── Dropdowns & Navbar Logic ─── */
-      function setupDropdown(btnId, panelId) {
-        var btn = document.getElementById(btnId);
-        var panel = document.getElementById(panelId);
-        if (!btn || !panel) return;
-        btn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          var isExpanded = panel.classList.contains('open');
-          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function (p) { p.classList.remove('open'); });
-          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
-          if (!isExpanded) {
-            panel.classList.add('open');
-            btn.setAttribute('aria-expanded', 'true');
-          }
-        });
-      }
-      setupDropdown('langToggleBtn', 'ovxLangPanel');
-      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
-      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
-      document.addEventListener('click', function () {
-        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function (p) { p.classList.remove('open'); });
-        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
-      });
-
-      /* ─── Mobile Menu ─── */
-      var burger = document.getElementById('mBurger');
-      var mobileMenu = document.getElementById('mMobileMenu');
-      var mClose = document.getElementById('mMobileClose');
-      function closeMobileMenu() {
-        if (mobileMenu && mobileMenu.classList.contains('open')) {
-          mobileMenu.classList.remove('open');
-          document.body.style.overflow = '';
-          if (burger) burger.setAttribute('aria-expanded', 'false');
-        }
-      }
-      if (burger && mobileMenu) {
-        burger.addEventListener('click', function () {
-          mobileMenu.classList.add('open');
-          document.body.style.overflow = 'hidden';
-          burger.setAttribute('aria-expanded', 'true');
-        });
-      }
-      if (mClose) mClose.addEventListener('click', closeMobileMenu);
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') closeMobileMenu();
-      });
+      /* ─── Navbar dropdowns & mobile menu are managed by partials/home-navbar ─── */
 
       /* ─── Button Ripple Effect ─── */
       document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function (btn) {

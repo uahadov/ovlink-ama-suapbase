@@ -208,13 +208,8 @@ async function releaseApiIdempotencyRecord(recordId) {
 const guestLimitStore = new Map();
 
 function getGuestKey(req) {
-  if (req && req.session) {
-    if (!req.session.guestKey) {
-      req.session.guestKey = crypto.randomBytes(16).toString('hex');
-    }
-    return req.session.guestKey;
-  }
-  return 'guest';
+  const ip = req && (req.ip || (req.socket && req.socket.remoteAddress)) || 'guest';
+  return crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16);
 }
 
 function getTodayKey() {
@@ -1078,24 +1073,39 @@ router.post('/api/user/delete', (req, res) => {
   if (!req.session.userId) return res.status(401).send('Giriş yapmalısınız.');
   const safeShort = normalizeShortCode(req.body && req.body.short);
   if (!safeShort) return res.status(400).send('Geçersiz kısa kod.');
-  db.get(`SELECT short, original, domain_host FROM urls WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`, [safeShort, req.session.userId, req.session.userId], (findErr, foundRow) => {
+  db.get(`SELECT id, short, original, domain_host FROM urls WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`, [safeShort, req.session.userId, req.session.userId], (findErr, foundRow) => {
     if (findErr) return res.status(500).send('Link silinemedi.');
     if (!foundRow) return res.status(404).send('Link tapılmadı və ya səlahiyyətiniz yoxdur.');
 
-    db.run(`DELETE FROM urls WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`, [safeShort, req.session.userId, req.session.userId], function (err) {
-      if (err) return res.status(500).send('Link silinemedi.');
-      if (this.changes === 0) return res.status(404).send('Link tapılmadı və ya səlahiyyətiniz yoxdur.');
+    const proceedUrlDelete = () => {
+      db.run(`DELETE FROM urls WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`, [safeShort, req.session.userId, req.session.userId], function (err) {
+        if (err) return res.status(500).send('Link silinemedi.');
+        if (this.changes === 0) return res.status(404).send('Link tapılmadı və ya səlahiyyətiniz yoxdur.');
 
-      const shortUrl = buildShortUrl(req, foundRow.short || safeShort, foundRow.domain_host || '');
-      void enqueueWebhookEventForUser(req.session.userId, 'link.deleted', {
-        short: foundRow.short || safeShort,
-        short_url: shortUrl,
-        original_url: foundRow.original || '',
-        domain: normalizeHostName(foundRow.domain_host || '') || null,
-        deleted_at: new Date().toISOString(),
+        const shortUrl = buildShortUrl(req, foundRow.short || safeShort, foundRow.domain_host || '');
+        void enqueueWebhookEventForUser(req.session.userId, 'link.deleted', {
+          short: foundRow.short || safeShort,
+          short_url: shortUrl,
+          original_url: foundRow.original || '',
+          domain: normalizeHostName(foundRow.domain_host || '') || null,
+          deleted_at: new Date().toISOString(),
+        });
+        res.redirect('/dashboard');
       });
-      res.redirect('/dashboard');
-    });
+    };
+
+    // Clean up dependent child records before deleting the URL so foreign key constraints are not violated
+    if (foundRow.id) {
+      db.run('DELETE FROM clicks WHERE url_id = ?', [foundRow.id], () => {
+        db.run('DELETE FROM reports WHERE short = ?', [foundRow.short || safeShort], () => {
+          proceedUrlDelete();
+        });
+      });
+    } else {
+      db.run('DELETE FROM reports WHERE short = ?', [foundRow.short || safeShort], () => {
+        proceedUrlDelete();
+      });
+    }
   });
 });
 
@@ -1131,34 +1141,70 @@ router.post('/api/user/delete-bulk',
 
   const placeholders = valid.map(() => '?').join(',');
   db.all(
-    `SELECT short, original, domain_host FROM urls WHERE ${WORKSPACE_LINK_MUTATION_SQL} AND short IN (${placeholders})`,
+    `SELECT id, short, original, domain_host FROM urls WHERE ${WORKSPACE_LINK_MUTATION_SQL} AND short IN (${placeholders})`,
     [req.session.userId, req.session.userId, ...valid],
     (findErr, foundRows) => {
       if (findErr) return res.status(500).json({ error: 'Server error.' });
 
-      db.run(
-        `DELETE FROM urls WHERE ${WORKSPACE_LINK_MUTATION_SQL} AND short IN (${placeholders})`,
-        [req.session.userId, req.session.userId, ...valid],
-        function (err) {
-          if (err) return res.status(500).json({ error: 'Server error.' });
+      const targetRows = Array.isArray(foundRows) ? foundRows : [];
+      if (targetRows.length === 0) {
+        return res.status(404).json({
+          error: pickLang(uiLang, 'Link tapılmadı və ya səlahiyyətiniz yoxdur.', 'Link bulunamadı veya yetkiniz yok.', 'Link not found or unauthorized.')
+        });
+      }
 
-          const deletedRows = Array.isArray(foundRows) ? foundRows : [];
-          deletedRows.forEach((row) => {
-            const shortCode = (row && row.short) ? row.short : '';
-            if (!shortCode) return;
-            const shortUrl = buildShortUrl(req, shortCode, row.domain_host || '');
-            void enqueueWebhookEventForUser(req.session.userId, 'link.deleted', {
-              short: shortCode,
-              short_url: shortUrl,
-              original_url: row.original || '',
-              domain: normalizeHostName(row.domain_host || '') || null,
-              deleted_at: new Date().toISOString(),
+      const targetIds = targetRows.map(r => r.id).filter(Boolean);
+      const targetShorts = targetRows.map(r => r.short).filter(Boolean);
+
+      const performBulkDelete = () => {
+        db.run(
+          `DELETE FROM urls WHERE ${WORKSPACE_LINK_MUTATION_SQL} AND short IN (${placeholders})`,
+          [req.session.userId, req.session.userId, ...valid],
+          function (err) {
+            if (err) return res.status(500).json({ error: 'Server error.' });
+
+            targetRows.forEach((row) => {
+              const shortCode = (row && row.short) ? row.short : '';
+              if (!shortCode) return;
+              const shortUrl = buildShortUrl(req, shortCode, row.domain_host || '');
+              void enqueueWebhookEventForUser(req.session.userId, 'link.deleted', {
+                short: shortCode,
+                short_url: shortUrl,
+                original_url: row.original || '',
+                domain: normalizeHostName(row.domain_host || '') || null,
+                deleted_at: new Date().toISOString(),
+              });
             });
-          });
 
-          return res.json({ deleted: this.changes || 0 });
+            return res.json({
+              success: true,
+              deleted: this.changes || targetRows.length,
+              message: pickLang(uiLang, 'Linklər uğurla silindi.', 'Linkler başarıyla silindi.', 'Links successfully deleted.')
+            });
+          }
+        );
+      };
+
+      const cleanupReportsAndProceed = () => {
+        if (targetShorts.length > 0) {
+          const shortPlaceholders = targetShorts.map(() => '?').join(',');
+          db.run(`DELETE FROM reports WHERE short IN (${shortPlaceholders})`, targetShorts, () => {
+            performBulkDelete();
+          });
+        } else {
+          performBulkDelete();
         }
-      );
+      };
+
+      // Clean up dependent child records before deleting URLs
+      if (targetIds.length > 0) {
+        const idPlaceholders = targetIds.map(() => '?').join(',');
+        db.run(`DELETE FROM clicks WHERE url_id IN (${idPlaceholders})`, targetIds, () => {
+          cleanupReportsAndProceed();
+        });
+      } else {
+        cleanupReportsAndProceed();
+      }
     }
   );
 });
@@ -1329,10 +1375,10 @@ router.get(['/api/user/export', '/api/links/export/csv'], (req, res) => {
       COUNT(c.id) AS total_clicks
      FROM urls u
      LEFT JOIN clicks c ON c.url_id = u.id
-     WHERE u.user_id = ?
+     WHERE ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}
      GROUP BY u.id
      ORDER BY u.created_at DESC`,
-    [req.session.userId],
+    [req.session.userId, req.session.userId],
     (err, rows) => {
       if (err) return res.status(500).json({ error: 'Export failed.' });
 

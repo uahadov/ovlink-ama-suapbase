@@ -4,7 +4,8 @@ let googleOidc = {
   client: null,
   generators: null,
   ready: false,
-  redirectUri: null
+  redirectUri: null,
+  error: null
 };
 let googleOidcInitPromise = null;
 let googleOidcInitError = null;
@@ -46,16 +47,18 @@ function getGoogleRedirectUri(req) {
     } catch {}
   }
 
-  if (req) {
-    return buildAbsoluteUrl(req, '/auth/google/callback');
+  if (req && typeof req.get === 'function') {
+    try {
+      return buildAbsoluteUrl(req, '/auth/google/callback');
+    } catch {}
   }
 
   return googleOidc.redirectUri || '';
 }
 
 async function getGoogleOidcClient(options = {}) {
-  const force = options && options.force === true;
-  const req = options && options.req ? options.req : null;
+  const req = options && options.req;
+  const force = !!(options && options.force);
 
   if (!force && googleOidc.ready && googleOidc.client && googleOidc.generators) return true;
   if (!force && googleOidcInitPromise) return googleOidcInitPromise;
@@ -67,6 +70,7 @@ async function getGoogleOidcClient(options = {}) {
         googleOidc.client = null;
         googleOidc.generators = null;
         googleOidcInitError = 'missing_client_credentials';
+        googleOidc.error = googleOidcInitError;
         return false;
       }
 
@@ -76,6 +80,7 @@ async function getGoogleOidcClient(options = {}) {
         googleOidc.client = null;
         googleOidc.generators = null;
         googleOidcInitError = 'missing_redirect_uri';
+        googleOidc.error = googleOidcInitError;
         console.warn('[google-auth] PUBLIC_BASE_URL/BASE_URL or GOOGLE_REDIRECT_URI missing; Google login disabled.');
         return false;
       }
@@ -93,12 +98,14 @@ async function getGoogleOidcClient(options = {}) {
       googleOidc.ready = true;
       googleOidc.redirectUri = redirectUri;
       googleOidcInitError = null;
+      googleOidc.error = null;
       return true;
     } catch (err) {
       googleOidc.ready = false;
       googleOidc.client = null;
       googleOidc.generators = null;
       googleOidcInitError = (err && err.message) ? err.message : 'init_failed';
+      googleOidc.error = googleOidcInitError;
       console.error('[google-auth] init failed', err);
       return false;
     } finally {
@@ -122,6 +129,10 @@ getGoogleOidcClient().then((initialized) => {
 
 module.exports = {
   googleOidc,
+  get googleOidcInitError() {
+    return googleOidcInitError;
+  },
+  getGoogleOidcInitError: () => googleOidcInitError,
   getGoogleOidcClient,
   initGoogleOidc: getGoogleOidcClient,
   getGoogleRedirectUri

@@ -20,7 +20,7 @@ const {
 const { trackUserSession: upsertUserSessionRecord, buildVerificationExpiryIso } = require('../../lib/session');
 const { getRequestGeoMeta, maskIpForDisplay, buildNetworkFingerprintForDisplay, parseAcceptLang } = require('../../lib/geo');
 const { logSecurityEvent, getPublicBaseUrl, buildAbsoluteUrl } = require('../../lib/security');
-const { googleOidc, initGoogleOidc, getGoogleRedirectUri } = require('../../lib/google-auth');
+const { googleOidc, initGoogleOidc, getGoogleRedirectUri, googleOidcInitError } = require('../../lib/google-auth');
 const { requireSignedIn } = require('../../middleware/auth');
 const { authLimiter, sensitiveActionLimiter } = require('../../middleware/rate-limiter');
 const { isProAccessActive, getEffectivePlanForUser, buildPlanPayload, isProExpired, downgradeExpiredProIfNeeded } = require('../../lib/plans');
@@ -442,8 +442,9 @@ router.get('/auth/google', authLimiter, async (req, res) => {  if (!googleOidc.r
     await initGoogleOidc({ req, force: true });
   }
   if (!googleOidc.ready || !googleOidc.client || !googleOidc.generators) {
-    if (googleOidcInitError) {
-      console.warn('[google-auth] unavailable', { reason: googleOidcInitError });
+    const initErr = googleOidc.error || (typeof googleOidcInitError === 'function' ? googleOidcInitError() : (typeof googleOidcInitError !== 'undefined' ? googleOidcInitError : null));
+    if (initErr) {
+      console.warn('[google-auth] unavailable', { reason: initErr });
     }
     logSecurityEvent(req, 'auth.google.start', 'blocked', { reason: 'google_unavailable' });
     return res.redirect('/login?error=google_unavailable');
@@ -736,10 +737,10 @@ function handleLogout(req, res) {
     );
   }
 
-  if (userId && req.sessionID) {
+  if (req.sessionID) {
     db.run(
-      'DELETE FROM express_sessions WHERE user_id = ? AND sid = ?',
-      [userId, req.sessionID],
+      'DELETE FROM express_sessions WHERE sid = ?',
+      [req.sessionID],
       () => {}
     );
   }
@@ -955,6 +956,14 @@ router.post('/api/user/settings', (req, res) => {
   const notifyLimit = toFlag(req.body && req.body.notify_limit) ? 1 : 0;
   const notifyDisabled = toFlag(req.body && req.body.notify_disabled) ? 1 : 0;
 
+  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const isLocal = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
+  const secureCookie = isHttps && !isLocal;
+  res.cookie('lang_default', uiLang, { httpOnly: false, sameSite: 'Lax', secure: secureCookie, maxAge: 31536000000 });
+  res.cookie('lang', uiLang, { httpOnly: false, sameSite: 'Lax', secure: secureCookie, maxAge: 31536000000 });
+  res.cookie('ovlink_lang', uiLang, { httpOnly: false, sameSite: 'Lax', secure: secureCookie, maxAge: 31536000000 });
+  req.session.ui_lang = uiLang;
+
   db.run(
     'UPDATE users SET ui_lang = ?, ui_theme = ?, notify_report = ?, notify_limit = ?, notify_disabled = ? WHERE id = ?',
     [uiLang, theme, notifyReport, notifyLimit, notifyDisabled, req.session.userId],
@@ -963,6 +972,33 @@ router.post('/api/user/settings', (req, res) => {
       return res.json({ message: pickLang(uiLang, 'Ayarlar yadda saxlanıldı.', 'Ayarlar kaydedildi.', 'Settings saved.') });
     }
   );
+});
+
+// Lightweight dedicated UI language update (POST /api/user/ui-lang)
+router.post('/api/user/ui-lang', (req, res) => {
+  const lang = normalizeLang(req.body && req.body.lang, 'az');
+  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const isLocal = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
+  const secureCookie = isHttps && !isLocal;
+
+  res.cookie('lang_default', lang, { httpOnly: false, sameSite: 'Lax', secure: secureCookie, maxAge: 31536000000 });
+  res.cookie('lang', lang, { httpOnly: false, sameSite: 'Lax', secure: secureCookie, maxAge: 31536000000 });
+  res.cookie('ovlink_lang', lang, { httpOnly: false, sameSite: 'Lax', secure: secureCookie, maxAge: 31536000000 });
+
+  if (req.session) {
+    req.session.ui_lang = lang;
+  }
+
+  if (req.session && req.session.userId) {
+    db.run('UPDATE users SET ui_lang = ? WHERE id = ?', [lang, req.session.userId], (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Failed to persist language preference.' });
+      }
+      return res.json({ ok: true, lang });
+    });
+  } else {
+    return res.json({ ok: true, lang });
+  }
 });
 
 // Şifre değiştirme (POST /api/user/password)
@@ -1385,9 +1421,6 @@ router.post('/api/notifications/delete-all', (req, res) => {
 
 // Internal heuristics (regex/extensions) have been removed. We now strictly rely on live external APIs for threat detection.
 
-// Threat Intelligence Feed (URLhaus live sync - 100% free, no API key required)
-const threatUrlSet = new Set();
-const threatHostSet = new Set();
 module.exports = router;
 
 

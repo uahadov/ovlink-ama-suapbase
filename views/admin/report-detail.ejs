@@ -1,87 +1,99 @@
 <%- include('partials/layout-top', {
   title: active === 'links' ? 'Admin · Link Detail' : 'Admin · Report Detail',
-  heading: active === 'links' ? 'Link Detail' : 'Report Detail',
-  subtitle: active === 'links' ? 'Link details and moderation actions' : 'Reported link review and moderation actions',
+  heading: active === 'links' ? 'Link Inspection' : 'Abuse Report Review',
+  subtitle: active === 'links' ? 'Inspect link telemetry, security status, and moderation controls' : 'Investigate security flags, reported violations, and triage actions',
   active: active || 'reports',
   admin,
   csrfToken,
-  topRightHtml: null,
+  topRightHtml: '<a class="m-cta m-cta--outline m-cta--sm" href="' + ((active === 'links') ? '/admin/links' : '/admin/reports') + '"><i class="fa-solid fa-arrow-left"></i><span>Back to list</span></a>',
 }) %>
 
 <% const returnTo = (active === 'links') ? '/admin/links' : '/admin/reports'; %>
 
-<div class="grid">
-  <div class="card">
-    <div class="row">
-      <span class="badge">Short</span>
-      <span class="kbd"><%= url.short %></span>
+<div class="grid-2" style="margin-bottom: 24px;">
+  <!-- Link Telemetry Bento Card -->
+  <div class="m-card">
+    <div class="m-dash-panel-header" style="margin-bottom: 18px;">
+      <h3 class="m-dash-panel-title">
+        <i class="fa-solid fa-circle-info" style="color: var(--c-muted);"></i>
+        <span>Link Telemetry & Identity</span>
+      </h3>
+      <span class="kbd" style="font-size: 13px; font-weight: 700;"><%= url.short %></span>
     </div>
 
-    <div class="spacer"></div>
-
-    <div class="row">
-      <span class="badge">Destination</span>
-      <span class="cell-url"><%= url.original %></span>
-    </div>
-
-    <div class="spacer"></div>
-
-    <div class="row">
-      <span class="badge">Owner</span>
-      <span><%= url.owner_email || '-' %></span>
-    </div>
-
-    <div class="spacer"></div>
-
-    <div class="row">
-      <span class="badge">Created</span>
-      <span><%= url.created_at ? new Date(url.created_at).toLocaleString() : '-' %></span>
-    </div>
-
-    <div class="spacer"></div>
-
-    <div class="row">
-      <span class="badge">Clicks</span>
-      <span class="pill"><%= url.clicks_count || 0 %></span>
-
-      <span class="badge">Open reports</span>
-      <span class="pill pill--warn"><%= url.reports || 0 %></span>
-
-      <% if (url.disabled) { %>
-        <span class="pill pill--danger">Disabled</span>
-      <% } else if (url.dangerous) { %>
-        <span class="pill pill--warn">Dangerous</span>
-      <% } else { %>
-        <span class="pill pill--ok">Active</span>
-      <% } %>
-
-      <% if (url.link_password && url.link_password.trim()) { %>
-        <span class="pill">Password</span>
-      <% } %>
-    </div>
-
-    <% if (url.disabled_reason) { %>
-      <div class="spacer"></div>
-      <div class="alert">Disable reason: <%= url.disabled_reason %></div>
-    <% } %>
-
-    <% if (url.link_password && url.link_password.trim()) { %>
-      <div class="spacer"></div>
-      <div class="row">
-        <span class="badge">Link password</span>
-        <span id="linkPassword" class="kbd" data-secret-value="<%= url.link_password %>">••••••</span>
-        <button type="button" class="btn btn--ghost" data-secret-toggle="linkPassword">Show</button>
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="padding-bottom: 10px; border-bottom: 1px solid var(--c-border);">
+        <div class="m-adv-label" style="margin-bottom: 4px;">Destination URL</div>
+        <div class="cell-url" style="max-width: 100%; font-size: 13px; color: var(--c-white); font-family: var(--font-mono); word-break: break-all;">
+          <a href="<%= url.original %>" target="_blank" rel="noopener noreferrer" style="color: #60a5fa;">
+            <%= url.original %> <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px; margin-left: 4px;"></i>
+          </a>
+        </div>
       </div>
-    <% } %>
+
+      <div class="row" style="justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--c-border);">
+        <span class="m-adv-label" style="margin: 0;">Registered Creator</span>
+        <span style="font-size: 13px; color: <%= url.owner_email ? 'var(--c-text)' : 'var(--c-faint)' %>;"><%= url.owner_email || 'Guest / Anonymous' %></span>
+      </div>
+
+      <div class="row" style="justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--c-border);">
+        <span class="m-adv-label" style="margin: 0;">Creation Timestamp</span>
+        <span style="font-size: 12.5px; color: var(--c-muted); font-family: var(--font-mono);"><%= url.created_at ? new Date(url.created_at).toLocaleString() : '-' %></span>
+      </div>
+
+      <div class="row" style="justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--c-border);">
+        <span class="m-adv-label" style="margin: 0;">Total Clicks</span>
+        <span class="pill"><i class="fa-solid fa-chart-line" style="font-size: 10px; color: var(--c-muted);"></i> <%= url.clicks_count || 0 %> clicks</span>
+      </div>
+
+      <div class="row" style="justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--c-border);">
+        <span class="m-adv-label" style="margin: 0;">Report Flags</span>
+        <span class="pill <%= (url.reports > 0) ? 'pill--danger' : 'm-badge-reports--zero' %>"><i class="fa-solid fa-flag" style="font-size: 10px;"></i> <%= url.reports || 0 %> reports</span>
+      </div>
+
+      <div class="row" style="justify-content: space-between;">
+        <span class="m-adv-label" style="margin: 0;">Health Verdict</span>
+        <div class="row" style="gap: 6px;">
+          <% if (url.disabled) { %>
+            <span class="pill pill--danger">Disabled</span>
+          <% } else if (url.dangerous) { %>
+            <span class="pill pill--warn">Dangerous</span>
+          <% } else { %>
+            <span class="pill pill--ok">Active & Safe</span>
+          <% } %>
+          <% if (url.link_password && url.link_password.trim()) { %>
+            <span class="pill" title="Protected by password"><i class="fa-solid fa-lock" style="font-size: 10px; color: #fde68a;"></i></span>
+          <% } %>
+        </div>
+      </div>
+
+      <% if (url.disabled_reason) { %>
+        <div class="alert alert--danger" style="margin-top: 6px; font-size: 12.5px;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <div><strong>Disable Note:</strong> <%= url.disabled_reason %></div>
+        </div>
+      <% } %>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="row">
+  <!-- Moderation & Triage Actions Bento Card -->
+  <div class="m-card">
+    <div class="m-dash-panel-header" style="margin-bottom: 18px;">
+      <h3 class="m-dash-panel-title">
+        <i class="fa-solid fa-gavel" style="color: var(--c-muted);"></i>
+        <span>Moderation Controls</span>
+      </h3>
+    </div>
+
+    <div class="row" style="gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
       <% if ((url.reports || 0) > 0 || url.dangerous) { %>
         <form method="POST" action="/admin/links/<%= encodeURIComponent(url.short) %>/mark-safe">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
           <input type="hidden" name="returnTo" value="<%= returnTo %>" />
-          <button class="btn btn--secondary" type="submit" data-confirm="Reports will be resolved and this link will be marked as safe. Continue?">Resolve (Mark Safe)</button>
+          <button class="m-cta m-cta--white m-cta--sm" type="submit" data-confirm="Reports will be marked resolved and this link cleared as safe. Continue?">
+            <i class="fa-solid fa-check"></i>
+            <span>Mark Safe (Resolve)</span>
+          </button>
         </form>
       <% } %>
 
@@ -89,81 +101,106 @@
         <form method="POST" action="/admin/links/<%= encodeURIComponent(url.short) %>/enable">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
           <input type="hidden" name="returnTo" value="<%= returnTo %>" />
-          <button class="btn" type="submit">Enable</button>
+          <button class="m-cta m-cta--white m-cta--sm" type="submit">
+            <i class="fa-solid fa-power-off"></i>
+            <span>Enable Link</span>
+          </button>
         </form>
       <% } %>
 
-      <% if (admin && admin.role === 'admin') { %>
+      <% if (typeof admin !== 'undefined' && admin && admin.role === 'admin') { %>
         <form method="POST" action="/admin/links/<%= encodeURIComponent(url.short) %>/delete">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
           <input type="hidden" name="returnTo" value="<%= returnTo %>" />
-          <button class="btn btn--danger" type="submit" data-confirm="This link will be deleted permanently. Continue?">Delete</button>
+          <button class="m-cta m-cta--danger m-cta--sm" type="submit" data-confirm="This link will be permanently purged from the database. Continue?">
+            <i class="fa-solid fa-trash"></i>
+            <span>Purge Link</span>
+          </button>
         </form>
       <% } %>
     </div>
 
-    <div class="spacer"></div>
+    <!-- Disable Link Form -->
+    <div style="border-top: 1px solid var(--c-border); padding-top: 18px; margin-bottom: 18px;">
+      <form method="POST" action="/admin/links/<%= encodeURIComponent(url.short) %>/disable">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <input type="hidden" name="returnTo" value="<%= returnTo %>" />
+        <div class="field" style="margin-bottom: 12px;">
+          <label for="reason" class="m-adv-label">Quarantine & Disable Violation Reason</label>
+          <textarea class="m-adv-input" id="reason" name="reason" placeholder="Phishing, malware distribution, ToS violation..." style="min-height: 65px;"></textarea>
+        </div>
+        <button class="m-cta m-cta--danger m-cta--sm" type="submit" data-confirm="This link will immediately be disabled and blocked to visitors. Continue?">
+          <i class="fa-solid fa-ban"></i>
+          <span>Disable Link Immediately</span>
+        </button>
+      </form>
+    </div>
 
-    <div class="grid">
-      <div class="card">
-        <form class="form" method="POST" action="/admin/links/<%= encodeURIComponent(url.short) %>/disable">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-          <input type="hidden" name="returnTo" value="<%= returnTo %>" />
-          <div class="field">
-            <label for="reason">Disable reason</label>
-            <textarea id="reason" name="reason" placeholder="Short explanation..."></textarea>
-          </div>
-          <button class="btn" type="submit" data-confirm="This link will be disabled. Continue?">Disable</button>
-        </form>
-      </div>
-
-      <div class="card">
-        <form class="form" method="POST" action="/admin/domains/block">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-          <div class="field">
-            <label for="domain">Block domain</label>
-            <input class="input" id="domain" name="domain" value="<%= domain %>" />
-          </div>
-          <div class="field">
-            <label for="note">Note</label>
-            <input class="input" id="note" name="note" placeholder="(optional)" />
-          </div>
-          <button class="btn" type="submit" data-confirm="This domain will be added to the blocklist. Continue?">Block</button>
-        </form>
-      </div>
+    <!-- Block Domain Form -->
+    <div style="border-top: 1px solid var(--c-border); padding-top: 18px;">
+      <form method="POST" action="/admin/domains/block">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <div class="field" style="margin-bottom: 10px;">
+          <label for="domain" class="m-adv-label">Block Entire Target Domain</label>
+          <input class="m-adv-input" id="domain" name="domain" value="<%= domain %>" />
+        </div>
+        <div class="field" style="margin-bottom: 12px;">
+          <label for="note" class="m-adv-label">Moderation Log Note</label>
+          <input class="m-adv-input" id="note" name="note" placeholder="Known malicious domain, phishing cluster..." />
+        </div>
+        <button class="m-cta m-cta--outline m-cta--sm" type="submit" data-confirm="This target domain will be permanently blocked from future link creation. Continue?">
+          <i class="fa-solid fa-shield-slash"></i>
+          <span>Add Domain to Blocklist</span>
+        </button>
+      </form>
     </div>
   </div>
 </div>
 
-<div class="spacer"></div>
+<!-- Incident Reports History Card -->
+<div class="m-card" style="padding: 0; overflow: hidden;">
+  <div class="m-dash-panel-header" style="padding: 20px 24px; border-bottom: 1px solid var(--c-border); margin-bottom: 0;">
+    <h3 class="m-dash-panel-title">
+      <i class="fa-solid fa-list-check" style="color: var(--c-muted);"></i>
+      <span>Incident & Abuse Report History</span>
+    </h3>
+    <span class="badge"><%= (reports && reports.length) || 0 %> Logged Reports</span>
+  </div>
 
-<div class="card">
-  <h2>Reports</h2>
-  <div class="spacer"></div>
   <% if (!reports || reports.length === 0) { %>
-    <div class="alert">There are no reports for this link.</div>
+    <div style="text-align: center; padding: 48px 20px; color: var(--c-faint);">
+      <div style="font-size: 14px; font-weight: 500;">No reported abuse incidents on record for this short link.</div>
+    </div>
   <% } else { %>
-    <div class="table-wrap">
-      <table class="table">
+    <div class="m-table-wrap" style="border: none; border-radius: 0;">
+      <table class="m-table">
         <thead>
           <tr>
-            <th>Created</th>
-            <th>Reason</th>
-            <th>Reporter</th>
-            <th>Status</th>
+            <th>Timestamp</th>
+            <th>Reason Category</th>
+            <th>Reporter Contact</th>
+            <th>Current Status</th>
           </tr>
         </thead>
         <tbody>
           <% reports.forEach((r) => { %>
             <tr>
-              <td><%= r.created_at ? new Date(r.created_at).toLocaleString() : '-' %></td>
-              <td><%= r.reason || '-' %></td>
-              <td><%= r.reporter_email || '' %></td>
+              <td style="white-space: nowrap; font-size: 12px; color: var(--c-muted); font-family: var(--font-mono);">
+                <%= r.created_at ? new Date(r.created_at).toLocaleString() : '-' %>
+              </td>
               <td>
-                <% if (r.resolved_at) { %>
-                  <span class="pill">Resolved</span>
+                <span class="pill pill--warn"><%= r.reason || 'Unspecified' %></span>
+              </td>
+              <td>
+                <span style="font-size: 12.5px; color: <%= r.reporter_email ? 'var(--c-text)' : 'var(--c-faint)' %>;">
+                  <%= r.reporter_email || 'Anonymous Visitor' %>
+                </span>
+              </td>
+              <td>
+                <% if (r.status === 'resolved') { %>
+                  <span class="pill pill--ok">Resolved</span>
                 <% } else { %>
-                  <span class="pill pill--warn">Open</span>
+                  <span class="pill pill--warn">Pending Review</span>
                 <% } %>
               </td>
             </tr>

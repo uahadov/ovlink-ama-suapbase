@@ -22,10 +22,13 @@ function requireSignedIn(req, res, next) {
   const token = normalizeSessionToken(req.session.userSessionToken);
   if (token) {
     db.get('SELECT is_revoked FROM user_sessions WHERE session_token = ? AND user_id = ?', [token, req.session.userId], (err, row) => {
-      if (!err && row && row.is_revoked === 1) {
+      if (err) {
+        return res.status(500).json({ error: 'Server error checking session status.' });
+      }
+      if (!row || row.is_revoked === 1) {
         try { req.session.destroy(() => {}); } catch {}
         res.clearCookie('connect.sid');
-        return res.status(401).json({ error: 'Session has been revoked.' });
+        return res.status(401).json({ error: 'Session has been revoked or is invalid.' });
       }
       return next();
     });

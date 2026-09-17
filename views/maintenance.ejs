@@ -2,16 +2,22 @@
 <html lang="en">
 
 <head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="icon" href="/favicon.ico?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="apple-touch-icon" href="/logo.png?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= (typeof csrfToken !== 'undefined') ? csrfToken : '' %>">
   <title data-i18n="maintenance_title">Planlaşdırılmış Texniki Xidmət - Ovlink</title>
-  <link rel="icon" href="/logo.ico" />
+  
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   
   <link rel="stylesheet" href="/home.css?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>" />
 </head>
@@ -24,7 +30,7 @@
   <!-- Minimal Brand Header with Language Switcher -->
   <header class="m-minimal-nav">
     <a href="/" class="m-brand" aria-label="Ovlink Homepage" style="display:flex; align-items:center; gap:10px; text-decoration:none;">
-      <img src="/logo.webp" alt="Ovlink" width="28" height="28" style="border-radius:6px;">
+      <img src="/home-logo.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" alt="Ovlink" width="28" height="28" style="border-radius:6px;" data-fallback="/logo.webp">
       <span style="font-weight:700; font-size:16px; color:var(--c-white); letter-spacing:-0.02em;">Ovlink</span>
     </a>
 

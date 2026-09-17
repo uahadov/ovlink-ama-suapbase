@@ -28,7 +28,7 @@ const PUBLIC_INDEXABLE_PATHS = Object.freeze([
 
 // Internal ops docs must never be publicly served.
 router.use((req, res, next) => {
-  const p = (req.path || '').toString().trim().toLowerCase();
+  const p = (req.path || '').toString().replace(/\/+/g, '/').trim().toLowerCase();
   if (p === '/agents' || p === '/agents.md') {
     return res.status(404).send('Not found');
   }

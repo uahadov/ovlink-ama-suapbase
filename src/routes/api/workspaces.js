@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 
-const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../../db/helpers');
+const { dbGetAsync, dbRunAsync, dbAllAsync, withTransaction } = require('../../db/helpers');
 const { requireSignedIn, requireProAccess } = require('../../middleware/auth');
 const { pickLang, normalizeLang, getCookieValue } = require('../../lib/i18n');
 const { isProAccessActive, isIsoTimeExpired, getEffectivePlanForUser } = require('../../lib/plans');
@@ -23,6 +23,7 @@ const { sendWorkspaceInviteEmail } = require('../../lib/email');
 const { trackUserSession: upsertUserSessionRecord } = require('../../lib/session');
 const { isProdRuntime } = require('../../config/index');
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 
 const WORKSPACE_NAME_MAX_LENGTH = 64;
 const WORKSPACE_INVITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
@@ -268,18 +269,13 @@ router.delete('/api/workspaces/:id', requireSignedIn, async (req, res) => {
   const workspaceId = ctx.workspace.id;
   // Workspace links fall back to their creator's personal scope; redirects
   // never break.
-  try {
-    await dbRunAsync('BEGIN');
-    await dbRunAsync('UPDATE urls SET workspace_id = NULL WHERE workspace_id = ?', [workspaceId]);
-    await dbRunAsync('DELETE FROM sso_connections WHERE workspace_id = ?', [workspaceId]);
-    await dbRunAsync('DELETE FROM workspace_invitations WHERE workspace_id = ?', [workspaceId]);
-    await dbRunAsync('DELETE FROM workspace_members WHERE workspace_id = ?', [workspaceId]);
-    await dbRunAsync('DELETE FROM workspaces WHERE id = ?', [workspaceId]);
-    await dbRunAsync('COMMIT');
-  } catch (err) {
-    await dbRunAsync('ROLLBACK').catch(() => {});
-    throw err;
-  }
+  await withTransaction(async (tx) => {
+    await tx.run('UPDATE urls SET workspace_id = NULL WHERE workspace_id = ?', [workspaceId]);
+    await tx.run('DELETE FROM sso_connections WHERE workspace_id = ?', [workspaceId]);
+    await tx.run('DELETE FROM workspace_invitations WHERE workspace_id = ?', [workspaceId]);
+    await tx.run('DELETE FROM workspace_members WHERE workspace_id = ?', [workspaceId]);
+    await tx.run('DELETE FROM workspaces WHERE id = ?', [workspaceId]);
+  });
   logSecurityEvent(req, 'workspace.deleted', 'success', { workspace_id: workspaceId });
   return res.json({ deleted: true });
 });

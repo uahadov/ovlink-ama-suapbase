@@ -1,49 +1,91 @@
 <%- include('partials/layout-top', {
   title: 'Admin · 2FA Setup',
-  heading: 'Admin 2FA',
-  subtitle: 'Enable two-factor authentication for this admin account',
+  heading: 'Two-Factor Authentication',
+  subtitle: 'Configure hardware-backed or TOTP authenticator protection for this admin session',
   active: '2fa',
   admin,
   csrfToken,
   topRightHtml: null,
 }) %>
 
-<div class="card">
+<div class="m-card" style="max-width: 680px;">
   <% if (typeof error === 'string' && error) { %>
-    <div class="alert alert--error"><%= error %></div>
-    <div class="spacer"></div>
+    <div class="alert alert--danger">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span><%= error %></span>
+    </div>
   <% } %>
 
   <% if (typeof success === 'string' && success) { %>
-    <div class="alert alert--ok"><%= success %></div>
-    <div class="spacer"></div>
+    <div class="alert alert--ok">
+      <i class="fa-solid fa-circle-check"></i>
+      <span><%= success %></span>
+    </div>
   <% } %>
 
   <% if (enabled) { %>
-    <p>2FA is already enabled for this admin account.</p>
+    <div class="row" style="gap: 16px; align-items: flex-start;">
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.28); display: flex; align-items: center; justify-content: center; color: #6ee7b7; font-size: 20px; flex-shrink: 0;">
+        <i class="fa-solid fa-shield-check"></i>
+      </div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--c-white); margin: 0 0 6px 0;">2FA is Active & Enforced</h3>
+        <p style="margin: 0; color: var(--c-muted); font-size: 13.5px; line-height: 1.6;">
+          This administrator account requires a 6-digit TOTP token upon every login attempt. Your access boundary is protected against credential stuffing and automated abuse.
+        </p>
+      </div>
+    </div>
   <% } else { %>
-    <p>Scan the QR code with an authenticator app (Google Authenticator, Authy, or similar).</p>
+    <div class="m-page-chip" style="margin-bottom: 12px;">
+      <i class="fa-solid fa-qrcode"></i>
+      <span>Step 1 · Authenticator App</span>
+    </div>
+    <h3 style="font-size: 16px; font-weight: 700; color: var(--c-white); margin: 0 0 6px 0;">Scan QR in Authenticator</h3>
+    <p style="color: var(--c-muted); font-size: 13.5px; margin: 0 0 20px; line-height: 1.5;">
+      Use Google Authenticator, 1Password, Bitwarden, or Apple Keychain to scan the security matrix below:
+    </p>
 
     <% if (qrDataUrl) { %>
-      <div class="spacer"></div>
-      <img src="<%= qrDataUrl %>" alt="2FA QR" style="width:220px;height:220px;border-radius:10px;border:1px solid #ddd;" />
+      <div style="display: flex; justify-content: center; padding: 18px; background: #ffffff; border-radius: 14px; width: fit-content; margin: 0 auto 24px; border: 1px solid var(--c-border-hi);">
+        <img src="<%= qrDataUrl %>" alt="2FA Security QR" style="width: 200px; height: 200px; display: block;" />
+      </div>
     <% } %>
 
     <% if (secret) { %>
-      <div class="spacer"></div>
-      <p>If needed, add this secret key manually:</p>
-      <div class="kbd"><%= secret %></div>
+      <div style="margin-bottom: 24px;">
+        <label class="m-adv-label">Manual Setup Key</label>
+        <div class="row" style="gap: 10px;">
+          <span class="kbd" style="font-size: 13.5px; padding: 8px 14px; letter-spacing: 0.1em;"><%= secret %></span>
+          <button type="button" class="m-cta m-cta--outline m-cta--sm" data-copy="<%= secret %>">
+            <i class="fa-regular fa-copy"></i>
+            <span>Copy key</span>
+          </button>
+        </div>
+      </div>
     <% } %>
 
-    <div class="spacer"></div>
-    <form class="form" method="POST" action="/admin/2fa/setup">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-      <div class="field">
-        <label for="token">6-digit code</label>
-        <input class="input" id="token" name="token" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required />
+    <div style="border-top: 1px solid var(--c-border); padding-top: 24px; margin-top: 8px;">
+      <div class="m-page-chip" style="margin-bottom: 12px;">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>Step 2 · Verification</span>
       </div>
-      <button class="btn" type="submit">Enable 2FA</button>
-    </form>
+      <h3 style="font-size: 16px; font-weight: 700; color: var(--c-white); margin: 0 0 6px 0;">Verify & Activate</h3>
+      <p style="color: var(--c-muted); font-size: 13.5px; margin: 0 0 16px;">
+        Enter the 6-digit code currently shown in your authenticator app to activate:
+      </p>
+
+      <form method="POST" action="/admin/2fa/setup" style="max-width: 360px;">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <div class="field" style="margin-bottom: 16px;">
+          <label for="token" class="m-adv-label">6-Digit Verification Code</label>
+          <input class="m-adv-input" id="token" name="token" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" style="letter-spacing: 0.25em; font-family: var(--font-mono); font-weight: 700; font-size: 16px;" required />
+        </div>
+        <button class="m-cta m-cta--white" type="submit">
+          <i class="fa-solid fa-lock"></i>
+          <span>Enable 2FA Protection</span>
+        </button>
+      </form>
+    </div>
   <% } %>
 </div>
 

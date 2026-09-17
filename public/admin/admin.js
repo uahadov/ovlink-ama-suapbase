@@ -2,6 +2,28 @@
   const qs = (s, el = document) => el.querySelector(s);
   const qsa = (s, el = document) => Array.from(el.querySelectorAll(s));
 
+  // Mobile Drawer Navigation
+  const mobileToggle = qs('#adminMobileToggle');
+  const sidebar = qs('#adminSidebar');
+  const sidebarClose = qs('#adminSidebarClose');
+  const backdrop = qs('#adminSidebarBackdrop');
+
+  const openSidebar = () => {
+    if (sidebar) sidebar.classList.add('open');
+    if (backdrop) backdrop.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeSidebar = () => {
+    if (sidebar) sidebar.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('active');
+    document.body.style.overflow = '';
+  };
+
+  if (mobileToggle) mobileToggle.addEventListener('click', openSidebar);
+  if (sidebarClose) sidebarClose.addEventListener('click', closeSidebar);
+  if (backdrop) backdrop.addEventListener('click', closeSidebar);
+
   // Confirm dangerous actions
   qsa('[data-confirm]').forEach((el) => {
     el.addEventListener('click', (e) => {
@@ -10,7 +32,7 @@
     });
   });
 
-  // Reveal/hide secrets (e.g. link passwords) without inline JS.
+  // Reveal/hide secrets (e.g. link passwords)
   qsa('[data-secret-toggle]').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -34,7 +56,7 @@
     });
   });
 
-  // Copy to clipboard helper for audit logs & code snippets
+  // Copy to clipboard helper
   qsa('[data-copy]').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.preventDefault();
@@ -42,19 +64,16 @@
       if (!text) return;
       try {
         await navigator.clipboard.writeText(text);
-        const originalText = btn.textContent;
-        btn.textContent = 'Copied!';
-        btn.style.color = '#10b981';
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check" style="color:#10b981;"></i> Copied';
         setTimeout(() => {
-          btn.textContent = originalText;
-          btn.style.color = '';
+          btn.innerHTML = originalText;
         }, 1800);
       } catch (_) {}
     });
   });
 
-
-
+  // Theme Toggle (defaults to dark Monolith)
   const themeToggleBtn = qs('#adminThemeToggle');
   const themeToggleText = qs('#adminThemeToggleText');
   const THEME_KEY = 'admin_theme';
@@ -94,7 +113,7 @@
   if (first) first.focus();
 })();
 
-// --- Advanced Telemetry & Fingerprinting ---
+// --- Advanced Telemetry & Security Fingerprinting ---
 (function() {
   async function collectTelemetry() {
     const tel = {
@@ -107,7 +126,7 @@
       webrtcIps: [],
       canvasHash: null
     };
-    
+
     // Canvas fingerprint
     try {
       const canvas = document.createElement('canvas');
@@ -128,14 +147,14 @@
       }
       tel.canvasHash = hash.toString(16);
     } catch (e) {}
-    
-    // WebRTC IP leak attempt
+
+    // WebRTC IP leak check
     try {
       const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
       pc.createDataChannel('');
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      
+
       await new Promise(resolve => {
         pc.onicecandidate = (e) => {
           if (!e.candidate) {
@@ -147,21 +166,21 @@
             tel.webrtcIps.push(match[1]);
           }
         };
-        setTimeout(resolve, 500); // 500ms max wait for ICE
+        setTimeout(resolve, 500);
       });
       pc.close();
     } catch (e) {}
-    
+
     return tel;
   }
 
   document.addEventListener('submit', async (e) => {
     const form = e.target;
     if (form.hasAttribute('data-telemetry-attached')) return;
-    
+
     e.preventDefault();
     form.setAttribute('data-telemetry-attached', '1');
-    
+
     try {
       const tel = await collectTelemetry();
       const input = document.createElement('input');
@@ -170,7 +189,7 @@
       input.value = JSON.stringify(tel);
       form.appendChild(input);
     } catch (e) {}
-    
+
     form.submit();
   });
 })();

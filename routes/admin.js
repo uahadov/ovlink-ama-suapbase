@@ -7,6 +7,8 @@ const rateLimit = require('express-rate-limit');
 const geoip = require('geoip-lite');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
+const { withTransaction } = require('../src/db/helpers');
+const { siteSettings } = require('../src/middleware/maintenance');
 
 function safeDecrypt(payload, fallback = '') {
   if (!payload) return fallback;
@@ -425,30 +427,55 @@ module.exports = function createAdminRouter(db, options = {}) {
     }
   }
 
-  function requireAdmin(req, res, next) {
+  async function requireAdmin(req, res, next) {
     if (!req.session || !req.session.adminUserId) {
       const n = safeNext(req.originalUrl);
       const q = n ? ('?next=' + encodeURIComponent(n)) : '';
       return res.redirect('/admin/login' + q);
     }
-    res.locals.admin = {
-      id: req.session.adminUserId,
-      email: req.session.adminEmail,
-      role: req.session.adminRole,
-    };
-    return next();
+    try {
+      const user = await get('SELECT id, role, email FROM admin_users WHERE id = ?', [req.session.adminUserId]);
+      if (!user) {
+        req.session.adminUserId = null;
+        req.session.adminRole = null;
+        return res.redirect('/admin/login?msg=Account+deleted');
+      }
+      req.session.adminRole = user.role; // keep session synced
+      res.locals.admin = {
+        id: user.id,
+        email: req.session.adminEmail,
+        role: user.role,
+      };
+      return next();
+    } catch {
+      return res.status(500).send('Server error');
+    }
   }
 
   function requireRole(role) {
-    return (req, res, next) => {
-      if (!req.session || !req.session.adminUserId) return requireAdmin(req, res, next);
-      res.locals.admin = {
-        id: req.session.adminUserId,
-        email: req.session.adminEmail,
-        role: req.session.adminRole,
-      };
-      if (req.session.adminRole !== role) return res.status(403).render('admin/forbidden');
-      return next();
+    return async (req, res, next) => {
+      if (!req.session || !req.session.adminUserId) {
+        return requireAdmin(req, res, next);
+      }
+      try {
+        const user = await get('SELECT id, role FROM admin_users WHERE id = ?', [req.session.adminUserId]);
+        if (!user) {
+          req.session.adminUserId = null;
+          return res.redirect('/admin/login');
+        }
+        req.session.adminRole = user.role;
+        res.locals.admin = {
+          id: user.id,
+          email: req.session.adminEmail,
+          role: user.role,
+        };
+        if (user.role !== role) {
+          return res.status(403).render('admin/forbidden');
+        }
+        return next();
+      } catch {
+        return res.status(500).send('Server error');
+      }
     };
   }
 
@@ -1184,16 +1211,11 @@ module.exports = function createAdminRouter(db, options = {}) {
     const url = await get('SELECT id, original FROM urls WHERE short = ?', [short]);
     if (!url) return res.redirect(back);
 
-    try {
-      await run('BEGIN');
-      await run('DELETE FROM clicks WHERE url_id = ?', [url.id]);
-      await run('DELETE FROM reports WHERE short = ?', [short]);
-      await run('DELETE FROM urls WHERE id = ?', [url.id]);
-      await run('COMMIT');
-    } catch (err) {
-      await run('ROLLBACK').catch(() => {});
-      throw err;
-    }
+    await withTransaction(async (tx) => {
+      await tx.run('DELETE FROM clicks WHERE url_id = ?', [url.id]);
+      await tx.run('DELETE FROM reports WHERE short = ?', [short]);
+      await tx.run('DELETE FROM urls WHERE id = ?', [url.id]);
+    });
 
     await audit(req, 'DELETE_LINK', 'url', short, { original: url.original });
     return res.redirect(back);
@@ -1687,9 +1709,8 @@ module.exports = function createAdminRouter(db, options = {}) {
         await run('INSERT OR REPLACE INTO site_settings (key, value) VALUES (?, ?)', [key, value]);
       }
 
-      const target = global.__siteSettings || {};
-      Object.assign(target, payload);
-      global.__siteSettings = target;
+      Object.assign(siteSettings, payload);
+      global.__siteSettings = siteSettings;
 
       await audit(req, 'UPDATE_SITE_SETTINGS', 'site_settings', 'global', {
         maintenance_enabled: payload.maintenance_enabled,

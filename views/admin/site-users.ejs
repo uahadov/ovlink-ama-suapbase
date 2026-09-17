@@ -1,80 +1,98 @@
 <%- include('partials/layout-top', {
-  title: 'Admin · Users',
-  heading: 'Users',
-  subtitle: 'Application user accounts',
+  title: 'Admin · App Users',
+  heading: 'Application Users',
+  subtitle: 'Registered account directory, subscription tiers, security posture, and moderation status',
   active: 'site-users',
   admin,
   csrfToken,
   topRightHtml: null,
 }) %>
 
-<div class="card">
-  <form class="row" method="GET" action="/admin/site-users">
-    <div class="field field--grow">
-      <label for="q">Search (email)</label>
-      <input class="input" id="q" name="q" value="<%= q || '' %>" placeholder="user@example.com" />
-    </div>
+<div class="m-card" style="margin-bottom: 24px;">
+  <form method="GET" action="/admin/site-users">
+    <div style="display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap;">
+      <div style="flex: 2; min-width: 240px;">
+        <label for="q" class="m-adv-label">Search Users (Email Address)</label>
+        <input class="m-adv-input" id="q" name="q" value="<%= q || '' %>" placeholder="user@company.com" />
+      </div>
 
-    <div class="field">
-      <label for="status">Status</label>
-      <select class="input" id="status" name="status">
-        <option value="" <%= !status ? 'selected' : '' %>>All</option>
-        <option value="active" <%= status === 'active' ? 'selected' : '' %>>Active</option>
-        <option value="banned" <%= status === 'banned' ? 'selected' : '' %>>Banned</option>
-        <option value="unverified" <%= status === 'unverified' ? 'selected' : '' %>>Unverified</option>
-        <option value="pro" <%= status === 'pro' ? 'selected' : '' %>>Pro Active</option>
-        <option value="free" <%= status === 'free' ? 'selected' : '' %>>Free/Inactive Pro</option>
-      </select>
-    </div>
+      <div style="flex: 1; min-width: 160px;">
+        <label for="status" class="m-adv-label">Account State</label>
+        <select class="m-adv-select" id="status" name="status" style="width: 100%;">
+          <option value="" <%= !status ? 'selected' : '' %>>All Accounts</option>
+          <option value="active" <%= status === 'active' ? 'selected' : '' %>>Active</option>
+          <option value="banned" <%= status === 'banned' ? 'selected' : '' %>>Banned</option>
+          <option value="unverified" <%= status === 'unverified' ? 'selected' : '' %>>Unverified</option>
+          <option value="pro" <%= status === 'pro' ? 'selected' : '' %>>Pro Subscription Active</option>
+          <option value="free" <%= status === 'free' ? 'selected' : '' %>>Free Tier</option>
+        </select>
+      </div>
 
-    <div class="field">
-      <label for="sort">Sort</label>
-      <select class="input" id="sort" name="sort">
-        <option value="recent" <%= (sort === 'recent' || !sort) ? 'selected' : '' %>>Recent</option>
-        <option value="links" <%= sort === 'links' ? 'selected' : '' %>>Most links</option>
-        <option value="reports" <%= sort === 'reports' ? 'selected' : '' %>>Most reports</option>
-      </select>
-    </div>
+      <div style="flex: 1; min-width: 150px;">
+        <label for="sort" class="m-adv-label">Sort Order</label>
+        <select class="m-adv-select" id="sort" name="sort" style="width: 100%;">
+          <option value="recent" <%= (sort === 'recent' || !sort) ? 'selected' : '' %>>Recently Active</option>
+          <option value="links" <%= sort === 'links' ? 'selected' : '' %>>Most Links</option>
+          <option value="reports" <%= sort === 'reports' ? 'selected' : '' %>>Most Reports</option>
+        </select>
+      </div>
 
-    <div class="field">
-      <label>&nbsp;</label>
-      <button class="btn" type="submit">Filter</button>
+      <div>
+        <button class="m-cta m-cta--white" type="submit" style="height: 42px;">
+          <i class="fa-solid fa-filter" style="font-size: 11px;"></i>
+          <span>Filter</span>
+        </button>
+      </div>
     </div>
   </form>
 </div>
 
-<div class="spacer"></div>
+<div class="m-card" style="padding: 0; overflow: hidden;">
+  <div class="m-dash-panel-header" style="padding: 20px 24px; border-bottom: 1px solid var(--c-border); margin-bottom: 0;">
+    <h2 class="m-dash-panel-title">
+      <i class="fa-solid fa-users" style="color: var(--c-muted);"></i>
+      <span>Registered User Accounts</span>
+    </h2>
+    <span class="badge" style="font-size: 11px;"><%= total || 0 %> Accounts</span>
+  </div>
 
-<div class="card">
   <% if (!rows || rows.length === 0) { %>
-    <div class="alert">No users found.</div>
+    <div style="text-align: center; padding: 56px 20px; color: var(--c-faint);">
+      <i class="fa-solid fa-user-slash" style="font-size: 32px; display: block; margin-bottom: 12px; opacity: 0.5;"></i>
+      <div style="font-size: 15px; font-weight: 600; color: var(--c-white);">No users found</div>
+      <div style="font-size: 13px; color: var(--c-muted); margin-top: 4px;">No user accounts match the search criteria.</div>
+    </div>
   <% } else { %>
-    <div class="table-wrap">
-      <table class="table">
+    <div class="m-table-wrap" style="border: none; border-radius: 0;">
+      <table class="m-table">
         <thead>
           <tr>
-            <th>Email</th>
-            <th>Verified</th>
-            <th>Plan</th>
+            <th>User Account</th>
+            <th>Verification</th>
+            <th>Subscription</th>
             <th>Links</th>
-            <th>Open Reports</th>
-            <th>Dangerous</th>
+            <th>Reports</th>
+            <th>Threats</th>
             <th>Last Link</th>
             <th>Last Login</th>
-            <th>Ban</th>
-            <th></th>
+            <th>State</th>
+            <th style="text-align: right; padding-right: 24px;">Action</th>
           </tr>
         </thead>
         <tbody>
           <% rows.forEach((u) => { %>
             <tr>
               <td>
-                <a href="/admin/site-users/<%= u.id %>"><%= u.email %></a>
-                <div class="badge u-ml-1">id: <%= u.id %></div>
+                <div style="font-weight: 600;">
+                  <a href="/admin/site-users/<%= u.id %>" style="color: var(--c-white);"><%= u.email %></a>
+                </div>
+                <div style="font-size: 11px; font-family: var(--font-mono); color: var(--c-faint); margin-top: 2px;">
+                  #<%= u.id %>
+                </div>
               </td>
               <td>
                 <% if (u.email_verified == 1) { %>
-                  <span class="pill pill--ok">Verified</span>
+                  <span class="pill pill--ok"><i class="fa-solid fa-circle-check" style="font-size: 10px;"></i> Verified</span>
                 <% } else { %>
                   <span class="pill pill--warn">Unverified</span>
                 <% } %>
@@ -85,39 +103,54 @@
                 <% const expiresMs = u.pro_expires_at ? Date.parse(u.pro_expires_at) : NaN; %>
                 <% const proLive = planTier === 'pro' && planStatus === 'active' && !Number.isNaN(expiresMs) && expiresMs > Date.now(); %>
                 <% if (proLive) { %>
-                  <span class="pill pill--ok">Pro</span>
-                  <div class="badge u-mt-1">until: <%= u.pro_expires_at %></div>
+                  <span class="pill pill--ok"><i class="fa-solid fa-crown" style="font-size: 10px;"></i> PRO</span>
+                  <div class="badge" style="font-size: 9px; margin-top: 3px; display: block; width: fit-content;">exp: <%= new Date(u.pro_expires_at).toLocaleDateString() %></div>
                 <% } else if (planTier === 'pro' && planStatus === 'paused') { %>
-                  <span class="pill pill--warn">Pro Paused</span>
+                  <span class="pill pill--warn">Paused</span>
                 <% } else if (planTier === 'pro') { %>
-                  <span class="pill pill--warn">Pro Expired</span>
+                  <span class="pill pill--warn">Expired</span>
                 <% } else { %>
-                  <span class="pill">Free</span>
+                  <span class="pill" style="opacity: 0.7;">Free</span>
                 <% } %>
               </td>
-              <td><span class="pill"><%= u.link_count || 0 %></span></td>
-              <td><span class="pill pill--warn"><%= u.open_reports || 0 %></span></td>
+              <td>
+                <span class="pill"><%= u.link_count || 0 %></span>
+              </td>
+              <td>
+                <% if ((u.open_reports || 0) > 0) { %>
+                  <span class="pill pill--danger"><%= u.open_reports %></span>
+                <% } else { %>
+                  <span class="pill m-badge-reports--zero">0</span>
+                <% } %>
+              </td>
               <td>
                 <% if ((u.dangerous_links || 0) > 0) { %>
-                  <span class="pill pill--warn"><%= u.dangerous_links %></span>
+                  <span class="pill pill--danger"><%= u.dangerous_links %></span>
                 <% } else { %>
-                  <span class="badge">0</span>
+                  <span style="color: var(--c-faint); font-size: 12px;">0</span>
                 <% } %>
               </td>
-              <td><%= u.last_link_at ? new Date(u.last_link_at).toLocaleString() : '-' %></td>
-              <td><%= u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '-' %></td>
+              <td style="white-space: nowrap; font-size: 12px; color: var(--c-muted); font-family: var(--font-mono);">
+                <%= u.last_link_at ? new Date(u.last_link_at).toLocaleDateString() : '-' %>
+              </td>
+              <td style="white-space: nowrap; font-size: 12px; color: var(--c-muted); font-family: var(--font-mono);">
+                <%= u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : '-' %>
+              </td>
               <td>
                 <% if (u.ban_active == 1) { %>
-                  <span class="pill pill--danger">Banned</span>
+                  <span class="pill pill--danger"><i class="fa-solid fa-ban" style="font-size: 10px;"></i> Banned</span>
                   <% if (u.ban_until) { %>
-                    <div class="badge u-mt-1">until: <%= u.ban_until %></div>
+                    <div class="badge" style="font-size: 9px; margin-top: 3px; display: block; width: fit-content;">until <%= new Date(u.ban_until).toLocaleDateString() %></div>
                   <% } %>
                 <% } else { %>
-                  <span class="pill pill--ok">OK</span>
+                  <span class="pill pill--ok">Good</span>
                 <% } %>
               </td>
-              <td>
-                <a class="btn btn--secondary" href="/admin/site-users/<%= u.id %>">Details</a>
+              <td style="text-align: right; padding-right: 24px;">
+                <a class="m-cta m-cta--outline m-cta--sm" href="/admin/site-users/<%= u.id %>">
+                  <span>Profile</span>
+                  <i class="fa-solid fa-arrow-right" style="font-size: 10px;"></i>
+                </a>
               </td>
             </tr>
           <% }) %>
@@ -125,20 +158,28 @@
       </table>
     </div>
 
-    <div class="spacer"></div>
-
     <% const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize)); %>
-    <div class="row" aria-label="pagination">
-      <span class="badge">Total: <%= total %></span>
-      <span class="badge">Page: <%= page %> / <%= totalPages %></span>
-      <% const qs = (k, v) => (v ? (encodeURIComponent(k) + '=' + encodeURIComponent(v) + '&') : ''); %>
-      <% const base = '/admin/site-users?' + qs('q', q) + qs('status', status) + qs('sort', sort); %>
-      <% if (page > 1) { %>
-        <a class="btn btn--ghost" href="<%= base %>page=<%= page - 1 %>">Previous</a>
-      <% } %>
-      <% if (page < totalPages) { %>
-        <a class="btn btn--ghost" href="<%= base %>page=<%= page + 1 %>">Next</a>
-      <% } %>
+    <% const qs = (k, v) => (v ? (encodeURIComponent(k) + '=' + encodeURIComponent(v) + '&') : ''); %>
+    <% const base = '/admin/site-users?' + qs('q', q) + qs('status', status) + qs('sort', sort); %>
+
+    <div class="pagination-bar">
+      <div>
+        <span>Showing page <strong style="color: var(--c-white);"><%= page %></strong> of <strong style="color: var(--c-white);"><%= totalPages %></strong> (<%= total || 0 %> users)</span>
+      </div>
+      <div class="row" style="gap: 8px;">
+        <% if (page > 1) { %>
+          <a class="m-cta m-cta--outline m-cta--sm" href="<%= base %>page=<%= page - 1 %>">
+            <i class="fa-solid fa-chevron-left" style="font-size: 10px;"></i>
+            <span>Previous</span>
+          </a>
+        <% } %>
+        <% if (page < totalPages) { %>
+          <a class="m-cta m-cta--outline m-cta--sm" href="<%= base %>page=<%= page + 1 %>">
+            <span>Next</span>
+            <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>
+          </a>
+        <% } %>
+      </div>
     </div>
   <% } %>
 </div>

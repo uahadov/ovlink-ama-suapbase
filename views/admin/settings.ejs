@@ -1,7 +1,7 @@
 <%- include('partials/layout-top', {
-  title: 'Admin · Settings',
-  heading: 'Settings',
-  subtitle: 'Maintenance and announcement controls',
+  title: 'Admin · Platform Settings',
+  heading: 'Platform Settings',
+  subtitle: 'Configure emergency maintenance mode, system states, and global announcement ribbons',
   active: 'settings',
   admin,
   csrfToken,
@@ -9,80 +9,101 @@
 }) %>
 
 <% if (saved) { %>
-  <div class="alert alert--ok">Settings saved.</div>
-  <div class="spacer"></div>
+  <div class="alert alert--ok" style="margin-bottom: 20px;">
+    <i class="fa-solid fa-circle-check"></i>
+    <span>Settings updated and persisted successfully.</span>
+  </div>
 <% } %>
 
 <% if (error) { %>
-  <div class="alert alert--error"><%= error %></div>
-  <div class="spacer"></div>
+  <div class="alert alert--danger" style="margin-bottom: 20px;">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span><%= error %></span>
+  </div>
 <% } %>
 
-<form method="POST" action="/admin/settings" class="form">
+<form method="POST" action="/admin/settings">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
 
-  <div class="grid">
-    <div class="card">
-      <h3 class="section-title">Maintenance Mode</h3>
-      <p>When enabled, the public site is unavailable to users. Existing admin sessions can still sign in.</p>
+  <div class="grid-2" style="margin-bottom: 24px;">
+    <!-- Maintenance Mode Card -->
+    <div class="m-card">
+      <div class="m-dash-panel-header" style="margin-bottom: 14px;">
+        <h3 class="m-dash-panel-title">
+          <i class="fa-solid fa-screwdriver-wrench" style="color: var(--c-muted);"></i>
+          <span>Maintenance Mode Gate</span>
+        </h3>
+      </div>
+      <p style="color: var(--c-muted); font-size: 13px; margin: 0 0 18px; line-height: 1.5;">
+        When active, all public routes display a maintenance splash screen. Existing authenticated admin sessions retain console access.
+      </p>
 
-      <div class="field">
-        <label for="maintenance_enabled">Status</label>
-        <select id="maintenance_enabled" name="maintenance_enabled">
-          <option value="0" <%= settings.maintenance_enabled === '1' ? '' : 'selected' %>>Off</option>
-          <option value="1" <%= settings.maintenance_enabled === '1' ? 'selected' : '' %>>On</option>
+      <div class="field" style="margin-bottom: 14px;">
+        <label for="maintenance_enabled" class="m-adv-label">Maintenance Gate Status</label>
+        <select class="m-adv-select" id="maintenance_enabled" name="maintenance_enabled">
+          <option value="0" <%= settings.maintenance_enabled === '1' ? '' : 'selected' %>>Disabled (Normal Platform Operations)</option>
+          <option value="1" <%= settings.maintenance_enabled === '1' ? 'selected' : '' %>>Enabled (Emergency Lockdown Active)</option>
         </select>
       </div>
 
-      <div class="field">
-        <label for="maintenance_message_az">Message (AZ)</label>
-        <textarea id="maintenance_message_az" name="maintenance_message_az" placeholder="Maintenance message in Azerbaijani"><%= settings.maintenance_message_az || '' %></textarea>
+      <div class="field" style="margin-bottom: 12px;">
+        <label for="maintenance_message_az" class="m-adv-label">Lockdown Message (Azerbaijani - AZ)</label>
+        <textarea class="m-adv-input" id="maintenance_message_az" name="maintenance_message_az" placeholder="Planlaşdırılmış texniki qulluq gedir..." style="min-height: 70px;"><%= settings.maintenance_message_az || '' %></textarea>
+      </div>
+
+      <div class="field" style="margin-bottom: 12px;">
+        <label for="maintenance_message_tr" class="m-adv-label">Lockdown Message (Turkish - TR)</label>
+        <textarea class="m-adv-input" id="maintenance_message_tr" name="maintenance_message_tr" placeholder="Planlı bakım çalışması yapılmaktadır..." style="min-height: 70px;"><%= settings.maintenance_message_tr || '' %></textarea>
       </div>
 
       <div class="field">
-        <label for="maintenance_message_tr">Message (TR)</label>
-        <textarea id="maintenance_message_tr" name="maintenance_message_tr" placeholder="Maintenance message in Turkish"><%= settings.maintenance_message_tr || '' %></textarea>
-      </div>
-
-      <div class="field">
-        <label for="maintenance_message_en">Message (EN)</label>
-        <textarea id="maintenance_message_en" name="maintenance_message_en" placeholder="Maintenance message in English"><%= settings.maintenance_message_en || '' %></textarea>
+        <label for="maintenance_message_en" class="m-adv-label">Lockdown Message (English - EN)</label>
+        <textarea class="m-adv-input" id="maintenance_message_en" name="maintenance_message_en" placeholder="Scheduled system maintenance in progress..." style="min-height: 70px;"><%= settings.maintenance_message_en || '' %></textarea>
       </div>
     </div>
 
-    <div class="card">
-      <h3 class="section-title">Announcement Banner</h3>
-      <p>When enabled, a banner appears at the top of public pages.</p>
+    <!-- Announcement Ribbon Card -->
+    <div class="m-card">
+      <div class="m-dash-panel-header" style="margin-bottom: 14px;">
+        <h3 class="m-dash-panel-title">
+          <i class="fa-solid fa-bullhorn" style="color: var(--c-muted);"></i>
+          <span>Global Announcement Ribbon</span>
+        </h3>
+      </div>
+      <p style="color: var(--c-muted); font-size: 13px; margin: 0 0 18px; line-height: 1.5;">
+        Broadcast platform notices, system alerts, or feature announcements as a persistent top banner across all public pages.
+      </p>
 
-      <div class="field">
-        <label for="announcement_enabled">Status</label>
-        <select id="announcement_enabled" name="announcement_enabled">
-          <option value="0" <%= settings.announcement_enabled === '1' ? '' : 'selected' %>>Off</option>
-          <option value="1" <%= settings.announcement_enabled === '1' ? 'selected' : '' %>>On</option>
+      <div class="field" style="margin-bottom: 14px;">
+        <label for="announcement_enabled" class="m-adv-label">Ribbon Broadcast State</label>
+        <select class="m-adv-select" id="announcement_enabled" name="announcement_enabled">
+          <option value="0" <%= settings.announcement_enabled === '1' ? '' : 'selected' %>>Disabled (Hidden)</option>
+          <option value="1" <%= settings.announcement_enabled === '1' ? 'selected' : '' %>>Active (Broadcasted on public views)</option>
         </select>
       </div>
 
-      <div class="field">
-        <label for="announcement_text_az">Announcement text (AZ)</label>
-        <textarea id="announcement_text_az" name="announcement_text_az" placeholder="Announcement in Azerbaijani"><%= settings.announcement_text_az || '' %></textarea>
+      <div class="field" style="margin-bottom: 12px;">
+        <label for="announcement_text_az" class="m-adv-label">Banner Copy (Azerbaijani - AZ)</label>
+        <textarea class="m-adv-input" id="announcement_text_az" name="announcement_text_az" placeholder="Yeni funksiyalar istifadəyə verildi..." style="min-height: 70px;"><%= settings.announcement_text_az || '' %></textarea>
+      </div>
+
+      <div class="field" style="margin-bottom: 12px;">
+        <label for="announcement_text_tr" class="m-adv-label">Banner Copy (Turkish - TR)</label>
+        <textarea class="m-adv-input" id="announcement_text_tr" name="announcement_text_tr" placeholder="Yeni özellikler yayında..." style="min-height: 70px;"><%= settings.announcement_text_tr || '' %></textarea>
       </div>
 
       <div class="field">
-        <label for="announcement_text_tr">Announcement text (TR)</label>
-        <textarea id="announcement_text_tr" name="announcement_text_tr" placeholder="Announcement in Turkish"><%= settings.announcement_text_tr || '' %></textarea>
-      </div>
-
-      <div class="field">
-        <label for="announcement_text_en">Announcement text (EN)</label>
-        <textarea id="announcement_text_en" name="announcement_text_en" placeholder="Announcement in English"><%= settings.announcement_text_en || '' %></textarea>
+        <label for="announcement_text_en" class="m-adv-label">Banner Copy (English - EN)</label>
+        <textarea class="m-adv-input" id="announcement_text_en" name="announcement_text_en" placeholder="System upgrade completed successfully..." style="min-height: 70px;"><%= settings.announcement_text_en || '' %></textarea>
       </div>
     </div>
   </div>
 
-  <div class="spacer"></div>
-
   <div class="row">
-    <button class="btn" type="submit">Save settings</button>
+    <button class="m-cta m-cta--white" type="submit">
+      <i class="fa-solid fa-floppy-disk"></i>
+      <span>Save Settings Configuration</span>
+    </button>
   </div>
 </form>
 

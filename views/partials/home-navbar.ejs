@@ -45,36 +45,58 @@
       <!-- User menu (shown when logged in) -->
       <div class="m-user-wrap" id="navAuthUser" <%= hasUser ? '' : 'hidden' %>>
         <button type="button" class="m-user-btn" id="navUserMenuBtn"
-          aria-haspopup="true" aria-expanded="false" aria-controls="ovxUserPanel" aria-label="Account menu" data-i18n-aria="aria_user_menu">
-          <i class="fa-regular fa-user" aria-hidden="true"></i>
+          aria-haspopup="true" aria-expanded="false" aria-controls="ovxUserPanel"
+          aria-label="Account menu" data-i18n-aria="aria_user_menu">
+          <span class="m-user-avatar-badge" aria-hidden="true"><i class="fa-solid fa-circle-user"></i></span>
+          <span class="m-user-btn-name" data-i18n="nav_my_account">Hesabım</span>
+          <i class="fa-solid fa-chevron-down m-user-chevron" aria-hidden="true"></i>
           <span class="m-notif-dot" id="navNotifBadge" <%= unreadCount > 0 ? '' : 'hidden' %>></span>
         </button>
-        <div class="m-user-panel" id="ovxUserPanel" role="menu">
-          <div class="m-user-label" style="display: flex; align-items: center; justify-content: space-between;">
-            <span data-i18n="nav_my_account">My Account</span>
-            <span class="m-nav-pro-badge" id="navUserProBadge" <%= isProUser ? '' : 'hidden' %> style="font-size: 10px; padding: 2px 7px; background: #fff; color: #0a0a0a; border-radius: 999px; font-weight: 700; letter-spacing: 0.04em;">PRO</span>
+        <div class="m-user-panel" id="ovxUserPanel" role="menu" aria-label="Account menu">
+          <div class="m-user-panel-header">
+            <div class="m-user-panel-avatar">
+              <i class="fa-solid fa-user" aria-hidden="true"></i>
+            </div>
+            <div class="m-user-panel-meta">
+              <span class="m-user-panel-email" id="navUserEmail"><%= hasUser && user.email ? user.email : 'user@ovlink.st' %></span>
+              <div class="m-user-panel-status">
+                <span class="m-user-plan-pill m-user-plan-pill--pro" id="navUserProBadge" <%= isProUser ? '' : 'hidden' %>>PRO</span>
+              </div>
+            </div>
           </div>
-          <a class="m-user-item" href="/dashboard">
-            <i class="fa-solid fa-chart-line"></i>
-            <span data-i18n="dashboard_stats_link">Statistics</span>
+
+          <div class="m-divider"></div>
+
+          <div class="m-user-panel-section-title" data-i18n="nav_menu_nav">Naviqasiya</div>
+
+          <a class="m-user-item" href="/dashboard" role="menuitem">
+            <span class="m-user-item-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span>
+            <span class="m-user-item-title" data-i18n="nav_dashboard">İdarə Paneli</span>
+            <span class="m-user-item-hint">Live</span>
           </a>
-          <a class="m-user-item" href="/workspaces">
-            <i class="fa-solid fa-users"></i>
-            <span data-i18n="ws_title">Workspaces</span>
+
+          <a class="m-user-item" href="/workspaces" role="menuitem">
+            <span class="m-user-item-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span>
+            <span class="m-user-item-title" data-i18n="nav_workspaces">İş Sahələri</span>
+            <span class="m-user-item-hint">Team</span>
           </a>
-          <a class="m-user-item" href="/account">
-            <i class="fa-solid fa-user-gear"></i>
-            <span data-i18n="profile_settings_title">Profile settings</span>
+
+          <a class="m-user-item" href="/account" role="menuitem">
+            <span class="m-user-item-icon"><i class="fa-solid fa-sliders" aria-hidden="true"></i></span>
+            <span class="m-user-item-title" data-i18n="nav_account_settings">Hesab Parametrləri</span>
           </a>
-          <a class="m-user-item" href="/notifications">
-            <i class="fa-solid fa-bell"></i>
-            <span data-i18n="notif_center_title">Notifications</span>
+
+          <a class="m-user-item" href="/notifications" role="menuitem">
+            <span class="m-user-item-icon"><i class="fa-solid fa-bell" aria-hidden="true"></i></span>
+            <span class="m-user-item-title" data-i18n="nav_notifications">Bildirişlər</span>
             <span class="m-badge" id="navNotifBadgeMenu" <%= unreadCount > 0 ? '' : 'hidden' %>><%= unreadCount %></span>
           </a>
+
           <div class="m-divider"></div>
-          <button type="button" class="m-user-item" id="navLogoutBtn">
-            <i class="fa-solid fa-arrow-right-from-bracket"></i>
-            <span data-i18n="nav_logout">Log out</span>
+
+          <button type="button" class="m-user-item m-user-item--danger" id="navLogoutBtn" role="menuitem">
+            <span class="m-user-item-icon"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i></span>
+            <span class="m-user-item-title" data-i18n="nav_logout">Çıxış</span>
           </button>
         </div>
       </div>
@@ -109,7 +131,9 @@
     <a class="m-cta m-cta--outline m-cta--sm" id="navAuthGuestLoginM" href="/login" data-i18n="nav_login" <%= hasUser ? 'hidden' : '' %>>Log in</a>
     <a class="m-cta m-cta--white m-cta--sm" id="navAuthGuestRegM" href="/register" data-i18n="nav_register" <%= hasUser ? 'hidden' : '' %>>Sign up</a>
     <!-- Mobile user links -->
-    <a class="m-cta m-cta--white m-cta--sm" id="navAuthUserM" href="/account" data-i18n="nav_my_account" <%= hasUser ? '' : 'hidden' %>>My Account</a>
+    <a class="m-cta m-cta--white m-cta--sm" id="navAuthUserM" href="/dashboard" data-i18n="nav_dashboard" <%= hasUser ? '' : 'hidden' %>>İdarə Paneli</a>
+    <a class="m-cta m-cta--outline m-cta--sm" id="navAuthWorkspacesM" href="/workspaces" data-i18n="nav_workspaces" <%= hasUser ? '' : 'hidden' %>>İş Sahələri</a>
+    <a class="m-cta m-cta--outline m-cta--sm" id="navAuthAccountM" href="/account" data-i18n="nav_account_settings" <%= hasUser ? '' : 'hidden' %>>Hesab Parametrləri</a>
     <button type="button" class="m-cta m-cta--outline m-cta--sm" id="navLogoutBtnMobile" data-i18n="nav_logout" <%= hasUser ? '' : 'hidden' %>>Log out</button>
   </div>
 </div>
@@ -124,29 +148,54 @@
       var btn = document.getElementById(btnId);
       var panel = document.getElementById(panelId);
       if (!btn || !panel) return;
-      if (btn.__dropdownInit) return;
+      if (btn.__navDropdownBound) return;
+      btn.__navDropdownBound = true;
       btn.__dropdownInit = true;
 
       btn.addEventListener('click', function(e) {
+        e.preventDefault();
         e.stopPropagation();
-        var isOpen = panel.classList.contains('open');
-        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
-        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+        var isOpen = panel.classList.contains('open') || panel.classList.contains('is-open');
+        document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel, .ovx-nav-panel, .ovx-ws-panel').forEach(function(p) {
+          if (p !== panel) {
+            p.classList.remove('open', 'is-open');
+          }
+        });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) {
+          if (b !== btn) {
+            b.setAttribute('aria-expanded', 'false');
+          }
+        });
         if (!isOpen) {
-          panel.classList.add('open');
+          panel.classList.add('open', 'is-open');
           btn.setAttribute('aria-expanded', 'true');
+        } else {
+          panel.classList.remove('open', 'is-open');
+          btn.setAttribute('aria-expanded', 'false');
         }
       });
     }
+    window.setupNavbarDropdown = setupDropdown;
+    window.setupDropdown = setupDropdown;
 
     setupDropdown('langToggleBtn', 'ovxLangPanel');
     setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
     setupDropdown('navUserMenuBtn', 'ovxUserPanel');
 
-    document.addEventListener('click', function() {
-      document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
-      document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
-    });
+    if (!document.__navOutsideClickBound) {
+      document.__navOutsideClickBound = true;
+      document.addEventListener('click', function(e) {
+        if (e.target && e.target.closest && e.target.closest('.m-lang-panel, .m-user-panel, .m-ws-panel, .ovx-nav-panel, .ovx-ws-panel, .m-lang-btn, .m-user-btn, .m-ws-btn')) {
+          return;
+        }
+        document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel, .ovx-nav-panel, .ovx-ws-panel').forEach(function(p) {
+          p.classList.remove('open', 'is-open');
+        });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) {
+          b.setAttribute('aria-expanded', 'false');
+        });
+      });
+    }
 
     /* ─── 2. Mobile Burger Menu ─── */
     var burger = document.getElementById('mBurger');
@@ -190,21 +239,29 @@
       });
     }
 
-    /* ─── 3. Mobile Logout Listener ─── */
+    /* ─── 3. Desktop & Mobile Logout Listener ─── */
+    function handleNavbarLogout(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      if (typeof clientLogout === 'function') {
+        clientLogout();
+      } else {
+        fetch('/api/logout', { method: 'POST', credentials: 'include' }).finally(function() {
+          try { localStorage.removeItem('isLoggedIn'); } catch(_) {}
+          window.location.href = '/';
+        });
+      }
+    }
+
+    var logoutD = document.getElementById('navLogoutBtn');
+    if (logoutD && !logoutD.__logoutInit) {
+      logoutD.__logoutInit = true;
+      logoutD.addEventListener('click', handleNavbarLogout);
+    }
+
     var logoutM = document.getElementById('navLogoutBtnMobile');
     if (logoutM && !logoutM.__logoutInit) {
       logoutM.__logoutInit = true;
-      logoutM.addEventListener('click', function(e) {
-        e.preventDefault();
-        if (typeof clientLogout === 'function') {
-          clientLogout();
-        } else {
-          fetch('/api/logout', { method: 'POST', credentials: 'include' }).finally(function() {
-            try { localStorage.removeItem('isLoggedIn'); } catch(_) {}
-            window.location.href = '/';
-          });
-        }
-      });
+      logoutM.addEventListener('click', handleNavbarLogout);
     }
 
     /* ─── 4. Language Button Label Sync ─── */
@@ -240,7 +297,9 @@
     });
   }
 
-  if (document.readyState === 'loading') {
+  if (document.getElementById('langToggleBtn')) {
+    initUniversalNavbar();
+  } else if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initUniversalNavbar);
   } else {
     initUniversalNavbar();

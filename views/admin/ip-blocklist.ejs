@@ -1,64 +1,99 @@
 <%- include('partials/layout-top', {
   title: 'Admin · IP Blocklist',
-  heading: 'IP Blocklist',
-  subtitle: 'Runtime IP blocks applied by the DDoS/abuse filter',
+  heading: 'Firewall & IP Blocklist',
+  subtitle: 'In-memory dynamic rate limiting and runtime IP blocking against automated DDoS and abuse',
   active: 'ip-blocklist',
   admin,
   csrfToken,
   topRightHtml: null,
 }) %>
 
-<div class="card">
-  <form id="blockIpForm" class="settings-form" method="POST" action="/admin/ip-blocklist/block">
+<div class="m-card" style="margin-bottom: 24px;">
+  <div class="m-dash-panel-header" style="margin-bottom: 14px;">
+    <h3 class="m-dash-panel-title">
+      <i class="fa-solid fa-ban" style="color: var(--c-muted);"></i>
+      <span>Block Inbound IP Address</span>
+    </h3>
+  </div>
+  <p style="color: var(--c-muted); font-size: 13px; margin: 0 0 18px; line-height: 1.5;">
+    Apply an immediate runtime firewall rule to block an offending IPv4/IPv6 address across all redirection and API endpoints.
+  </p>
+
+  <form id="blockIpForm" method="POST" action="/admin/ip-blocklist/block">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-    <div class="form-row">
-      <div class="form-group">
-        <label for="ip">IP address</label>
-        <input id="ip" name="ip" type="text" required placeholder="203.0.113.7" autocomplete="off" />
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px;">
+      <div class="field">
+        <label for="ip" class="m-adv-label">IP Address</label>
+        <input class="m-adv-input" id="ip" name="ip" type="text" required placeholder="e.g. 203.0.113.7" autocomplete="off" />
       </div>
-      <div class="form-group">
-        <label for="duration">Duration (minutes, 0 = permanent)</label>
-        <input id="duration" name="duration" type="number" min="0" value="60" />
+      <div class="field">
+        <label for="duration" class="m-adv-label">Duration (Minutes, 0 = Permanent)</label>
+        <input class="m-adv-input" id="duration" name="duration" type="number" min="0" value="60" />
       </div>
-      <div class="form-group">
-        <label for="reason">Reason</label>
-        <input id="reason" name="reason" type="text" maxlength="200" value="abuse" />
-      </div>
-      <div class="form-group">
-        <button class="btn btn--primary" type="submit">Block IP</button>
+      <div class="field">
+        <label for="reason" class="m-adv-label">Block Reason</label>
+        <input class="m-adv-input" id="reason" name="reason" type="text" maxlength="200" value="abuse / crawler flood" />
       </div>
     </div>
-    <div id="blockIpResult" class="alert hidden"></div>
+    <div class="row">
+      <button class="m-cta m-cta--white" type="submit">
+        <i class="fa-solid fa-shield"></i>
+        <span>Enforce Block Rule</span>
+      </button>
+    </div>
+    <div id="blockIpResult" class="alert" style="display: none; margin-top: 14px;"></div>
   </form>
 </div>
 
-<div class="card">
+<div class="m-card" style="padding: 0; overflow: hidden;">
+  <div class="m-dash-panel-header" style="padding: 20px 24px; border-bottom: 1px solid var(--c-border); margin-bottom: 0;">
+    <h3 class="m-dash-panel-title">
+      <i class="fa-solid fa-list-check" style="color: var(--c-muted);"></i>
+      <span>Active IP Blocks</span>
+    </h3>
+    <span class="badge"><%= (rows && rows.length) || 0 %> Active Rules</span>
+  </div>
+
   <% if (!rows || rows.length === 0) { %>
-    <div class="alert">No IPs are currently blocked. (Note: blocks are in-memory and reset on restart.)</div>
+    <div style="text-align: center; padding: 48px 20px; color: var(--c-faint);">
+      <div style="font-size: 14px; font-weight: 500;">No active IP blocks currently enforced.</div>
+      <div style="font-size: 12.5px; color: var(--c-muted); margin-top: 4px;">Note: Runtime blocks are stored in-memory and reset upon server restart.</div>
+    </div>
   <% } else { %>
-    <div class="table-wrap">
-      <table class="table">
+    <div class="m-table-wrap" style="border: none; border-radius: 0;">
+      <table class="m-table">
         <thead>
           <tr>
-            <th>IP</th>
-            <th>Blocked At</th>
-            <th>Expires</th>
+            <th>Blocked IP</th>
+            <th>Enforced At</th>
+            <th>Expires At</th>
             <th>Reason</th>
-            <th></th>
+            <th style="text-align: right; padding-right: 20px;">Action</th>
           </tr>
         </thead>
         <tbody>
           <% rows.forEach((r) => { %>
             <tr>
-              <td><span class="kbd"><%= r.ip %></span></td>
-              <td><%= r.blockedAt ? new Date(r.blockedAt).toLocaleString() : '-' %></td>
-              <td><%= r.expiresAt ? new Date(r.expiresAt).toLocaleString() : 'permanent' %></td>
-              <td><%= r.reason || '-' %></td>
               <td>
-                <form method="POST" action="/admin/ip-blocklist/unblock">
+                <span class="kbd" style="color: var(--c-white); font-weight: 700;"><%= r.ip %></span>
+              </td>
+              <td style="white-space: nowrap; font-size: 12px; color: var(--c-muted); font-family: var(--font-mono);">
+                <%= r.blockedAt ? new Date(r.blockedAt).toLocaleString() : '-' %>
+              </td>
+              <td style="white-space: nowrap; font-size: 12px; color: var(--c-muted); font-family: var(--font-mono);">
+                <%= r.expiresAt ? new Date(r.expiresAt).toLocaleString() : 'Permanent' %>
+              </td>
+              <td>
+                <span style="font-size: 12.5px; color: var(--c-text);"><%= r.reason || 'Abuse filter' %></span>
+              </td>
+              <td style="text-align: right; padding-right: 20px;">
+                <form method="POST" action="/admin/ip-blocklist/unblock" style="display: inline;">
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
                   <input type="hidden" name="ip" value="<%= r.ip %>" />
-                  <button class="btn btn--ghost" type="submit">Unblock</button>
+                  <button class="m-cta m-cta--outline m-cta--sm" type="submit" data-confirm="Unblock IP <%= r.ip %> immediately?">
+                    <i class="fa-solid fa-unlock" style="font-size: 10px;"></i>
+                    <span>Unblock</span>
+                  </button>
                 </form>
               </td>
             </tr>
@@ -76,8 +111,9 @@
     form.addEventListener('submit', function (event) {
       event.preventDefault();
       var result = document.getElementById('blockIpResult');
-      result.classList.remove('hidden');
-      result.textContent = 'Blocking...';
+      result.style.display = 'block';
+      result.className = 'alert';
+      result.textContent = 'Enforcing rule...';
       fetch(form.action, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': '<%= csrfToken %>' },
@@ -91,10 +127,14 @@
       })
         .then(function (res) { return res.json(); })
         .then(function (data) {
-          result.textContent = data && data.success ? 'Blocked ' + data.ip + '. Reloading...' : (data && data.error ? data.error : 'Failed.');
+          result.textContent = data && data.success ? 'Enforced block on ' + data.ip + '. Refreshing ledger...' : (data && data.error ? data.error : 'Failed to enforce block.');
+          result.className = (data && data.success) ? 'alert alert--ok' : 'alert alert--danger';
           if (data && data.success) setTimeout(function () { window.location.reload(); }, 600);
         })
-        .catch(function () { result.textContent = 'Request failed.'; });
+        .catch(function () {
+          result.className = 'alert alert--danger';
+          result.textContent = 'Network or server request failed.';
+        });
     });
   })();
 </script>

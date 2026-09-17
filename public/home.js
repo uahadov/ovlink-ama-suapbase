@@ -210,7 +210,23 @@ async function trySyncSessionFromServer() {
         isActive: !!data.user.proActive,
         expiresAt: data.user.proExpiresAt || null,
       };
-      if (data.user.settings && data.user.settings.ui_lang && window.ovlinkI18n?.setLang) {
+      const activeLocalLang = (typeof localStorage !== "undefined")
+        ? (localStorage.getItem("lang") || localStorage.getItem("ovlink_lang"))
+        : null;
+      const validLangs = ["az", "tr", "en"];
+      if (validLangs.includes(activeLocalLang)) {
+        if (data.user.settings && data.user.settings.ui_lang !== activeLocalLang) {
+          try {
+            const metaCsrf = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = metaCsrf ? metaCsrf.getAttribute('content') : '';
+            fetch('/api/user/ui-lang', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'CSRF-Token': csrfToken, 'x-csrf-token': csrfToken },
+              body: JSON.stringify({ lang: activeLocalLang, _csrf: csrfToken })
+            }).catch(() => {});
+          } catch (_) {}
+        }
+      } else if (data.user.settings && validLangs.includes(data.user.settings.ui_lang) && window.ovlinkI18n?.setLang) {
         window.ovlinkI18n.setLang(data.user.settings.ui_lang);
       }
       if (data.user.settings && data.user.settings.ui_theme) applyTheme(data.user.settings.ui_theme);
@@ -229,6 +245,9 @@ function renderNavbarAuth() {
   const userM = document.getElementById("navAuthUserM");
   const userProBadge = document.getElementById("navUserProBadge");
   const logoutBtnMobile = document.getElementById("navLogoutBtnMobile");
+  const emailEl = document.getElementById("navUserEmail");
+  const wsM = document.getElementById("navAuthWorkspacesM");
+  const accM = document.getElementById("navAuthAccountM");
   const pricingItem = document.getElementById("navPricingItem");
   const pricingLink = document.getElementById("navPricingLink");
   const pricingLinkMobile = document.getElementById("navPricingLinkMobile");
@@ -243,16 +262,26 @@ function renderNavbarAuth() {
     regM?.setAttribute("hidden", "");
     user?.removeAttribute("hidden");
     userM?.removeAttribute("hidden");
+    wsM?.removeAttribute("hidden");
+    accM?.removeAttribute("hidden");
     logoutBtnMobile?.removeAttribute("hidden");
     pricingItem?.toggleAttribute("hidden", !showPricingForLoggedIn);
     pricingLink?.toggleAttribute("hidden", isPro);
     pricingLinkMobile?.toggleAttribute("hidden", isPro);
     pricingLinkItem?.toggleAttribute("hidden", isPro);
-    userProBadge?.toggleAttribute("hidden", !isPro);
+    if (userProBadge) {
+      userProBadge.textContent = isPro ? "PRO" : "FREE";
+      userProBadge.className = isPro ? "m-user-plan-pill m-user-plan-pill--pro" : "m-user-plan-pill m-user-plan-pill--free";
+    }
+    if (emailEl && window.__userEmail) {
+      emailEl.textContent = window.__userEmail;
+    }
     reportHint?.setAttribute("hidden", "");
   } else {
     user?.setAttribute("hidden", "");
     userM?.setAttribute("hidden", "");
+    wsM?.setAttribute("hidden", "");
+    accM?.setAttribute("hidden", "");
     logoutBtnMobile?.setAttribute("hidden", "");
     loginBtn?.removeAttribute("hidden");
     regBtn?.removeAttribute("hidden");
@@ -262,7 +291,13 @@ function renderNavbarAuth() {
     pricingLink?.removeAttribute("hidden");
     pricingLinkMobile?.removeAttribute("hidden");
     pricingLinkItem?.removeAttribute("hidden");
-    userProBadge?.setAttribute("hidden", "");
+    if (userProBadge) {
+      userProBadge.textContent = "FREE";
+      userProBadge.className = "m-user-plan-pill m-user-plan-pill--free";
+    }
+    if (emailEl) {
+      emailEl.textContent = "user@ovlink.st";
+    }
     reportHint?.removeAttribute("hidden");
   }
   syncFloatingPricingBanner();
@@ -362,12 +397,12 @@ const PanelManager = {
 };
 document.addEventListener("click", (e) => {
   const trigger = e.target.closest("[aria-controls]");
-  if (trigger && (trigger.closest(".ovx-ws") || trigger.closest(".m-ws-wrap") || trigger.id === "langToggleBtn" || trigger.id === "langToggleBtnMobile" || trigger.id === "navUserMenuBtn" || trigger.id === "homeWorkspaceDropdownBtn")) {
+  if (trigger && (trigger.closest(".ovx-ws") || trigger.closest(".m-ws-wrap") || trigger.id === "homeWorkspaceDropdownBtn")) {
     e.preventDefault();
     PanelManager.toggle(trigger.getAttribute("aria-controls"));
     return;
   }
-  if (!e.target.closest(".ovx-nav-panel, .ovx-ws-panel, .m-lang-panel, .m-user-panel, .m-ws-panel")) PanelManager.closeAll();
+  if (!e.target.closest(".ovx-nav-panel, .ovx-ws-panel, .m-lang-panel, .m-user-panel, .m-ws-panel, .m-lang-btn, .m-user-btn")) PanelManager.closeAll();
 });
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") PanelManager.closeAll();

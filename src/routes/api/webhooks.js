@@ -28,6 +28,17 @@ const { validateOutboundWebhookUrl } = require('../../lib/url-validator');
 
 const PRO_WEBHOOK_MAX_ACTIVE = 10;
 
+function parseBooleanInput(val, fallback = false) {
+  if (typeof val === 'boolean') return val;
+  if (typeof val === 'string') {
+    const s = val.trim().toLowerCase();
+    if (s === 'true' || s === '1' || s === 'on') return true;
+    if (s === 'false' || s === '0' || s === 'off') return false;
+  }
+  if (typeof val === 'number') return val === 1;
+  return fallback;
+}
+
 router.post('/api/pro/webhooks/create', requireSignedIn, proWriteLimiter, requireProAccess('webhooks.create'), async (req, res) => {
   const uiLang = normalizeLang(req.body && req.body.lang, 'az');
   const events = normalizeWebhookEvents((req.body && req.body.events) || '');
@@ -141,7 +152,8 @@ router.post('/api/pro/webhooks/update', requireSignedIn, proWriteLimiter, requir
     );
     logSecurityEvent(req, 'webhook.update', 'success', { user_id: req.session.userId, webhook_id: webhookId });
     return res.json({ message: pickLang(uiLang, 'Webhook yeniləndi.', 'Webhook güncellendi.', 'Webhook updated.') });
-  } catch {
+  } catch (err) {
+    console.error('[webhook.update error]:', err);
     logSecurityEvent(req, 'webhook.update', 'failure', { user_id: req.session.userId, webhook_id: webhookId });
     return res.status(500).json({ error: pickLang(uiLang, 'Webhook yenilənmədi.', 'Webhook güncellenemedi.', 'Webhook could not be updated.') });
   }
@@ -294,4 +306,6 @@ router.post('/api/pro/webhooks/replay', requireSignedIn, proWriteLimiter, requir
     return res.status(500).json({ error: pickLang(uiLang, 'Çatdırılma təkrar oluna bilmədi.', 'Teslimat tekrar başlatılamadı.', 'Delivery replay failed.') });
   }
 });
+router.parseBooleanInput = parseBooleanInput;
 module.exports = router;
+module.exports.parseBooleanInput = parseBooleanInput;

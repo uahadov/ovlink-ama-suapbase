@@ -20,11 +20,10 @@ const helmetMiddleware = helmet({
         "https://cdn.jsdelivr.net",
         "https://cdnjs.cloudflare.com",
         "https://unpkg.com",
-        "https://cloudflareinsights.com",
-        "https:"
+        "https://cloudflareinsights.com"
       ],
       scriptSrcAttr: ["'none'"],
-      styleSrc: ["'self'", (req, res) => `'nonce-${res.locals.nonce}'`, "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", (req, res) => `'nonce-${res.locals.nonce}'`, "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
       // Existing templates use inline style attributes in a few places.
       // Keep this until those style attributes are migrated to CSS classes.
       styleSrcAttr: ["'unsafe-inline'"],

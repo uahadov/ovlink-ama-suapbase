@@ -11,8 +11,25 @@ const db = {
     const cached = _sqlCache.get(sql);
     if (cached !== undefined) return cached;
     
+    let inQuotes = false;
+    let converted = '';
     let index = 1;
-    let converted = sql.replace(/\?/g, () => `$${index++}`);
+    for (let i = 0; i < sql.length; i++) {
+      const char = sql[i];
+      if (char === "'") {
+        if (inQuotes && sql[i + 1] === "'") {
+          converted += "''";
+          i++;
+          continue;
+        }
+        inQuotes = !inQuotes;
+        converted += char;
+      } else if (char === '?' && !inQuotes) {
+        converted += `$${index++}`;
+      } else {
+        converted += char;
+      }
+    }
     converted = converted.replace(/INTEGER PRIMARY KEY AUTOINCREMENT/gi, 'SERIAL PRIMARY KEY');
     
     converted = converted.replace(/datetime\('now'\)/gi, 'CURRENT_TIMESTAMP');

@@ -137,9 +137,9 @@ async function checkDatabase() {
         FROM users 
         WHERE email_verified = 0 
         AND verification_expires_at IS NOT NULL 
-        AND verification_expires_at < NOW()
+        AND verification_expires_at < $1
       `;
-      const expiredResult = await client.query(expiredQuery);
+      const expiredResult = await client.query(expiredQuery, [new Date().toISOString()]);
       const expiredCount = parseInt(expiredResult.rows[0].count);
       
       if (expiredCount > 0) {

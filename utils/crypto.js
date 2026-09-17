@@ -60,7 +60,9 @@ function decryptAES256GCM(encryptedPayload) {
     decrypted += decipher.final('utf8');
     return decrypted;
   } catch (err) {
-    console.error('Decryption error:', err.message);
+    if (process.env.DEBUG_CRYPTO === '1') {
+      console.error('Decryption error:', err.message);
+    }
     throw new Error('Decryption failed');
   }
 }

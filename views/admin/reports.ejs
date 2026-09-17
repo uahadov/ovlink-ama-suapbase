@@ -1,51 +1,73 @@
 <%- include('partials/layout-top', {
-  title: 'Admin · Reports',
-  heading: 'Reports',
-  subtitle: 'Reported short links',
+  title: 'Admin · Abuse Reports',
+  heading: 'Abuse Reports Queue',
+  subtitle: 'Moderation queue of user-reported and security-flagged short links',
   active: 'reports',
   admin,
   csrfToken,
   topRightHtml: null,
 }) %>
 
-<div class="card">
-  <form class="row" method="GET" action="/admin/reports">
-    <div class="field field--grow">
-      <label for="q">Search (short / URL)</label>
-      <input class="input" id="q" name="q" value="<%= q %>" placeholder="abc123 or https://..." />
-    </div>
-    <div class="field">
-      <label>&nbsp;</label>
-      <button class="btn" type="submit">Apply</button>
+<div class="m-card" style="margin-bottom: 24px;">
+  <form method="GET" action="/admin/reports">
+    <div style="display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 260px;">
+        <label for="q" class="m-adv-label">Search Reported Links (Short code / Destination URL)</label>
+        <input class="m-adv-input" id="q" name="q" value="<%= q %>" placeholder="e.g. abc123 or phishing-target.com..." />
+      </div>
+      <div>
+        <button class="m-cta m-cta--white" type="submit" style="height: 42px;">
+          <i class="fa-solid fa-filter" style="font-size: 11px;"></i>
+          <span>Filter Reports</span>
+        </button>
+      </div>
     </div>
   </form>
 </div>
 
-<div class="spacer"></div>
+<div class="m-card" style="padding: 0; overflow: hidden;">
+  <div class="m-dash-panel-header" style="padding: 20px 24px; border-bottom: 1px solid var(--c-border); margin-bottom: 0;">
+    <h2 class="m-dash-panel-title">
+      <i class="fa-solid fa-flag" style="color: #f87171;"></i>
+      <span>Abuse Moderation Queue</span>
+    </h2>
+    <span class="badge" style="font-size: 11px;"><%= total %> Reported Items</span>
+  </div>
 
-<div class="card">
   <% if (!rows || rows.length === 0) { %>
-    <div class="alert">No reported links yet.</div>
+    <div style="text-align: center; padding: 56px 20px; color: var(--c-faint);">
+      <div style="width: 52px; height: 52px; border-radius: 14px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; color: #6ee7b7; font-size: 24px;">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <div style="font-size: 16px; font-weight: 700; color: var(--c-white);">Report Queue is Clean</div>
+      <div style="font-size: 13.5px; color: var(--c-muted); margin-top: 4px;">There are no active or pending abuse reports requiring review.</div>
+    </div>
   <% } else { %>
-    <div class="table-wrap">
-      <table class="table">
+    <div class="m-table-wrap" style="border: none; border-radius: 0;">
+      <table class="m-table">
         <thead>
           <tr>
-            <th>Short</th>
-            <th>Destination</th>
-            <th>Reports</th>
-            <th>Status</th>
-            <th>Last Report</th>
-            <th>Password</th>
-            <th></th>
+            <th>Short Code</th>
+            <th>Target Destination</th>
+            <th>Report Volume</th>
+            <th>Health Status</th>
+            <th>Last Reported</th>
+            <th>Security</th>
+            <th style="text-align: right; padding-right: 24px;">Action</th>
           </tr>
         </thead>
         <tbody>
           <% rows.forEach((r) => { %>
             <tr>
-              <td><span class="kbd"><%= r.short %></span></td>
-              <td><div class="cell-url"><%= r.original %></div></td>
-              <td><span class="pill pill--warn"><%= r.reports || 0 %></span></td>
+              <td>
+                <span class="kbd"><%= r.short %></span>
+              </td>
+              <td>
+                <div class="cell-url" title="<%= r.original %>"><%= r.original %></div>
+              </td>
+              <td>
+                <span class="pill pill--danger"><i class="fa-solid fa-flag" style="font-size: 10px;"></i> <%= r.reports || 0 %> reports</span>
+              </td>
               <td>
                 <% if (r.disabled) { %>
                   <span class="pill pill--danger">Disabled</span>
@@ -55,33 +77,47 @@
                   <span class="pill pill--ok">Active</span>
                 <% } %>
               </td>
-              <td><%= r.last_report_at ? new Date(r.last_report_at).toLocaleString() : '-' %></td>
-              <td class="u-nowrap">
+              <td style="white-space: nowrap; font-size: 12px; color: var(--c-muted); font-family: var(--font-mono);">
+                <%= r.last_report_at ? new Date(r.last_report_at).toLocaleDateString() : '-' %>
+              </td>
+              <td>
                 <% if (r.has_password) { %>
-                  <span class="pill">Password</span>
+                  <span class="pill" title="Protected by password"><i class="fa-solid fa-lock" style="font-size: 10px; color: #fde68a;"></i> Password</span>
                 <% } else { %>
-                  <span class="badge">-</span>
+                  <span style="color: var(--c-faint); font-size: 12px;">Public</span>
                 <% } %>
               </td>
-              <td><a class="btn btn--secondary" href="/admin/reports/<%= encodeURIComponent(r.short) %>">Details</a></td>
+              <td style="text-align: right; padding-right: 24px;">
+                <a class="m-cta m-cta--outline m-cta--sm" href="/admin/reports/<%= encodeURIComponent(r.short) %>">
+                  <span>Review Link</span>
+                  <i class="fa-solid fa-arrow-right" style="font-size: 10px;"></i>
+                </a>
+              </td>
             </tr>
           <% }) %>
         </tbody>
       </table>
     </div>
 
-    <div class="spacer"></div>
-
     <% const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize)); %>
-    <div class="row" aria-label="pagination">
-      <span class="badge">Total: <%= total %></span>
-      <span class="badge">Page: <%= page %> / <%= totalPages %></span>
-      <% if (page > 1) { %>
-        <a class="btn btn--ghost" href="/admin/reports?<%= q ? ('q=' + encodeURIComponent(q) + '&') : '' %>page=<%= page - 1 %>">Previous</a>
-      <% } %>
-      <% if (page < totalPages) { %>
-        <a class="btn btn--ghost" href="/admin/reports?<%= q ? ('q=' + encodeURIComponent(q) + '&') : '' %>page=<%= page + 1 %>">Next</a>
-      <% } %>
+    <div class="pagination-bar">
+      <div>
+        <span>Showing page <strong style="color: var(--c-white);"><%= page %></strong> of <strong style="color: var(--c-white);"><%= totalPages %></strong> (<%= total %> reported items)</span>
+      </div>
+      <div class="row" style="gap: 8px;">
+        <% if (page > 1) { %>
+          <a class="m-cta m-cta--outline m-cta--sm" href="/admin/reports?<%= q ? ('q=' + encodeURIComponent(q) + '&') : '' %>page=<%= page - 1 %>">
+            <i class="fa-solid fa-chevron-left" style="font-size: 10px;"></i>
+            <span>Previous</span>
+          </a>
+        <% } %>
+        <% if (page < totalPages) { %>
+          <a class="m-cta m-cta--outline m-cta--sm" href="/admin/reports?<%= q ? ('q=' + encodeURIComponent(q) + '&') : '' %>page=<%= page + 1 %>">
+            <span>Next</span>
+            <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>
+          </a>
+        <% } %>
+      </div>
     </div>
   <% } %>
 </div>

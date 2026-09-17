@@ -1,7 +1,7 @@
 <%- include('partials/layout-top', {
-  title: 'Admin · Domains',
-  heading: 'Domains',
-  subtitle: 'Blocked domain list',
+  title: 'Admin · Blocked Domains',
+  heading: 'Domain Filter & Blocklist',
+  subtitle: 'Prohibit short link creation pointing to malicious, phishing, or abusive domain destinations',
   active: 'domains',
   admin,
   csrfToken,
@@ -9,56 +9,92 @@
 }) %>
 
 <% if (typeof error === 'string' && error) { %>
-  <div class="alert alert--error"><%= error %></div>
-  <div class="spacer"></div>
+  <div class="alert alert--danger" style="margin-bottom: 20px;">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span><%= error %></span>
+  </div>
 <% } %>
 
-<div class="grid">
-  <div class="card">
-    <h2>Block Domain</h2>
-    <div class="spacer"></div>
-    <form class="form" method="POST" action="/admin/domains/block">
+<div class="grid-2">
+  <!-- Block Domain Form Card -->
+  <div class="m-card" style="height: fit-content;">
+    <div class="m-dash-panel-header" style="margin-bottom: 14px;">
+      <h3 class="m-dash-panel-title">
+        <i class="fa-solid fa-shield-virus" style="color: var(--c-muted);"></i>
+        <span>Block Destination Domain</span>
+      </h3>
+    </div>
+    <p style="color: var(--c-muted); font-size: 13px; margin: 0 0 18px; line-height: 1.5;">
+      Any short link created or redirected to this target host will be immediately blocked and flagged.
+    </p>
+
+    <form method="POST" action="/admin/domains/block">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-      <div class="field">
-        <label for="domain">Domain</label>
-        <input class="input" id="domain" name="domain" placeholder="example.com" required />
+      <div class="field" style="margin-bottom: 12px;">
+        <label for="domain" class="m-adv-label">Domain Target</label>
+        <input class="m-adv-input" id="domain" name="domain" placeholder="e.g. evil-phishing-site.com" required />
       </div>
-      <div class="field">
-        <label for="note">Note</label>
-        <input class="input" id="note" name="note" placeholder="(optional)" />
+      <div class="field" style="margin-bottom: 16px;">
+        <label for="note" class="m-adv-label">Security Note / Incident Reference</label>
+        <input class="m-adv-input" id="note" name="note" placeholder="URLhaus, PhishTank, malware feed..." />
       </div>
-      <button class="btn" type="submit">Add</button>
+      <button class="m-cta m-cta--white" type="submit">
+        <i class="fa-solid fa-ban"></i>
+        <span>Add to Blocklist</span>
+      </button>
     </form>
   </div>
 
-  <div class="card">
-    <h2>Blocked Domains</h2>
-    <div class="spacer"></div>
+  <!-- Blocked Domains Table Card -->
+  <div class="m-card" style="padding: 0; overflow: hidden;">
+    <div class="m-dash-panel-header" style="padding: 20px 24px; border-bottom: 1px solid var(--c-border); margin-bottom: 0;">
+      <h3 class="m-dash-panel-title">
+        <i class="fa-solid fa-globe" style="color: var(--c-muted);"></i>
+        <span>Active Blocklist</span>
+      </h3>
+      <span class="badge"><%= (rows && rows.length) || 0 %> Domains</span>
+    </div>
+
     <% if (!rows || rows.length === 0) { %>
-      <div class="alert">Blocklist is empty.</div>
+      <div style="text-align: center; padding: 48px 20px; color: var(--c-faint);">
+        <div style="font-size: 14px; font-weight: 500;">Blocklist is currently empty.</div>
+      </div>
     <% } else { %>
-      <div class="table-wrap">
-        <table class="table">
+      <div class="m-table-wrap" style="border: none; border-radius: 0;">
+        <table class="m-table">
           <thead>
             <tr>
               <th>Domain</th>
-              <th>Created</th>
-              <th>By</th>
+              <th>Blocked At</th>
+              <th>Staff Reviewer</th>
               <th>Note</th>
-              <th></th>
+              <th style="text-align: right; padding-right: 20px;">Action</th>
             </tr>
           </thead>
           <tbody>
             <% rows.forEach((r) => { %>
               <tr>
-                <td><span class="kbd"><%= r.domain %></span></td>
-                <td><%= r.created_at ? new Date(r.created_at).toLocaleString() : '-' %></td>
-                <td><%= r.created_by_email || '' %></td>
-                <td><%= r.note || '' %></td>
                 <td>
-                  <form method="POST" action="/admin/domains/<%= r.id %>/unblock">
+                  <span class="kbd"><%= r.domain %></span>
+                </td>
+                <td style="white-space: nowrap; font-size: 12px; color: var(--c-muted); font-family: var(--font-mono);">
+                  <%= r.created_at ? new Date(r.created_at).toLocaleDateString() : '-' %>
+                </td>
+                <td>
+                  <span style="font-size: 12px; color: <%= r.created_by_email ? 'var(--c-text)' : 'var(--c-faint)' %>;">
+                    <%= r.created_by_email || 'System' %>
+                  </span>
+                </td>
+                <td>
+                  <span style="font-size: 12px; color: var(--c-muted);"><%= r.note || '-' %></span>
+                </td>
+                <td style="text-align: right; padding-right: 20px;">
+                  <form method="POST" action="/admin/domains/<%= r.id %>/unblock" style="display: inline;">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                    <button class="btn btn--ghost" type="submit" data-confirm="This domain will be removed from blocklist. Continue?">Unblock</button>
+                    <button class="m-cta m-cta--outline m-cta--sm" type="submit" data-confirm="Remove <%= r.domain %> from the blocklist?">
+                      <i class="fa-solid fa-trash-can" style="font-size: 10px;"></i>
+                      <span>Unblock</span>
+                    </button>
                   </form>
                 </td>
               </tr>

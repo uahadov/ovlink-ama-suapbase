@@ -1,36 +1,42 @@
+require('dotenv').config();
+
 /**
  * Ovlink Spacemail (support@ovlink.sbs) Otomatik Soğuk E-posta (Cold Outreach) Gönderici
  * 
  * Kullanım:
  *   1) Simülasyon (Hiçbir mail atmaz, sadece ekrana basar):
- *      node scratch/send_outreach.js --dry-run
+ *      node send_outreach.js --dry-run
  * 
  *   2) Kendinize Test Maili Gönderme:
- *      node scratch/send_outreach.js --test sizin_mailiniz@gmail.com --pass "SIFRE"
+ *      node send_outreach.js --test sizin_mailiniz@gmail.com --pass "SIFRE"
  * 
  *   3) İlk 5 Şirketin CEO'suna Gerçek Gönderim (Güvenli Test):
- *      node scratch/send_outreach.js --send --limit 5 --pass "SIFRE"
+ *      node send_outreach.js --send --limit 5 --pass "SIFRE"
  * 
  *   4) Tüm Listeye Gönderim (15 saniye aralıklarla güvenli gönderim):
- *      node scratch/send_outreach.js --send --pass "SIFRE"
+ *      node send_outreach.js --send --pass "SIFRE"
  */
 
 const path = require('path');
 const fs = require('fs');
+const nodemailer = require('nodemailer');
 
-const WORKSPACE_DIR = 'C:\\Users\\Hüsnü Baba\\OneDrive\\Desktop\\ovlink-3';
-const nodemailer = require(path.join(WORKSPACE_DIR, 'node_modules', 'nodemailer'));
+const WORKSPACE_DIR = __dirname;
 const CSV_PATH = path.join(WORKSPACE_DIR, 'ovlink_ceo_direct_leads.csv');
 
-// SMTP Ayarları (Spacemail)
+// SMTP Ayarları (Spacemail / B2B)
 const SMTP_CONFIG = {
   host: process.env.SMTP_HOST || 'mail.spacemail.com',
   port: parseInt(process.env.SMTP_PORT || '465', 10),
   secure: true, // SSL (port 465)
   auth: {
-    user: process.env.SMTP_USER || 'support@ovlink.sbs',
-    pass: process.env.SMTP_PASS || ''
-  }
+    user: process.env.B2B_SMTP_USER || process.env.SMTP_USER || 'support@ovlink.sbs',
+    pass: (process.env.B2B_SMTP_PASS || process.env.SMTP_PASS || '').replace(/\s+/g, '')
+  },
+  family: 4,
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000
 };
 
 // Argümanları Ayrıştır
@@ -91,21 +97,30 @@ Büyük ajansların çoğu, tıkladıktan sonra hangi platformdan ne kadar dön�
 Ovlink ile kendi markanız üzerinden akıllı linkler oluşturup; kampanya trafiğini cihaza (iOS/Android) veya konuma göre yönlendirmek ve tüm tıklama verilerini anlık ölçmek, şu an ilginizi çekebilecek bir konu mu?
 
 İyi çalışmalar,
-Ovlink Destek Ekibi
-https://ovlink.sbs`;
+Ovlink Ekibi
+https://ovlink.sbs
+
+---
+Bu e-postayı almak istemiyorsanız, lütfen bu e-postayı 'çıkış' yazarak yanıtlayınız.
+Ovlink Platform · https://ovlink.sbs · info@ovlink.sbs`;
 
   const text = textBody;
 
   // Teslim edilebilirlik için Plain-Text'e çok yakın, sadece linkleri tıklanabilir yapan basit HTML.
   const html = `
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; color: #1e293b; line-height: 1.6;">
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; color: #1e293b; line-height: 1.6; max-width: 580px;">
   <p>Merhaba ${firstName},</p>
   <p>${company} web sitesini incelerken kampanyalarınızdaki link yönlendirmelerini standart URL'ler üzerinden yaptığınızı fark ettim.</p>
   <p>Büyük ajansların çoğu, tıkladıktan sonra hangi platformdan ne kadar dönüşüm geldiğini net olarak ölçemedikleri için reklam bütçelerinin bir kısmını boşa harcıyor.</p>
   <p>Ovlink ile kendi markanız üzerinden akıllı linkler oluşturup; kampanya trafiğini cihaza (iOS/Android) veya konuma göre yönlendirmek ve tüm tıklama verilerini anlık ölçmek, şu an ilginizi çekebilecek bir konu mu?</p>
   <p>İyi çalışmalar,<br>
-  Ovlink Destek Ekibi<br>
-  <a href="https://ovlink.sbs">https://ovlink.sbs</a></p>
+  <strong>Ovlink Ekibi</strong><br>
+  <a href="https://ovlink.sbs" style="color: #2563eb; text-decoration: none;">https://ovlink.sbs</a></p>
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;" />
+  <p style="font-size: 11px; color: #94a3b8; line-height: 1.4;">
+    Bu e-postayı almak istemiyorsanız, lütfen bu e-postayı 'çıkış' yazarak yanıtlayınız.<br>
+    Ovlink Platform · <a href="https://ovlink.sbs/privacy" style="color: #94a3b8;">Məxfilik Siyasəti</a>
+  </p>
 </div>`;
 
   return { subject, text, html };
@@ -198,10 +213,15 @@ async function main() {
     
     await transporter.sendMail({
       from: `"Ovlink Support" <${SMTP_CONFIG.auth.user}>`,
+      replyTo: SMTP_CONFIG.auth.user,
       to: testEmail,
       subject: `[TEST] ${content.subject}`,
       text: content.text,
-      html: content.html
+      html: content.html,
+      headers: {
+        'List-Unsubscribe': `<mailto:${SMTP_CONFIG.auth.user}?subject=unsubscribe>`,
+        'X-Entity-Ref-ID': `ovlink-test-${Date.now()}`
+      }
     });
 
     console.log(`✅ Test e-postası başarıyla gönderildi -> ${testEmail}`);
@@ -228,10 +248,15 @@ async function main() {
       try {
         await transporter.sendMail({
           from: `"Ovlink Support" <${SMTP_CONFIG.auth.user}>`,
+          replyTo: SMTP_CONFIG.auth.user,
           to: targetEmail,
           subject: content.subject,
           text: content.text,
-          html: content.html
+          html: content.html,
+          headers: {
+            'List-Unsubscribe': `<mailto:${SMTP_CONFIG.auth.user}?subject=unsubscribe>`,
+            'X-Entity-Ref-ID': `ovlink-lead-${i + 1}`
+          }
         });
         sentCount++;
         console.log(`   ✅ Gönderildi!`);
