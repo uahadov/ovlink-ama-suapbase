@@ -4811,10 +4811,48 @@ if (document.readyState === "loading") {
     const wsLeaveBtn = document.getElementById("wsLeaveBtn");
     if (wsLeaveBtn) wsLeaveBtn.classList.toggle("d-none", isOwner); // Only members/admins can leave
     
-    document.getElementById("wsInviteCard").classList.toggle("d-none", !isAdmin);
+    document.getElementById("wsInviteCard").classList.toggle("d-none", !isAdmin || !detail.pro_active);
     document.getElementById("wsSsoCard").classList.toggle("d-none", !isAdmin);
     document.getElementById("wsDangerCard").classList.toggle("d-none", !isOwner);
     document.getElementById("wsProWarning").classList.toggle("d-none", !!detail.pro_active);
+
+    const isProActive = !!detail.pro_active;
+    const wsStatStatus = document.getElementById("wsStatStatus");
+    const wsStatStatusIcon = document.getElementById("wsStatStatusIcon");
+    if (wsStatStatus) {
+      if (isProActive) {
+        wsStatStatus.dataset.i18n = "ws_status_active";
+        wsStatStatus.textContent = pickLang("Aktiv", "Aktif", "Active");
+        wsStatStatus.style.color = "#10b981";
+      } else {
+        wsStatStatus.dataset.i18n = "ws_status_readonly";
+        wsStatStatus.textContent = pickLang("Yalnız oxuma", "Yalnızca okuma", "Read-only");
+        wsStatStatus.style.color = "#f59e0b";
+      }
+    }
+    if (wsStatStatusIcon) {
+      if (isProActive) {
+        wsStatStatusIcon.style.color = "#10b981";
+        wsStatStatusIcon.innerHTML = '<i class="fa-solid fa-bolt"></i>';
+      } else {
+        wsStatStatusIcon.style.color = "#f59e0b";
+        wsStatStatusIcon.innerHTML = '<i class="fa-solid fa-lock"></i>';
+      }
+    }
+
+    const wsOpenDashboardBtn = document.getElementById("wsOpenDashboardBtn");
+    if (wsOpenDashboardBtn) {
+      const btnSpan = wsOpenDashboardBtn.querySelector("span");
+      if (btnSpan) {
+        if (isProActive) {
+          btnSpan.dataset.i18n = "ws_create_link_btn";
+          btnSpan.textContent = pickLang("Link Yarat", "Link Oluştur", "Create Link");
+        } else {
+          btnSpan.dataset.i18n = "ws_view_links_btn";
+          btnSpan.textContent = pickLang("Linklərə bax", "Linkleri gör", "View Links");
+        }
+      }
+    }
 
     const membersBody = document.getElementById("wsMembersBody");
     membersBody.innerHTML = "";
