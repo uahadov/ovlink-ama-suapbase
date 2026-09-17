@@ -32,7 +32,7 @@
    * Never rely on one-off manual database queries.
 6. **Required Syntax & Test Verification Before Finishing Any Task:**
    * `node --check server.js routes/admin.js routes/auth.js public/script.js public/home.js public/lang.js public/sw.js`
-   * `npm test` (all 17 unit/integration tests must pass).
+   * `npm test` (all 179 unit/integration tests must pass).
 
 ---
 

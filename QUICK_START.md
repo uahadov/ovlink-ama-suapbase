@@ -56,9 +56,9 @@ http://localhost:3000
 
 `SETUP_GUIDE.md` dosyasını oku.
 
-## 🐛 Bug Listesi
+## 🐛 Bug və Təhlükəsizlik Tarixçəsi
 
-`BUG_FIXES_SUMMARY.md` dosyasını oku.
+`PROJECT_MEMORY.md` dosyasını oku.
 
 ---
 

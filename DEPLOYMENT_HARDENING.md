@@ -39,9 +39,9 @@ Ensure these are present in production responses:
 - `X-Frame-Options` / `frame-ancestors`
 
 ## 5) Database hardening
-- Place SQLite DB on private filesystem path (not inside `/public`).
-- Restrict filesystem permissions to app runtime user.
-- Back up frequently and encrypt backups at rest.
+- In production, enforce TLS/SSL connection to PostgreSQL cluster (`sslmode=require`).
+- For local SQLite dev fallback, place DB on private filesystem path (never inside `/public`) with app-only permissions.
+- Back up database frequently and encrypt backups at rest.
 - Test restore procedures regularly.
 
 ## 6) Logging and monitoring

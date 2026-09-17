@@ -11,7 +11,7 @@ Primary protected assets:
 
 Primary trust boundaries:
 - Browser <-> Express app
-- Express app <-> SQLite database
+- Express app <-> Database (PostgreSQL in production / SQLite in local dev)
 - Express app <-> external identity/email services (Google OIDC, Resend)
 - DNS lookups for custom-domain verification
 

@@ -504,7 +504,7 @@ npm start 2>&1 | grep -i "mail\|email\|resend"
 ## 🆘 Yardım
 
 ### Dokümantasyon
-- `BUG_FIXES_SUMMARY.md` - Düzeltilen bug listesi
+- `PROJECT_MEMORY.md` - Düzeltilen buglar və sistem mimarisi
 - `SETUP_GUIDE.md` - Bu dosya
 - `AGENTS.md` - Proje dokumanları
 
