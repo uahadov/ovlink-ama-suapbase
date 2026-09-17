@@ -20,7 +20,8 @@
     <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
 
     <style nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
-      .ovx .m-adv-input {
+      .ovx input.m-adv-input,
+      .ovx .m-adv-input:not(textarea) {
         width: 100% !important;
         height: 38px !important;
         box-sizing: border-box !important;
@@ -35,6 +36,23 @@
         color-scheme: dark !important;
         outline: none !important;
       }
+      .ovx textarea.m-adv-input {
+        width: 100% !important;
+        height: auto !important;
+        min-height: 180px !important;
+        box-sizing: border-box !important;
+        background: #141414 !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        color: #ffffff !important;
+        padding: 12px 14px !important;
+        border-radius: 9px !important;
+        font-size: 13.5px !important;
+        transition: border-color 0.2s, box-shadow 0.2s !important;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+        color-scheme: dark !important;
+        outline: none !important;
+        resize: vertical !important;
+      }
       .ovx .m-adv-input:hover {
         border-color: rgba(255, 255, 255, 0.25) !important;
       }
@@ -44,6 +62,45 @@
       }
       .ovx .m-adv-input::placeholder {
         color: #737373 !important;
+      }
+
+      /* Solid frosted navbar on Dashboard — prevents scrolled Bento metrics overlap */
+      .ovx .m-nav {
+        background: rgba(10, 10, 10, 0.95) !important;
+        backdrop-filter: blur(20px) saturate(1.5) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(1.5) !important;
+        border-bottom: 1px solid var(--c-border, rgba(255, 255, 255, 0.08)) !important;
+      }
+
+      /* Folder & Tag chips in table (Monolith Pill Dark) */
+      .ovx .dashboard-meta-chip,
+      .ovx .dashboard-tag-chip {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        background: rgba(255, 255, 255, 0.06) !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        color: #f3f4f6 !important;
+        font-size: 11.5px !important;
+        font-weight: 500 !important;
+        padding: 3px 10px !important;
+        border-radius: 999px !important;
+        text-decoration: none !important;
+        cursor: pointer !important;
+        transition: all 0.18s ease !important;
+        line-height: 1.3 !important;
+      }
+      .ovx .dashboard-meta-chip:hover,
+      .ovx .dashboard-tag-chip:hover {
+        background: rgba(255, 255, 255, 0.14) !important;
+        border-color: rgba(255, 255, 255, 0.35) !important;
+        color: #ffffff !important;
+        transform: translateY(-1px) !important;
+      }
+      .ovx .dashboard-meta-chip i,
+      .ovx .dashboard-tag-chip i {
+        color: #a3a3a3 !important;
+        font-size: 11px !important;
       }
       .ovx select.m-adv-select,
       .ovx .m-adv-select {
@@ -630,10 +687,10 @@
                             <i class="fa-solid fa-chart-bar"></i>
                           </a>
                           <!-- Delete Form -->
-                          <form method="POST" action="/api/user/delete" style="display: inline-block; margin: 0;">
+                          <form method="POST" action="/api/user/delete" class="dashboard-delete-form" style="display: inline-block; margin: 0;">
                             <input type="hidden" name="short" value="<%= shortCode %>" />
                             <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                            <button type="submit" class="m-btn-icon m-btn-icon--danger" aria-label="Delete" title="Sil">
+                            <button type="button" class="m-btn-icon m-btn-icon--danger dashboard-delete-trigger" data-delete-short="<%= shortCode %>" data-delete-target="<%= shortCode %>" aria-label="Delete" title="Sil">
                               <i class="fa-solid fa-trash-can"></i>
                             </button>
                           </form>
@@ -794,6 +851,36 @@
           <div class="modal-footer">
             <button type="button" class="m-cta m-cta--outline m-cta--sm" data-bs-dismiss="modal" data-i18n="cancel_btn">Ləğv et</button>
             <button type="button" id="bulkImportSubmit" class="m-cta m-cta--white m-cta--sm" data-i18n="dashboard_import_submit">Import et</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Monolith Delete Confirmation Modal (Single & Bulk) -->
+    <div class="modal fade" id="dashboardDeleteModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content" style="background: #111111; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85); padding: 24px;">
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+            <div style="width: 52px; height: 52px; border-radius: 14px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 22px; margin-bottom: 16px;">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 id="dashboardDeleteTitle" style="font-size: 19px; font-weight: 700; color: #ffffff; margin: 0 0 8px 0; letter-spacing: -0.02em;" data-i18n="delete_modal_title">
+              Linki silmək istəyirsiniz?
+            </h3>
+            <p id="dashboardDeleteDesc" style="font-size: 13.5px; color: #a3a3a3; margin: 0 0 16px 0; line-height: 1.5;" data-i18n="delete_modal_desc">
+              Bu əməliyyat geri qaytarıla bilməz. Həqiqətən silmək istədiyinizdən əminsiniz?
+            </p>
+            <div id="dashboardDeleteTarget" style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; color: #f87171; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 8px 14px; margin-bottom: 20px; width: 100%; box-sizing: border-box; word-break: break-all;">
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; width: 100%;">
+            <button type="button" id="dashboardDeleteCancelBtn" class="m-cta m-cta--outline m-cta--sm" style="flex: 1; height: 40px; justify-content: center;" data-i18n="delete_modal_cancel">
+              Xeyr, ləğv et
+            </button>
+            <button type="button" id="dashboardDeleteConfirmBtn" class="m-cta m-cta--danger m-cta--sm" style="flex: 1; height: 40px; justify-content: center;" disabled>
+              <i class="fa-solid fa-trash-can me-1"></i>
+              <span id="dashboardDeleteConfirmText">Bəli, Sil (3)</span>
+            </button>
           </div>
         </div>
       </div>

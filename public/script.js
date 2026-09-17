@@ -2331,13 +2331,17 @@ if (document.readyState === "loading") {
     if (folderRaw) {
       const folderBtn = document.createElement("button");
       folderBtn.type = "button";
-      folderBtn.className = "btn btn-sm btn-link p-0 text-decoration-none dashboard-meta-chip";
+      folderBtn.className = "m-tag-pill dashboard-meta-chip";
       folderBtn.setAttribute("data-meta-filter-folder", normalizeMetaToken(folderRaw));
-      folderBtn.textContent = folderRaw;
+      folderBtn.title = folderRaw;
+      const folderIcon = document.createElement("i");
+      folderIcon.className = "fa-regular fa-folder me-1";
+      folderBtn.appendChild(folderIcon);
+      folderBtn.appendChild(document.createTextNode(folderRaw));
       folderCell.appendChild(folderBtn);
     } else {
       const empty = document.createElement("span");
-      empty.className = "text-muted small";
+      empty.style.color = "var(--c-faint, #737373)";
       empty.textContent = "-";
       folderCell.appendChild(empty);
     }
@@ -2345,7 +2349,7 @@ if (document.readyState === "loading") {
     tagsCell.innerHTML = "";
     if (!tags.length) {
       const empty = document.createElement("span");
-      empty.className = "text-muted small";
+      empty.style.color = "var(--c-faint, #737373)";
       empty.textContent = "-";
       tagsCell.appendChild(empty);
       return;
@@ -2354,8 +2358,9 @@ if (document.readyState === "loading") {
     tags.forEach((tag) => {
       const tagBtn = document.createElement("button");
       tagBtn.type = "button";
-      tagBtn.className = "badge rounded-pill text-bg-light border me-1 dashboard-tag-chip";
+      tagBtn.className = "m-tag-pill dashboard-tag-chip me-1";
       tagBtn.setAttribute("data-meta-filter-tag", normalizeMetaToken(tag));
+      tagBtn.title = tag;
       tagBtn.textContent = tag;
       tagsCell.appendChild(tagBtn);
     });
@@ -2458,7 +2463,7 @@ if (document.readyState === "loading") {
   const buildMetaTagsInput = (raw) => {
     const seen = new Set();
     const out = [];
-    (raw || "").split(",").forEach((part) => {
+    (raw || "").split(/[,;\n]+/).forEach((part) => {
       const value = (part || "").toString().trim();
       const token = normalizeMetaToken(value);
       if (!token || seen.has(token)) return;
@@ -2480,11 +2485,14 @@ if (document.readyState === "loading") {
     folderPills.innerHTML = "";
     folders.forEach(([, label]) => {
       const badge = document.createElement("span");
-      badge.className = "badge bg-secondary text-white cursor-pointer py-2 px-3 rounded-pill";
+      badge.className = "m-tag-pill";
       badge.style.cursor = "pointer";
-      badge.textContent = label;
+      const icon = document.createElement("i");
+      icon.className = "fa-regular fa-folder me-1";
+      badge.appendChild(icon);
+      badge.appendChild(document.createTextNode(label));
       badge.addEventListener("click", () => {
-        folderInput.value = label;
+        if (folderInput) folderInput.value = label;
       });
       folderPills.appendChild(badge);
     });
@@ -2492,20 +2500,20 @@ if (document.readyState === "loading") {
     tagPills.innerHTML = "";
     tags.forEach(([, label]) => {
       const badge = document.createElement("span");
-      badge.className = "badge bg-secondary text-white cursor-pointer py-2 px-3 rounded-pill";
+      badge.className = "m-tag-pill";
       badge.style.cursor = "pointer";
-      badge.textContent = label;
+      badge.textContent = "+ " + label;
       badge.addEventListener("click", () => {
+        if (!tagsInput) return;
         const current = tagsInput.value.trim();
-        if (!current) {
-          tagsInput.value = label;
+        const parts = current ? current.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean) : [];
+        const idx = parts.findIndex(p => p.toLowerCase() === label.toLowerCase());
+        if (idx >= 0) {
+          parts.splice(idx, 1);
         } else {
-          const parts = current.split(",").map(s => s.trim()).filter(Boolean);
-          if (!parts.includes(label)) {
-            parts.push(label);
-            tagsInput.value = parts.join(", ");
-          }
+          parts.push(label);
         }
+        tagsInput.value = parts.join(", ");
       });
       tagPills.appendChild(badge);
     });
@@ -2829,6 +2837,25 @@ if (document.readyState === "loading") {
         }
       });
     }
+
+    if (folderInput && !folderInput.dataset.bound) {
+      folderInput.dataset.bound = "1";
+      folderInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          saveBtn && saveBtn.click();
+        }
+      });
+    }
+    if (tagsInput && !tagsInput.dataset.bound) {
+      tagsInput.dataset.bound = "1";
+      tagsInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          saveBtn && saveBtn.click();
+        }
+      });
+    }
   };
 
   const ensureDashboardMetaButtons = () => {
@@ -2889,8 +2916,9 @@ if (document.readyState === "loading") {
   const applyDashboardFilters = (isInit = false) => {
     if (!dashboardBody) return;
     
+    const initMode = isInit === true;
     const params = new URLSearchParams(window.location.search);
-    if (isInit) {
+    if (initMode) {
       if (dashboardSearch && params.has("q")) dashboardSearch.value = params.get("q");
       if (dashboardFilter && params.has("filter")) dashboardFilter.value = params.get("filter");
       if (dashboardSort && params.has("sort")) dashboardSort.value = params.get("sort");
@@ -2923,16 +2951,19 @@ if (document.readyState === "loading") {
           const newBody = doc.getElementById("dashboardTableBody");
           if (newBody) dashboardBody.innerHTML = newBody.innerHTML;
           
-          const oldPagination = document.querySelector(".card-footer.bg-transparent");
-          const newPagination = doc.querySelector(".card-footer.bg-transparent");
+          const oldPagination = document.querySelector(".m-pagination-bar");
+          const newPagination = doc.querySelector(".m-pagination-bar");
           if (oldPagination && newPagination) {
             oldPagination.outerHTML = newPagination.outerHTML;
           } else if (oldPagination && !newPagination) {
             oldPagination.remove();
           } else if (!oldPagination && newPagination) {
-            const container = dashboardBody.closest(".card");
-            if (container) container.appendChild(newPagination);
+            const panel = dashboardBody.closest(".m-dash-panel");
+            if (panel) panel.appendChild(newPagination);
           }
+
+          const bulkSelectAll = document.getElementById("bulkSelectAll");
+          if (bulkSelectAll) bulkSelectAll.checked = false;
 
           Array.from(dashboardBody.querySelectorAll("tr[data-short]")).forEach((row) => {
             renderDashboardRowMetaCells(row);
@@ -2941,9 +2972,12 @@ if (document.readyState === "loading") {
           if (typeof mountDashboardMetaFilters === "function") {
             mountDashboardMetaFilters();
           }
+          if (typeof applyLanguage === "function") {
+            applyLanguage();
+          }
         })
         .catch(console.error);
-    }, 300);
+    }, 250);
   };
 
   if (dashboardBody) {
@@ -2955,9 +2989,9 @@ if (document.readyState === "loading") {
   }
 
   if (dashboardSearch || dashboardFilter || dashboardSort || dashboardFolderFilter || dashboardTagFilter) {
-    dashboardSearch && dashboardSearch.addEventListener("input", applyDashboardFilters);
-    dashboardFilter && dashboardFilter.addEventListener("change", applyDashboardFilters);
-    dashboardSort && dashboardSort.addEventListener("change", applyDashboardFilters);
+    dashboardSearch && dashboardSearch.addEventListener("input", () => applyDashboardFilters(false));
+    dashboardFilter && dashboardFilter.addEventListener("change", () => applyDashboardFilters(false));
+    dashboardSort && dashboardSort.addEventListener("change", () => applyDashboardFilters(false));
     applyDashboardFilters(true);
   }
 
@@ -3667,7 +3701,192 @@ if (customDomainList) {
       applyDashboardFilters();
       return;
     }
+
+    // 5. Single Link Delete Button
+    const deleteBtn = e.target.closest(".dashboard-delete-trigger, [data-delete-short]");
+    if (deleteBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      initDashboardDeleteModal();
+      const short = (deleteBtn.getAttribute("data-delete-short") || "").trim();
+      const form = deleteBtn.closest("form");
+      if (short) {
+        openDashboardDeleteModal({
+          mode: "single",
+          short: short,
+          form: form
+        });
+      }
+      return;
+    }
   });
+
+  // ==========================================================================
+  // Dashboard Delete Confirmation Modal (3s countdown & static backdrop)
+  // ==========================================================================
+  let deleteCountdownTimer = null;
+  let currentDeleteState = null;
+
+  const openDashboardDeleteModal = (options) => {
+    const modalEl = document.getElementById("dashboardDeleteModal");
+    if (!modalEl) return;
+
+    currentDeleteState = options;
+
+    const titleEl = document.getElementById("dashboardDeleteTitle");
+    const descEl = document.getElementById("dashboardDeleteDesc");
+    const targetEl = document.getElementById("dashboardDeleteTarget");
+    const confirmBtn = document.getElementById("dashboardDeleteConfirmBtn");
+    const confirmText = document.getElementById("dashboardDeleteConfirmText");
+
+    if (options.mode === "single") {
+      if (titleEl) {
+        titleEl.textContent = getText("delete_modal_title", pickLang("Linki silmək istəyirsiniz?", "Linki silmek istiyor musunuz?", "Are you sure you want to delete this link?"));
+      }
+      if (descEl) {
+        descEl.textContent = getText("delete_modal_desc", pickLang("Bu əməliyyat geri qaytarıla bilməz. Həqiqətən silmək istədiyinizdən əminsiniz?", "Bu işlem geri alınamaz. Gerçekten silmek istediğinizden emin misiniz?", "This action cannot be undone. Are you sure you want to proceed?"));
+      }
+      if (targetEl) {
+        targetEl.textContent = options.short || "";
+      }
+    } else {
+      if (titleEl) {
+        titleEl.textContent = getText("delete_modal_bulk_title", pickLang("Seçilmiş linkləri silmək istəyirsiniz?", "Seçilen linkleri silmek istiyor musunuz?", "Are you sure you want to delete selected links?"));
+      }
+      if (descEl) {
+        descEl.textContent = getText("delete_modal_desc", pickLang("Bu əməliyyat geri qaytarıla bilməz. Həqiqətən silmək istədiyinizdən əminsiniz?", "Bu işlem geri alınamaz. Gerçekten silmek istediğinizden emin misiniz?", "This action cannot be undone. Are you sure you want to proceed?"));
+      }
+      if (targetEl) {
+        const count = (options.shorts && options.shorts.length) || 0;
+        const tmpl = getText("delete_modal_bulk_target", pickLang("{count} link seçilib", "{count} link seçildi", "{count} links selected"));
+        targetEl.textContent = tmpl.replace("{count}", count);
+      }
+    }
+
+    if (deleteCountdownTimer) {
+      clearInterval(deleteCountdownTimer);
+      deleteCountdownTimer = null;
+    }
+
+    let secondsLeft = 3;
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.style.opacity = "0.45";
+      confirmBtn.style.cursor = "not-allowed";
+    }
+
+    const updateConfirmText = (sec) => {
+      if (!confirmText) return;
+      if (sec > 0) {
+        const waitTmpl = getText("delete_modal_confirm_wait", pickLang("Bəli, Sil ({sec})", "Evet, Sil ({sec})", "Yes, Delete ({sec})"));
+        confirmText.textContent = waitTmpl.replace("{sec}", sec);
+      } else {
+        confirmText.textContent = getText("delete_modal_confirm_ready", pickLang("Bəli, Sil", "Evet, Sil", "Yes, Delete"));
+      }
+    };
+
+    updateConfirmText(secondsLeft);
+
+    deleteCountdownTimer = setInterval(() => {
+      secondsLeft--;
+      updateConfirmText(secondsLeft);
+      if (secondsLeft <= 0) {
+        clearInterval(deleteCountdownTimer);
+        deleteCountdownTimer = null;
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.style.opacity = "1";
+          confirmBtn.style.cursor = "pointer";
+        }
+      }
+    }, 1000);
+
+    modalEl.setAttribute("data-bs-backdrop", "static");
+    modalEl.setAttribute("data-bs-keyboard", "false");
+    openModalById("dashboardDeleteModal");
+  };
+
+  const closeDashboardDeleteModal = () => {
+    if (deleteCountdownTimer) {
+      clearInterval(deleteCountdownTimer);
+      deleteCountdownTimer = null;
+    }
+    currentDeleteState = null;
+    closeModalById("dashboardDeleteModal");
+  };
+
+  const initDashboardDeleteModal = () => {
+    const modalEl = document.getElementById("dashboardDeleteModal");
+    if (!modalEl || modalEl.dataset.initialized === "1") return;
+    modalEl.dataset.initialized = "1";
+
+    const cancelBtn = document.getElementById("dashboardDeleteCancelBtn");
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        closeDashboardDeleteModal();
+      });
+    }
+
+    const confirmBtn = document.getElementById("dashboardDeleteConfirmBtn");
+    if (confirmBtn) {
+      confirmBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        if (confirmBtn.disabled || !currentDeleteState) return;
+
+        if (currentDeleteState.mode === "single") {
+          if (currentDeleteState.form) {
+            currentDeleteState.form.submit();
+          } else if (currentDeleteState.short) {
+            const tempForm = document.createElement("form");
+            tempForm.method = "POST";
+            tempForm.action = "/api/user/delete";
+            const shortIn = document.createElement("input");
+            shortIn.type = "hidden";
+            shortIn.name = "short";
+            shortIn.value = currentDeleteState.short;
+            const csrfIn = document.createElement("input");
+            csrfIn.type = "hidden";
+            csrfIn.name = "_csrf";
+            csrfIn.value = getCsrfToken();
+            tempForm.appendChild(shortIn);
+            tempForm.appendChild(csrfIn);
+            document.body.appendChild(tempForm);
+            tempForm.submit();
+          }
+        } else if (currentDeleteState.mode === "bulk") {
+          try {
+            confirmBtn.disabled = true;
+            const confirmText = document.getElementById("dashboardDeleteConfirmText");
+            if (confirmText) confirmText.textContent = pickLang("Silinir...", "Siliniyor...", "Deleting...");
+
+            const res = await postJsonWithCsrf("/api/user/delete-bulk", {
+              shorts: currentDeleteState.shorts,
+              lang: currentLang,
+              _csrf: getCsrfToken(),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              alert(data.error || pickLang("Silmə əməliyyatı alınmadı.", "Silme işlemi başarısız.", "Delete operation failed."));
+              closeDashboardDeleteModal();
+              return;
+            }
+            location.reload();
+          } catch (err) {
+            alert((currentLang === "tr" ? "Hata: " : (currentLang === "en" ? "Error: " : "Xəta: ")) + err.message);
+            closeDashboardDeleteModal();
+          }
+        }
+      });
+    }
+
+    modalEl.addEventListener("click", (e) => {
+      if (e.target === modalEl) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    });
+  };
 
   const bulkSelectAll = document.getElementById("bulkSelectAll");
   if (bulkSelectAll) {
@@ -3700,31 +3919,22 @@ if (customDomainList) {
 
   const bulkDeleteBtn = document.getElementById("bulkDeleteBtn");
   if (bulkDeleteBtn) {
-    bulkDeleteBtn.addEventListener("click", async () => {
+    bulkDeleteBtn.addEventListener("click", () => {
       const selected = Array.from(document.querySelectorAll(".bulk-select"))
         .filter((cb) => cb.checked)
         .map((cb) => cb.value);
 
       if (!selected.length) {
         const msg = pickLang("Zəhmət olmasa silmək üçün link seçin.", "Lütfen silmek için link seçin.", "Please select links to delete.");
-        alert(msg);
+        showQuickToast(msg, "danger");
         return;
       }
 
-      const confirmMsg = pickLang("Seçilən linklər silinsin?", "Seçilen linkler silinsin mi?", "Delete selected links?");
-      if (!confirm(confirmMsg)) return;
-
-      try {
-        const res = await postJsonWithCsrf("/api/user/delete-bulk", { shorts: selected, lang: currentLang, _csrf: getCsrfToken() });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          alert(data.error || pickLang("Silmə əməliyyatı alınmadı.", "Silme işlemi başarısız.", "Delete operation failed."));
-          return;
-        }
-        location.reload();
-      } catch (err) {
-        alert((currentLang === "tr" ? "Hata: " : (currentLang === "en" ? "Error: " : "Xəta: ")) + err.message);
-      }
+      initDashboardDeleteModal();
+      openDashboardDeleteModal({
+        mode: "bulk",
+        shorts: selected
+      });
     });
   }
 

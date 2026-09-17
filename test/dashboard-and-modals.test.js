@@ -189,6 +189,9 @@ test('Dashboard Redesign & 100% Bootstrap-Free Modal Verification', async (t) =>
     assert.ok(html.includes('dashboardEditLinkModal'), 'Must include edit URL modal');
     assert.ok(html.includes('dashboardMetaModal'), 'Must include folder/tags metadata modal');
     assert.ok(html.includes('bulkImportModal'), 'Must include bulk import modal');
+    assert.ok(html.includes('dashboardDeleteModal'), 'Must include delete confirmation modal');
+    assert.ok(html.includes('id="dashboardDeleteConfirmBtn"'), 'Must include delete confirm button');
+    assert.ok(html.includes('data-bs-backdrop="static"'), 'Must enforce static backdrop on delete modal');
     assert.ok(html.includes(short), 'Must render created link short code');
     assert.ok(html.includes('marketing'), 'Must render folder name');
     assert.ok(html.includes('tag1'), 'Must render tag');
