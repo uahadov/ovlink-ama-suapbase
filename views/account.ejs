@@ -549,6 +549,200 @@
       .ovx .m-form-row { grid-template-columns: 1fr; gap: 12px; }
       .ovx .pro-head { flex-direction: column; align-items: flex-start; }
     }
+
+    /* ================================================================
+       OVLINK APP — ACCOUNT TAB NAVIGATION SYSTEM (MONOLITH / LINEAR)
+       ================================================================ */
+    .ovx .m-account-tabs-nav {
+      position: sticky;
+      top: var(--nav-h);
+      z-index: 20;
+      background: rgba(10, 10, 10, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--c-border);
+      margin-bottom: 32px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .ovx .m-account-tabs-nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .ovx .m-account-tabs-track {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+      padding: 6px 0 10px;
+      min-width: 100%;
+    }
+
+    .ovx .m-account-tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--c-muted);
+      font-size: 14px;
+      font-weight: 500;
+      font-family: var(--f-sans);
+      padding: 9px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      transition: color 0.2s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease);
+      white-space: nowrap;
+      outline: none;
+      position: relative;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .ovx .m-account-tab-btn:hover {
+      color: var(--c-text);
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .ovx .m-account-tab-btn.is-active,
+    .ovx .m-account-tab-btn[aria-selected="true"] {
+      color: var(--c-white);
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .ovx .m-account-tab-btn i {
+      font-size: 13.5px;
+      color: inherit;
+      transition: transform 0.2s var(--ease);
+    }
+
+    .ovx .m-account-tab-btn:hover i {
+      transform: scale(1.1);
+    }
+
+    .ovx .m-tab-pro-chip {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      background: var(--c-white);
+      color: var(--c-bg);
+      padding: 1px 6px;
+      border-radius: 4px;
+      line-height: 1.4;
+      text-transform: uppercase;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+    }
+
+    .ovx .m-account-tab-indicator {
+      position: absolute;
+      bottom: 0;
+      height: 2px;
+      background: var(--c-white);
+      border-radius: 2px;
+      transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1), width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      pointer-events: none;
+    }
+
+    /* Tab Panels & Animation */
+    .ovx .m-tab-panel {
+      display: none;
+      opacity: 0;
+    }
+
+    .ovx .m-tab-panel.is-active {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      animation: tabFadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes tabFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .ovx .m-tab-panel.is-active > .m-card:nth-child(1) {
+      animation: accountFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0ms forwards;
+    }
+    .ovx .m-tab-panel.is-active > .m-card:nth-child(2) {
+      animation: accountFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) 60ms forwards;
+    }
+    .ovx .m-tab-panel.is-active > .m-card:nth-child(3) {
+      animation: accountFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) 120ms forwards;
+    }
+
+    @keyframes accountFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Unified Credentials Grid (Password + Email Side-by-Side) */
+    .ovx .m-credentials-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    .ovx .m-cred-col {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .ovx .m-cred-box {
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      border-radius: 12px;
+      padding: 24px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.2s var(--ease);
+    }
+
+    .ovx .m-cred-box:hover {
+      border-color: var(--c-border-hi);
+    }
+
+    .ovx .m-shortcut-link {
+      font-size: 12px;
+      color: var(--c-muted);
+      cursor: pointer;
+      text-decoration: underline;
+      transition: color 0.2s;
+    }
+    .ovx .m-shortcut-link:hover {
+      color: var(--c-white);
+    }
+
+    @media (max-width: 900px) {
+      .ovx .m-credentials-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .ovx .m-account-tabs-track {
+        min-width: max-content;
+      }
+    }
   </style>
 </head>
 
@@ -596,223 +790,348 @@
         <p class="m-page-sub" data-i18n="account_subtitle">Hesab parametrlərinizi idarə edin</p>
       </header>
 
-      <div class="m-card-stack">
+      <!-- Account Linear Tab Navigation -->
+      <nav class="m-account-tabs-nav" role="tablist" aria-label="Account Navigation">
+        <div class="m-account-tabs-track">
+          <button type="button" class="m-account-tab-btn is-active" role="tab" id="tabBtnGeneral" aria-selected="true" aria-controls="panel-general" data-tab-target="general">
+            <i class="fa-regular fa-user" aria-hidden="true"></i>
+            <span data-i18n="account_tab_general">Ümumi və Giriş</span>
+          </button>
+          <button type="button" class="m-account-tab-btn" role="tab" id="tabBtnSecurity" aria-selected="false" aria-controls="panel-security" data-tab-target="security">
+            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+            <span data-i18n="account_tab_security">Təhlükəsizlik</span>
+          </button>
+          <button type="button" class="m-account-tab-btn" role="tab" id="tabBtnBilling" aria-selected="false" aria-controls="panel-billing" data-tab-target="billing">
+            <i class="fa-solid fa-crown" aria-hidden="true"></i>
+            <span data-i18n="account_tab_billing">Plan və Abunəlik</span>
+          </button>
+          <button type="button" class="m-account-tab-btn" role="tab" id="tabBtnDeveloper" aria-selected="false" aria-controls="panel-developer" data-tab-target="developer">
+            <i class="fa-solid fa-code" aria-hidden="true"></i>
+            <span data-i18n="account_tab_developer">Developer və API</span>
+            <% if (plan && plan.tier === 'pro' && plan.is_active) { %>
+              <span class="m-tab-pro-chip">PRO</span>
+            <% } %>
+          </button>
+          <div class="m-account-tab-indicator" id="tabIndicator" aria-hidden="true"></div>
+        </div>
+      </nav>
 
-        <!-- 1. Subscription Card -->
-        <section class="m-card" id="subscriptionSection">
-          <div class="m-card-header">
-            <div class="m-card-title-wrap">
-              <div class="m-card-icon"><i class="fa-solid fa-crown"></i></div>
-              <div>
-                <h2 class="m-card-h2" data-i18n="account_sub_title">Abunəlik</h2>
-                <div class="m-card-desc" data-i18n="account_sub_desc">Plan və ödəniş məlumatları</div>
+      <div class="m-account-tabs-panels">
+
+        <!-- ==========================================
+             TAB 1: GENERAL & CREDENTIALS
+             ========================================== -->
+        <div class="m-tab-panel is-active" id="panel-general" role="tabpanel" aria-labelledby="tabBtnGeneral">
+
+          <!-- 1. Profile Settings Card -->
+          <section class="m-card" id="profileSettingsSection">
+            <div class="m-card-header">
+              <div class="m-card-title-wrap">
+                <div class="m-card-icon"><i class="fa-solid fa-sliders"></i></div>
+                <div>
+                  <h2 class="m-card-h2" data-i18n="profile_settings_title">Profil Parametrləri</h2>
+                  <div class="m-card-desc" data-i18n="profile_settings_subtitle">Dil, tema və bildiriş tənzimləmələri</div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="m-card-body">
-            <% if (plan && plan.tier === 'pro') { %>
-              <div class="m-inner-box">
-                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
-                  <span class="m-badge-pill m-badge-pill--pro">
-                    <i class="fa-solid fa-star"></i> <%= plan.status === 'paused' ? 'Paused' : 'PRO' %>
-                  </span>
-                  <% if (plan.expires_at) { %>
-                    <span class="m-badge-pill m-badge-pill--muted">
-                      <span data-i18n="account_sub_expires">Bitmə tarixi:</span>&nbsp;<strong><%= new Date(plan.expires_at).toLocaleDateString() %></strong>
+            <div class="m-card-body">
+              <form id="profileSettingsForm">
+                <div class="m-form-group">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <label class="m-adv-label" for="profileEmail" data-i18n="profile_email">E-poçt</label>
+                    <a href="#credentialsSection" id="editEmailShortcut" class="m-shortcut-link" data-i18n="account_email_change_btn">E-poçtu dəyiş</a>
+                  </div>
+                  <input id="profileEmail" type="email" class="m-adv-input" disabled>
+                </div>
+
+                <div class="m-form-row">
+                  <div class="m-form-group">
+                    <label class="m-adv-label" for="profileLang" data-i18n="profile_lang">Dil</label>
+                    <select id="profileLang" class="m-adv-input">
+                      <option value="az" data-i18n="lang_az">AZ</option>
+                      <option value="tr" data-i18n="lang_tr">TR</option>
+                      <option value="en" data-i18n="lang_en">EN</option>
+                    </select>
+                  </div>
+                  <div class="m-form-group">
+                    <label class="m-adv-label" for="profileTheme" data-i18n="profile_theme">Tema</label>
+                    <select id="profileTheme" class="m-adv-input">
+                      <option value="light" data-i18n="theme_light">Açıq</option>
+                      <option value="dark" data-i18n="theme_dark">Qaranlıq</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="m-form-group" style="margin-top:8px;">
+                  <label class="m-adv-label" data-i18n="profile_notify_title">Bildiriş Seçimləri</label>
+                  <div class="m-checkbox-group">
+                    <label class="m-checkbox-label" for="notifyReport">
+                      <input type="checkbox" id="notifyReport">
+                      <span data-i18n="notif_report">Linkiniz şikayət edildi</span>
+                    </label>
+                    <label class="m-checkbox-label" for="notifyLimit">
+                      <input type="checkbox" id="notifyLimit">
+                      <span data-i18n="notif_limit">Klik limiti doldu</span>
+                    </label>
+                    <label class="m-checkbox-label" for="notifyDisabled">
+                      <input type="checkbox" id="notifyDisabled">
+                      <span data-i18n="notif_disabled">Link deaktiv edildi</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div style="margin-top:24px;">
+                  <button class="m-cta m-cta--white m-cta--sm" type="submit" data-i18n="profile_save">Yadda saxla</button>
+                </div>
+                <div id="profileSettingsMsg" style="font-size:13px;margin-top:10px;"></div>
+              </form>
+            </div>
+          </section>
+
+          <!-- 2. Unified Credentials Card: Password & Email Change Side-by-Side -->
+          <section class="m-card" id="credentialsSection">
+            <div class="m-card-header">
+              <div class="m-card-title-wrap">
+                <div class="m-card-icon"><i class="fa-solid fa-key"></i></div>
+                <div>
+                  <h2 class="m-card-h2" data-i18n="account_credentials_title">Giriş və Kimlik</h2>
+                  <div class="m-card-desc" data-i18n="account_credentials_subtitle">Şifrənizi və e-poçt ünvanınızı vahid mərkəzdən idarə edin</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="m-card-body">
+              <div class="m-credentials-grid">
+
+                <!-- Col 1: Şifrə Dəyişdir -->
+                <div class="m-cred-col">
+                  <div class="m-cred-box">
+                    <div class="m-section-subhead" style="margin-bottom:16px;">
+                      <i class="fa-solid fa-lock"></i>
+                      <span id="passwordSectionTitle" data-i18n="profile_password_title">Şifrə Dəyişdir</span>
+                    </div>
+
+                    <form id="passwordChangeForm" style="display:flex;flex-direction:column;gap:12px;">
+                      <div id="currentPasswordGroup" class="m-form-group">
+                        <label for="currentPassword" class="m-adv-label" data-i18n="profile_current_password">Cari şifrə</label>
+                        <input type="password" id="currentPassword" class="m-adv-input" data-i18n-placeholder="profile_current_password" placeholder="Cari şifrə">
+                      </div>
+                      <div class="m-form-group">
+                        <label for="newPassword" class="m-adv-label" data-i18n="profile_new_password">Yeni şifrə</label>
+                        <input type="password" id="newPassword" class="m-adv-input" data-i18n-placeholder="profile_new_password" placeholder="Yeni şifrə">
+                      </div>
+                      <div class="m-form-group">
+                        <label for="newPasswordConfirm" class="m-adv-label" data-i18n="profile_new_password_confirm">Yeni şifrə (təkrar)</label>
+                        <input type="password" id="newPasswordConfirm" class="m-adv-input" data-i18n-placeholder="profile_new_password_confirm" placeholder="Yeni şifrə (təkrar)">
+                      </div>
+                      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:8px;">
+                        <button id="passwordActionBtn" class="m-cta m-cta--outline m-cta--sm" type="submit" data-i18n="profile_password_save">Şifrəni yenilə</button>
+                        <a href="/forgot-password" style="font-size:13px;color:var(--c-muted);text-decoration:underline;" data-i18n="forgot_password_link">Şifrəni unutmusunuz?</a>
+                      </div>
+                      <div id="passwordChangeMsg" style="font-size:13px;margin-top:6px;"></div>
+                    </form>
+                  </div>
+                </div>
+
+                <!-- Col 2: E-poçtu Dəyiş -->
+                <div class="m-cred-col" id="emailChangeSection">
+                  <div class="m-cred-box">
+                    <div class="m-section-subhead" style="margin-bottom:8px;">
+                      <i class="fa-regular fa-envelope"></i>
+                      <span data-i18n="account_email_change_title">E-poçtu dəyiş</span>
+                    </div>
+                    <p class="m-card-desc" style="margin-bottom:16px;" data-i18n="account_email_change_hint">E-poçt ünvanınızı yeniləmək üçün cari şifrənizi və yeni e-poçtunuzu daxil edin. Yeni ünvana 6 rəqəmli təsdiq kodu göndəriləcək.</p>
+
+                    <div style="display:flex;flex-direction:column;gap:12px;">
+                      <div class="m-form-group">
+                        <label class="m-adv-label" for="newEmailInput" data-i18n="account_new_email">Yeni e-poçt</label>
+                        <input type="email" id="newEmailInput" class="m-adv-input" placeholder="yeni@email.com" data-i18n-placeholder="account_new_email">
+                      </div>
+                      <div class="m-form-group">
+                        <label class="m-adv-label" for="emailChangePassword" data-i18n="account_current_pass">Cari şifrə</label>
+                        <input type="password" id="emailChangePassword" class="m-adv-input" data-i18n-placeholder="account_current_pass" placeholder="Cari şifrə">
+                      </div>
+                      <div>
+                        <button type="button" id="emailChangeBtn" class="m-cta m-cta--outline m-cta--sm" data-i18n="account_email_change_btn">Kod göndər</button>
+                      </div>
+                      <div id="emailConfirmWrap" class="d-none" style="gap:10px;align-items:center;margin-top:6px;">
+                        <input type="text" id="emailConfirmCode" class="m-adv-input font-monospace" inputmode="numeric" maxlength="6" placeholder="123456" style="text-align:center;letter-spacing:0.2em;max-width:140px;">
+                        <button type="button" id="emailConfirmBtn" class="m-cta m-cta--white m-cta--sm" data-i18n="account_email_confirm_btn">Təsdiqlə</button>
+                      </div>
+                    </div>
+                    <div id="securityMessage" style="font-size:13px;margin-top:12px;"></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- ==========================================
+             TAB 2: SECURITY (2FA & ACTIVE SESSIONS)
+             ========================================== -->
+        <div class="m-tab-panel" id="panel-security" role="tabpanel" aria-labelledby="tabBtnSecurity" hidden>
+
+          <!-- 1. 2FA Authentication Card -->
+          <section class="m-card" id="securitySection">
+            <div class="m-card-header">
+              <div class="m-card-title-wrap">
+                <div class="m-card-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div>
+                  <h2 class="m-card-h2" data-i18n="account_security_title">Təhlükəsizlik</h2>
+                  <div class="m-card-desc" data-i18n="account_security_subtitle">Hesabınızın təhlükəsizlik qatlarını tənzimləyin</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="m-card-body">
+              <div class="m-section-subhead">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+                <span data-i18n="account_2fa_title">İki faktorlu autentifikasiya (2FA)</span>
+              </div>
+
+              <div id="twofaStatus" class="m-card-desc" style="margin-bottom:16px;" data-i18n="account_2fa_loading">Yoxlanılır...</div>
+
+              <div id="twofaSetupWrap" class="d-none m-inner-box" style="margin-bottom:16px;">
+                <div style="display:flex;flex-direction:column;align-items:flex-start;gap:12px;">
+                  <img id="twofaQr" alt="2FA QR" style="border-radius:10px;border:1px solid var(--c-border);background:#fff;padding:8px;" width="180" height="180">
+                  <div style="font-size:12px;color:var(--c-muted);word-break:break-all;">
+                    <code id="twofaOtpauth" style="color:var(--c-white);background:rgba(255,255,255,0.06);padding:4px 8px;border-radius:6px;"></code>
+                  </div>
+                  <div style="display:flex;gap:10px;align-items:center;width:100%;max-width:340px;">
+                    <input type="text" id="twofaEnableCode" class="m-adv-input font-monospace" inputmode="numeric" maxlength="6" placeholder="123456" style="text-align:center;letter-spacing:0.2em;font-size:16px;">
+                    <button type="button" id="twofaEnableBtn" class="m-cta m-cta--white m-cta--sm" data-i18n="account_2fa_enable_btn">Aktivləşdir</button>
+                  </div>
+                </div>
+              </div>
+
+              <div id="twofaDisableWrap" class="d-none m-inner-box" style="margin-bottom:16px;">
+                <div style="display:flex;flex-direction:column;gap:10px;max-width:380px;">
+                  <input type="password" id="twofaDisablePassword" class="m-adv-input" data-i18n-placeholder="account_current_pass" placeholder="Cari şifrə">
+                  <div style="display:flex;gap:10px;">
+                    <input type="text" id="twofaDisableCode" class="m-adv-input font-monospace" inputmode="numeric" maxlength="6" placeholder="123456" style="text-align:center;letter-spacing:0.2em;font-size:16px;">
+                    <button type="button" id="twofaDisableBtn" class="m-cta--danger" data-i18n="account_2fa_disable_btn">Söndür</button>
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" id="twofaSetupBtn" class="m-cta m-cta--outline m-cta--sm d-none" data-i18n="account_2fa_setup_btn">2FA-nı qur</button>
+            </div>
+          </section>
+
+          <!-- 2. Active Sessions Card -->
+          <section class="m-card" id="activeSessionsSection">
+            <div class="m-card-header">
+              <div class="m-card-title-wrap">
+                <div class="m-card-icon"><i class="fa-solid fa-laptop-code"></i></div>
+                <div>
+                  <h2 class="m-card-h2" data-i18n="profile_sessions_title">Aktiv Sessiyalar</h2>
+                  <div class="m-card-desc" data-i18n="profile_sessions_subtitle">Hesabınıza daxil olan cihazları burada idarə edə bilərsiniz.</div>
+                </div>
+              </div>
+              <button id="revokeOtherSessionsBtn" type="button" class="m-cta--danger" data-i18n="profile_sessions_revoke_others">Digər sessiyaları bağla</button>
+            </div>
+            <div class="m-card-body">
+              <div id="activeSessionsMsg" style="font-size:13px;"></div>
+              <div id="activeSessionsList" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- ==========================================
+             TAB 3: BILLING & WORKSPACE
+             ========================================== -->
+        <div class="m-tab-panel" id="panel-billing" role="tabpanel" aria-labelledby="tabBtnBilling" hidden>
+
+          <!-- 1. Subscription Card -->
+          <section class="m-card" id="subscriptionSection">
+            <div class="m-card-header">
+              <div class="m-card-title-wrap">
+                <div class="m-card-icon"><i class="fa-solid fa-crown"></i></div>
+                <div>
+                  <h2 class="m-card-h2" data-i18n="account_sub_title">Abunəlik</h2>
+                  <div class="m-card-desc" data-i18n="account_sub_desc">Plan və ödəniş məlumatları</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="m-card-body">
+              <% if (plan && plan.tier === 'pro') { %>
+                <div class="m-inner-box">
+                  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+                    <span class="m-badge-pill m-badge-pill--pro">
+                      <i class="fa-solid fa-star"></i> <%= plan.status === 'paused' ? 'Paused' : 'PRO' %>
                     </span>
+                    <% if (plan.expires_at) { %>
+                      <span class="m-badge-pill m-badge-pill--muted">
+                        <span data-i18n="account_sub_expires">Bitmə tarixi:</span>&nbsp;<strong><%= new Date(plan.expires_at).toLocaleDateString() %></strong>
+                      </span>
+                    <% } %>
+                  </div>
+                  <p class="m-card-desc" style="margin-bottom:16px;" data-i18n="account_sub_manage_hint">Abunəliyi ləğv et, yenilə və ya kart məlumatını dəyiş.</p>
+                  <% if (!plan.polar_linked) { %>
+                    <div class="m-alert m-alert--warning" style="margin: 0 0 16px 0;">
+                      <i class="fa-solid fa-circle-info"></i>
+                      <span data-i18n="account_sub_manual_note">Bu Pro abunəliyi admin tərəfindən aktivləşdirilib; Polar idarəetməsi mövcud deyil.</span>
+                    </div>
+                  <% } %>
+                  <% if (showSubManage) { %>
+                    <button id="proManageBtn" type="button" class="m-cta m-cta--outline m-cta--sm" data-is-logged-in="true" data-i18n="pro_manage_cta">Abunəliyi idarə et</button>
                   <% } %>
                 </div>
-                <p class="m-card-desc" style="margin-bottom:16px;" data-i18n="account_sub_manage_hint">Abunəliyi ləğv et, yenilə və ya kart məlumatını dəyiş.</p>
-                <% if (!plan.polar_linked) { %>
-                  <div class="m-alert m-alert--warning" style="margin: 0 0 16px 0;">
-                    <i class="fa-solid fa-circle-info"></i>
-                    <span data-i18n="account_sub_manual_note">Bu Pro abunəliyi admin tərəfindən aktivləşdirilib; Polar idarəetməsi mövcud deyil.</span>
+              <% } else { %>
+                <div class="m-inner-box">
+                  <div style="margin-bottom:12px;">
+                    <span class="m-badge-pill m-badge-pill--muted" data-i18n="account_sub_free">Free plan</span>
                   </div>
-                <% } %>
-                <% if (showSubManage) { %>
-                  <button id="proManageBtn" type="button" class="m-cta m-cta--outline m-cta--sm" data-is-logged-in="true" data-i18n="pro_manage_cta">Abunəliyi idarə et</button>
-                <% } %>
-              </div>
-            <% } else { %>
-              <div class="m-inner-box">
-                <div style="margin-bottom:12px;">
-                  <span class="m-badge-pill m-badge-pill--muted" data-i18n="account_sub_free">Free plan</span>
+                  <p class="m-card-desc" style="margin-bottom:18px;" data-i18n="account_sub_free_hint">Pro imkanları üçün yüksəliş: limitsiz linklər, API, webhooklar və statistika.</p>
+                  <a href="/pricing" class="m-cta m-cta--white m-cta--sm" data-i18n="account_sub_upgrade">Pro-ya keç</a>
                 </div>
-                <p class="m-card-desc" style="margin-bottom:18px;" data-i18n="account_sub_free_hint">Pro imkanları üçün yüksəliş: limitsiz linklər, API, webhooklar və statistika.</p>
-                <a href="/pricing" class="m-cta m-cta--white m-cta--sm" data-i18n="account_sub_upgrade">Pro-ya keç</a>
-              </div>
-            <% } %>
-          </div>
-        </section>
-
-        <!-- 2. Workspace Card -->
-        <section class="m-card" id="workspaceSection">
-          <div class="m-card-header">
-            <div class="m-card-title-wrap">
-              <div class="m-card-icon"><i class="fa-solid fa-users"></i></div>
-              <div>
-                <h2 class="m-card-h2" data-i18n="ws_title">Workspace</h2>
-                <div class="m-card-desc" data-i18n="ws_account_hint">Komanda workspace-i və SSO (Okta) parametrlərini idarə edin. Workspace Pro planda mövcuddur.</div>
-              </div>
+              <% } %>
             </div>
-          </div>
-          <div class="m-card-body">
-            <a href="/workspaces" class="m-cta m-cta--outline m-cta--sm" data-i18n="ws_manage_btn">Workspace</a>
-          </div>
-        </section>
+          </section>
 
-        <!-- 3. Security Card (2FA & Email change) -->
-        <section class="m-card" id="securitySection">
-          <div class="m-card-header">
-            <div class="m-card-title-wrap">
-              <div class="m-card-icon"><i class="fa-solid fa-shield-halved"></i></div>
-              <div>
-                <h2 class="m-card-h2" data-i18n="account_security_title">Təhlükəsizlik</h2>
-                <div class="m-card-desc" data-i18n="account_security_subtitle">Hesabınızın təhlükəsizlik qatlarını tənzimləyin</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="m-card-body">
-            <!-- 2FA Section -->
-            <div class="m-section-subhead">
-              <i class="fa-solid fa-mobile-screen-button"></i>
-              <span data-i18n="account_2fa_title">İki faktorlu autentifikasiya (2FA)</span>
-            </div>
-
-            <div id="twofaStatus" class="m-card-desc" style="margin-bottom:16px;" data-i18n="account_2fa_loading">Yoxlanılır...</div>
-
-            <div id="twofaSetupWrap" class="d-none m-inner-box" style="margin-bottom:16px;">
-              <div style="display:flex;flex-direction:column;align-items:flex-start;gap:12px;">
-                <img id="twofaQr" alt="2FA QR" style="border-radius:10px;border:1px solid var(--c-border);background:#fff;padding:8px;" width="180" height="180">
-                <div style="font-size:12px;color:var(--c-muted);word-break:break-all;">
-                  <code id="twofaOtpauth" style="color:var(--c-white);background:rgba(255,255,255,0.06);padding:4px 8px;border-radius:6px;"></code>
-                </div>
-                <div style="display:flex;gap:10px;align-items:center;width:100%;max-width:340px;">
-                  <input type="text" id="twofaEnableCode" class="m-adv-input font-monospace" inputmode="numeric" maxlength="6" placeholder="123456" style="text-align:center;letter-spacing:0.2em;font-size:16px;">
-                  <button type="button" id="twofaEnableBtn" class="m-cta m-cta--white m-cta--sm" data-i18n="account_2fa_enable_btn">Aktivləşdir</button>
-                </div>
-              </div>
-            </div>
-
-            <div id="twofaDisableWrap" class="d-none m-inner-box" style="margin-bottom:16px;">
-              <div style="display:flex;flex-direction:column;gap:10px;max-width:380px;">
-                <input type="password" id="twofaDisablePassword" class="m-adv-input" data-i18n-placeholder="account_current_pass" placeholder="Cari şifrə">
-                <div style="display:flex;gap:10px;">
-                  <input type="text" id="twofaDisableCode" class="m-adv-input font-monospace" inputmode="numeric" maxlength="6" placeholder="123456" style="text-align:center;letter-spacing:0.2em;font-size:16px;">
-                  <button type="button" id="twofaDisableBtn" class="m-cta--danger" data-i18n="account_2fa_disable_btn">Söndür</button>
-                </div>
-              </div>
-            </div>
-
-            <button type="button" id="twofaSetupBtn" class="m-cta m-cta--outline m-cta--sm d-none" data-i18n="account_2fa_setup_btn">2FA-nı qur</button>
-
-            <hr class="m-divider-hairline">
-
-            <!-- Email Change Section -->
-            <div class="m-section-subhead">
-              <i class="fa-regular fa-envelope"></i>
-              <span data-i18n="account_email_change_title">E-poçtu dəyiş</span>
-            </div>
-
-            <div style="display:flex;flex-direction:column;gap:12px;max-width:440px;">
-              <div class="m-form-group">
-                <label class="m-adv-label" for="newEmailInput" data-i18n="account_new_email">Yeni e-poçt</label>
-                <input type="email" id="newEmailInput" class="m-adv-input" placeholder="yeni@email.com" data-i18n-placeholder="account_new_email">
-              </div>
-              <div class="m-form-group">
-                <label class="m-adv-label" for="emailChangePassword" data-i18n="account_current_pass">Cari şifrə</label>
-                <input type="password" id="emailChangePassword" class="m-adv-input" data-i18n-placeholder="account_current_pass" placeholder="Cari şifrə">
-              </div>
-              <div>
-                <button type="button" id="emailChangeBtn" class="m-cta m-cta--outline m-cta--sm" data-i18n="account_email_change_btn">Kod göndər</button>
-              </div>
-              <div id="emailConfirmWrap" class="d-none" style="gap:10px;align-items:center;margin-top:6px;">
-                <input type="text" id="emailConfirmCode" class="m-adv-input font-monospace" inputmode="numeric" maxlength="6" placeholder="123456" style="text-align:center;letter-spacing:0.2em;max-width:140px;">
-                <button type="button" id="emailConfirmBtn" class="m-cta m-cta--white m-cta--sm" data-i18n="account_email_confirm_btn">Təsdiqlə</button>
-              </div>
-            </div>
-            <div id="securityMessage" style="font-size:13px;margin-top:12px;"></div>
-          </div>
-        </section>
-
-        <!-- 4. Profile Settings Card -->
-        <section class="m-card" id="profileSettingsSection">
-          <div class="m-card-header">
-            <div class="m-card-title-wrap">
-              <div class="m-card-icon"><i class="fa-solid fa-sliders"></i></div>
-              <div>
-                <h2 class="m-card-h2" data-i18n="profile_settings_title">Profil Parametrləri</h2>
-                <div class="m-card-desc" data-i18n="profile_settings_subtitle">Dil, tema və bildiriş tənzimləmələri</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="m-card-body">
-            <form id="profileSettingsForm">
-              <div class="m-form-group">
-                <label class="m-adv-label" for="profileEmail" data-i18n="profile_email">E-poçt</label>
-                <input id="profileEmail" type="email" class="m-adv-input" disabled>
-              </div>
-
-              <div class="m-form-row">
-                <div class="m-form-group">
-                  <label class="m-adv-label" for="profileLang" data-i18n="profile_lang">Dil</label>
-                  <select id="profileLang" class="m-adv-input">
-                    <option value="az" data-i18n="lang_az">AZ</option>
-                    <option value="tr" data-i18n="lang_tr">TR</option>
-                    <option value="en" data-i18n="lang_en">EN</option>
-                  </select>
-                </div>
-                <div class="m-form-group">
-                  <label class="m-adv-label" for="profileTheme" data-i18n="profile_theme">Tema</label>
-                  <select id="profileTheme" class="m-adv-input">
-                    <option value="light" data-i18n="theme_light">Açıq</option>
-                    <option value="dark" data-i18n="theme_dark">Qaranlıq</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="m-form-group" style="margin-top:8px;">
-                <label class="m-adv-label" data-i18n="profile_notify_title">Bildiriş Seçimləri</label>
-                <div class="m-checkbox-group">
-                  <label class="m-checkbox-label" for="notifyReport">
-                    <input type="checkbox" id="notifyReport">
-                    <span data-i18n="notif_report">Linkiniz şikayət edildi</span>
-                  </label>
-                  <label class="m-checkbox-label" for="notifyLimit">
-                    <input type="checkbox" id="notifyLimit">
-                    <span data-i18n="notif_limit">Klik limiti doldu</span>
-                  </label>
-                  <label class="m-checkbox-label" for="notifyDisabled">
-                    <input type="checkbox" id="notifyDisabled">
-                    <span data-i18n="notif_disabled">Link deaktiv edildi</span>
-                  </label>
-                </div>
-              </div>
-
-              <div style="margin-top:24px;">
-                <button class="m-cta m-cta--white m-cta--sm" type="submit" data-i18n="profile_save">Yadda saxla</button>
-              </div>
-              <div id="profileSettingsMsg" style="font-size:13px;margin-top:10px;"></div>
-            </form>
-
-            <hr class="m-divider-hairline">
-
-            <!-- Custom Domain Section -->
-            <section id="customDomainSection" class="custom-domain-section">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+          <!-- 2. Workspace Card -->
+          <section class="m-card" id="workspaceSection">
+            <div class="m-card-header">
+              <div class="m-card-title-wrap">
+                <div class="m-card-icon"><i class="fa-solid fa-users"></i></div>
                 <div>
-                  <div class="m-section-subhead">
-                    <i class="fa-solid fa-globe"></i>
-                    <span data-i18n="custom_domain_title">Xüsusi Domenlər</span>
-                  </div>
-                  <p class="m-card-desc" data-i18n="custom_domain_subtitle">Öz domeninizlə qısa link yaradın və tam nəzarət edin.</p>
+                  <h2 class="m-card-h2" data-i18n="ws_title">Workspace</h2>
+                  <div class="m-card-desc" data-i18n="ws_account_hint">Komanda workspace-i və SSO (Okta) parametrlərini idarə edin. Workspace Pro planda mövcuddur.</div>
                 </div>
-                <span id="customDomainTargetBadge" class="m-badge-pill m-badge-pill--muted font-monospace">CNAME target: -</span>
               </div>
+            </div>
+            <div class="m-card-body">
+              <a href="/workspaces" class="m-cta m-cta--outline m-cta--sm" data-i18n="ws_manage_btn">Workspace</a>
+            </div>
+          </section>
 
+        </div>
+
+        <!-- ==========================================
+             TAB 4: DEVELOPER (DOMAINS & PRO API SUITE)
+             ========================================== -->
+        <div class="m-tab-panel" id="panel-developer" role="tabpanel" aria-labelledby="tabBtnDeveloper" hidden>
+
+          <!-- 1. Custom Domains Card -->
+          <section class="m-card" id="customDomainSection">
+            <div class="m-card-header">
+              <div class="m-card-title-wrap">
+                <div class="m-card-icon"><i class="fa-solid fa-globe"></i></div>
+                <div>
+                  <h2 class="m-card-h2" data-i18n="custom_domain_title">Xüsusi Domenlər</h2>
+                  <div class="m-card-desc" data-i18n="custom_domain_subtitle">Öz domeninizlə qısa link yaradın və tam nəzarət edin.</div>
+                </div>
+              </div>
+              <span id="customDomainTargetBadge" class="m-badge-pill m-badge-pill--muted font-monospace">CNAME target: -</span>
+            </div>
+
+            <div class="m-card-body">
               <form id="customDomainForm" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:18px;">
                 <div style="flex:1;min-width:260px;">
                   <label for="customDomainInput" class="m-adv-label" data-i18n="custom_domain_input_label">Domen və ya subdomen</label>
@@ -839,22 +1158,21 @@
 
               <div id="customDomainMsg" style="font-size:13px;margin-top:12px;"></div>
               <div id="customDomainList" style="display:flex;flex-direction:column;gap:10px;margin-top:16px;"></div>
-            </section>
+            </div>
+          </section>
 
-            <hr class="m-divider-hairline">
-
-            <!-- Pro Panel Section (API Keys, Webhooks, Rate limit) -->
-            <section id="proPanelSection" class="pro-panel-section">
-              <div class="pro-head" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
-                <div class="pro-head-text">
-                  <div class="m-section-subhead">
-                    <i class="fa-solid fa-crown" style="color:var(--c-white);"></i>
-                    <span data-i18n="pro_panel_title">Pro Paneli</span>
-                  </div>
-                  <p class="m-card-desc" style="margin-bottom:10px;" data-i18n="pro_panel_subtitle">Pro planınızla API açarları ve webhook axınlarını idarə edin.</p>
-                  <a href="/api-guide" class="m-cta m-cta--outline m-cta--sm" data-i18n="pro_panel_guide_btn">API necə istifadə olunur?</a>
+          <!-- 2. Pro Developer Panel Card -->
+          <section class="m-card" id="proPanelSection">
+            <div class="m-card-header">
+              <div class="m-card-title-wrap">
+                <div class="m-card-icon"><i class="fa-solid fa-code"></i></div>
+                <div>
+                  <h2 class="m-card-h2" data-i18n="pro_panel_title">Pro Paneli</h2>
+                  <div class="m-card-desc" data-i18n="pro_panel_subtitle">Pro planınızla API açarları ve webhook axınlarını idarə edin.</div>
                 </div>
-
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <a href="/api-guide" class="m-cta m-cta--outline m-cta--sm" data-i18n="pro_panel_guide_btn">API necə istifadə olunur?</a>
                 <% if (plan && plan.tier === 'pro' && plan.is_active) { %>
                   <span id="proPlanBadge" class="m-badge-pill m-badge-pill--success" data-i18n="pro_badge_active">Pro Active</span>
                 <% } else if (plan && plan.tier === 'pro' && plan.status === 'paused') { %>
@@ -865,7 +1183,9 @@
                   <span id="proPlanBadge" class="m-badge-pill m-badge-pill--muted" data-i18n="pro_badge_free">Free Plan</span>
                 <% } %>
               </div>
+            </div>
 
+            <div class="m-card-body">
               <div id="proPlanMeta" style="font-size:13px;color:var(--c-muted);margin-bottom:8px;"></div>
               <div id="proPanelMsg" style="font-size:13px;margin-bottom:8px;"></div>
 
@@ -1036,58 +1356,10 @@
                 </div>
 
               </div>
-            </section>
+            </div>
+          </section>
 
-            <hr class="m-divider-hairline">
-
-            <!-- Active Sessions Section -->
-            <section id="activeSessionsSection" class="active-sessions-section">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
-                <div>
-                  <div class="m-section-subhead">
-                    <i class="fa-solid fa-shield-halved"></i>
-                    <span data-i18n="profile_sessions_title">Aktiv Sessiyalar</span>
-                  </div>
-                  <p class="m-card-desc" data-i18n="profile_sessions_subtitle">Hesabınıza daxil olan cihazları burada idarə edə bilərsiniz.</p>
-                </div>
-                <button id="revokeOtherSessionsBtn" type="button" class="m-cta--danger" data-i18n="profile_sessions_revoke_others">Digər sessiyaları bağla</button>
-              </div>
-              <div id="activeSessionsMsg" style="font-size:13px;"></div>
-              <div id="activeSessionsList" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
-            </section>
-
-            <hr class="m-divider-hairline">
-
-            <!-- Password Change Section -->
-            <section>
-              <div class="m-section-subhead">
-                <i class="fa-solid fa-key"></i>
-                <span id="passwordSectionTitle" data-i18n="profile_password_title">Şifrə Dəyişdir</span>
-              </div>
-
-              <form id="passwordChangeForm" style="display:flex;flex-direction:column;gap:12px;max-width:440px;">
-                <div id="currentPasswordGroup" class="m-form-group">
-                  <label for="currentPassword" class="m-adv-label" data-i18n="profile_current_password">Cari şifrə</label>
-                  <input type="password" id="currentPassword" class="m-adv-input" data-i18n-placeholder="profile_current_password" placeholder="Cari şifrə">
-                </div>
-                <div class="m-form-group">
-                  <label for="newPassword" class="m-adv-label" data-i18n="profile_new_password">Yeni şifrə</label>
-                  <input type="password" id="newPassword" class="m-adv-input" data-i18n-placeholder="profile_new_password" placeholder="Yeni şifrə">
-                </div>
-                <div class="m-form-group">
-                  <label for="newPasswordConfirm" class="m-adv-label" data-i18n="profile_new_password_confirm">Yeni şifrə (təkrar)</label>
-                  <input type="password" id="newPasswordConfirm" class="m-adv-input" data-i18n-placeholder="profile_new_password_confirm" placeholder="Yeni şifrə (təkrar)">
-                </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:6px;">
-                  <button id="passwordActionBtn" class="m-cta m-cta--outline m-cta--sm" type="submit" data-i18n="profile_password_save">Şifrəni yenilə</button>
-                  <a href="/forgot-password" style="font-size:13px;color:var(--c-muted);text-decoration:underline;" data-i18n="forgot_password_link">Şifrəni unutmusunuz?</a>
-                </div>
-                <div id="passwordChangeMsg" style="font-size:13px;margin-top:6px;"></div>
-              </form>
-            </section>
-
-          </div>
-        </section>
+        </div>
 
       </div>
     </div>
@@ -1270,6 +1542,114 @@
               }
             })
             .catch(function () { showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
+        });
+      }
+    })();
+  </script>
+
+  <!-- Account Linear Tab Controller -->
+  <script nonce="<%= nonce %>">
+    (function () {
+      var tabNav = document.querySelector('.m-account-tabs-nav');
+      if (!tabNav) return;
+
+      var tabButtons = tabNav.querySelectorAll('.m-account-tab-btn');
+      var tabIndicator = document.getElementById('tabIndicator');
+      var tabPanels = document.querySelectorAll('.m-tab-panel');
+
+      function updateIndicator(activeBtn) {
+        if (!tabIndicator || !activeBtn) return;
+        var track = activeBtn.parentElement;
+        if (!track) return;
+        var trackRect = track.getBoundingClientRect();
+        var btnRect = activeBtn.getBoundingClientRect();
+        var left = btnRect.left - trackRect.left + track.scrollLeft;
+        var width = btnRect.width;
+        tabIndicator.style.left = left + 'px';
+        tabIndicator.style.width = width + 'px';
+      }
+
+      function switchTab(targetTabId, updateHash) {
+        var activeBtn = null;
+        tabButtons.forEach(function (btn) {
+          var isTarget = btn.getAttribute('data-tab-target') === targetTabId;
+          btn.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+          btn.classList.toggle('is-active', isTarget);
+          if (isTarget) activeBtn = btn;
+        });
+
+        if (!activeBtn && tabButtons.length > 0) {
+          activeBtn = tabButtons[0];
+          targetTabId = activeBtn.getAttribute('data-tab-target');
+          activeBtn.setAttribute('aria-selected', 'true');
+          activeBtn.classList.add('is-active');
+        }
+
+        tabPanels.forEach(function (panel) {
+          var isTarget = panel.id === 'panel-' + targetTabId;
+          if (isTarget) {
+            panel.removeAttribute('hidden');
+            panel.classList.add('is-active');
+          } else {
+            panel.setAttribute('hidden', '');
+            panel.classList.remove('is-active');
+          }
+        });
+
+        if (activeBtn) {
+          updateIndicator(activeBtn);
+          if (tabNav.scrollWidth > tabNav.clientWidth) {
+            var btnLeft = activeBtn.offsetLeft;
+            var btnWidth = activeBtn.offsetWidth;
+            var navWidth = tabNav.clientWidth;
+            tabNav.scrollTo({ left: btnLeft - (navWidth / 2) + (btnWidth / 2), behavior: 'smooth' });
+          }
+        }
+
+        if (updateHash && window.history && window.history.replaceState) {
+          window.history.replaceState(null, '', '#' + targetTabId);
+        }
+      }
+
+      tabButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var target = btn.getAttribute('data-tab-target');
+          switchTab(target, true);
+        });
+      });
+
+      // Initial tab selection from URL hash (e.g. #security, #billing, #developer)
+      function handleInitialTab() {
+        var hash = (window.location.hash || '').replace('#', '').trim().toLowerCase();
+        var validTabs = ['general', 'security', 'billing', 'developer'];
+        if (validTabs.indexOf(hash) !== -1) {
+          switchTab(hash, false);
+        } else {
+          switchTab('general', false);
+        }
+      }
+
+      window.addEventListener('hashchange', handleInitialTab);
+      handleInitialTab();
+
+      // Recalculate indicator position on window resize
+      window.addEventListener('resize', function () {
+        var activeBtn = tabNav.querySelector('.m-account-tab-btn.is-active');
+        if (activeBtn) updateIndicator(activeBtn);
+      });
+
+      // Handle direct shortcut from profile email to credentials
+      var editEmailShortcut = document.getElementById('editEmailShortcut');
+      if (editEmailShortcut) {
+        editEmailShortcut.addEventListener('click', function (e) {
+          e.preventDefault();
+          switchTab('general', true);
+          var creds = document.getElementById('credentialsSection');
+          if (creds) {
+            creds.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            var emailInput = document.getElementById('newEmailInput');
+            if (emailInput) setTimeout(function () { emailInput.focus(); }, 300);
+          }
         });
       }
     })();
