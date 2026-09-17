@@ -1514,6 +1514,17 @@
   border-color: var(--c-border-hi);
   transform: translateY(-1px);
 }
+.ovx .m-cta--danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+.ovx .m-cta--danger:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: #ef4444;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
 .ovx .m-cta--sm { font-size: 13px; padding: 8px 16px; }
 
 /* Plain text link */

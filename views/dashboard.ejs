@@ -23,32 +23,52 @@
     <style>
       .ovx .m-adv-input {
         width: 100%;
+        height: 38px;
+        box-sizing: border-box;
         background: var(--c-surface-2, #181818);
-        border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+        border: 1px solid var(--c-border, rgba(255, 255, 255, 0.12));
         color: var(--c-text, #ffffff);
-        padding: 9px 14px;
+        padding: 8px 14px;
         border-radius: 9px;
         font-size: 13.5px;
-        transition: border-color 0.2s;
+        transition: border-color 0.2s, box-shadow 0.2s;
         font-family: inherit;
+        color-scheme: dark;
       }
       .ovx .m-adv-input:focus {
         outline: none;
-        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.3));
+        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.35));
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
       }
       .ovx .m-adv-select {
-        background: var(--c-surface-2, #181818);
-        border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
-        color: var(--c-text, #ffffff);
-        padding: 8px 14px;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        color-scheme: dark;
+        background: var(--c-surface-2, #181818) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 12px center !important;
+        border: 1px solid var(--c-border, rgba(255, 255, 255, 0.12)) !important;
+        color: var(--c-text, #f0f0f0) !important;
+        padding: 8px 34px 8px 14px;
         border-radius: 9px;
         font-size: 13px;
         font-family: inherit;
         cursor: pointer;
+        outline: none;
+        height: 38px;
+        box-sizing: border-box;
+        transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+      }
+      .ovx .m-adv-select:hover {
+        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.25)) !important;
       }
       .ovx .m-adv-select:focus {
         outline: none;
-        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.3));
+        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.35)) !important;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+      }
+      .ovx .m-adv-select option {
+        background-color: #181818 !important;
+        color: #f0f0f0 !important;
       }
       .ovx .m-adv-label {
         font-size: 11.5px;
@@ -59,29 +79,78 @@
         margin-bottom: 6px;
         display: block;
       }
+      .ovx button.m-cta,
+      .ovx a.m-cta {
+        font-family: inherit;
+        outline: none;
+        box-sizing: border-box;
+      }
+      .ovx .m-cta--danger {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: rgba(239, 68, 68, 0.12) !important;
+        color: #f87171 !important;
+        border: 1px solid rgba(239, 68, 68, 0.35) !important;
+        padding: 8px 16px;
+        border-radius: 9px;
+        font-size: 13px;
+        font-weight: 500;
+        height: 38px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .ovx .m-cta--danger:hover {
+        background: rgba(239, 68, 68, 0.22) !important;
+        border-color: #ef4444 !important;
+        color: #ffffff !important;
+        transform: translateY(-1px);
+      }
       .ovx .m-table-actions {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         flex-wrap: nowrap;
+        justify-content: flex-end;
       }
       .ovx .m-btn-icon {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 6px 10px;
+        width: 32px;
+        height: 32px;
+        padding: 0;
         border-radius: 8px;
-        border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+        border: 1px solid var(--c-border, rgba(255, 255, 255, 0.12));
         background: var(--c-surface-2, #181818);
-        color: var(--c-muted, #a3a3a3);
-        font-size: 12.5px;
+        color: #d4d4d4 !important;
+        font-size: 13px;
         text-decoration: none;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.18s ease;
+        flex-shrink: 0;
+        box-sizing: border-box;
+        line-height: 1;
+      }
+      .ovx .m-btn-icon i {
+        color: inherit !important;
+        font-size: 13px;
       }
       .ovx .m-btn-icon:hover {
-        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.25));
-        color: #ffffff;
+        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.3));
+        background: rgba(255, 255, 255, 0.12);
+        color: #ffffff !important;
+        transform: translateY(-1px);
+      }
+      .ovx .m-btn-icon--danger {
+        color: #f87171 !important;
+        border-color: rgba(239, 68, 68, 0.25) !important;
+      }
+      .ovx .m-btn-icon--danger:hover {
+        background: rgba(239, 68, 68, 0.2) !important;
+        border-color: #ef4444 !important;
+        color: #ffffff !important;
+        transform: translateY(-1px);
       }
       .ovx .m-checkbox {
         width: 16px;
@@ -143,7 +212,7 @@
             <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
           </div>
           <h1 style="font-size: clamp(28px, 4vw, 36px); font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin: 0 0 8px 0;" data-i18n="dashboard_title">Dashboard</h1>
-          <p style="font-size: 15px; color: var(--c-muted, #a3a3a3); margin: 0;" data-i18n="dashboard_search_placeholder">Qısa / Orijinal Link</p>
+          <p style="font-size: 15px; color: var(--c-muted, #a3a3a3); margin: 0;" data-i18n="dashboard_subtitle">Bütün linklərinizi, analitikanızı və iş sahələrinizi idarə edin.</p>
         </div>
 
         <!-- 2. Bento Statistics Grid -->
@@ -236,13 +305,13 @@
                 <i class="fa-solid fa-users-gear"></i>
                 <span data-i18n="ws_manage_btn">Workspace</span>
               </a>
-              <a href="/api/user/export?format=csv" class="m-cta m-cta--outline m-cta--sm" data-i18n="dashboard_export_csv">
-                <i class="fa-solid fa-file-csv"></i> CSV
+              <a href="/api/user/export?format=csv" class="m-cta m-cta--outline m-cta--sm">
+                <i class="fa-solid fa-file-csv"></i> <span data-i18n="dashboard_export_csv">CSV</span>
               </a>
-              <button id="bulkImportBtn" type="button" class="m-cta m-cta--outline m-cta--sm" data-i18n="dashboard_import_btn">
+              <button id="bulkImportBtn" type="button" class="m-cta m-cta--outline m-cta--sm">
                 <i class="fa-solid fa-file-import"></i> <span data-i18n="dashboard_import_btn">Toplu import</span>
               </button>
-              <button id="bulkDeleteBtn" type="button" class="m-cta m-cta--danger m-cta--sm" data-i18n="bulk_delete_btn">
+              <button id="bulkDeleteBtn" type="button" class="m-cta m-cta--danger m-cta--sm">
                 <i class="fa-solid fa-trash-can"></i> <span data-i18n="bulk_delete_btn">Seçilənləri sil</span>
               </button>
             </div>
@@ -388,7 +457,7 @@
                           <form method="POST" action="/api/user/delete" style="display: inline-block; margin: 0;">
                             <input type="hidden" name="short" value="<%= shortCode %>" />
                             <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                            <button type="submit" class="m-btn-icon" style="color: #f87171; border-color: rgba(239, 68, 68, 0.2);" aria-label="Delete" title="Sil">
+                            <button type="submit" class="m-btn-icon m-btn-icon--danger" aria-label="Delete" title="Sil">
                               <i class="fa-solid fa-trash-can"></i>
                             </button>
                           </form>
@@ -535,11 +604,11 @@
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
                 <strong style="color: #ffffff;" data-i18n="dashboard_import_created_links">Yaradılan linklər</strong>
                 <div style="display: flex; gap: 6px;">
-                  <button type="button" id="bulkImportCopyAll" class="m-cta m-cta--outline m-cta--sm" data-i18n="dashboard_import_copy_all">
-                    <i class="fa-solid fa-copy me-1"></i>Hamısını kopyala
+                  <button type="button" id="bulkImportCopyAll" class="m-cta m-cta--outline m-cta--sm">
+                    <i class="fa-solid fa-copy me-1"></i><span data-i18n="dashboard_import_copy_all">Hamısını kopyala</span>
                   </button>
-                  <button type="button" id="bulkImportDownloadCsv" class="m-cta m-cta--white m-cta--sm" data-i18n="dashboard_import_download_csv">
-                    <i class="fa-solid fa-file-csv me-1"></i>CSV yüklə
+                  <button type="button" id="bulkImportDownloadCsv" class="m-cta m-cta--white m-cta--sm">
+                    <i class="fa-solid fa-file-csv me-1"></i><span data-i18n="dashboard_import_download_csv">CSV yüklə</span>
                   </button>
                 </div>
               </div>
