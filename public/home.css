@@ -6030,5 +6030,141 @@ body.modal-open {
   pointer-events: none;
 }
 
+/* Monolith Dashboard Advanced Form Controls & Selects */
+.ovx .m-adv-input {
+  width: 100%;
+  height: 38px;
+  box-sizing: border-box;
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-size: 13.5px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+  color-scheme: dark;
+  outline: none;
+}
+.ovx .m-adv-input:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.ovx .m-adv-input:focus {
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+.ovx .m-adv-input::placeholder {
+  color: #737373;
+}
+
+.ovx select.m-adv-select,
+.ovx .m-adv-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  color-scheme: dark;
+  background: #141414 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23d4d4d4' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 12px center;
+  background-color: #141414;
+  background-size: 12px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  padding: 8px 36px 8px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  height: 38px;
+  box-sizing: border-box;
+  line-height: 1.4;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+.ovx select.m-adv-select:hover,
+.ovx .m-adv-select:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background-color: #1a1a1a;
+}
+.ovx select.m-adv-select:focus,
+.ovx .m-adv-select:focus {
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+.ovx select.m-adv-select option,
+.ovx .m-adv-select option {
+  background-color: #141414;
+  color: #ffffff;
+  padding: 8px 12px;
+}
+
+/* Monolith Table Action Buttons */
+.ovx .m-table-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+.ovx .m-btn-icon,
+.ovx button.m-btn-icon,
+.ovx a.m-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f0f0f0;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  line-height: 1;
+  outline: none;
+}
+.ovx .m-btn-icon i,
+.ovx button.m-btn-icon i,
+.ovx a.m-btn-icon i {
+  color: inherit;
+  font-size: 13px;
+  pointer-events: none;
+  line-height: 1;
+}
+.ovx .m-btn-icon:hover,
+.ovx button.m-btn-icon:hover,
+.ovx a.m-btn-icon:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+.ovx .m-btn-icon:focus-visible,
+.ovx button.m-btn-icon:focus-visible,
+.ovx a.m-btn-icon:focus-visible {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+.ovx .m-btn-icon--danger,
+.ovx button.m-btn-icon--danger {
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+}
+.ovx .m-btn-icon--danger:hover,
+.ovx button.m-btn-icon--danger:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+
 
 

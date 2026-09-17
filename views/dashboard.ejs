@@ -22,53 +22,68 @@
 
     <style>
       .ovx .m-adv-input {
-        width: 100%;
-        height: 38px;
-        box-sizing: border-box;
-        background: var(--c-surface-2, #181818);
-        border: 1px solid var(--c-border, rgba(255, 255, 255, 0.12));
-        color: var(--c-text, #ffffff);
-        padding: 8px 14px;
-        border-radius: 9px;
-        font-size: 13.5px;
-        transition: border-color 0.2s, box-shadow 0.2s;
-        font-family: inherit;
-        color-scheme: dark;
+        width: 100% !important;
+        height: 38px !important;
+        box-sizing: border-box !important;
+        background: #141414 !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        color: #ffffff !important;
+        padding: 8px 14px !important;
+        border-radius: 9px !important;
+        font-size: 13.5px !important;
+        transition: border-color 0.2s, box-shadow 0.2s !important;
+        font-family: inherit !important;
+        color-scheme: dark !important;
+        outline: none !important;
+      }
+      .ovx .m-adv-input:hover {
+        border-color: rgba(255, 255, 255, 0.25) !important;
       }
       .ovx .m-adv-input:focus {
-        outline: none;
-        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.35));
-        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.5) !important;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1) !important;
       }
+      .ovx .m-adv-input::placeholder {
+        color: #737373 !important;
+      }
+      .ovx select.m-adv-select,
       .ovx .m-adv-select {
-        appearance: none;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        color-scheme: dark;
-        background: var(--c-surface-2, #181818) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 12px center !important;
-        border: 1px solid var(--c-border, rgba(255, 255, 255, 0.12)) !important;
-        color: var(--c-text, #f0f0f0) !important;
-        padding: 8px 34px 8px 14px;
-        border-radius: 9px;
-        font-size: 13px;
-        font-family: inherit;
-        cursor: pointer;
-        outline: none;
-        height: 38px;
-        box-sizing: border-box;
-        transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        color-scheme: dark !important;
+        background: #141414 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23d4d4d4' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 12px center !important;
+        background-color: #141414 !important;
+        background-size: 12px 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        color: #ffffff !important;
+        padding: 8px 36px 8px 14px !important;
+        border-radius: 9px !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        font-family: inherit !important;
+        cursor: pointer !important;
+        outline: none !important;
+        height: 38px !important;
+        box-sizing: border-box !important;
+        line-height: 1.4 !important;
+        transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s !important;
       }
+      .ovx select.m-adv-select:hover,
       .ovx .m-adv-select:hover {
-        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.25)) !important;
+        border-color: rgba(255, 255, 255, 0.35) !important;
+        background-color: #1a1a1a !important;
       }
+      .ovx select.m-adv-select:focus,
       .ovx .m-adv-select:focus {
-        outline: none;
-        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.35)) !important;
-        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.5) !important;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1) !important;
       }
+      .ovx select.m-adv-select option,
       .ovx .m-adv-select option {
-        background-color: #181818 !important;
-        color: #f0f0f0 !important;
+        background-color: #141414 !important;
+        color: #ffffff !important;
+        padding: 8px 12px !important;
       }
       .ovx .m-adv-label {
         font-size: 11.5px;
@@ -85,72 +100,156 @@
         outline: none;
         box-sizing: border-box;
       }
-      .ovx .m-cta--danger {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        background: rgba(239, 68, 68, 0.12) !important;
-        color: #f87171 !important;
-        border: 1px solid rgba(239, 68, 68, 0.35) !important;
-        padding: 8px 16px;
-        border-radius: 9px;
-        font-size: 13px;
-        font-weight: 500;
-        height: 38px;
-        cursor: pointer;
-        transition: all 0.2s ease;
+      .ovx .m-dash-panel-header .m-cta--outline,
+      .ovx button.m-cta--outline,
+      .ovx a.m-cta--outline {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        color: #e5e5e5 !important;
+        padding: 0 14px !important;
+        border-radius: 9px !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        height: 38px !important;
+        box-sizing: border-box !important;
+        cursor: pointer !important;
+        text-decoration: none !important;
+        transition: all 0.18s ease !important;
+        white-space: nowrap !important;
+        outline: none !important;
       }
-      .ovx .m-cta--danger:hover {
-        background: rgba(239, 68, 68, 0.22) !important;
+      .ovx .m-dash-panel-header .m-cta--outline i,
+      .ovx button.m-cta--outline i,
+      .ovx a.m-cta--outline i {
+        color: #a3a3a3 !important;
+        font-size: 13px !important;
+        transition: color 0.18s ease !important;
+      }
+      .ovx .m-dash-panel-header .m-cta--outline:hover,
+      .ovx button.m-cta--outline:hover,
+      .ovx a.m-cta--outline:hover {
+        background: rgba(255, 255, 255, 0.12) !important;
+        border-color: rgba(255, 255, 255, 0.3) !important;
+        color: #ffffff !important;
+        transform: translateY(-1px) !important;
+      }
+      .ovx .m-dash-panel-header .m-cta--outline:hover i,
+      .ovx button.m-cta--outline:hover i,
+      .ovx a.m-cta--outline:hover i {
+        color: #ffffff !important;
+      }
+      .ovx .m-cta--danger,
+      .ovx button.m-cta--danger,
+      .ovx a.m-cta--danger {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        background: rgba(239, 68, 68, 0.15) !important;
+        color: #fca5a5 !important;
+        border: 1px solid rgba(239, 68, 68, 0.4) !important;
+        padding: 0 16px !important;
+        border-radius: 9px !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        height: 38px !important;
+        box-sizing: border-box !important;
+        cursor: pointer !important;
+        transition: all 0.18s ease !important;
+        white-space: nowrap !important;
+        text-decoration: none !important;
+        outline: none !important;
+      }
+      .ovx .m-cta--danger i,
+      .ovx button.m-cta--danger i,
+      .ovx a.m-cta--danger i {
+        color: #ef4444 !important;
+        font-size: 13px !important;
+        transition: color 0.18s ease !important;
+      }
+      .ovx .m-cta--danger:hover,
+      .ovx button.m-cta--danger:hover,
+      .ovx a.m-cta--danger:hover {
+        background: #ef4444 !important;
         border-color: #ef4444 !important;
         color: #ffffff !important;
-        transform: translateY(-1px);
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35) !important;
+      }
+      .ovx .m-cta--danger:hover i,
+      .ovx button.m-cta--danger:hover i,
+      .ovx a.m-cta--danger:hover i {
+        color: #ffffff !important;
       }
       .ovx .m-table-actions {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: nowrap;
-        justify-content: flex-end;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-end !important;
       }
-      .ovx .m-btn-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        padding: 0;
-        border-radius: 8px;
-        border: 1px solid var(--c-border, rgba(255, 255, 255, 0.12));
-        background: var(--c-surface-2, #181818);
-        color: #d4d4d4 !important;
-        font-size: 13px;
-        text-decoration: none;
-        cursor: pointer;
-        transition: all 0.18s ease;
-        flex-shrink: 0;
-        box-sizing: border-box;
-        line-height: 1;
+      .ovx .m-btn-icon,
+      .ovx button.m-btn-icon,
+      .ovx a.m-btn-icon {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        padding: 0 !important;
+        border-radius: 8px !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+        color: #f0f0f0 !important;
+        font-size: 13px !important;
+        text-decoration: none !important;
+        cursor: pointer !important;
+        transition: all 0.18s ease !important;
+        flex-shrink: 0 !important;
+        box-sizing: border-box !important;
+        line-height: 1 !important;
+        outline: none !important;
       }
-      .ovx .m-btn-icon i {
+      .ovx .m-btn-icon i,
+      .ovx button.m-btn-icon i,
+      .ovx a.m-btn-icon i {
         color: inherit !important;
-        font-size: 13px;
+        font-size: 13px !important;
+        pointer-events: none !important;
+        line-height: 1 !important;
       }
-      .ovx .m-btn-icon:hover {
-        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.3));
-        background: rgba(255, 255, 255, 0.12);
+      .ovx .m-btn-icon:hover,
+      .ovx button.m-btn-icon:hover,
+      .ovx a.m-btn-icon:hover {
+        border-color: rgba(255, 255, 255, 0.35) !important;
+        background: rgba(255, 255, 255, 0.14) !important;
         color: #ffffff !important;
-        transform: translateY(-1px);
+        transform: translateY(-1px) !important;
       }
-      .ovx .m-btn-icon--danger {
+      .ovx .m-btn-icon:focus-visible,
+      .ovx button.m-btn-icon:focus-visible,
+      .ovx a.m-btn-icon:focus-visible {
+        border-color: #ffffff !important;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2) !important;
+      }
+      .ovx .m-btn-icon--danger,
+      .ovx button.m-btn-icon--danger {
         color: #f87171 !important;
-        border-color: rgba(239, 68, 68, 0.25) !important;
+        border-color: rgba(239, 68, 68, 0.3) !important;
+        background: rgba(239, 68, 68, 0.08) !important;
       }
-      .ovx .m-btn-icon--danger:hover {
-        background: rgba(239, 68, 68, 0.2) !important;
+      .ovx .m-btn-icon--danger:hover,
+      .ovx button.m-btn-icon--danger:hover {
+        background: #ef4444 !important;
         border-color: #ef4444 !important;
         color: #ffffff !important;
-        transform: translateY(-1px);
+        transform: translateY(-1px) !important;
       }
       .ovx .m-checkbox {
         width: 16px;
@@ -265,9 +364,9 @@
               <input id="dashboardQuickAlias" class="m-adv-input" type="text" maxlength="50" placeholder="kampaniya-2026" data-i18n-placeholder="ws_quick_alias_placeholder" />
             </div>
             <div style="min-width: 120px;">
-              <button type="submit" class="m-cta m-cta--white m-cta--sm" style="width: 100%; height: 40px; justify-content: center;" data-i18n="ws_quick_create_btn">
+              <button type="submit" class="m-cta m-cta--white m-cta--sm" style="width: 100%; height: 40px; justify-content: center;">
                 <i class="fa-solid fa-bolt"></i>
-                <span>Qısalt</span>
+                <span data-i18n="ws_quick_create_btn">Qısalt</span>
               </button>
             </div>
             <div style="width: 100%;"><div id="dashboardQuickMsg" class="small"></div></div>
@@ -353,7 +452,7 @@
                   <th data-i18n="th_tags">Teqlər</th>
                   <th data-i18n="th_date">Tarix</th>
                   <th style="text-align: center;" data-i18n="th_report">Şikayət</th>
-                  <th style="text-align: right; padding-right: 24px;" data-i18n="th_actions">Əməliyyatlar</th>
+                  <th style="text-align: right; padding-right: 24px; min-width: 220px; white-space: nowrap;" data-i18n="th_actions">Əməliyyatlar</th>
                 </tr>
               </thead>
               <tbody id="dashboardTableBody">
