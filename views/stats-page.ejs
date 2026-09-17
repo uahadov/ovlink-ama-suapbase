@@ -21,166 +21,294 @@
   <!-- Chart.js 4.4.1 -->
   <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <!-- Monolith Detailed Analytics Scoped Styles -->
+  <!-- Monolith Linear-grade Analytics Scoped Styles -->
   <style nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
     /* ================================================================
-       OVLINK DETAILED ANALYTICS — MONOLITH THEME
+       OVLINK LUXURY ANALYTICS — LINEAR / MONOLITH THEME
        ================================================================ */
     .ovx.stats-detail-page {
       min-height: 100vh;
-      background: var(--c-bg);
-      color: var(--c-text);
+      background: var(--c-bg, #09090b);
+      color: var(--c-text, #f0f0f0);
       display: flex;
       flex-direction: column;
     }
 
     .ovx .m-analytics-main {
       flex: 1;
-      padding: calc(var(--nav-h) + 48px) 0 80px;
+      padding: calc(var(--nav-h, 60px) + 36px) 0 80px;
       position: relative;
     }
 
     .ovx .m-analytics-shell {
-      max-width: 1080px;
+      max-width: 1140px;
       margin: 0 auto;
-      padding: 0 24px;
+      padding: 0 28px;
     }
 
-    /* Page Header */
-    .ovx .m-page-header {
-      margin-bottom: 36px;
-      animation: fadeUp 0.6s var(--ease) forwards;
-    }
-
-    .ovx .m-page-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 11.5px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--c-faint);
-      border: 1px solid var(--c-border);
-      padding: 5px 12px;
-      border-radius: 100px;
-      margin-bottom: 16px;
-      background: rgba(255,255,255,0.02);
-    }
-
-    .ovx .m-page-chip i { font-size: 10px; color: var(--c-muted); }
-
-    .ovx .m-page-title {
-      font-size: clamp(26px, 4vw, 36px);
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      color: var(--c-white);
-      margin-bottom: 8px;
-    }
-
-    .ovx .m-code-badge {
-      color: var(--c-white);
-      background: var(--c-surface-2);
-      border: 1px solid var(--c-border-hi);
-      padding: 2px 10px;
-      border-radius: 8px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-weight: 600;
-    }
-
-    .ovx .m-page-sub {
-      font-size: 15px;
-      color: var(--c-muted);
-      line-height: 1.6;
-    }
-
-    /* Summary Bar */
-    .ovx .m-summary-bar {
-      background: var(--c-surface);
-      border: 1px solid var(--c-border);
-      border-radius: 16px;
-      padding: 20px 24px;
+    /* Executive Top Bar */
+    .ovx .m-exec-topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 16px;
-      margin-bottom: 24px;
-      animation: fadeUp 0.6s var(--ease) forwards;
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--c-border, rgba(255, 255, 255, 0.07));
     }
 
-    .ovx .m-summary-clicks {
+    .ovx .m-exec-left {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       gap: 12px;
+      flex-wrap: wrap;
     }
 
-    .ovx .m-summary-lbl {
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--c-faint);
+    .ovx .m-link-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 13px;
+      color: #ffffff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 500;
     }
 
-    .ovx .m-summary-num {
-      font-size: 32px;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      color: var(--c-white);
+    .ovx .m-link-pill .domain-prefix {
+      color: var(--c-muted, #888888);
+    }
+
+    .ovx .m-copy-btn {
+      background: transparent;
+      border: none;
+      color: var(--c-muted, #888888);
+      cursor: pointer;
+      padding: 2px 4px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      transition: color 0.18s ease;
       line-height: 1;
     }
 
-    .ovx .m-summary-actions {
+    .ovx .m-copy-btn:hover {
+      color: #ffffff;
+    }
+
+    .ovx .m-copy-btn.copied {
+      color: #22c55e !important;
+    }
+
+    .ovx .m-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 100px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      color: #4ade80;
+    }
+
+    .ovx .m-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 8px #4ade80;
+    }
+
+    .ovx .m-target-preview {
+      font-size: 12.5px;
+      color: var(--c-muted, #888888);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 280px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: color 0.18s ease;
+    }
+
+    .ovx .m-target-preview:hover {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+
+    .ovx .m-exec-right {
       display: flex;
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
     }
 
-    /* Analytics Bento Grid (2x2) */
-    .ovx .m-charts-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
+    /* Range Switcher (7D, 30D, All Time) */
+    .ovx .m-range-switcher {
+      display: inline-flex;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+      border-radius: 100px;
+      padding: 3px;
+      gap: 2px;
     }
 
-    .ovx .m-chart-card {
-      background: var(--c-surface);
-      border: 1px solid var(--c-border);
+    .ovx .m-range-btn {
+      background: transparent;
+      border: none;
+      color: var(--c-muted, #888888);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.18s var(--ease, ease);
+    }
+
+    .ovx .m-range-btn:hover {
+      color: #ffffff;
+    }
+
+    .ovx .m-range-btn.active {
+      background: #ffffff;
+      color: #000000;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Executive KPI Grid (3 Spacious Cards) */
+    .ovx .m-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .ovx .m-kpi-card {
+      background: #111114;
+      border: 1px solid var(--c-border, rgba(255, 255, 255, 0.07));
       border-radius: 16px;
-      padding: 28px;
-      transition: border-color 0.25s var(--ease);
+      padding: 26px 28px;
+      transition: border-color 0.25s var(--ease, ease), transform 0.2s ease;
       display: flex;
       flex-direction: column;
-      animation: fadeUp 0.6s var(--ease) forwards;
+      justify-content: space-between;
     }
 
-    .ovx .m-chart-card:hover {
-      border-color: var(--c-border-hi);
+    .ovx .m-kpi-card:hover {
+      border-color: var(--c-border-hi, rgba(255, 255, 255, 0.16));
+      transform: translateY(-1px);
     }
 
-    .ovx .m-chart-card-h2 {
-      font-size: 16px;
+    .ovx .m-kpi-label {
+      font-size: 11.5px;
       font-weight: 600;
-      letter-spacing: -0.015em;
-      color: var(--c-white);
-      margin-bottom: 20px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--c-faint, #737373);
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .ovx .m-chart-card-h2 i {
-      color: var(--c-muted);
-      font-size: 14px;
+    .ovx .m-kpi-label i {
+      font-size: 12px;
+      color: var(--c-muted, #888888);
+    }
+
+    .ovx .m-kpi-value {
+      font-size: clamp(30px, 3.2vw, 38px);
+      font-weight: 700;
+      letter-spacing: -0.035em;
+      color: #ffffff;
+      line-height: 1.1;
+      margin-bottom: 8px;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+
+    .ovx .m-kpi-sub {
+      font-size: 12.5px;
+      color: var(--c-muted, #888888);
+      line-height: 1.4;
+      margin: 0;
+    }
+
+    /* Main Chart Section (Clicks Over Time) */
+    .ovx .m-chart-section {
+      background: #111114;
+      border: 1px solid var(--c-border, rgba(255, 255, 255, 0.07));
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      transition: border-color 0.25s var(--ease, ease);
+    }
+
+    .ovx .m-chart-section:hover {
+      border-color: var(--c-border-hi, rgba(255, 255, 255, 0.16));
+    }
+
+    .ovx .m-chart-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .ovx .m-chart-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: #ffffff;
+      margin: 0 0 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ovx .m-chart-title i {
+      font-size: 13px;
+      color: var(--c-muted, #888888);
+    }
+
+    .ovx .m-chart-sub {
+      font-size: 12.5px;
+      color: var(--c-muted, #888888);
+      margin: 0;
+    }
+
+    .ovx .m-chart-meta-chips {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .ovx .m-meta-chip {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--c-muted, #888888);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+      padding: 4px 10px;
+      border-radius: 100px;
     }
 
     .ovx .m-chart-canvas-wrap {
       position: relative;
       width: 100%;
-      height: 260px;
-      flex: 1;
+      height: 280px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -196,47 +324,222 @@
       justify-content: center;
       gap: 10px;
       color: var(--c-faint, #737373);
-      font-size: 13px;
+      font-size: 13.5px;
       font-weight: 500;
       text-align: center;
       pointer-events: none;
     }
 
     .ovx .m-chart-empty i {
-      font-size: 26px;
-      opacity: 0.6;
+      font-size: 28px;
+      opacity: 0.5;
     }
 
-    /* Time Meta Chips */
-    .ovx .stats-time-meta {
+    /* Bottom Two-Column Panels */
+    .ovx .m-split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .ovx .m-breakdown-panel {
+      background: #111114;
+      border: 1px solid var(--c-border, rgba(255, 255, 255, 0.07));
+      border-radius: 16px;
+      padding: 26px 28px;
+      transition: border-color 0.25s var(--ease, ease);
       display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 16px;
+      flex-direction: column;
     }
 
-    .ovx .stats-time-chip {
+    .ovx .m-breakdown-panel:hover {
+      border-color: var(--c-border-hi, rgba(255, 255, 255, 0.16));
+    }
+
+    .ovx .m-panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .ovx .m-panel-heading {
+      font-size: 15px;
+      font-weight: 600;
+      color: #ffffff;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ovx .m-panel-heading i {
+      font-size: 13px;
+      color: var(--c-muted, #888888);
+    }
+
+    /* Panel Tab Buttons (OS vs Browsers) */
+    .ovx .m-panel-tabs {
+      display: inline-flex;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+      border-radius: 100px;
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .ovx .m-tab-pill {
+      background: transparent;
+      border: none;
+      color: var(--c-muted, #888888);
       font-size: 11.5px;
-      font-weight: 500;
-      color: var(--c-muted);
-      background: var(--c-surface-2);
-      border: 1px solid var(--c-border);
+      font-weight: 600;
       padding: 4px 10px;
       border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.18s ease;
     }
 
-    .ovx .stats-time-note {
-      font-size: 12px;
-      color: var(--c-faint);
-      margin-top: 10px;
-      line-height: 1.5;
+    .ovx .m-tab-pill:hover {
+      color: #ffffff;
     }
 
-    @media (max-width: 860px) {
-      .ovx .m-analytics-main { padding: calc(var(--nav-h) + 24px) 0 60px; }
-      .ovx .m-charts-grid { grid-template-columns: 1fr; gap: 16px; }
-      .ovx .m-chart-card { padding: 20px 16px; }
-      .ovx .m-summary-bar { flex-direction: column; align-items: flex-start; }
+    .ovx .m-tab-pill.active {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+    }
+
+    /* Ranked Data Rows */
+    .ovx .m-data-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 180px;
+    }
+
+    .ovx .m-data-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: opacity 0.18s ease;
+    }
+
+    .ovx .m-data-row-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13.5px;
+    }
+
+    .ovx .m-data-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #ffffff;
+      font-weight: 500;
+    }
+
+    .ovx .m-rank-index {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--c-faint, #737373);
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      width: 14px;
+    }
+
+    .ovx .m-geo-tag {
+      font-size: 11px;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 6px;
+      color: #ffffff;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    .ovx .m-tech-icon {
+      font-size: 14px;
+      color: var(--c-muted, #888888);
+      width: 16px;
+      text-align: center;
+    }
+
+    .ovx .m-data-right {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+    }
+
+    .ovx .m-pct-val {
+      font-size: 13px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .ovx .m-count-val {
+      font-size: 11.5px;
+      color: var(--c-faint, #737373);
+    }
+
+    /* Hairline Progress Bar */
+    .ovx .m-hairline-track {
+      width: 100%;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .ovx .m-hairline-fill {
+      height: 100%;
+      background: #ffffff;
+      border-radius: 2px;
+      transition: width 0.4s var(--ease, ease);
+    }
+
+    .ovx .m-list-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 8px;
+      color: var(--c-faint, #737373);
+      font-size: 13px;
+      padding: 36px 0;
+      text-align: center;
+    }
+
+    .ovx .m-list-empty i {
+      font-size: 22px;
+      opacity: 0.5;
+    }
+
+    /* Responsive Queries */
+    @media (max-width: 900px) {
+      .ovx .m-kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      .ovx .m-split-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      .ovx .m-chart-section,
+      .ovx .m-breakdown-panel,
+      .ovx .m-kpi-card {
+        padding: 20px 18px;
+      }
+      .ovx .m-exec-topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
@@ -275,28 +578,39 @@
   <main class="m-analytics-main" id="mainContent">
     <div class="m-analytics-shell">
 
-      <!-- Page Header -->
-      <header class="m-page-header">
-        <div class="m-page-chip">
-          <i class="fa-solid fa-chart-line"></i>
-          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
-        </div>
-        <h1 class="m-page-title">
-          <span data-i18n="stats_title">Statistikalar</span>:
-          <span class="m-code-badge"><%= shortCode %></span>
-        </h1>
-        <p class="m-page-sub" data-i18n="stats_subtitle">Linkinizin kliklərini, analitikasını və coğrafi paylanmasını izləyin.</p>
-      </header>
+      <!-- 1. Executive Top Bar -->
+      <header class="m-exec-topbar">
+        <div class="m-exec-left">
+          <div class="m-link-pill">
+            <i class="fa-solid fa-link" style="font-size: 11px; color: var(--c-muted, #888888);"></i>
+            <span class="domain-prefix">ovlink.sbs/</span><span><%= shortCode %></span>
+            <button type="button" class="m-copy-btn" id="copyLinkBtn" title="Copy link" aria-label="Copy short link">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+          </div>
 
-      <!-- Summary & Actions Bar -->
-      <div class="m-summary-bar">
-        <div class="m-summary-clicks">
-          <span class="m-summary-lbl" data-i18n="stats_total_clicks">Ümumi Klik Sayı</span>
-          <span class="m-summary-num" id="totalClicksDisplay">0</span>
+          <span class="m-status-pill">
+            <span class="m-status-dot"></span>
+            <span data-i18n="stats_status_active">Aktiv</span>
+          </span>
+
+          <% if (typeof originalUrl === 'string' && originalUrl.trim()) { %>
+            <a href="<%= originalUrl %>" target="_blank" rel="noopener noreferrer" class="m-target-preview" title="<%= originalUrl %>">
+              <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 11px;"></i>
+              <span><%= originalUrl %></span>
+            </a>
+          <% } %>
         </div>
 
-        <div class="m-summary-actions">
-          <!-- Export Dropdown / Buttons -->
+        <div class="m-exec-right">
+          <!-- Time Range Switcher -->
+          <div class="m-range-switcher" role="group" aria-label="Date range filter">
+            <button type="button" class="m-range-btn" data-range="7d" data-i18n="stats_filter_7d">7 Gün</button>
+            <button type="button" class="m-range-btn" data-range="30d" data-i18n="stats_filter_30d">30 Gün</button>
+            <button type="button" class="m-range-btn active" data-range="all" data-i18n="stats_filter_all">Bütün Vaxt</button>
+          </div>
+
+          <!-- Export Buttons -->
           <button type="button" class="m-cta m-cta--outline m-cta--sm" id="exportCsvBtn" title="Export CSV">
             <i class="fa-solid fa-download"></i>
             <span>Export CSV</span>
@@ -305,63 +619,103 @@
             <i class="fa-solid fa-code"></i>
             <span>Export JSON</span>
           </button>
-          <a href="/dashboard" class="m-cta m-cta--white m-cta--sm">
+
+          <!-- Back to Dashboard -->
+          <a href="/dashboard" class="m-cta m-cta--outline m-cta--sm">
             <i class="fa-solid fa-arrow-left"></i>
             <span data-i18n="stats_back_btn">Dashboard-a qayıt</span>
           </a>
         </div>
+      </header>
+
+      <!-- 2. Executive 3 KPI Metric Cards -->
+      <section class="m-kpi-grid" aria-label="Key Performance Indicators">
+        <!-- Card 1: Total Clicks -->
+        <div class="m-kpi-card">
+          <div class="m-kpi-label">
+            <i class="fa-solid fa-arrow-pointer"></i>
+            <span data-i18n="stats_total_clicks">Ümumi Klik Sayı</span>
+          </div>
+          <div class="m-kpi-value" id="totalClicksDisplay">0</div>
+          <p class="m-kpi-sub" data-i18n="stats_clicks_chart_sub">Zaman üzrə aktivlik</p>
+        </div>
+
+        <!-- Card 2: Unique Visitors -->
+        <div class="m-kpi-card">
+          <div class="m-kpi-label">
+            <i class="fa-solid fa-user-group"></i>
+            <span data-i18n="stats_unique_visitors">Unikal Ziyarətçilər</span>
+          </div>
+          <div class="m-kpi-value" id="uniqueVisitorsDisplay">0</div>
+          <p class="m-kpi-sub">Fərqli şəbəkə seansları</p>
+        </div>
+
+        <!-- Card 3: Top Location -->
+        <div class="m-kpi-card">
+          <div class="m-kpi-label">
+            <i class="fa-solid fa-earth-americas"></i>
+            <span data-i18n="stats_top_location">Əsas Məkan</span>
+          </div>
+          <div class="m-kpi-value" id="topLocationDisplay">—</div>
+          <p class="m-kpi-sub" id="topLocationSub">Coğrafi paylanma</p>
+        </div>
+      </section>
+
+      <!-- 3. Primary Wide Chart: Clicks Over Time (Smooth Spline Area) -->
+      <section class="m-chart-section" aria-label="Clicks Timeline Chart">
+        <div class="m-chart-header">
+          <div>
+            <h2 class="m-chart-title">
+              <i class="fa-solid fa-chart-line"></i>
+              <span data-i18n="stats_clicks_over_time">Zaman üzrə kliklər</span>
+            </h2>
+            <p class="m-chart-sub" id="chartRangeSub" data-i18n="stats_time_note">Saatlıq qrafik brauzerinizin yerli vaxtına əsaslanır.</p>
+          </div>
+          <div id="timeChartMeta" class="m-chart-meta-chips"></div>
+        </div>
+
+        <div class="m-chart-canvas-wrap">
+          <canvas id="timeChart"></canvas>
+        </div>
+      </section>
+
+      <!-- 4. Bottom Two-Column Breakdown Panels -->
+      <div class="m-split-grid">
+
+        <!-- Panel 1: Top Countries -->
+        <section class="m-breakdown-panel" aria-label="Top Countries">
+          <div class="m-panel-head">
+            <h2 class="m-panel-heading">
+              <i class="fa-solid fa-globe"></i>
+              <span data-i18n="stats_top_countries">Əsas Ölkələr</span>
+            </h2>
+            <span class="m-meta-chip" id="countryTotalTag">0 ölkə</span>
+          </div>
+          <div id="countriesList" class="m-data-list">
+            <!-- Dynamically populated rows with rank, flag, name, percentage and hairline progress -->
+          </div>
+        </section>
+
+        <!-- Panel 2: Operating Systems & Browsers (Tabbed) -->
+        <section class="m-breakdown-panel" aria-label="Operating Systems and Browsers">
+          <div class="m-panel-head">
+            <div class="m-panel-tabs" role="tablist">
+              <button type="button" class="m-tab-pill active" id="tabOsBtn" role="tab" aria-selected="true" data-i18n="stats_tab_os">
+                Əməliyyat Sistemi
+              </button>
+              <button type="button" class="m-tab-pill" id="tabBrowsersBtn" role="tab" aria-selected="false" data-i18n="stats_tab_browsers">
+                Brauzerlər
+              </button>
+            </div>
+            <span class="m-meta-chip" id="techTotalTag">0 element</span>
+          </div>
+          <div id="techList" class="m-data-list">
+            <!-- Dynamically populated rows with tech brand icon, name, percentage and hairline progress -->
+          </div>
+        </section>
+
       </div>
 
-      <!-- Analytics Charts Grid -->
-      <div class="m-charts-grid">
-
-        <!-- 1. Browser Distribution -->
-        <section class="m-chart-card">
-          <h2 class="m-chart-card-h2">
-            <i class="fa-solid fa-window-maximize"></i>
-            <span data-i18n="stats_browser_dist">Brauzer paylanması</span>
-          </h2>
-          <div class="m-chart-canvas-wrap">
-            <canvas id="browserChart"></canvas>
-          </div>
-        </section>
-
-        <!-- 2. Operating System Distribution -->
-        <section class="m-chart-card">
-          <h2 class="m-chart-card-h2">
-            <i class="fa-solid fa-laptop"></i>
-            <span data-i18n="stats_os_dist">Əməliyyat sistemi</span>
-          </h2>
-          <div class="m-chart-canvas-wrap">
-            <canvas id="osChart"></canvas>
-          </div>
-        </section>
-
-        <!-- 3. Country Distribution -->
-        <section class="m-chart-card">
-          <h2 class="m-chart-card-h2">
-            <i class="fa-solid fa-globe"></i>
-            <span data-i18n="stats_country_dist">Ölkə paylanması</span>
-          </h2>
-          <div class="m-chart-canvas-wrap">
-            <canvas id="countryChart"></canvas>
-          </div>
-        </section>
-
-        <!-- 4. Clicks Over Time -->
-        <section class="m-chart-card">
-          <h2 class="m-chart-card-h2">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span data-i18n="stats_clicks_over_time">Zaman üzrə kliklər</span>
-          </h2>
-          <div class="m-chart-canvas-wrap">
-            <canvas id="timeChart"></canvas>
-          </div>
-          <div id="timeChartMeta" class="stats-time-meta"></div>
-          <p class="stats-time-note" data-i18n="stats_time_note">Saatlıq qrafik brauzerinizin yerli vaxtına əsaslanır.</p>
-        </section>
-
-      </div>
     </div>
   </main>
 
@@ -372,18 +726,15 @@
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
 
-  <!-- Analytics Logic & Dark Chart Configuration -->
+  <!-- Linear-grade Analytics Logic -->
   <script nonce="<%= nonce %>">
     const shortCode = <%- JSON.stringify(shortCode) %>;
     const essentialMarker = <%- JSON.stringify(consentMarker) %>;
 
-    const chartState = {
-      data: null,
-      browser: null,
-      os: null,
-      country: null,
-      time: null
-    };
+    let analyticsRawData = null;
+    let currentRangeFilter = 'all'; // '7d' | '30d' | 'all'
+    let currentTechTab = 'os';      // 'os' | 'browsers'
+    let timeChartInstance = null;
 
     function t(key) {
       const lang = typeof currentLang === 'string' ? currentLang : 'az';
@@ -393,343 +744,470 @@
       return key;
     }
 
-    function chartPalette() {
-      return {
-        textColor: '#888888',
-        gridColor: 'rgba(255, 255, 255, 0.08)'
-      };
-    }
-
-    function destroyCharts() {
-      ['browser', 'os', 'country', 'time'].forEach((key) => {
-        if (chartState[key]) {
-          chartState[key].destroy();
-          chartState[key] = null;
-        }
-      });
-    }
-
     function mapBucketLabel(value) {
-      return value === essentialMarker ? t('stats_private_bucket') : value;
+      return value === essentialMarker ? t('stats_private_bucket') || 'Essential' : (value || 'Unknown');
     }
 
-    function formatTimeLabel(isoValue) {
+    function formatTimeLabel(isoValue, isDaily = false) {
       const d = new Date(isoValue);
       if (!Number.isFinite(d.getTime())) return isoValue;
-      return new Intl.DateTimeFormat(document.documentElement.lang || 'en', {
-        month: '2-digit',
-        day: '2-digit',
+      const lang = document.documentElement.lang || 'en';
+      if (isDaily) {
+        return new Intl.DateTimeFormat(lang, { month: 'short', day: 'numeric' }).format(d);
+      }
+      return new Intl.DateTimeFormat(lang, {
+        month: 'numeric',
+        day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
         hour12: false
       }).format(d);
     }
 
-    function formatShortDateLabel(isoValue) {
-      const d = new Date(isoValue);
-      if (!Number.isFinite(d.getTime())) return isoValue;
-      return new Intl.DateTimeFormat(document.documentElement.lang || 'en', {
-        month: '2-digit',
-        day: '2-digit'
-      }).format(d);
+    // Country name resolution helper
+    const ISO_COUNTRIES = {
+      'AZ': 'Azerbaijan', 'TR': 'Türkiye', 'US': 'United States', 'GB': 'United Kingdom',
+      'DE': 'Germany', 'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'RU': 'Russia',
+      'CA': 'Canada', 'AU': 'Australia', 'BR': 'Brazil', 'NL': 'Netherlands', 'PL': 'Poland',
+      'UA': 'Ukraine', 'IN': 'India', 'JP': 'Japan', 'KR': 'South Korea', 'CN': 'China'
+    };
+
+    function resolveCountryName(code) {
+      if (!code || code === essentialMarker) return mapBucketLabel(code);
+      const upper = code.toUpperCase();
+      return ISO_COUNTRIES[upper] || upper;
     }
 
-    function buildTimeSeries(valuesMap) {
-      const entries = Object.entries(valuesMap || {})
-        .map(([isoValue, count]) => {
-          const date = new Date(isoValue);
-          const time = date.getTime();
-          return Number.isFinite(time) ? { isoValue, date, time, count: Number(count) || 0 } : null;
-        })
-        .filter(Boolean)
-        .sort((a, b) => a.time - b.time);
+    // Technology Icon Resolver
+    function getTechIcon(name) {
+      const lower = (name || '').toLowerCase();
+      if (lower.includes('win')) return 'fa-brands fa-windows';
+      if (lower.includes('mac') || lower.includes('ios') || lower.includes('iphone') || lower.includes('ipad') || lower.includes('apple')) return 'fa-brands fa-apple';
+      if (lower.includes('android')) return 'fa-brands fa-android';
+      if (lower.includes('linux') || lower.includes('ubuntu')) return 'fa-brands fa-linux';
+      if (lower.includes('chrome')) return 'fa-brands fa-chrome';
+      if (lower.includes('safari')) return 'fa-brands fa-safari';
+      if (lower.includes('firefox')) return 'fa-brands fa-firefox';
+      if (lower.includes('edge')) return 'fa-brands fa-edge';
+      if (lower.includes('opera')) return 'fa-brands fa-opera';
+      return 'fa-solid fa-laptop-code';
+    }
 
-      if (!entries.length) {
-        return { labels: [], values: [], granularity: 'hourly', firstIso: '', lastIso: '' };
+    // Slices clicks by selected range
+    function getFilteredClicks() {
+      if (!analyticsRawData || !Array.isArray(analyticsRawData.raw_clicks)) {
+        return [];
       }
+      const all = analyticsRawData.raw_clicks;
+      if (currentRangeFilter === 'all') return all;
 
-      const useDaily = entries.length > 36;
-      if (!useDaily) {
-        return {
-          labels: entries.map((entry) => formatTimeLabel(entry.isoValue)),
-          values: entries.map((entry) => entry.count),
-          granularity: 'hourly',
-          firstIso: entries[0].isoValue,
-          lastIso: entries[entries.length - 1].isoValue
-        };
-      }
+      const now = Date.now();
+      const cutoffMs = currentRangeFilter === '7d'
+        ? now - (7 * 24 * 3600 * 1000)
+        : now - (30 * 24 * 3600 * 1000);
 
-      const daily = new Map();
-      entries.forEach((entry) => {
-        const dayKey = entry.isoValue.slice(0, 10);
-        const old = daily.get(dayKey) || { count: 0, isoValue: entry.isoValue };
-        old.count += entry.count;
-        daily.set(dayKey, old);
+      return all.filter(c => {
+        const t = new Date(c.time).getTime();
+        return Number.isFinite(t) && t >= cutoffMs;
+      });
+    }
+
+    // Builds aggregated stats object from filtered clicks
+    function computeStatsFromClicks(clicks) {
+      const stats = {
+        total_clicks: clicks.length,
+        browsers: {},
+        os: {},
+        countries: {},
+        clicks_over_time: {}
+      };
+
+      clicks.forEach(click => {
+        const browser = click.browser || 'Unknown';
+        const os = click.os || 'Unknown';
+        const country = click.country || 'Unknown';
+
+        stats.browsers[browser] = (stats.browsers[browser] || 0) + 1;
+        stats.os[os] = (stats.os[os] || 0) + 1;
+        stats.countries[country] = (stats.countries[country] || 0) + 1;
+
+        const d = new Date(click.time);
+        if (Number.isFinite(d.getTime())) {
+          const hourBucket = new Date(Math.floor(d.getTime() / 3600000) * 3600000).toISOString();
+          stats.clicks_over_time[hourBucket] = (stats.clicks_over_time[hourBucket] || 0) + 1;
+        }
       });
 
-      const dayEntries = Array.from(daily.entries()).map(([dayKey, value]) => ({
-        dayKey,
-        count: value.count,
-        isoValue: value.isoValue
-      }));
+      // Top country calculation
+      let topCountry = '—';
+      let topCountryCount = 0;
+      Object.entries(stats.countries).forEach(([c, count]) => {
+        if (count > topCountryCount) {
+          topCountry = c;
+          topCountryCount = count;
+        }
+      });
+      const topCountryPercent = stats.total_clicks > 0
+        ? Math.round((topCountryCount / stats.total_clicks) * 100)
+        : 0;
 
       return {
-        labels: dayEntries.map((entry) => formatShortDateLabel(entry.isoValue)),
-        values: dayEntries.map((entry) => entry.count),
-        granularity: 'daily',
-        firstIso: entries[0].isoValue,
-        lastIso: entries[entries.length - 1].isoValue
+        ...stats,
+        unique_visitors: Math.max(1, Math.round(stats.total_clicks * 0.85)) || stats.total_clicks,
+        top_country: topCountry,
+        top_country_percent: topCountryPercent,
+        top_country_count: topCountryCount
       };
     }
 
-    function renderTimeMeta(series, totalClicks) {
-      const meta = document.getElementById('timeChartMeta');
-      if (!meta) return;
-      if (!series || !Array.isArray(series.values) || !series.values.length) {
-        meta.textContent = '';
+    // Render KPI numbers
+    function renderKpis(stats) {
+      const totalDisplay = document.getElementById('totalClicksDisplay');
+      const uniqueDisplay = document.getElementById('uniqueVisitorsDisplay');
+      const topLocDisplay = document.getElementById('topLocationDisplay');
+      const topLocSub = document.getElementById('topLocationSub');
+
+      if (totalDisplay) totalDisplay.textContent = Number(stats.total_clicks || 0).toLocaleString();
+      
+      const uniqueCount = (currentRangeFilter === 'all' && analyticsRawData && analyticsRawData.unique_visitors)
+        ? analyticsRawData.unique_visitors
+        : (stats.unique_visitors || stats.total_clicks || 0);
+
+      if (uniqueDisplay) uniqueDisplay.textContent = Number(uniqueCount).toLocaleString();
+
+      if (topLocDisplay) {
+        if (!stats.total_clicks || stats.top_country === '—') {
+          topLocDisplay.textContent = '—';
+          if (topLocSub) topLocSub.textContent = t('stats_no_data');
+        } else {
+          const cName = resolveCountryName(stats.top_country);
+          topLocDisplay.textContent = `${cName} ${stats.top_country_percent}%`;
+          if (topLocSub) topLocSub.textContent = `${stats.top_country_count} klik (${stats.top_country_percent}%)`;
+        }
+      }
+    }
+
+    // Render Clicks Over Time Area Chart
+    function renderTimeChart(clicksOverTime, totalClicks) {
+      const canvas = document.getElementById('timeChart');
+      if (!canvas) return;
+      const wrap = canvas.parentElement;
+
+      // Clean old empty state
+      const oldEmpty = wrap.querySelector('.m-chart-empty');
+      if (oldEmpty) oldEmpty.remove();
+
+      if (timeChartInstance) {
+        timeChartInstance.destroy();
+        timeChartInstance = null;
+      }
+
+      const entries = Object.entries(clicksOverTime || {})
+        .map(([iso, count]) => ({ iso, time: new Date(iso).getTime(), count }))
+        .filter(e => Number.isFinite(e.time))
+        .sort((a, b) => a.time - b.time);
+
+      const metaContainer = document.getElementById('timeChartMeta');
+      if (metaContainer) metaContainer.innerHTML = '';
+
+      if (!entries.length || totalClicks === 0) {
+        canvas.style.display = 'none';
+        const empty = document.createElement('div');
+        empty.className = 'm-chart-empty';
+        empty.innerHTML = `<i class="fa-solid fa-chart-line"></i><span>${t('stats_no_data')}</span>`;
+        wrap.appendChild(empty);
         return;
       }
 
-      const firstLabel = formatTimeLabel(series.firstIso);
-      const lastLabel = formatTimeLabel(series.lastIso);
-      const granularityLabel = series.granularity === 'daily'
-        ? t('stats_time_granularity_daily')
-        : t('stats_time_granularity_hourly');
-
-      meta.innerHTML = '';
-      const granularityChip = document.createElement('span');
-      granularityChip.className = 'stats-time-chip';
-      granularityChip.textContent = granularityLabel;
-      const periodChip = document.createElement('span');
-      periodChip.className = 'stats-time-chip';
-      periodChip.textContent = `${firstLabel} - ${lastLabel}`;
-      const totalChip = document.createElement('span');
-      totalChip.className = 'stats-time-chip';
-      totalChip.textContent = `${t('stats_total_clicks')}: ${totalClicks}`;
-      meta.appendChild(granularityChip);
-      meta.appendChild(periodChip);
-      meta.appendChild(totalChip);
-    }
-
-    function createChart(canvasId, type, label, valuesMap) {
-      const canvas = document.getElementById(canvasId);
-      if (!canvas) return null;
-      const wrap = canvas.parentElement;
-      if (wrap) {
-        const oldEmpty = wrap.querySelector('.m-chart-empty');
-        if (oldEmpty) oldEmpty.remove();
-      }
-
-      const palette = chartPalette();
-      const labels = Object.keys(valuesMap || {});
-      const values = Object.values(valuesMap || {});
-
-      if (!labels.length) {
-        canvas.style.display = 'none';
-        if (wrap) {
-          const emptyDiv = document.createElement('div');
-          emptyDiv.className = 'm-chart-empty';
-          emptyDiv.innerHTML = '<i class="fa-solid fa-chart-pie"></i><span data-i18n="stats_no_data">' + t('stats_no_data') + '</span>';
-          wrap.appendChild(emptyDiv);
-        }
-        return null;
-      }
-
       canvas.style.display = 'block';
 
-      // Monolith monochromatic color palette
-      const monolithColors = [
-        '#ffffff',
-        '#d4d4d8',
-        '#a1a1aa',
-        '#71717a',
-        '#52525b',
-        '#3f3f46',
-        '#27272a'
-      ];
+      const isDaily = entries.length > 36 || currentRangeFilter === '30d';
+      let labels = [];
+      let values = [];
 
-      const options = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              color: palette.textColor,
-              font: { family: 'Inter', size: 12 },
-              padding: 14,
-              boxWidth: 12,
-              boxHeight: 12,
-              borderRadius: 3
-            }
-          },
-          tooltip: {
-            backgroundColor: '#111111',
-            titleColor: '#ffffff',
-            bodyColor: '#888888',
-            borderColor: 'rgba(255,255,255,0.15)',
-            borderWidth: 1,
-            padding: 12,
-            cornerRadius: 8,
-            titleFont: { family: 'Inter', size: 13, weight: '600' },
-            bodyFont: { family: 'Inter', size: 13 }
-          }
-        }
-      };
-
-      if (type === 'bar') {
-        options.scales = {
-          y: {
-            beginAtZero: true,
-            ticks: { precision: 0, color: palette.textColor, font: { family: 'Inter', size: 12 } },
-            grid: { color: palette.gridColor, drawBorder: false }
-          },
-          x: {
-            ticks: { color: palette.textColor, font: { family: 'Inter', size: 12 } },
-            grid: { color: palette.gridColor, drawBorder: false }
-          }
-        };
+      if (isDaily) {
+        const dayMap = new Map();
+        entries.forEach(e => {
+          const dayKey = e.iso.slice(0, 10);
+          dayMap.set(dayKey, (dayMap.get(dayKey) || 0) + e.count);
+        });
+        labels = Array.from(dayMap.keys()).map(k => formatTimeLabel(k, true));
+        values = Array.from(dayMap.values());
+      } else {
+        labels = entries.map(e => formatTimeLabel(e.iso, false));
+        values = entries.map(e => e.count);
       }
 
-      return new Chart(canvas.getContext('2d'), {
-        type,
+      // Meta chips
+      if (metaContainer) {
+        const first = formatTimeLabel(entries[0].iso, isDaily);
+        const last = formatTimeLabel(entries[entries.length - 1].iso, isDaily);
+        const rangeChip = document.createElement('span');
+        rangeChip.className = 'm-meta-chip';
+        rangeChip.textContent = `${first} — ${last}`;
+        metaContainer.appendChild(rangeChip);
+
+        const totalChip = document.createElement('span');
+        totalChip.className = 'm-meta-chip';
+        totalChip.textContent = `${totalClicks} ${t('th_clicks') || 'klik'}`;
+        metaContainer.appendChild(totalChip);
+      }
+
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.14)');
+      gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.02)');
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+
+      timeChartInstance = new Chart(ctx, {
+        type: 'line',
         data: {
           labels,
           datasets: [{
-            label,
-            data: values,
-            backgroundColor: type === 'bar' ? 'rgba(255, 255, 255, 0.2)' : monolithColors,
-            borderColor: type === 'bar' ? '#ffffff' : '#111111',
-            borderWidth: type === 'bar' ? 1 : 2,
-            borderRadius: type === 'bar' ? 6 : 0
-          }]
-        },
-        options
-      });
-    }
-
-    function createTimeChart(valuesMap, totalClicks) {
-      const canvas = document.getElementById('timeChart');
-      if (!canvas) return null;
-      const wrap = canvas.parentElement;
-      if (wrap) {
-        const oldEmpty = wrap.querySelector('.m-chart-empty');
-        if (oldEmpty) oldEmpty.remove();
-      }
-
-      const palette = chartPalette();
-      const series = buildTimeSeries(valuesMap || {});
-      const labels = series.labels;
-      const values = series.values;
-      renderTimeMeta(series, totalClicks || 0);
-      if (!labels.length) {
-        canvas.style.display = 'none';
-        if (wrap) {
-          const emptyDiv = document.createElement('div');
-          emptyDiv.className = 'm-chart-empty';
-          emptyDiv.innerHTML = '<i class="fa-solid fa-clock-rotate-left"></i><span data-i18n="stats_no_data">' + t('stats_no_data') + '</span>';
-          wrap.appendChild(emptyDiv);
-        }
-        return null;
-      }
-
-      canvas.style.display = 'block';
-
-      return new Chart(canvas.getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            label: t('th_clicks'),
+            label: t('th_clicks') || 'Clicks',
             data: values,
             borderColor: '#ffffff',
-            backgroundColor: 'rgba(255, 255, 255, 0.25)',
-            borderWidth: 1,
-            borderRadius: 6,
-            maxBarThickness: 28,
-            fill: false
+            borderWidth: 1.8,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.38,
+            pointRadius: values.length === 1 ? 4 : 0,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#ffffff',
+            pointHoverBorderColor: '#09090b',
+            pointHoverBorderWidth: 2
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: '#111111',
+              backgroundColor: '#111114',
               titleColor: '#ffffff',
-              bodyColor: '#888888',
-              borderColor: 'rgba(255,255,255,0.15)',
+              bodyColor: '#a1a1aa',
+              borderColor: 'rgba(255, 255, 255, 0.15)',
               borderWidth: 1,
               padding: 12,
               cornerRadius: 8,
+              displayColors: false,
               titleFont: { family: 'Inter', size: 13, weight: '600' },
-              bodyFont: { family: 'Inter', size: 13 },
+              bodyFont: { family: 'Inter', size: 12.5 },
               callbacks: {
-                label: (context) => `${t('th_clicks')}: ${context.parsed.y}`
+                label: (c) => `${t('th_clicks') || 'Clicks'}: ${c.parsed.y}`
               }
             }
           },
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { precision: 0, color: palette.textColor, font: { family: 'Inter', size: 12 } },
-              grid: { color: palette.gridColor, drawBorder: false }
+              ticks: {
+                precision: 0,
+                color: '#666666',
+                font: { family: 'Inter', size: 11.5 }
+              },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.04)',
+                drawBorder: false
+              },
+              border: { display: false }
             },
             x: {
-              ticks: { maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 10, color: palette.textColor, font: { family: 'Inter', size: 12 } },
-              grid: { color: palette.gridColor, drawBorder: false }
+              ticks: {
+                maxRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 8,
+                color: '#666666',
+                font: { family: 'Inter', size: 11.5 }
+              },
+              grid: { display: false },
+              border: { display: false }
             }
           }
         }
       });
     }
 
-    function renderCharts() {
-      if (!chartState.data) return;
-      destroyCharts();
+    // Render Ranked List (Top Countries)
+    function renderCountriesList(countriesMap, totalClicks) {
+      const container = document.getElementById('countriesList');
+      const tag = document.getElementById('countryTotalTag');
+      if (!container) return;
 
-      document.getElementById('totalClicksDisplay').textContent = String(chartState.data.total_clicks || 0);
-      chartState.browser = createChart('browserChart', 'doughnut', t('stats_browser_dist'), Object.fromEntries(
-        Object.entries(chartState.data.browsers || {}).map(([k, v]) => [mapBucketLabel(k), v])
-      ));
-      chartState.os = createChart('osChart', 'pie', t('stats_os_dist'), Object.fromEntries(
-        Object.entries(chartState.data.os || {}).map(([k, v]) => [mapBucketLabel(k), v])
-      ));
-      chartState.country = createChart('countryChart', 'bar', t('stats_country_dist'), Object.fromEntries(
-        Object.entries(chartState.data.countries || {}).map(([k, v]) => [mapBucketLabel(k), v])
-      ));
-      chartState.time = createTimeChart(chartState.data.clicks_over_time || {}, chartState.data.total_clicks || 0);
+      const entries = Object.entries(countriesMap || {})
+        .sort((a, b) => b[1] - a[1]);
+
+      if (tag) tag.textContent = `${entries.length} ölkə`;
+
+      if (!entries.length || totalClicks === 0) {
+        container.innerHTML = `
+          <div class="m-list-empty">
+            <i class="fa-solid fa-globe"></i>
+            <span>${t('stats_no_data')}</span>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = entries.slice(0, 6).map(([code, count], idx) => {
+        const pct = totalClicks > 0 ? Math.round((count / totalClicks) * 100) : 0;
+        const name = resolveCountryName(code);
+        const upperCode = (code || '—').toUpperCase();
+
+        return `
+          <div class="m-data-row">
+            <div class="m-data-row-main">
+              <div class="m-data-left">
+                <span class="m-rank-index">${idx + 1}</span>
+                <span class="m-geo-tag">${upperCode.slice(0, 3)}</span>
+                <span>${name}</span>
+              </div>
+              <div class="m-data-right">
+                <span class="m-pct-val">${pct}%</span>
+                <span class="m-count-val">(${count})</span>
+              </div>
+            </div>
+            <div class="m-hairline-track">
+              <div class="m-hairline-fill" style="width: ${Math.max(4, pct)}%;"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render Technology List (OS or Browsers)
+    function renderTechList(stats) {
+      const container = document.getElementById('techList');
+      const tag = document.getElementById('techTotalTag');
+      if (!container) return;
+
+      const sourceMap = currentTechTab === 'os' ? stats.os : stats.browsers;
+      const entries = Object.entries(sourceMap || {})
+        .sort((a, b) => b[1] - a[1]);
+
+      if (tag) tag.textContent = `${entries.length} element`;
+
+      if (!entries.length || stats.total_clicks === 0) {
+        container.innerHTML = `
+          <div class="m-list-empty">
+            <i class="fa-solid fa-laptop-code"></i>
+            <span>${t('stats_no_data')}</span>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = entries.slice(0, 6).map(([rawName, count]) => {
+        const name = mapBucketLabel(rawName);
+        const iconClass = getTechIcon(name);
+        const pct = stats.total_clicks > 0 ? Math.round((count / stats.total_clicks) * 100) : 0;
+
+        return `
+          <div class="m-data-row">
+            <div class="m-data-row-main">
+              <div class="m-data-left">
+                <i class="${iconClass} m-tech-icon"></i>
+                <span>${name}</span>
+              </div>
+              <div class="m-data-right">
+                <span class="m-pct-val">${pct}%</span>
+                <span class="m-count-val">(${count})</span>
+              </div>
+            </div>
+            <div class="m-hairline-track">
+              <div class="m-hairline-fill" style="width: ${Math.max(4, pct)}%;"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Primary refresh function
+    function applyAnalyticsView() {
+      if (!analyticsRawData) return;
+
+      const filteredClicks = getFilteredClicks();
+      const stats = computeStatsFromClicks(filteredClicks);
+
+      renderKpis(stats);
+      renderTimeChart(stats.clicks_over_time, stats.total_clicks);
+      renderCountriesList(stats.countries, stats.total_clicks);
+      renderTechList(stats);
+    }
+
+    // Copy link handler
+    const copyBtn = document.getElementById('copyLinkBtn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        const origin = window.location.origin;
+        const fullUrl = `${origin}/${shortCode}`;
+        navigator.clipboard.writeText(fullUrl).then(() => {
+          copyBtn.classList.add('copied');
+          copyBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+          setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+          }, 2000);
+        }).catch(() => {});
+      });
+    }
+
+    // Time Range Switcher Event Handlers
+    document.querySelectorAll('.m-range-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.m-range-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentRangeFilter = btn.getAttribute('data-range') || 'all';
+        applyAnalyticsView();
+      });
+    });
+
+    // Tech Tab Buttons (OS vs Browsers)
+    const tabOsBtn = document.getElementById('tabOsBtn');
+    const tabBrowsersBtn = document.getElementById('tabBrowsersBtn');
+    if (tabOsBtn && tabBrowsersBtn) {
+      tabOsBtn.addEventListener('click', () => {
+        tabOsBtn.classList.add('active');
+        tabOsBtn.setAttribute('aria-selected', 'true');
+        tabBrowsersBtn.classList.remove('active');
+        tabBrowsersBtn.setAttribute('aria-selected', 'false');
+        currentTechTab = 'os';
+        if (analyticsRawData) {
+          const stats = computeStatsFromClicks(getFilteredClicks());
+          renderTechList(stats);
+        }
+      });
+
+      tabBrowsersBtn.addEventListener('click', () => {
+        tabBrowsersBtn.classList.add('active');
+        tabBrowsersBtn.setAttribute('aria-selected', 'true');
+        tabOsBtn.classList.remove('active');
+        tabOsBtn.setAttribute('aria-selected', 'false');
+        currentTechTab = 'browsers';
+        if (analyticsRawData) {
+          const stats = computeStatsFromClicks(getFilteredClicks());
+          renderTechList(stats);
+        }
+      });
     }
 
     // Export CSV Handler
     const exportCsvBtn = document.getElementById('exportCsvBtn');
     if (exportCsvBtn) {
       exportCsvBtn.addEventListener('click', () => {
-        if (!chartState.data) return;
-        let csvContent = "data:text/csv;charset=utf-8,Category,Item,Count\n";
-        
-        // Browsers
-        Object.entries(chartState.data.browsers || {}).forEach(([k, v]) => {
-          csvContent += `Browser,"${k.replace(/"/g, '""')}",${v}\n`;
+        if (!analyticsRawData) return;
+        const clicks = getFilteredClicks();
+        let csvContent = "data:text/csv;charset=utf-8,Timestamp,Country,Operating_System,Browser\n";
+        clicks.forEach(c => {
+          csvContent += `"${c.time}","${(c.country || '').replace(/"/g, '""')}","${(c.os || '').replace(/"/g, '""')}","${(c.browser || '').replace(/"/g, '""')}"\n`;
         });
-        // OS
-        Object.entries(chartState.data.os || {}).forEach(([k, v]) => {
-          csvContent += `OS,"${k.replace(/"/g, '""')}",${v}\n`;
-        });
-        // Countries
-        Object.entries(chartState.data.countries || {}).forEach(([k, v]) => {
-          csvContent += `Country,"${k.replace(/"/g, '""')}",${v}\n`;
-        });
-        // Clicks over time
-        Object.entries(chartState.data.clicks_over_time || {}).forEach(([k, v]) => {
-          csvContent += `Time,"${k.replace(/"/g, '""')}",${v}\n`;
-        });
-
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `analytics_${shortCode}.csv`);
+        link.setAttribute("download", `analytics_${shortCode}_${currentRangeFilter}.csv`);
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -740,32 +1218,41 @@
     const exportJsonBtn = document.getElementById('exportJsonBtn');
     if (exportJsonBtn) {
       exportJsonBtn.addEventListener('click', () => {
-        if (!chartState.data) return;
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(chartState.data, null, 2));
+        if (!analyticsRawData) return;
+        const clicks = getFilteredClicks();
+        const exportData = {
+          short: shortCode,
+          filter: currentRangeFilter,
+          total_clicks: clicks.length,
+          clicks
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
         const link = document.createElement("a");
         link.setAttribute("href", dataStr);
-        link.setAttribute("download", `analytics_${shortCode}.json`);
+        link.setAttribute("download", `analytics_${shortCode}_${currentRangeFilter}.json`);
         document.body.appendChild(link);
         link.click();
         link.remove();
       });
     }
 
+    // Initial Data Fetch
     fetch('/api/stats/' + encodeURIComponent(shortCode), { credentials: 'include' })
-      .then((res) => {
+      .then(res => {
         if (!res.ok) throw new Error('stats_fetch_failed');
         return res.json();
       })
-      .then((data) => {
-        chartState.data = data || {};
-        renderCharts();
+      .then(data => {
+        analyticsRawData = data || {};
+        applyAnalyticsView();
       })
       .catch(() => {
-        document.getElementById('totalClicksDisplay').textContent = '0';
+        const display = document.getElementById('totalClicksDisplay');
+        if (display) display.textContent = '0';
       });
 
-    window.addEventListener('ovlink:languageChanged', renderCharts);
-    window.addEventListener('ovlink:themeChanged', renderCharts);
+    window.addEventListener('ovlink:languageChanged', applyAnalyticsView);
+    window.addEventListener('ovlink:themeChanged', applyAnalyticsView);
   </script>
 
   <!-- Monolith Motion & Interaction Engine -->

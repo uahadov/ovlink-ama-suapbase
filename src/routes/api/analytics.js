@@ -61,13 +61,43 @@ function handleStatsApiRequest(req, res, rawShort) {
         count: stats.clicks_over_time[k]
       }));
 
+      // Calculate unique visitors using distinct IP hashes/values
+      const uniqueIps = new Set();
+      (clicks || []).forEach(click => {
+        if (click.ip && click.ip !== REDIRECT_CONSENT_MARKER) {
+          uniqueIps.add(click.ip);
+        }
+      });
+      const unique_visitors = uniqueIps.size || (clicks || []).length;
+
+      // Calculate top country
+      let topCountry = '—';
+      let topCountryCount = 0;
+      Object.entries(stats.countries).forEach(([c, count]) => {
+        if (count > topCountryCount) {
+          topCountry = c;
+          topCountryCount = count;
+        }
+      });
+      const topCountryPercent = stats.total_clicks > 0 ? Math.round((topCountryCount / stats.total_clicks) * 100) : 0;
+
       res.json({
         ...stats,
         short: url.short,
         original: url.original,
         created_at: url.created_at,
         clicks_total: stats.total_clicks,
-        clicks_by_day: clicks_by_day
+        clicks_by_day: clicks_by_day,
+        unique_visitors: unique_visitors,
+        top_country: topCountry,
+        top_country_percent: topCountryPercent,
+        top_country_count: topCountryCount,
+        raw_clicks: (clicks || []).map(c => ({
+          time: c.click_time,
+          browser: c.browser === REDIRECT_CONSENT_MARKER ? REDIRECT_CONSENT_MARKER : getEssentialAnalyticsValue(c.browser),
+          os: c.os === REDIRECT_CONSENT_MARKER ? REDIRECT_CONSENT_MARKER : getEssentialAnalyticsValue(c.os),
+          country: c.country === REDIRECT_CONSENT_MARKER ? REDIRECT_CONSENT_MARKER : getEssentialAnalyticsValue(c.country)
+        }))
       });
     });
   });
@@ -91,7 +121,7 @@ router.get('/stats-page/:short', (req, res) => {
 
   // Güvenlik: Sadece link sahibi veya aynı workspace üyesi görebilir
   db.get(
-    `SELECT user_id, workspace_id FROM urls WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`,
+    `SELECT user_id, workspace_id, original FROM urls WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`,
     [short, req.session.userId, req.session.userId],
     (err, row) => {
       if (err || !row) return res.status(404).send('Link bulunamadı.');
@@ -105,6 +135,7 @@ router.get('/stats-page/:short', (req, res) => {
       res.render('stats-page', {
         csrfToken: res.locals._csrf,
         shortCode: short,
+        originalUrl: row.original || '',
         consentMarker: REDIRECT_CONSENT_MARKER
       });
     }
