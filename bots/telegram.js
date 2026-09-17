@@ -18,6 +18,7 @@ const TRANSLATIONS = {
     bulk_guest_blocked: "⚠️ Bulk shortening requires a linked account. Use /start to link.",
     bulk_limit_exceeded: "⚠️ <b>Bulk limit exceeded!</b>\nYou can shorten at most <b>{max}</b> links at once. (You sent {count})\n\n<i>For 50 links at once: /upgrade</i>",
     bulk_daily_quota_exceeded: "⚠️ <b>Not enough daily quota for this batch!</b>\nYou used <b>{dailyCount}/{limit}</b> links today. Remaining: <b>{remaining}</b> links (You sent {count} links).\n\n<i>For 500 links/day: /upgrade</i>",
+    bulk_summary: "📦 <b>{count}/{total} URLs Shortened in Bulk:</b>\n\n",
     phishing_detected: "🚨 Security Alert: Link blocked (phishing/malware).",
     custom_alias_pro: "❌ Custom alias requires Pro plan. /upgrade",
     invalid_alias: "❌ Invalid alias (3-50 chars).",
@@ -56,6 +57,7 @@ const TRANSLATIONS = {
     bulk_guest_blocked: "⚠️ Toplu kısaltma için hesabınızı bağlayın. /start yazabilirsiniz.",
     bulk_limit_exceeded: "⚠️ <b>Toplu kısaltma limiti aşıldı!</b>\nTek seferde en fazla <b>{max}</b> link gönderebilirsiniz. (Siz {count} link gönderdiniz)\n\n<i>Tek seferde 50 link için: /upgrade</i>",
     bulk_daily_quota_exceeded: "⚠️ <b>Bu toplu işlem için günlük limitiniz yetersiz!</b>\nBugün <b>{dailyCount}/{limit}</b> link kullandınız. Kalan hakkınız: <b>{remaining}</b> link (Gönderilen: {count} link).\n\n<i>Günde 500 link için: /upgrade</i>",
+    bulk_summary: "📦 <b>{count}/{total} Toplu Link Kısaltıldı:</b>\n\n",
     phishing_detected: "🚨 Güvenlik Uyarısı: Bağlantı engellendi (zararlı/phishing).",
     custom_alias_pro: "❌ Özel alias Pro plan gerektirir. /upgrade",
     invalid_alias: "❌ Geçersiz alias (3-50 karakter).",
@@ -94,6 +96,7 @@ const TRANSLATIONS = {
     bulk_guest_blocked: "⚠️ Toplu qısaltmaq üçün hesabınızı bağlayın. /start ilə bağlayın.",
     bulk_limit_exceeded: "⚠️ <b>Toplu qısaltma limiti aşıldı!</b>\nBir dəfəyə ən çox <b>{max}</b> link göndərə bilərsiniz. (Siz {count} link göndərdiniz)\n\n<i>Tək səfərdə 50 link üçün: /upgrade</i>",
     bulk_daily_quota_exceeded: "⚠️ <b>Bu toplu link üçün gündəlik limitiniz çatmır!</b>\nBu gün artıq <b>{dailyCount}/{limit}</b> link qısaltmısınız. Qalan limitiniz: <b>{remaining}</b> link (Göndərilən: {count} link).\n\n<i>Gündə 500 link üçün: /upgrade</i>",
+    bulk_summary: "📦 <b>{count}/{total} Toplu Link Qısaldıldı:</b>\n\n",
     phishing_detected: "🚨 Təhlükəsizlik Xəbərdarlığı: Link bloklandı (zərərli/phishing).",
     custom_alias_pro: "❌ Xüsusi alias Pro plan tələb edir. /upgrade",
     invalid_alias: "❌ Keçərsiz alias (3-50 simvol).",
@@ -132,6 +135,7 @@ const TRANSLATIONS = {
     bulk_guest_blocked: "⚠️ Массовое сокращение доступно после привязки аккаунта.",
     bulk_limit_exceeded: "⚠️ <b>Превышен лимит массового сокращения!</b>\nЗа один раз можно отправить максимум <b>{max}</b> ссылок. (Вы отправили {count})\n\n<i>В тарифе Pro доступно до 50 ссылок: /upgrade</i>",
     bulk_daily_quota_exceeded: "⚠️ <b>Недостаточно дневного лимита для этой пачки!</b>\nСегодня уже использовано <b>{dailyCount}/{limit}</b>. Осталось: <b>{remaining}</b> ссылок (Отправлено: {count} ссылок).\n\n<i>Для 500 ссылок/день: /upgrade</i>",
+    bulk_summary: "📦 <b>{count}/{total} Ссылок Сокращено:</b>\n\n",
     phishing_detected: "🚨 Ссылка заблокирована (фишинг/вредоносное ПО).",
     custom_alias_pro: "❌ Свой алиас доступен в Pro. /upgrade",
     invalid_alias: "❌ Неверный алиас (3-50 симв.).",
@@ -398,7 +402,8 @@ function createTelegramBot(db, options = {}) {
           results.push(`${i + 1}. 🔗 <b>${BASE_URL}/${res.short}</b>\n   📎 <code>${esc(res.original.slice(0, 45))}</code>`);
         }
       }
-      const summaryText = `📦 <b>${results.length}/${foundUrls.length} Toplu Link Kısaltıldı:</b>\n\n` +
+      const summaryHeader = t(lang, 'bulk_summary', { count: results.length, total: foundUrls.length });
+      const summaryText = summaryHeader +
         results.join('\n\n') + `\n\n🌐 <a href="${BASE_URL}">ovlink.sbs</a>`;
       await sendMessage(chat.id, summaryText, { replyToMessageId: args.messageId });
       return;

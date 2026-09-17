@@ -5,15 +5,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — Why Ovlink?' %></title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
   <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
   <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
@@ -33,68 +36,239 @@
   <% } %>
 </head>
 
-<body class="home-page policy-page animated-gradient-bg">
+<body class="ovx home-page why-ovlink-page">
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell" style="max-width: 1040px; width: 100%;">
 
-  <main class="policy-main">
-    <section class="container">
-      <div class="policy-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+      <!-- Header / Hero Section -->
+      <section class="m-content-hero" aria-labelledby="whyPageHeading">
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 18px;">
+          <span class="m-live-dot" aria-hidden="true"></span>
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+        </div>
+        <h1 id="whyPageHeading" data-i18n="home_long_title">Niyə Ovlink?</h1>
+        <p data-i18n="home_long_p1">
+          Ovlink link paylaşımını daha aydın və etibarlı etmək üçün yaradılıb. Uzun URL-ləri qısa, oxunaqlı və idarə edilə bilən formata çevirərək paylaşımı sadələşdirir və komandalara vahid iş axını verir.
+        </p>
+      </section>
+
+      <!-- 2x2 Bento Cards Grid with Bespoke Animated SVGs -->
+      <div class="m-why-grid">
+
+        <!-- Card 1: Value Proposition -->
+        <article class="m-card-monolith">
+          <div class="m-card-monolith-icon" aria-hidden="true">
+            <!-- Bespoke Animated Value Spark / Star SVG -->
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="#fff" fill="rgba(255,255,255,0.08)"></polygon>
+              <circle cx="12" cy="12" r="3" stroke="#4ade80" class="anim-pulse-ring"></circle>
+            </svg>
           </div>
-          <h1 class="policy-title" data-i18n="home_long_title">Niyə Ovlink?</h1>
-        </div>
 
-        <div class="policy-list">
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-star me-2"></i><span data-i18n="why_value_title">Ovlink hansı dəyəri yaradır?</span></h3>
-            <p data-i18n="home_long_p1">Ovlink link paylaşımını daha aydın və etibarlı etmək üçün yaradılıb. Uzun URL-ləri qısa, oxunaqlı və idarə edilə bilən formata çevirərək paylaşımı sadələşdirir və komandalara vahid iş axını verir.</p>
-          </article>
+          <h2 class="m-card-monolith-title">
+            <span data-i18n="why_value_title">Ovlink hansı dəyəri yaradır?</span>
+          </h2>
 
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-layer-group me-2"></i><span data-i18n="why_features_title">Əsas imkanlar</span></h3>
-            <p data-i18n="home_long_p2">Xüsusi qısa adlar, şifrəli keçidlər, bitmə tarixi, klik limitləri, ətraflı statistika və qabaqcıl idarəetmə vasitələri ilə linklərinizi tam nəzarətdə saxlayın.</p>
-          </article>
+          <p class="m-card-monolith-desc" data-i18n="home_long_p1">
+            Ovlink link paylaşımını daha aydın və etibarlı etmək üçün yaradılıb. Uzun URL-ləri qısa, oxunaqlı və idarə edilə bilən formata çevirərək paylaşımı sadələşdirir və komandalara vahid iş axını verir.
+          </p>
 
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-users me-2"></i><span data-i18n="why_for_whom_title">Kimlər üçündür və kimlər üçün deyil?</span></h3>
-            <p data-i18n="home_long_p3">Ovlink fərdi istifadəçilər, marketoloqlar, tərtibatçılar və şirkətlər üçün idealdır. Zərərli fəaliyyət, spam və aldadıcı məqsədlər üçün istifadə qadağandır.</p>
-          </article>
+          <div class="m-bento-chips">
+            <span class="m-bento-chip"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i> Millisecond Redirects</span>
+            <span class="m-bento-chip"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Unified Workflow</span>
+          </div>
+        </article>
 
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-shield-halved me-2"></i><span data-i18n="why_how_title">Qısa iş prinsipi və təhlükəsizlik</span></h3>
-            <p data-i18n="home_long_p4">Hər link təhlükəsizlik və filtrasiya yoxlamalarından keçirilir. Hədəf saytların etibarlılığı monitorinq olunur və istifadəçi məxfiliyi qorunur.</p>
-          </article>
-        </div>
+        <!-- Card 2: Core Platform Capabilities -->
+        <article class="m-card-monolith">
+          <div class="m-card-monolith-icon" aria-hidden="true">
+            <!-- Bespoke Animated Capabilities Stack SVG -->
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2" stroke="#fff" fill="rgba(255,255,255,0.1)"></polygon>
+              <polyline points="2 17 12 22 22 17" stroke="rgba(255,255,255,0.6)"></polyline>
+              <polyline points="2 12 12 17 22 12" stroke="#fff" class="anim-beam-dash"></polyline>
+            </svg>
+          </div>
 
-        <div class="policy-back">
-          <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
-        </div>
+          <h2 class="m-card-monolith-title">
+            <span data-i18n="why_features_title">Əsas imkanlar</span>
+          </h2>
+
+          <p class="m-card-monolith-desc" data-i18n="home_long_p2">
+            Xüsusi qısa adlar, şifrəli keçidlər, bitmə tarixi, klik limitləri, ətraflı statistika və qabaqcıl idarəetmə vasitələri ilə linklərinizi tam nəzarətdə saxlayın.
+          </p>
+
+          <div class="m-bento-chips">
+            <span class="m-bento-chip"><i class="fa-solid fa-at" aria-hidden="true"></i> Custom Aliases</span>
+            <span class="m-bento-chip"><i class="fa-solid fa-key" aria-hidden="true"></i> Passwords</span>
+            <span class="m-bento-chip"><i class="fa-solid fa-qrcode" aria-hidden="true"></i> SVG QR Engine</span>
+            <span class="m-bento-chip"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> Real-time Analytics</span>
+          </div>
+        </article>
+
+        <!-- Card 3: Target Audience & Boundaries -->
+        <article class="m-card-monolith">
+          <div class="m-card-monolith-icon" aria-hidden="true">
+            <!-- Bespoke Animated Community / Security Nodes SVG -->
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="rgba(255,255,255,0.7)"></path>
+              <circle cx="9" cy="7" r="4" stroke="rgba(255,255,255,0.9)"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="#fff"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="#fff"></path>
+              <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.15)" stroke-dasharray="2 4" class="anim-pulse-ring"></circle>
+            </svg>
+          </div>
+
+          <h2 class="m-card-monolith-title">
+            <span data-i18n="why_for_whom_title">Kimlər üçündür və kimlər üçün deyil?</span>
+          </h2>
+
+          <p class="m-card-monolith-desc" data-i18n="home_long_p3">
+            Ovlink fərdi istifadəçilər, marketoloqlar, tərtibatçılar və şirkətlər üçün idealdır. Zərərli fəaliyyət, spam və aldadıcı məqsədlər üçün istifadə qadağandır.
+          </p>
+
+          <div class="m-bento-chips">
+            <span class="m-bento-chip"><i class="fa-solid fa-check" aria-hidden="true"></i> Developers & Creators</span>
+            <span class="m-bento-chip"><i class="fa-solid fa-ban" style="color: #f87171;" aria-hidden="true"></i> Zero Spam Policy</span>
+          </div>
+        </article>
+
+        <!-- Card 4: Architecture & Security Protocol -->
+        <article class="m-card-monolith">
+          <div class="m-card-monolith-icon" aria-hidden="true">
+            <!-- Bespoke Animated Shield / Guard SVG -->
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#fff" fill="rgba(255,255,255,0.06)"></path>
+              <path d="M9 12l2 2 4-4" stroke="#4ade80" stroke-width="2"></path>
+              <circle cx="12" cy="12" r="8" stroke="rgba(255,255,255,0.2)" stroke-dasharray="3 3" class="anim-pulse-ring"></circle>
+            </svg>
+          </div>
+
+          <h2 class="m-card-monolith-title">
+            <span data-i18n="why_how_title">Qısa iş prinsipi və təhlükəsizlik</span>
+          </h2>
+
+          <p class="m-card-monolith-desc" data-i18n="home_long_p4">
+            Hər link təhlükəsizlik və filtrasiya yoxlamalarından keçirilir. Hədəf saytların etibarlılığı monitorinq olunur və istifadəçi məxfiliyi qorunur.
+          </p>
+
+          <div class="m-bento-chips">
+            <span class="m-bento-chip"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> URLhaus Live Feed</span>
+            <span class="m-bento-chip"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> Strict Privacy</span>
+          </div>
+        </article>
+
       </div>
-    </section>
+
+      <!-- Action Navigation Footer -->
+      <div style="display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 12px;">
+        <a href="/" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <i class="fa-solid fa-arrow-left" style="font-size: 11px;" aria-hidden="true"></i>
+          <span data-i18n="nav_home">Home</span>
+        </a>
+        <a href="/pricing" class="m-cta m-cta--white" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="pricing_badge">Ovlink Pro</span>
+          <i class="fa-solid fa-arrow-right" style="font-size: 11px;" aria-hidden="true"></i>
+        </a>
+        <a href="/about" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="about_title">About Ovlink</span>
+        </a>
+      </div>
+
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      /* ─── Navbar interactive logic ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+      });
+
+      /* ─── Mobile Menu ─── */
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function(){
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button ripple effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+          span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function(){ span.remove(); }, 600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>
+
 
 
 

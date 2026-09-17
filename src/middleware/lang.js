@@ -2,14 +2,24 @@ const { getRequestGeoMeta, parseAcceptLang } = require('../lib/geo');
 const { ASSET_VERSION } = require('../config/index');
 
 function langMiddleware(req, res, next) {
-  const geoMeta = getRequestGeoMeta(req);
+  const validLangs = ['az', 'tr', 'en'];
+  const cookieHeader = req.headers.cookie || '';
+  const cookieMatch = cookieHeader.match(/(?:^|;\s*)(?:lang_default|lang|ovlink_lang)=([^;]+)/i);
+  const cookieVal = cookieMatch ? decodeURIComponent(cookieMatch[1]).trim().toLowerCase() : '';
+
   let lang = 'en';
 
-  if (geoMeta.country === 'AZ') lang = 'az';
-  else if (geoMeta.country === 'TR') lang = 'tr';
-  else {
-    const acceptLang = parseAcceptLang(req.headers['accept-language']);
-    if (acceptLang) lang = acceptLang;
+  if (validLangs.includes(cookieVal)) {
+    lang = cookieVal;
+  } else {
+    const geoMeta = getRequestGeoMeta(req);
+    if (geoMeta.country === 'AZ') lang = 'az';
+    else if (geoMeta.country === 'TR') lang = 'tr';
+    else {
+      const acceptLang = parseAcceptLang(req.headers['accept-language']);
+      if (acceptLang && validLangs.includes(acceptLang)) lang = acceptLang;
+      else lang = 'az'; // Default to az for Ovlink
+    }
   }
 
   res.locals.defaultLang = lang;

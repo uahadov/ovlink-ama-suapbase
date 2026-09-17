@@ -717,47 +717,7 @@ router.post('/api/shorten',
       }
     };
 
-    // User ban check (prevents link creation while banned)
-    const checkUserBan = (cb) => {
-      if (isGuest || !ownerId) return cb(null);
-      db.get('SELECT email, banned, ban_until, ban_reason, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled FROM users WHERE id = ?', [ownerId], (uErr, uRow) => {
-        if (uErr || !uRow) return cb(null);
-
-        // Auto-clear expired temp bans
-        if (uRow.banned == 1 && uRow.ban_until) {
-          const untilMs = Date.parse(uRow.ban_until);
-          if (!Number.isNaN(untilMs) && untilMs <= Date.now()) {
-            db.run(
-              'UPDATE users SET banned = 0, ban_until = NULL, ban_reason = NULL, ban_set_at = NULL, ban_set_by_admin_id = NULL WHERE id = ?',
-              [req.session.userId],
-              () => {}
-            );
-            uRow.banned = 0;
-          }
-        }
-
-        const banActive = (uRow.banned == 1) && (!uRow.ban_until || (Date.parse(uRow.ban_until) > Date.now()));
-        if (!banActive) return cb(null);
-
-        const msg = buildBanMessage(uiLang, uRow.ban_until, uRow.ban_reason);
-        return cb(msg);
-      });
-    };
-    // Blocked domain check (prevents creating links for blocked destinations)
-    const checkBlockedDomain = (cb) => {
-      if (!hostname) return cb(null);
-      db.get(
-        "SELECT domain FROM blocked_domains WHERE ? = domain OR ? LIKE '%.' || domain LIMIT 1",
-        [hostname, hostname],
-        (err, row) => {
-          if (err) return cb(null);
-          return cb(row ? row.domain : null);
-        }
-      );
-    };
-
-
-const checkCustomDomain = (cb) => {
+    const checkCustomDomain = (cb) => {
   if (!requestedDomain) return cb(null, '');
   if (isGuest || !ownerId) {
     return cb(pickLang(uiLang, 'Xüsusi domen yalnız giriş edən istifadəçilər üçündür.', 'Özel alan adı yalnız giriş yapan kullanıcılar içindir.', 'Custom domain is available only for signed-in users.'), '');
@@ -841,11 +801,12 @@ const checkCustomDomain = (cb) => {
             return res.status(400).json({ error: domainErr });
           }
 
-          let short = "";
-          if (customLink && customLink.trim() !== "") {
-            short = customLink.trim();
+          const isCustomAlias = Boolean(customLink && customLink.trim() !== "");
+          let initialShort = "";
+          if (isCustomAlias) {
+            initialShort = customLink.trim();
 
-            if (isReservedShortAlias(short)) {
+            if (isReservedShortAlias(initialShort)) {
               return res.status(400).json({
                 error: pickLang(
                   uiLang,
@@ -857,19 +818,19 @@ const checkCustomDomain = (cb) => {
             }
 
             // Özel link zaten kullanılmış mı kontrol et
-            db.get('SELECT * FROM urls WHERE short = ?', [short], (err, row) => {
+            db.get('SELECT * FROM urls WHERE short = ?', [initialShort], (err, row) => {
               if (row) {
                 return res.status(400).json({ error: pickLang(uiLang, 'Bu xüsusi link istifadə olunub', 'Bu özel link zaten kullanılıyor', 'This custom link is already in use.') });
               } else {
-                void insertLink(selectedDomain);
+                void insertLink(selectedDomain, initialShort, 0);
               }
             });
           } else {
-            short = generateSafeShortCode();
-            void insertLink(selectedDomain);
+            initialShort = generateSafeShortCode();
+            void insertLink(selectedDomain, initialShort, 3);
           }
 
-          async function insertLink(selectedDomainHost) {
+          async function insertLink(selectedDomainHost, currentShort, attemptsLeft) {
             // Workspace-scoped creation: the actor must be a member and the
             // workspace owner must keep an active Pro plan.
             let workspaceLinkScopeId = null;
@@ -889,7 +850,7 @@ const checkCustomDomain = (cb) => {
             }
             const createdAt = new Date().toISOString();
             const linkPasswordRaw = (link_password || '').toString();
-            const shortUrl = buildShortUrl(req, short, selectedDomainHost);
+            const shortUrl = buildShortUrl(req, currentShort, selectedDomainHost);
             const storedLinkPassword = linkPasswordRaw ? await hashLinkPassword(linkPasswordRaw) : '';
             if (linkPasswordRaw && !storedLinkPassword) {
               return res.status(500).json({ error: pickLang(uiLang, 'Link qısaldıla bilmədi.', 'Link kısaltılamadı.', 'Link could not be shortened.') });
@@ -907,15 +868,35 @@ const checkCustomDomain = (cb) => {
 
             db.run(
               'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host, original_b, ab_split_percent, ios_url, android_url, workspace_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-              [originalAbs, short, createdAt, ownerId, storedLinkPassword, expiresAtValue, maxClicksValue, selectedDomainHost || null, originalBAbs, splitPercentValue, iosUrlAbs, androidUrlAbs, workspaceLinkScopeId],
+              [originalAbs, currentShort, createdAt, ownerId, storedLinkPassword, expiresAtValue, maxClicksValue, selectedDomainHost || null, originalBAbs, splitPercentValue, iosUrlAbs, androidUrlAbs, workspaceLinkScopeId],
               function (err) {
-                if (err) return res.status(500).json({ error: pickLang(uiLang, 'Link qısaldıla bilmədi.', 'Link kısaltılamadı.', 'Link could not be shortened.') });
+                if (err) {
+                  const errMsg = (err.message || '').toLowerCase();
+                  const isUnique = errMsg.includes('unique') || errMsg.includes('duplicate');
+                  if (isUnique) {
+                    if (isCustomAlias) {
+                      return res.status(409).json({
+                        error: pickLang(
+                          uiLang,
+                          'Bu xüsusi link istifadə olunub',
+                          'Bu özel link zaten kullanılıyor',
+                          'This custom link is already in use.'
+                        )
+                      });
+                    }
+                    if (attemptsLeft > 0) {
+                      const nextShort = generateSafeShortCode();
+                      return insertLink(selectedDomainHost, nextShort, attemptsLeft - 1);
+                    }
+                  }
+                  return res.status(500).json({ error: pickLang(uiLang, 'Link qısaldıla bilmədi.', 'Link kısaltılamadı.', 'Link could not be shortened.') });
+                }
 
                 bumpGuestLimit(guestMeta);
 
                 if (ownerId) {
                   void enqueueWebhookEventForUser(ownerId, 'link.created', {
-                    short,
+                    short: currentShort,
                     short_url: shortUrl,
                     original_url: originalAbs,
                     domain: selectedDomainHost || null,
@@ -923,14 +904,14 @@ const checkCustomDomain = (cb) => {
                   });
                 }
 
-                scanUrlAsync(short, originalAbs, ownerId);
-                if (originalBAbs) scanUrlAsync(short, originalBAbs, ownerId);
-                if (iosUrlAbs) scanUrlAsync(short, iosUrlAbs, ownerId);
-                if (androidUrlAbs) scanUrlAsync(short, androidUrlAbs, ownerId);
+                scanUrlAsync(currentShort, originalAbs, ownerId);
+                if (originalBAbs) scanUrlAsync(currentShort, originalBAbs, ownerId);
+                if (iosUrlAbs) scanUrlAsync(currentShort, iosUrlAbs, ownerId);
+                if (androidUrlAbs) scanUrlAsync(currentShort, androidUrlAbs, ownerId);
 
                 return res.json({
                   message: pickLang(uiLang, 'Qısaldılmış link: ' + shortUrl, 'Kısaltılmış link: ' + shortUrl, 'Short link: ' + shortUrl),
-                  short: short,
+                  short: currentShort,
                   shortUrl: shortUrl,
                   domain: selectedDomainHost || null,
                 });

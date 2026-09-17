@@ -1262,19 +1262,7 @@ function openProSecretModal(kind, value) {
   input.value = proSecretRawValue;
   updateProSecretToggleButton();
 
-  if (!proSecretModalInstance && typeof bootstrap !== "undefined" && bootstrap.Modal) {
-    proSecretModalInstance = bootstrap.Modal.getOrCreateInstance(modalEl, {
-      backdrop: "static",
-      keyboard: false,
-    });
-  }
-
-  if (proSecretModalInstance) {
-    proSecretModalInstance.show();
-  } else {
-    modalEl.classList.add("show");
-    modalEl.style.display = "block";
-  }
+  openModalById("proSecretModal");
 }
 
 function initProSecretModalBindings() {
@@ -1801,7 +1789,7 @@ function clearClientSession() {
 
 function getClientSession() {
   const userNav = document.getElementById("navAuthUser");
-  const ssrLoggedIn = !!(userNav && !userNav.classList.contains("d-none"));
+  const ssrLoggedIn = !!(userNav && !userNav.hasAttribute("hidden") && !userNav.classList.contains("d-none"));
   const localLoggedIn = localStorage.getItem("isLoggedIn") === "1";
   const hasWindowUser = !!(window.__userId || window.__userEmail);
   return {
@@ -1865,18 +1853,58 @@ function renderNavbarAuth() {
   ensurePricingNavLink();
   const loginBtn = document.getElementById("navAuthGuestLogin");
   const regBtn = document.getElementById("navAuthGuestReg");
+  const loginM = document.getElementById("navAuthGuestLoginM");
+  const regM = document.getElementById("navAuthGuestRegM");
   const pricingItem = document.getElementById("navPricingItem");
+  const pricingLink = document.getElementById("navPricingLink");
+  const pricingLinkMobile = document.getElementById("navPricingLinkMobile");
+  const pricingLinkItem = document.getElementById("navPricingLinkItem");
   const user = document.getElementById("navAuthUser");
+  const userM = document.getElementById("navAuthUserM");
+  const userProBadge = document.getElementById("navUserProBadge");
+  const logoutBtnMobile = document.getElementById("navLogoutBtnMobile");
   const emailEl = document.getElementById("navUserEmail");
   const adminLink = document.getElementById("navAdminLink");
 
   const s = getClientSession();
-  const showPricingForLoggedIn = s.isLoggedIn && !isProPlanActive();
+  const isPro = isProPlanActive();
+  const showPricingForLoggedIn = s.isLoggedIn && !isPro;
+
   if (s.isLoggedIn) {
     loginBtn?.classList.add("d-none");
+    loginBtn?.setAttribute("hidden", "");
     regBtn?.classList.add("d-none");
-    pricingItem?.classList.toggle("d-none", !showPricingForLoggedIn);
+    regBtn?.setAttribute("hidden", "");
+    loginM?.classList.add("d-none");
+    loginM?.setAttribute("hidden", "");
+    regM?.classList.add("d-none");
+    regM?.setAttribute("hidden", "");
+
+    if (pricingItem) {
+      pricingItem.classList.toggle("d-none", !showPricingForLoggedIn);
+      pricingItem.toggleAttribute("hidden", !showPricingForLoggedIn);
+    }
+    if (pricingLink) {
+      pricingLink.toggleAttribute("hidden", isPro);
+    }
+    if (pricingLinkMobile) {
+      pricingLinkMobile.toggleAttribute("hidden", isPro);
+    }
+    if (pricingLinkItem) {
+      pricingLinkItem.toggleAttribute("hidden", isPro);
+    }
+
     user?.classList.remove("d-none");
+    user?.removeAttribute("hidden");
+    userM?.classList.remove("d-none");
+    userM?.removeAttribute("hidden");
+    logoutBtnMobile?.removeAttribute("hidden");
+    logoutBtnMobile?.classList.remove("d-none");
+
+    if (userProBadge) {
+      userProBadge.toggleAttribute("hidden", !isPro);
+    }
+
     if (emailEl) {
       if (typeof tKey === 'function') {
         emailEl.textContent = tKey("nav_my_account", "Hesabım");
@@ -1886,9 +1914,37 @@ function renderNavbarAuth() {
     }
   } else {
     user?.classList.add("d-none");
+    user?.setAttribute("hidden", "");
+    userM?.classList.add("d-none");
+    userM?.setAttribute("hidden", "");
+    logoutBtnMobile?.setAttribute("hidden", "");
+    logoutBtnMobile?.classList.add("d-none");
+
     loginBtn?.classList.remove("d-none");
+    loginBtn?.removeAttribute("hidden");
     regBtn?.classList.remove("d-none");
-    pricingItem?.classList.remove("d-none");
+    regBtn?.removeAttribute("hidden");
+    loginM?.classList.remove("d-none");
+    loginM?.removeAttribute("hidden");
+    regM?.classList.remove("d-none");
+    regM?.removeAttribute("hidden");
+
+    if (pricingItem) {
+      pricingItem.classList.remove("d-none");
+      pricingItem.removeAttribute("hidden");
+    }
+    if (pricingLink) {
+      pricingLink.removeAttribute("hidden");
+    }
+    if (pricingLinkMobile) {
+      pricingLinkMobile.removeAttribute("hidden");
+    }
+    if (pricingLinkItem) {
+      pricingLinkItem.removeAttribute("hidden");
+    }
+    if (userProBadge) {
+      userProBadge.setAttribute("hidden", "");
+    }
     if (adminLink) adminLink.classList.add("d-none");
   }
   syncFloatingPricingBanner();
@@ -2072,6 +2128,11 @@ if (document.readyState === "loading") {
 
   const logoutBtn = document.getElementById("navLogoutBtn");
   if (logoutBtn) logoutBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    clientLogout();
+  });
+  const logoutBtnM = document.getElementById("navLogoutBtnMobile");
+  if (logoutBtnM) logoutBtnM.addEventListener("click", (e) => {
     e.preventDefault();
     clientLogout();
   });
@@ -2427,21 +2488,12 @@ if (document.readyState === "loading") {
   function openModalById(modalId) {
     const modalEl = document.getElementById(modalId);
     if (!modalEl) return null;
-    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-      try {
-        const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(modalEl) : new bootstrap.Modal(modalEl);
-        if (inst) {
-          inst.show();
-          return inst;
-        }
-      } catch (err) {
-        console.warn('Bootstrap modal error, using fallback:', err);
-      }
-    }
+    modalEl.dispatchEvent(new CustomEvent('show.bs.modal', { bubbles: true }));
     modalEl.style.display = 'block';
     modalEl.classList.add('show');
     modalEl.removeAttribute('aria-hidden');
     modalEl.setAttribute('aria-modal', 'true');
+    document.body.classList.add('modal-open');
     let backdrop = document.getElementById('modalFallbackBackdrop');
     if (!backdrop) {
       backdrop = document.createElement('div');
@@ -2449,6 +2501,7 @@ if (document.readyState === "loading") {
       backdrop.className = 'modal-backdrop fade show';
       document.body.appendChild(backdrop);
     }
+    modalEl.dispatchEvent(new CustomEvent('shown.bs.modal', { bubbles: true }));
     return {
       hide: () => closeModalById(modalId)
     };
@@ -2457,29 +2510,61 @@ if (document.readyState === "loading") {
   function closeModalById(modalId) {
     const modalEl = document.getElementById(modalId);
     if (!modalEl) return;
-    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-      try {
-        const inst = bootstrap.Modal.getInstance ? bootstrap.Modal.getInstance(modalEl) : null;
-        if (inst) {
-          inst.hide();
-          return;
-        }
-      } catch {}
-    }
+    modalEl.dispatchEvent(new CustomEvent('hide.bs.modal', { bubbles: true }));
     modalEl.style.display = 'none';
     modalEl.classList.remove('show');
     modalEl.setAttribute('aria-hidden', 'true');
     modalEl.removeAttribute('aria-modal');
-    const backdrop = document.getElementById('modalFallbackBackdrop');
-    if (backdrop) backdrop.remove();
+    
+    const openModals = document.querySelectorAll('.modal.show');
+    if (openModals.length === 0) {
+      document.body.classList.remove('modal-open');
+      const backdrop = document.getElementById('modalFallbackBackdrop');
+      if (backdrop) backdrop.remove();
+    }
+    modalEl.dispatchEvent(new CustomEvent('hidden.bs.modal', { bubbles: true }));
   }
 
   document.addEventListener('click', (e) => {
-    const dismissBtn = e.target.closest('[data-bs-dismiss="modal"]');
+    // 1. Open trigger
+    const triggerBtn = e.target.closest('[data-bs-toggle="modal"], [data-modal-target]');
+    if (triggerBtn) {
+      const targetSelector = triggerBtn.getAttribute('data-bs-target') || triggerBtn.getAttribute('data-modal-target') || '';
+      const targetId = targetSelector.replace('#', '');
+      if (targetId) {
+        e.preventDefault();
+        openModalById(targetId);
+        return;
+      }
+    }
+
+    // 2. Dismiss trigger
+    const dismissBtn = e.target.closest('[data-bs-dismiss="modal"], [data-modal-dismiss]');
     if (dismissBtn) {
       const modal = dismissBtn.closest('.modal');
       if (modal) {
         closeModalById(modal.id);
+        return;
+      }
+    }
+
+    // 3. Backdrop click dismiss (if clicking directly on modal background outside modal-dialog)
+    if (e.target.classList && e.target.classList.contains('modal') && e.target.classList.contains('show')) {
+      if (e.target.getAttribute('data-bs-backdrop') !== 'static') {
+        closeModalById(e.target.id);
+      }
+    }
+  });
+
+  // 4. Escape key dismiss
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const openModals = document.querySelectorAll('.modal.show');
+      if (openModals.length > 0) {
+        const topModal = openModals[openModals.length - 1];
+        if (topModal.getAttribute('data-bs-backdrop') !== 'static') {
+          closeModalById(topModal.id);
+        }
       }
     }
   });
@@ -3599,15 +3684,12 @@ if (customDomainList) {
   const bulkImportResults = document.getElementById("bulkImportResults");
   const bulkImportLinks = document.getElementById("bulkImportLinks");
   const bulkImportCopyAll = document.getElementById("bulkImportCopyAll");
-  let bulkImportModal = null;
-
-  if (bulkImportBtn && bulkImportModalEl && typeof bootstrap !== "undefined" && bootstrap.Modal) {
-    bulkImportModal = bootstrap.Modal.getOrCreateInstance(bulkImportModalEl);
+  if (bulkImportBtn && bulkImportModalEl) {
     bulkImportBtn.addEventListener("click", () => {
       if (bulkImportMsg) bulkImportMsg.textContent = "";
       if (bulkImportResults) bulkImportResults.classList.add("d-none");
       if (bulkImportLinks) bulkImportLinks.innerHTML = "";
-      bulkImportModal.show();
+      openModalById("bulkImportModal");
     });
   }
 

@@ -6,223 +6,939 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
   <title data-i18n="ws_title">Workspace</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <!-- Monolith Home CSS -->
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
+  <!-- Monolith Workspaces Scoped Styles -->
+  <style>
+    /* ================================================================
+       OVLINK WORKSPACES — MONOLITH WORKSPACE THEME
+       ================================================================ */
+    .ovx.workspaces-page {
+      min-height: 100vh;
+      background: var(--c-bg);
+      color: var(--c-text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ovx .m-ws-main {
+      flex: 1;
+      padding: calc(var(--nav-h) + 48px) 0 80px;
+      position: relative;
+    }
+
+    .ovx .m-ws-shell {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Page Header */
+    .ovx .m-page-header {
+      margin-bottom: 40px;
+      animation: fadeUp 0.6s var(--ease) forwards;
+    }
+
+    .ovx .m-page-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--c-faint);
+      border: 1px solid var(--c-border);
+      padding: 5px 12px;
+      border-radius: 100px;
+      margin-bottom: 16px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .ovx .m-page-chip i { font-size: 10px; color: var(--c-muted); }
+
+    .ovx .m-page-title {
+      font-size: clamp(26px, 4vw, 36px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--c-white);
+      margin-bottom: 8px;
+    }
+
+    .ovx .m-page-sub {
+      font-size: 15px;
+      color: var(--c-muted);
+      line-height: 1.6;
+    }
+
+    /* Cards Stack */
+    .ovx .m-card-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .ovx .m-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.6s var(--ease) forwards;
+    }
+
+    .ovx .m-card:hover {
+      border-color: var(--c-border-hi);
+    }
+
+    .ovx .m-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--c-border);
+    }
+
+    .ovx .m-card-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ovx .m-card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--c-white);
+      flex-shrink: 0;
+    }
+
+    .ovx .m-card-h2 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: var(--c-white);
+      margin: 0;
+    }
+
+    .ovx .m-card-desc {
+      font-size: 13.5px;
+      color: var(--c-muted);
+      line-height: 1.55;
+    }
+
+    /* Workspace Quick Stats Row */
+    .ovx .m-ws-stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .ovx .m-ws-stat-box {
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .ovx .m-ws-stat-box:hover {
+      border-color: var(--c-border-hi);
+    }
+
+    .ovx .m-ws-stat-val {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--c-white);
+      line-height: 1.2;
+    }
+
+    .ovx .m-ws-stat-lbl {
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--c-faint);
+      margin-bottom: 4px;
+    }
+
+    .ovx .m-ws-stat-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--c-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--c-white);
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    /* Badges */
+    .ovx .m-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      padding: 3px 10px;
+      border-radius: 100px;
+      border: 1px solid var(--c-border);
+      background: rgba(255,255,255,0.06);
+      color: var(--c-text);
+    }
+
+    .ovx .m-badge-pill--pro {
+      background: var(--c-white);
+      color: var(--c-bg);
+      border-color: var(--c-white);
+      font-weight: 700;
+    }
+
+    .ovx .m-badge-pill--success {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #10b981;
+    }
+
+    /* Form Controls */
+    .ovx .m-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-bottom: 16px;
+    }
+
+    .ovx .m-adv-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--c-muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .ovx .m-adv-input {
+      background: var(--c-bg);
+      border: 1px solid var(--c-border);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 14px;
+      color: var(--c-text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .ovx .m-adv-input:focus {
+      border-color: var(--c-border-hi);
+      box-shadow: 0 0 0 1px var(--c-border-hi);
+    }
+
+    .ovx select.m-adv-input,
+    .ovx select.form-select {
+      appearance: none;
+      background: var(--c-bg);
+      border: 1px solid var(--c-border);
+      border-radius: 8px;
+      padding: 8px 32px 8px 12px;
+      font-size: 13.5px;
+      color: var(--c-text);
+      outline: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888888' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      transition: border-color 0.2s;
+    }
+
+    .ovx select.m-adv-input:focus,
+    .ovx select.form-select:focus {
+      border-color: var(--c-border-hi);
+    }
+
+    /* Danger Button Style */
+    .ovx .m-cta--danger {
+      background: transparent;
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ovx .m-cta--danger:hover {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: #ef4444;
+      color: #f87171;
+    }
+
+    /* Table Styling */
+    .ovx .m-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--c-border);
+      border-radius: 12px;
+      background: var(--c-surface-2);
+    }
+
+    .ovx .m-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: left;
+    }
+
+    .ovx .m-table th {
+      padding: 12px 18px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--c-faint);
+      border-bottom: 1px solid var(--c-border);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .ovx .m-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--c-border);
+      color: var(--c-text);
+      vertical-align: middle;
+    }
+
+    .ovx .m-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .ovx .m-table tbody tr:hover {
+      background: rgba(255,255,255,0.02);
+    }
+
+    /* Danger Card */
+    .ovx .m-card--danger {
+      border-color: rgba(239, 68, 68, 0.3);
+      background: rgba(239, 68, 68, 0.02);
+    }
+
+    .ovx .m-card--danger:hover {
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    /* Alert Boxes */
+    .ovx .m-alert {
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      line-height: 1.55;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .ovx .m-alert--warning {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: #fcd34d;
+    }
+
+    .ovx .m-alert--warning i { color: #f59e0b; margin-top: 2px; }
+
+    /* Pending Invites List */
+    .ovx #wsPendingInvitesList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ovx #wsPendingInvitesList li {
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13.5px;
+    }
+
+    /* Modal Dark Monolith Styling */
+    .ovx .modal-backdrop {
+      background-color: #000;
+    }
+    .ovx .modal-backdrop.show {
+      opacity: 0.85;
+      backdrop-filter: blur(8px);
+    }
+
+    .ovx .modal-content {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-hi);
+      border-radius: 16px;
+      color: var(--c-text);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.8);
+    }
+
+    .ovx .modal-header {
+      border-bottom: 1px solid var(--c-border);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ovx .modal-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--c-white);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ovx .modal-body {
+      padding: 24px;
+      font-size: 14px;
+      color: var(--c-muted);
+      line-height: 1.6;
+    }
+
+    .ovx .modal-footer {
+      border-top: 1px solid var(--c-border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .ovx .btn-close {
+      background: none;
+      border: none;
+      color: var(--c-muted);
+      font-size: 16px;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s, color 0.2s;
+    }
+    .ovx .btn-close::before { content: '✕'; font-family: inherit; font-size: 16px; }
+    .ovx .btn-close:hover { opacity: 1; color: var(--c-white); }
+
+    .ovx .font-monospace {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .ovx .m-ws-main { padding: calc(var(--nav-h) + 24px) 0 60px; }
+      .ovx .m-card { padding: 20px 16px; border-radius: 14px; }
+      .ovx .m-ws-stat-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 
-<body class="home-page app-page animated-gradient-bg">
+<body class="ovx app-page workspaces-page">
 
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Custom Monolith Cursor -->
+  <div id="mCursorArrow" aria-hidden="true">
+    <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4.5 3.5L27 13.5L16.5 17.5L12 28.5L4.5 3.5Z" fill="#0a0a0a" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div id="mCursorRing" aria-hidden="true"></div>
+
+  <!-- Scroll Progress -->
+  <div id="mScrollBar" aria-hidden="true"><div id="mScrollBar-fill"></div></div>
+
+  <!-- Ambient Cursor Glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
+
+  <!-- Announcement ribbon -->
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
-    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
-        <i class="fa-solid fa-bullhorn"></i>
-        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
-      </div>
+    <div id="siteAnnouncement" class="m-ribbon" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+      <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <!-- Monolith Navigation -->
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <!-- Main Workspaces Container -->
+  <main class="m-ws-main" id="mainContent">
+    <div class="m-ws-shell">
 
-  <main class="app-main">
-    <section class="container">
-      <div class="app-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-users me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+      <!-- Page Header -->
+      <header class="m-page-header">
+        <div class="m-page-chip">
+          <i class="fa-solid fa-users"></i>
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+        </div>
+        <h1 class="m-page-title" data-i18n="ws_title">Workspace</h1>
+        <p class="m-page-sub" data-i18n="ws_subtitle">Komandanız üçün ümumi link workspace-i</p>
+      </header>
+
+      <% const isPro = !!(plan && (plan.tier === 'pro' || plan.is_active || (typeof user !== 'undefined' && user && (user.is_admin || user.role === 'admin')))); %>
+
+      <!-- Loading State -->
+      <div id="wsLoading" class="m-card d-none" style="text-align:center;padding:48px;" data-i18n="ws_loading">
+        Yüklənir...
+      </div>
+
+      <!-- Pro Upsell Card (shown when non-Pro user visits) -->
+      <div id="wsUpsellSection" class="m-card <%= isPro ? 'd-none' : '' %>">
+        <div class="m-card-header">
+          <div class="m-card-title-wrap">
+            <div class="m-card-icon"><i class="fa-solid fa-crown"></i></div>
+            <div>
+              <h2 class="m-card-h2" data-i18n="ws_pro_required">Workspace yalnız Pro plandadır</h2>
+              <div class="m-card-desc" data-i18n="ws_pro_required_desc">Komanda workspace-i, üzv dəvətləri və SAML SSO (Okta) Pro abunəliyinin bir hissəsidir.</div>
+            </div>
           </div>
-          <h1 class="policy-title" data-i18n="ws_title">Workspace</h1>
-          <p class="hero-subtitle" data-i18n="ws_subtitle">Komandanız üçün ümumi link workspace-i</p>
         </div>
-
-        <% const isPro = !!(plan && (plan.tier === 'pro' || plan.is_active || (typeof user !== 'undefined' && user && (user.is_admin || user.role === 'admin')))); %>
-
-        <div id="wsLoading" class="policy-card app-card small text-muted d-none" data-i18n="ws_loading">Yüklənir...</div>
-
-        <!-- Pro deyilsə: yüksəltme kartı -->
-        <div id="wsUpsellSection" class="policy-card app-card <%= isPro ? 'd-none' : '' %>">
-          <h5 class="mb-3 fw-bold"><i class="fa-solid fa-crown me-2"></i><span data-i18n="ws_pro_required">Workspace yalnız Pro plandadır</span></h5>
-          <p class="small text-muted" data-i18n="ws_pro_required_desc">Komanda workspace-i, üzv dəvətləri və SAML SSO (Okta) Pro abunəliyinin bir hissəsidir.</p>
-          <a href="/pricing" class="btn btn-primary rounded-pill" data-i18n="ws_upgrade_btn">Pro-ya keç</a>
+        <div class="m-card-body">
+          <a href="/pricing" class="m-cta m-cta--white m-cta--sm" data-i18n="ws_upgrade_btn">Pro-ya keç</a>
         </div>
+      </div>
 
-        <!-- Workspace yoxdursa: yaratma kartı -->
-        <div id="wsCreateSection" class="policy-card app-card <%= isPro ? '' : 'd-none' %>">
-          <h5 class="mb-3 fw-bold"><i class="fa-solid fa-plus me-2"></i><span data-i18n="ws_create_title">Workspace yarat</span></h5>
-          <p class="small text-muted" data-i18n="ws_create_desc">Bir workspace yaradın, komandanızı dəvət edin və eyni hesab üzərindən birgə link yaradın.</p>
-          <form id="wsCreateForm" class="row g-2 align-items-end">
-            <div class="col-12 col-md-8">
-              <label class="form-label small fw-bold text-muted" for="wsCreateName" data-i18n="ws_create_name_label">Workspace adı</label>
-              <input id="wsCreateName" class="form-control" type="text" maxlength="64" placeholder="Şirkətim" data-i18n-placeholder="ws_create_name_placeholder">
+      <!-- Workspace Create Card (shown when user has no workspace yet) -->
+      <div id="wsCreateSection" class="m-card <%= isPro ? '' : 'd-none' %>">
+        <div class="m-card-header">
+          <div class="m-card-title-wrap">
+            <div class="m-card-icon"><i class="fa-solid fa-plus"></i></div>
+            <div>
+              <h2 class="m-card-h2" data-i18n="ws_create_title">Workspace yarat</h2>
+              <div class="m-card-desc" data-i18n="ws_create_desc">Bir workspace yaradın, komandanızı dəvət edin və eyni hesab üzərindən birgə link yaradın.</div>
             </div>
-            <div class="col-12 col-md-4 d-grid">
-              <button type="submit" class="btn btn-primary rounded-pill" data-i18n="ws_create_btn">Yarat</button>
+          </div>
+        </div>
+        <div class="m-card-body">
+          <form id="wsCreateForm" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div style="flex:1;min-width:260px;">
+              <label class="m-adv-label" for="wsCreateName" data-i18n="ws_create_name_label">Workspace adı</label>
+              <input id="wsCreateName" class="m-adv-input" type="text" maxlength="64" placeholder="Şirkətim" data-i18n-placeholder="ws_create_name_placeholder" required>
             </div>
-            <div class="col-12"><div id="wsCreateMsg" class="small"></div></div>
+            <button type="submit" class="m-cta m-cta--white m-cta--sm" data-i18n="ws_create_btn" style="height:42px;">Yarat</button>
+            <div style="width:100%;"><div id="wsCreateMsg" style="font-size:13px;margin-top:8px;"></div></div>
           </form>
         </div>
+      </div>
 
-        <!-- Workspace varsa: idarəetmə -->
-        <div id="wsDetailSection" class="d-none w-100">
-          <div class="policy-card app-card mb-4">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <!-- Workspace Detail Section (shown when user has active workspace) -->
+      <div id="wsDetailSection" class="d-none m-card-stack" style="width:100%;">
+
+        <!-- 1. Workspace Overview & Identity Card -->
+        <section class="m-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+            <div>
+              <h2 class="m-page-title" style="font-size:24px;margin-bottom:6px;">
+                <i class="fa-solid fa-users" style="font-size:20px;color:var(--c-muted);margin-right:8px;"></i>
+                <span id="wsDisplayName">-</span>
+              </h2>
+              <div style="font-size:13px;color:var(--c-muted);display:flex;align-items:center;gap:8px;">
+                <span data-i18n="ws_your_role">Rolunuz:</span>
+                <span id="wsMyRole" class="m-badge-pill m-badge-pill--pro">-</span>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <a id="wsOpenDashboardBtn" href="/dashboard" class="m-cta m-cta--white m-cta--sm">
+                <i class="fa-solid fa-link"></i>
+                <span data-i18n="ws_create_link_btn">Link Yarat</span>
+              </a>
+              <button type="button" id="wsRenameBtn" class="m-cta m-cta--outline m-cta--sm d-none" data-i18n="ws_rename_btn">Adı dəyiş</button>
+              <button type="button" id="wsLeaveBtn" class="m-cta--danger d-none" data-bs-toggle="modal" data-bs-target="#wsLeaveModal">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                <span data-i18n="ws_leave_btn">Ayrıl</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Pro Status Warning (Owner Expired) -->
+          <div id="wsProWarning" class="m-alert m-alert--warning d-none" data-i18n="ws_owner_pro_expired">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>Sahibin Pro abunəliyi bitib — workspace yalnız oxuma rejimindədir.</span>
+          </div>
+
+          <!-- Rename Form -->
+          <form id="wsRenameForm" class="d-none" style="display:flex;gap:10px;margin-top:20px;align-items:center;flex-wrap:wrap;">
+            <input id="wsRenameInput" class="m-adv-input" type="text" maxlength="64" style="flex:1;min-width:240px;">
+            <button type="submit" class="m-cta m-cta--white m-cta--sm" data-i18n="ws_rename_save">Yadda saxla</button>
+          </form>
+
+          <!-- Quick Stats Row -->
+          <div class="m-ws-stat-grid">
+            <div class="m-ws-stat-box">
               <div>
-                <h4 class="mb-1 fw-bold text-gradient"><i class="fa-solid fa-users me-2"></i><span id="wsDisplayName">-</span></h4>
-                <div class="small text-muted"><span data-i18n="ws_your_role">Rolunuz:</span> <span id="wsMyRole" class="badge bg-secondary bg-opacity-25 text-body fw-normal ms-1">-</span></div>
+                <div class="m-ws-stat-lbl" data-i18n="ws_stat_total_members">Üzvlər</div>
+                <div class="m-ws-stat-val" id="wsStatMembers">0</div>
               </div>
-              <div class="d-flex gap-2 flex-wrap">
-                <a id="wsOpenDashboardBtn" href="/dashboard" class="btn btn-primary rounded-pill"><i class="fa-solid fa-plus me-1"></i><span data-i18n="ws_create_link_btn">Link Yarat</span></a>
-                <button type="button" id="wsRenameBtn" class="btn btn-outline-secondary rounded-pill d-none" data-i18n="ws_rename_btn">Adı dəyiş</button>
-                <button type="button" id="wsLeaveBtn" class="btn btn-outline-danger rounded-pill d-none" data-bs-toggle="modal" data-bs-target="#wsLeaveModal"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i><span data-i18n="ws_leave_btn">Ayrıl</span></button>
+              <div class="m-ws-stat-icon">
+                <i class="fa-solid fa-user-group"></i>
               </div>
             </div>
-            
-            <div id="wsProWarning" class="alert alert-warning mt-4 mb-0 py-2 small d-none" data-i18n="ws_owner_pro_expired"><i class="fa-solid fa-triangle-exclamation me-2"></i>Sahibin Pro abunəliyi bitib — workspace yalnız oxuma rejimindədir.</div>
-            
-            <form id="wsRenameForm" class="row g-2 mt-4 d-none">
-              <div class="col-12 col-md-8">
-                <input id="wsRenameInput" class="form-control" type="text" maxlength="64">
-              </div>
-              <div class="col-12 col-md-4 d-grid">
-                <button type="submit" class="btn btn-primary rounded-pill" data-i18n="ws_rename_save">Yadda saxla</button>
-              </div>
-            </form>
-            
-            <!-- Quick Stats Row -->
-            <div class="row g-3 mt-3">
-              <div class="col-12 col-md-6">
-                <div class="p-3 rounded border d-flex align-items-center justify-content-between ws-stat-card">
-                  <div>
-                    <h6 class="mb-0 text-muted small fw-bold text-uppercase" data-i18n="ws_stat_total_members">Üzvlər</h6>
-                    <h3 class="mb-0 fw-bold ws-stat-num" id="wsStatMembers">0</h3>
-                  </div>
-                  <div class="text-primary bg-primary bg-opacity-10 p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                    <i class="fa-solid fa-user-group fs-5"></i>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12 col-md-6">
-                <div class="p-3 rounded border d-flex align-items-center justify-content-between ws-stat-card">
-                  <div>
-                    <h6 class="mb-0 text-muted small fw-bold text-uppercase" data-i18n="ws_stat_status">Status</h6>
-                    <h3 class="mb-0 fw-bold text-success fs-5 mt-1" id="wsStatStatus">Active</h3>
-                  </div>
-                  <div class="text-success bg-success bg-opacity-10 p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                    <i class="fa-solid fa-bolt fs-5"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-          </div>
 
-          <!-- Üzvlər -->
-          <div class="policy-card app-card mb-4" id="wsMembersCard">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="mb-0 fw-bold"><i class="fa-solid fa-user-group me-2 text-primary"></i><span data-i18n="ws_members_title">Üzvlər</span></h5>
+            <div class="m-ws-stat-box">
+              <div>
+                <div class="m-ws-stat-lbl" data-i18n="ws_stat_status">Status</div>
+                <div class="m-ws-stat-val" style="font-size:20px;color:#10b981;" id="wsStatStatus">Active</div>
+              </div>
+              <div class="m-ws-stat-icon" style="color:#10b981;">
+                <i class="fa-solid fa-bolt"></i>
+              </div>
             </div>
-            <div class="table-responsive app-table-wrap">
-              <table class="table app-table align-middle mb-0">
-                <thead>
-                  <tr>
-                    <th data-i18n="ws_member_email">E-poçt</th>
-                    <th data-i18n="ws_member_role">Rol</th>
-                    <th data-i18n="ws_member_joined">Qoşuldu</th>
-                    <th class="text-end" data-i18n="ws_member_actions">Əməliyyatlar</th>
-                  </tr>
-                </thead>
-                <tbody id="wsMembersBody"></tbody>
-              </table>
+          </div>
+        </section>
+
+        <!-- 2. Members Management Card -->
+        <section class="m-card" id="wsMembersCard">
+          <div class="m-card-header">
+            <div class="m-card-title-wrap">
+              <div class="m-card-icon"><i class="fa-solid fa-user-group"></i></div>
+              <div>
+                <h2 class="m-card-h2" data-i18n="ws_members_title">Üzvlər</h2>
+                <div class="m-card-desc" data-i18n="ws_members_desc">Workspace-də olan istifadəçilər və rolları</div>
+              </div>
             </div>
           </div>
 
-          <!-- Dəvət -->
-          <div class="policy-card app-card mb-4 d-none" id="wsInviteCard">
-            <h5 class="mb-3 fw-bold"><i class="fa-solid fa-paper-plane me-2 text-primary"></i><span data-i18n="ws_invite_title">Üzv dəvət et</span></h5>
-            <form id="wsInviteForm" class="row g-2 align-items-end">
-              <div class="col-12 col-md-6">
-                <label class="form-label small fw-bold text-muted" for="wsInviteEmail" data-i18n="ws_invite_email_label">E-poçt</label>
-                <input id="wsInviteEmail" class="form-control" type="email" placeholder="istifadeci@sirket.com" data-i18n-placeholder="ws_invite_email_placeholder" required>
+          <div class="m-table-wrap">
+            <table class="m-table">
+              <thead>
+                <tr>
+                  <th data-i18n="ws_member_email">E-poçt</th>
+                  <th data-i18n="ws_member_role">Rol</th>
+                  <th data-i18n="ws_member_joined">Qoşuldu</th>
+                  <th style="text-align:right;" data-i18n="ws_member_actions">Əməliyyatlar</th>
+                </tr>
+              </thead>
+              <tbody id="wsMembersBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 3. Invite Teammate Card -->
+        <section class="m-card d-none" id="wsInviteCard">
+          <div class="m-card-header">
+            <div class="m-card-title-wrap">
+              <div class="m-card-icon"><i class="fa-solid fa-paper-plane"></i></div>
+              <div>
+                <h2 class="m-card-h2" data-i18n="ws_invite_title">Üzv dəvət et</h2>
+                <div class="m-card-desc" data-i18n="ws_invite_desc">Komanda üzvünüzü e-poçt vasitəsilə workspace-ə dəvət edin</div>
               </div>
-              <div class="col-6 col-md-3">
-                <label class="form-label small fw-bold text-muted" for="wsInviteRole" data-i18n="ws_invite_role_label">Rol</label>
-                <select id="wsInviteRole" class="form-select">
-                  <option value="member" data-i18n="ws_role_member">Üzv</option>
-                  <option value="admin" data-i18n="ws_role_admin">Admin</option>
-                </select>
-              </div>
-              <div class="col-6 col-md-3 d-grid">
-                <button type="submit" class="btn btn-primary rounded-pill" data-i18n="ws_invite_btn">Dəvət et</button>
-              </div>
-              <div class="col-12"><div id="wsInviteMsg" class="small mt-2"></div></div>
-            </form>
-            <div id="wsPendingInvitesWrap" class="mt-4 d-none">
-              <h6 class="fw-bold small text-muted text-uppercase mb-2" data-i18n="ws_invitations_pending">Gözləyən dəvətlər</h6>
-              <ul id="wsPendingInvitesList" class="list-group list-group-flush border rounded"></ul>
             </div>
           </div>
 
-          <!-- SSO (SAML / Okta) -->
-          <div class="policy-card app-card mb-4 d-none" id="wsSsoCard">
-            <h5 class="mb-3 fw-bold"><i class="fa-solid fa-shield-halved me-2 text-primary"></i><span data-i18n="ws_sso_title">SSO (SAML 2.0)</span></h5>
-            <p class="small text-muted" data-i18n="ws_sso_desc">Okta və ya digər SAML 2.0 IdP metadata XML-i əlavə edin; komandanız korporativ girişlə daxil ola bilər.</p>
-            <div id="wsSsoStatusWrap" class="small mb-3"></div>
-            <form id="wsSsoForm" class="d-none">
-              <div class="mb-3">
-                <label class="form-label small fw-bold text-muted" for="wsSsoMetadata" data-i18n="ws_sso_metadata_label">IdP Metadata XML</label>
-                <textarea id="wsSsoMetadata" class="form-control font-monospace" rows="6" placeholder='<EntityDescriptor ...>'></textarea>
-              </div>
-              <div class="d-flex gap-2 flex-wrap">
-                <button type="submit" class="btn btn-primary rounded-pill px-4" data-i18n="ws_sso_save">Saxla</button>
-                <button type="button" id="wsSsoRemoveBtn" class="btn btn-outline-danger rounded-pill px-4 d-none" data-i18n="ws_sso_disable">SSO-nu sil</button>
-              </div>
-            </form>
-            <div id="wsSsoMsg" class="small mt-2"></div>
-          </div>
+          <form id="wsInviteForm" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div style="flex:2;min-width:240px;">
+              <label class="m-adv-label" for="wsInviteEmail" data-i18n="ws_invite_email_label">E-poçt</label>
+              <input id="wsInviteEmail" class="m-adv-input" type="email" placeholder="istifadeci@sirket.com" data-i18n-placeholder="ws_invite_email_placeholder" required>
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <label class="m-adv-label" for="wsInviteRole" data-i18n="ws_invite_role_label">Rol</label>
+              <select id="wsInviteRole" class="m-adv-input">
+                <option value="member" data-i18n="ws_role_member">Üzv</option>
+                <option value="admin" data-i18n="ws_role_admin">Admin</option>
+              </select>
+            </div>
+            <button type="submit" class="m-cta m-cta--white m-cta--sm" data-i18n="ws_invite_btn" style="height:42px;">Dəvət et</button>
+            <div style="width:100%;"><div id="wsInviteMsg" style="font-size:13px;margin-top:8px;"></div></div>
+          </form>
 
-          <!-- Təhlükəli zona -->
-          <div class="policy-card app-card border-danger d-none" id="wsDangerCard">
-            <h5 class="mb-3 fw-bold text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i><span data-i18n="ws_danger_title">Təhlükəli zona</span></h5>
-            <p class="small text-muted mb-4" data-i18n="ws_danger_desc">Workspace silinərsə üzvlər çıxarılır; linklər yaradıcıların şəxsi hesabına qayıdır və yönləndirmələr dayanmır.</p>
-            <button type="button" id="wsDeleteBtn" class="btn btn-danger rounded-pill px-4" data-i18n="ws_delete_btn">Workspace-i sil</button>
+          <div id="wsPendingInvitesWrap" class="d-none" style="margin-top:24px;border-top:1px solid var(--c-border);padding-top:20px;">
+            <div class="m-adv-label" style="margin-bottom:12px;" data-i18n="ws_invitations_pending">Gözləyən dəvətlər</div>
+            <ul id="wsPendingInvitesList"></ul>
           </div>
-        </div>
-        
-        <!-- Leave Workspace Modal -->
-        <div class="modal fade" id="wsLeaveModal" tabindex="-1" aria-hidden="true">
-          <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
-              <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="modal-title fw-bold text-danger"><i class="fa-solid fa-right-from-bracket me-2"></i><span data-i18n="ws_leave_modal_title">Workspace-dən ayrıl</span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-              </div>
-              <div class="modal-body py-4">
-                <p class="mb-0" data-i18n="ws_leave_modal_desc">Gerçekten çıkmak istiyor musunuz? Yeniden davet edilene kadar bu workspace'e katılamazsınız.</p>
-              </div>
-              <div class="modal-footer border-top-0 pt-0">
-                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal" data-i18n="modal_cancel">Hayır, İptal</button>
-                <button type="button" id="wsLeaveConfirmBtn" class="btn btn-danger rounded-pill px-4" disabled>
-                  <span data-i18n="ws_leave_modal_confirm">Evet, Ayrıl</span> (<span id="wsLeaveCountdown">3</span>)
-                </button>
+        </section>
+
+        <!-- 4. SSO Configuration Card (SAML 2.0 / Okta) -->
+        <section class="m-card d-none" id="wsSsoCard">
+          <div class="m-card-header">
+            <div class="m-card-title-wrap">
+              <div class="m-card-icon"><i class="fa-solid fa-shield-halved"></i></div>
+              <div>
+                <h2 class="m-card-h2" data-i18n="ws_sso_title">SSO (SAML 2.0)</h2>
+                <div class="m-card-desc" data-i18n="ws_sso_desc">Okta və ya digər SAML 2.0 IdP metadata XML-i əlavə edin; komandanız korporativ girişlə daxil ola bilər.</div>
               </div>
             </div>
           </div>
-        </div>
+
+          <div id="wsSsoStatusWrap" style="font-size:13.5px;margin-bottom:16px;"></div>
+
+          <form id="wsSsoForm" class="d-none" style="display:flex;flex-direction:column;gap:14px;">
+            <div class="m-form-group">
+              <label class="m-adv-label" for="wsSsoMetadata" data-i18n="ws_sso_metadata_label">IdP Metadata XML</label>
+              <textarea id="wsSsoMetadata" class="m-adv-input font-monospace" rows="6" placeholder='<EntityDescriptor ...>' style="line-height:1.45;"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <button type="submit" class="m-cta m-cta--white m-cta--sm" data-i18n="ws_sso_save">Saxla</button>
+              <button type="button" id="wsSsoRemoveBtn" class="m-cta--danger d-none" data-i18n="ws_sso_disable">SSO-nu sil</button>
+            </div>
+          </form>
+          <div id="wsSsoMsg" style="font-size:13px;margin-top:10px;"></div>
+        </section>
+
+        <!-- 5. Danger Zone Card -->
+        <section class="m-card m-card--danger d-none" id="wsDangerCard">
+          <div class="m-card-header" style="border-color:rgba(239, 68, 68, 0.2);">
+            <div class="m-card-title-wrap">
+              <div class="m-card-icon" style="background:rgba(239, 68, 68, 0.1);color:#ef4444;border-color:rgba(239, 68, 68, 0.25);">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+              <div>
+                <h2 class="m-card-h2" style="color:#ef4444;" data-i18n="ws_danger_title">Təhlükəli zona</h2>
+                <div class="m-card-desc" data-i18n="ws_danger_desc">Workspace silinərsə üzvlər çıxarılır; linklər yaradıcıların şəxsi hesabına qayıdır və yönləndirmələr dayanmır.</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <button type="button" id="wsDeleteBtn" class="m-cta--danger" data-i18n="ws_delete_btn">Workspace-i sil</button>
+          </div>
+        </section>
 
       </div>
-    </section>
+
+      <!-- Leave Workspace Modal -->
+      <div class="modal fade" id="wsLeaveModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width:480px;margin:1.75rem auto;">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" style="color:#ef4444;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span data-i18n="ws_leave_modal_title">Workspace-dən ayrıl</span>
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p style="margin:0;" data-i18n="ws_leave_modal_desc">Gerçekten çıkmak istiyor musunuz? Yeniden davet edilene kadar bu workspace'e katılamazsınız.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="m-cta m-cta--outline m-cta--sm" data-bs-dismiss="modal" data-i18n="modal_cancel">Hayır, İptal</button>
+              <button type="button" id="wsLeaveConfirmBtn" class="m-cta--danger" disabled>
+                <span data-i18n="ws_leave_modal_confirm">Evet, Ayrıl</span> (<span id="wsLeaveCountdown">3</span>)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </main>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Monolith Footer -->
+  <%- include('partials/home-footer') %>
+
   <script nonce="<%= nonce %>">window.__wsPlanIsPro = <%- isPro ? 'true' : 'false' %>;</script>
+  <!-- Core App Scripts -->
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+
+  <!-- Monolith Motion & Interaction Engine -->
+  <script nonce="<%= nonce %>">
+  (function(){
+    var isMobile = !matchMedia('(hover:hover)').matches;
+
+    /* ─── 1. Custom Cursor ─── */
+    var arrow = document.getElementById('mCursorArrow');
+    var ring  = document.getElementById('mCursorRing');
+    if (arrow && ring && !isMobile) {
+      var mx = -100, my = -100, rx = -100, ry = -100;
+      var rafId = null;
+      function loop(){
+        rx += (mx - rx) * 0.15;
+        ry += (my - ry) * 0.15;
+        ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+        if (Math.abs(mx - rx) > 0.1 || Math.abs(my - ry) > 0.1) {
+          rafId = requestAnimationFrame(loop);
+        } else {
+          rx = mx; ry = my;
+          ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+          rafId = null;
+        }
+      }
+      function updatePos(e){
+        mx = e.clientX; my = e.clientY;
+        arrow.style.transform = 'translate(' + mx + 'px,' + my + 'px)';
+        if (!rafId) rafId = requestAnimationFrame(loop);
+      }
+      window.addEventListener('mousemove', updatePos, {passive:true});
+      window.addEventListener('pointermove', updatePos, {passive:true});
+      document.addEventListener('mouseover', function(e){
+        var interactive = e.target && e.target.closest && e.target.closest('a,button,input,textarea,select,label,[role="button"]');
+        if (interactive) {
+          arrow.classList.add('hover');
+          ring.classList.add('hover');
+        } else {
+          arrow.classList.remove('hover');
+          ring.classList.remove('hover');
+        }
+      }, {passive:true});
+      document.addEventListener('mousedown', function(){
+        arrow.classList.add('clicking');
+        ring.classList.add('clicking');
+      });
+      document.addEventListener('mouseup', function(){
+        arrow.classList.remove('clicking');
+        ring.classList.remove('clicking');
+      });
+      document.addEventListener('mouseleave', function(){
+        arrow.classList.add('hidden');
+        ring.classList.add('hidden');
+      });
+      document.addEventListener('mouseenter', function(){
+        arrow.classList.remove('hidden');
+        ring.classList.remove('hidden');
+      });
+    } else {
+      if (arrow) arrow.style.display = 'none';
+      if (ring)  ring.style.display  = 'none';
+    }
+
+    /* ─── 2. Cursor Glow ─── */
+    var glow = document.getElementById('cursorGlow');
+    if (glow && !isMobile) {
+      document.addEventListener('mousemove', function(e){
+        glow.style.left = e.clientX + 'px';
+        glow.style.top  = e.clientY + 'px';
+      }, {passive:true});
+    } else if (glow) {
+      glow.style.display = 'none';
+    }
+
+    /* ─── 3. Scroll Progress Bar ─── */
+    var sbFill = document.getElementById('mScrollBar-fill');
+    if (sbFill) {
+      window.addEventListener('scroll', function(){
+        var h = document.documentElement;
+        var pct = (h.scrollTop || document.body.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        sbFill.style.width = pct + '%';
+      }, {passive:true});
+    }
+
+    /* ─── 4. Nav scroll class ─── */
+    var nav = document.getElementById('mNav');
+    if (nav) {
+      var onScroll = function(){ nav.classList.toggle('scrolled', window.scrollY > 10); };
+      window.addEventListener('scroll', onScroll, {passive:true});
+      onScroll();
+    }
+
+    /* ─── 5. Ripple Effect ─── */
+    function addRipple(btn) {
+      btn.addEventListener('click', function(e){
+        var r = btn.getBoundingClientRect();
+        var size = Math.max(r.width, r.height);
+        var span = document.createElement('span');
+        span.className = 'm-ripple';
+        span.style.width = span.style.height = size + 'px';
+        span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+        span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+        btn.appendChild(span);
+        setTimeout(function(){ span.remove(); }, 600);
+      });
+    }
+    document.querySelectorAll('.m-cta, .m-btn-solid').forEach(addRipple);
+
+    /* ─── 6. Mobile Menu & Dropdowns ─── */
+    function setupDropdown(btnId, panelId) {
+      var btn = document.getElementById(btnId);
+      var panel = document.getElementById(panelId);
+      if(!btn || !panel) return;
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel').forEach(function(p) { p.classList.remove('open', 'is-open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+        if(!isExpanded) {
+          panel.classList.add('open');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    }
+    setupDropdown('langToggleBtn', 'ovxLangPanel');
+    setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+    setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel').forEach(function(p) { p.classList.remove('open', 'is-open'); });
+      document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+    });
+
+    var burger = document.getElementById('mBurger');
+    var mobileMenu = document.getElementById('mMobileMenu');
+    var mClose = document.getElementById('mMobileClose');
+    function closeMobileMenu() {
+      if (mobileMenu && mobileMenu.classList.contains('open')) {
+        mobileMenu.classList.remove('open');
+        document.body.style.overflow = '';
+        if (burger) burger.setAttribute('aria-expanded', 'false');
+      }
+    }
+    if (burger && mobileMenu) {
+      burger.addEventListener('click', function(){
+        mobileMenu.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        burger.setAttribute('aria-expanded', 'true');
+      });
+    }
+    if (mClose) mClose.addEventListener('click', closeMobileMenu);
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') closeMobileMenu();
+    });
+
+    /* ─── 7. Announcement Ribbon i18n ─── */
+    var ribbon = document.getElementById('siteAnnouncement');
+    if (ribbon) {
+      var savedLang = (function(){ try { return localStorage.getItem('lang') || 'az'; } catch(_){ return 'az'; } })();
+      var t = ribbon.dataset[savedLang] || ribbon.dataset.az || ribbon.dataset.tr || ribbon.dataset.en;
+      var ael = document.getElementById('siteAnnouncementText');
+      if (ael && t) ael.textContent = t;
+      document.body.classList.add('has-ribbon');
+    }
+  })();
+  </script>
 </body>
 
 </html>

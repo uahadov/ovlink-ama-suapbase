@@ -5,97 +5,385 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
   <title data-i18n="stats_page_title">Link Statistikası</title>
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <!-- Monolith Home CSS -->
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
+  <!-- Chart.js 4.4.1 -->
   <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Monolith Stats Scoped Styles -->
+  <style>
+    /* ================================================================
+       OVLINK LINK STATS — MONOLITH THEME
+       ================================================================ */
+    .ovx.stats-page {
+      min-height: 100vh;
+      background: var(--c-bg);
+      color: var(--c-text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ovx .m-stats-main {
+      flex: 1;
+      padding: calc(var(--nav-h) + 48px) 0 80px;
+      position: relative;
+    }
+
+    .ovx .m-stats-shell {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Page Header */
+    .ovx .m-page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+      animation: fadeUp 0.6s var(--ease) forwards;
+    }
+
+    .ovx .m-page-title {
+      font-size: clamp(24px, 3.5vw, 32px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--c-white);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Cards */
+    .ovx .m-card-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .ovx .m-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: border-color 0.25s var(--ease);
+      animation: fadeUp 0.6s var(--ease) forwards;
+    }
+
+    .ovx .m-card:hover {
+      border-color: var(--c-border-hi);
+    }
+
+    .ovx .m-card-h2 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: var(--c-white);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Meta Info Grid */
+    .ovx .m-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .ovx .m-meta-box {
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+
+    .ovx .m-meta-lbl {
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--c-faint);
+      margin-bottom: 6px;
+    }
+
+    .ovx .m-meta-val {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--c-white);
+      word-break: break-all;
+    }
+
+    .ovx .m-badges-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ovx .m-stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 100px;
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      color: var(--c-text);
+    }
+
+    .ovx .m-stat-pill strong {
+      color: var(--c-white);
+      font-weight: 700;
+    }
+
+    /* Chart Container */
+    .ovx .m-chart-wrap {
+      position: relative;
+      width: 100%;
+      min-height: 240px;
+    }
+
+    /* 2-Column Duo */
+    .ovx .m-duo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    /* List Group */
+    .ovx .m-breakdown-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ovx .m-breakdown-item {
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13.5px;
+      color: var(--c-text);
+      transition: border-color 0.2s;
+    }
+
+    .ovx .m-breakdown-item:hover {
+      border-color: var(--c-border-hi);
+    }
+
+    .ovx .m-breakdown-item .m-lbl {
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ovx .m-breakdown-item .m-val {
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--c-border);
+      border-radius: 100px;
+      padding: 2px 10px;
+      color: var(--c-white);
+      flex-shrink: 0;
+    }
+
+    /* Alert Boxes */
+    .ovx .m-alert {
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      line-height: 1.55;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .ovx .m-alert--warning {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: #fcd34d;
+    }
+
+    .ovx .m-alert--danger {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #fca5a5;
+    }
+
+    @media (max-width: 768px) {
+      .ovx .m-stats-main { padding: calc(var(--nav-h) + 24px) 0 60px; }
+      .ovx .m-meta-grid,
+      .ovx .m-duo-grid { grid-template-columns: 1fr; gap: 16px; }
+      .ovx .m-card { padding: 20px 16px; }
+    }
+  </style>
 </head>
 
-<body class="home-page app-page stats-page animated-gradient-bg">
+<body class="ovx app-page stats-page">
 
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Custom Monolith Cursor -->
+  <div id="mCursorArrow" aria-hidden="true">
+    <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4.5 3.5L27 13.5L16.5 17.5L12 28.5L4.5 3.5Z" fill="#0a0a0a" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div id="mCursorRing" aria-hidden="true"></div>
+
+  <!-- Scroll Progress -->
+  <div id="mScrollBar" aria-hidden="true"><div id="mScrollBar-fill"></div></div>
+
+  <!-- Ambient Cursor Glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
+
+  <!-- Announcement ribbon -->
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
-    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
-        <i class="fa-solid fa-bullhorn"></i>
-        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
-      </div>
+    <div id="siteAnnouncement" class="m-ribbon" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+      <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <!-- Monolith Navigation -->
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <!-- Main Stats Container -->
+  <main class="m-stats-main" id="mainContent">
+    <div class="m-stats-shell">
 
-  <main class="app-main">
-    <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h1 class="m-0">Statistika</h1>
-      <a class="btn btn-outline-secondary btn-sm" href="/dashboard"><span data-i18n="stats_back">Geri</span></a>
-    </div>
+      <!-- Header Row -->
+      <header class="m-page-header">
+        <h1 class="m-page-title">
+          <i class="fa-solid fa-chart-line" style="color:var(--c-muted);font-size:22px;"></i>
+          <span data-i18n="stats_page_title">Statistika</span>
+        </h1>
+        <a class="m-cta m-cta--outline m-cta--sm" href="/dashboard">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span data-i18n="stats_back">Geri</span>
+        </a>
+      </header>
 
-    <div class="card p-3 mb-3">
-      <div class="row g-2">
-        <div class="col-md-6">
-          <div class="small text-muted" data-i18n="stats_shortened">Qısaldılmış</div>
-          <div class="fw-bold" id="shortText">-</div>
+      <div class="m-card-stack">
+
+        <!-- Link Overview Card -->
+        <section class="m-card">
+          <div class="m-meta-grid">
+            <div class="m-meta-box">
+              <div class="m-meta-lbl" data-i18n="stats_shortened">Qısaldılmış</div>
+              <div class="m-meta-val" id="shortText">-</div>
+            </div>
+            <div class="m-meta-box">
+              <div class="m-meta-lbl" data-i18n="stats_original">Orijinal</div>
+              <div class="m-meta-val" id="origText">-</div>
+            </div>
+          </div>
+
+          <div class="m-badges-row">
+            <div class="m-stat-pill">
+              <i class="fa-solid fa-chart-simple" style="color:var(--c-muted);"></i>
+              <span data-i18n="stats_total">Ümumi</span>:&nbsp;<strong id="totalClicksValue">0</strong>
+            </div>
+            <div class="m-stat-pill">
+              <i class="fa-regular fa-clock" style="color:var(--c-muted);"></i>
+              <span data-i18n="stats_created">Yaradılma</span>:&nbsp;<strong id="createdAtValue">-</strong>
+            </div>
+          </div>
+
+          <div class="m-alert m-alert--warning d-none" id="statsHint">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>Bu səhifənin işləməsi üçün backend-də <code>GET /api/stats/:short</code> endpoint-i olmalıdır.</span>
+          </div>
+          <div class="m-alert m-alert--danger d-none" id="statsMessage"></div>
+        </section>
+
+        <!-- Daily Clicks Chart Card -->
+        <section class="m-card">
+          <h2 class="m-card-h2">
+            <i class="fa-solid fa-chart-area" style="color:var(--c-muted);"></i>
+            <span data-i18n="stats_clicks_by_day">Gündəlik kliklər</span>
+          </h2>
+          <div class="m-chart-wrap">
+            <canvas id="clickChart" height="120"></canvas>
+          </div>
+        </section>
+
+        <!-- Referrers & Countries Breakdown Duo -->
+        <div class="m-duo-grid">
+          <section class="m-card">
+            <h2 class="m-card-h2">
+              <i class="fa-solid fa-compass" style="color:var(--c-muted);"></i>
+              <span data-i18n="stats_top_referrers">Ən çox yönləndirən mənbələr</span>
+            </h2>
+            <ul class="m-breakdown-list" id="refList"></ul>
+          </section>
+
+          <section class="m-card">
+            <h2 class="m-card-h2">
+              <i class="fa-solid fa-earth-americas" style="color:var(--c-muted);"></i>
+              <span data-i18n="stats_country_breakdown">Ölkə bölgüsü</span>
+            </h2>
+            <ul class="m-breakdown-list" id="countryList"></ul>
+          </section>
         </div>
-        <div class="col-md-6">
-          <div class="small text-muted" data-i18n="stats_original">Orijinal</div>
-          <div class="text-break" id="origText">-</div>
-        </div>
-      </div>
-      <hr />
-      <div class="d-flex gap-2 flex-wrap">
-        <span class="badge text-bg-primary"><span data-i18n="stats_total">Ümumi</span>: <span id="totalClicksValue">0</span></span>
-        <span class="badge text-bg-secondary"><span data-i18n="stats_created">Yaradılma</span>: <span id="createdAtValue">-</span></span>
-      </div>
-      <div class="alert alert-warning mt-3 mb-0 d-none" id="statsHint">
-        Bu səhifənin işləməsi üçün backend-də <code>GET /api/stats/:short</code> endpoint-i olmalıdır.
-      </div>
-      <div class="alert alert-danger mt-3 mb-0 d-none" id="statsMessage"></div>
-    </div>
 
-    <div class="card p-3 mb-3">
-      <h5 class="mb-3">Gündəlik kliklər</h5>
-      <canvas id="clickChart" height="120"></canvas>
-    </div>
-
-    <div class="row g-3">
-      <div class="col-md-6">
-        <div class="card p-3">
-          <h5 class="mb-3">Ən çox yönləndirən mənbələr</h5>
-          <ul class="list-group" id="refList"></ul>
-        </div>
       </div>
-      <div class="col-md-6">
-        <div class="card p-3">
-          <h5 class="mb-3">Ölkə bölgüsü</h5>
-          <ul class="list-group" id="countryList"></ul>
-        </div>
-      </div>
-    </div>
     </div>
   </main>
 
+  <!-- Monolith Footer -->
+  <%- include('partials/home-footer') %>
+
+  <!-- Core App Scripts -->
+  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+
+  <!-- Stats Logic & Dark Chart Configuration -->
   <script nonce="<%= nonce %>">
     const qs = new URLSearchParams(location.search);
     const short = qs.get("short");
 
     function liRow(label, value) {
       const li = document.createElement("li");
-      li.className = "list-group-item d-flex justify-content-between align-items-center";
+      li.className = "m-breakdown-item";
 
       const left = document.createElement("span");
-      left.className = "text-truncate";
+      left.className = "m-lbl";
       left.textContent = String(label ?? "");
 
       const right = document.createElement("span");
-      right.className = "badge text-bg-dark";
+      right.className = "m-val";
       right.textContent = String(value ?? "");
 
       li.appendChild(left);
@@ -138,10 +426,83 @@
         const labels = points.map((p) => p.date);
         const values = points.map((p) => p.count);
 
-        new Chart(document.getElementById("clickChart"), {
+        const canvasEl = document.getElementById("clickChart");
+        const ctx = canvasEl.getContext("2d");
+
+        // Subtle gradient fill under line
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, "rgba(255, 255, 255, 0.12)");
+        gradient.addColorStop(1, "rgba(255, 255, 255, 0.00)");
+
+        new Chart(canvasEl, {
           type: "line",
-          data: { labels, datasets: [{ label: "Klik", data: values, tension: 0.25 }] },
-          options: { responsive: true, plugins: { legend: { display: true } } },
+          data: {
+            labels,
+            datasets: [{
+              label: "Klik",
+              data: values,
+              borderColor: "#ffffff",
+              borderWidth: 2,
+              backgroundColor: gradient,
+              fill: true,
+              tension: 0.25,
+              pointBackgroundColor: "#ffffff",
+              pointBorderColor: "#0a0a0a",
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: "#ffffff",
+              pointHoverBorderColor: "#ffffff"
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              intersect: false,
+              mode: "index"
+            },
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                backgroundColor: "#111111",
+                titleColor: "#ffffff",
+                bodyColor: "#888888",
+                borderColor: "rgba(255,255,255,0.15)",
+                borderWidth: 1,
+                padding: 12,
+                cornerRadius: 8,
+                titleFont: { family: "Inter", size: 13, weight: "600" },
+                bodyFont: { family: "Inter", size: 13 }
+              }
+            },
+            scales: {
+              x: {
+                grid: {
+                  color: "rgba(255,255,255,0.06)",
+                  drawBorder: false
+                },
+                ticks: {
+                  color: "#888888",
+                  font: { family: "Inter", size: 12 }
+                }
+              },
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: "rgba(255,255,255,0.06)",
+                  drawBorder: false
+                },
+                ticks: {
+                  color: "#888888",
+                  precision: 0,
+                  font: { family: "Inter", size: 12 }
+                }
+              }
+            }
+          }
         });
 
         const refList = document.getElementById("refList");
@@ -160,13 +521,160 @@
 
     load();
   </script>
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
-  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
 
+  <!-- Monolith Motion & Interaction Engine -->
+  <script nonce="<%= nonce %>">
+  (function(){
+    var isMobile = !matchMedia('(hover:hover)').matches;
+
+    /* ─── 1. Custom Cursor ─── */
+    var arrow = document.getElementById('mCursorArrow');
+    var ring  = document.getElementById('mCursorRing');
+    if (arrow && ring && !isMobile) {
+      var mx = -100, my = -100, rx = -100, ry = -100;
+      var rafId = null;
+      function loop(){
+        rx += (mx - rx) * 0.15;
+        ry += (my - ry) * 0.15;
+        ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+        if (Math.abs(mx - rx) > 0.1 || Math.abs(my - ry) > 0.1) {
+          rafId = requestAnimationFrame(loop);
+        } else {
+          rx = mx; ry = my;
+          ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+          rafId = null;
+        }
+      }
+      function updatePos(e){
+        mx = e.clientX; my = e.clientY;
+        arrow.style.transform = 'translate(' + mx + 'px,' + my + 'px)';
+        if (!rafId) rafId = requestAnimationFrame(loop);
+      }
+      window.addEventListener('mousemove', updatePos, {passive:true});
+      window.addEventListener('pointermove', updatePos, {passive:true});
+      document.addEventListener('mouseover', function(e){
+        var interactive = e.target && e.target.closest && e.target.closest('a,button,input,textarea,select,label,[role="button"]');
+        if (interactive) {
+          arrow.classList.add('hover');
+          ring.classList.add('hover');
+        } else {
+          arrow.classList.remove('hover');
+          ring.classList.remove('hover');
+        }
+      }, {passive:true});
+      document.addEventListener('mousedown', function(){
+        arrow.classList.add('clicking');
+        ring.classList.add('clicking');
+      });
+      document.addEventListener('mouseup', function(){
+        arrow.classList.remove('clicking');
+        ring.classList.remove('clicking');
+      });
+      document.addEventListener('mouseleave', function(){
+        arrow.classList.add('hidden');
+        ring.classList.add('hidden');
+      });
+      document.addEventListener('mouseenter', function(){
+        arrow.classList.remove('hidden');
+        ring.classList.remove('hidden');
+      });
+    } else {
+      if (arrow) arrow.style.display = 'none';
+      if (ring)  ring.style.display  = 'none';
+    }
+
+    /* ─── 2. Cursor Glow ─── */
+    var glow = document.getElementById('cursorGlow');
+    if (glow && !isMobile) {
+      document.addEventListener('mousemove', function(e){
+        glow.style.left = e.clientX + 'px';
+        glow.style.top  = e.clientY + 'px';
+      }, {passive:true});
+    } else if (glow) {
+      glow.style.display = 'none';
+    }
+
+    /* ─── 3. Scroll Progress Bar ─── */
+    var sbFill = document.getElementById('mScrollBar-fill');
+    if (sbFill) {
+      window.addEventListener('scroll', function(){
+        var h = document.documentElement;
+        var pct = (h.scrollTop || document.body.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        sbFill.style.width = pct + '%';
+      }, {passive:true});
+    }
+
+    /* ─── 4. Nav scroll class ─── */
+    var nav = document.getElementById('mNav');
+    if (nav) {
+      var onScroll = function(){ nav.classList.toggle('scrolled', window.scrollY > 10); };
+      window.addEventListener('scroll', onScroll, {passive:true});
+      onScroll();
+    }
+
+    /* ─── 5. Ripple Effect ─── */
+    function addRipple(btn) {
+      btn.addEventListener('click', function(e){
+        var r = btn.getBoundingClientRect();
+        var size = Math.max(r.width, r.height);
+        var span = document.createElement('span');
+        span.className = 'm-ripple';
+        span.style.width = span.style.height = size + 'px';
+        span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+        span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+        btn.appendChild(span);
+        setTimeout(function(){ span.remove(); }, 600);
+      });
+    }
+    document.querySelectorAll('.m-cta, .m-btn-solid').forEach(addRipple);
+
+    /* ─── 6. Mobile Menu & Dropdowns ─── */
+    function setupDropdown(btnId, panelId) {
+      var btn = document.getElementById(btnId);
+      var panel = document.getElementById(panelId);
+      if(!btn || !panel) return;
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel').forEach(function(p) { p.classList.remove('open', 'is-open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+        if(!isExpanded) {
+          panel.classList.add('open');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    }
+    setupDropdown('langToggleBtn', 'ovxLangPanel');
+    setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+    setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel').forEach(function(p) { p.classList.remove('open', 'is-open'); });
+      document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+    });
+
+    var burger = document.getElementById('mBurger');
+    var mobileMenu = document.getElementById('mMobileMenu');
+    var mClose = document.getElementById('mMobileClose');
+    function closeMobileMenu() {
+      if (mobileMenu && mobileMenu.classList.contains('open')) {
+        mobileMenu.classList.remove('open');
+        document.body.style.overflow = '';
+        if (burger) burger.setAttribute('aria-expanded', 'false');
+      }
+    }
+    if (burger && mobileMenu) {
+      burger.addEventListener('click', function(){
+        mobileMenu.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        burger.setAttribute('aria-expanded', 'true');
+      });
+    }
+    if (mClose) mClose.addEventListener('click', closeMobileMenu);
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') closeMobileMenu();
+    });
+  })();
+  </script>
 </body>
 
 </html>
-
-

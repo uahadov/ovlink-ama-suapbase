@@ -6,422 +6,1126 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
   <title data-i18n="account_title">Profil Parametrləri</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <!-- Monolith Home CSS -->
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
+  <!-- Monolith App & Settings Scoped Styles -->
+  <style>
+    /* ================================================================
+       OVLINK APP DASHBOARD — MONOLITH ACCOUNT THEME
+       ================================================================ */
+    .ovx.account-page {
+      min-height: 100vh;
+      background: var(--c-bg);
+      color: var(--c-text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ovx .m-account-main {
+      flex: 1;
+      padding: calc(var(--nav-h) + 48px) 0 80px;
+      position: relative;
+    }
+
+    .ovx .m-account-shell {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Page Header */
+    .ovx .m-page-header {
+      margin-bottom: 40px;
+      animation: fadeUp 0.6s var(--ease) forwards;
+    }
+
+    .ovx .m-page-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--c-faint);
+      border: 1px solid var(--c-border);
+      padding: 5px 12px;
+      border-radius: 100px;
+      margin-bottom: 16px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .ovx .m-page-chip i { font-size: 10px; color: var(--c-muted); }
+
+    .ovx .m-page-title {
+      font-size: clamp(26px, 4vw, 36px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--c-white);
+      margin-bottom: 8px;
+    }
+
+    .ovx .m-page-sub {
+      font-size: 15px;
+      color: var(--c-muted);
+      line-height: 1.6;
+    }
+
+    /* Cards Stack */
+    .ovx .m-card-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .ovx .m-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.6s var(--ease) forwards;
+    }
+
+    .ovx .m-card:hover {
+      border-color: var(--c-border-hi);
+    }
+
+    .ovx .m-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--c-border);
+    }
+
+    .ovx .m-card-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ovx .m-card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--c-white);
+      flex-shrink: 0;
+    }
+
+    .ovx .m-card-h2 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: var(--c-white);
+      margin: 0;
+    }
+
+    .ovx .m-card-desc {
+      font-size: 13.5px;
+      color: var(--c-muted);
+      margin-top: 2px;
+    }
+
+    .ovx .m-inner-box {
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 16px;
+    }
+
+    .ovx .m-inner-box--nested {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    /* Subsections & Dividers */
+    .ovx .m-divider-hairline {
+      height: 1px;
+      background: var(--c-border);
+      margin: 28px 0;
+      border: none;
+    }
+
+    .ovx .m-section-subhead {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--c-white);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Form Controls */
+    .ovx .m-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-bottom: 16px;
+    }
+
+    .ovx .m-form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .ovx .m-form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .ovx .m-adv-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--c-muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .ovx .m-adv-input {
+      background: var(--c-bg);
+      border: 1px solid var(--c-border);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 14px;
+      color: var(--c-text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .ovx .m-adv-input:focus {
+      border-color: var(--c-border-hi);
+      box-shadow: 0 0 0 1px var(--c-border-hi);
+    }
+
+    .ovx .m-adv-input:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .ovx select.m-adv-input {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888888' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+
+    /* Checkboxes */
+    .ovx .m-checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .ovx .m-checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13.5px;
+      color: var(--c-text);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .ovx .m-checkbox-label input[type="checkbox"] {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      background: var(--c-bg);
+      border: 1px solid var(--c-border);
+      cursor: pointer;
+      outline: none;
+      position: relative;
+      transition: background 0.15s, border-color 0.15s;
+      flex-shrink: 0;
+    }
+
+    .ovx .m-checkbox-label input[type="checkbox"]:checked {
+      background: var(--c-white);
+      border-color: var(--c-white);
+    }
+
+    .ovx .m-checkbox-label input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 2px;
+      width: 4px;
+      height: 8px;
+      border: solid var(--c-bg);
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    /* Badges */
+    .ovx .m-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      padding: 3px 10px;
+      border-radius: 100px;
+      border: 1px solid var(--c-border);
+      background: rgba(255,255,255,0.06);
+      color: var(--c-text);
+    }
+
+    .ovx .m-badge-pill--pro {
+      background: var(--c-white);
+      color: var(--c-bg);
+      border-color: var(--c-white);
+      font-weight: 700;
+    }
+
+    .ovx .m-badge-pill--warning {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #f59e0b;
+    }
+
+    .ovx .m-badge-pill--success {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #10b981;
+    }
+
+    .ovx .m-badge-pill--muted {
+      background: rgba(255,255,255,0.04);
+      border-color: var(--c-border);
+      color: var(--c-muted);
+    }
+
+    /* Alert Boxes */
+    .ovx .m-alert {
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      line-height: 1.55;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .ovx .m-alert--info {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--c-border);
+      color: var(--c-text);
+    }
+
+    .ovx .m-alert--warning {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: #fcd34d;
+    }
+
+    .ovx .m-alert--warning i { color: #f59e0b; margin-top: 2px; }
+
+    .ovx .m-alert--success {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #6ee7b7;
+    }
+
+    .ovx .m-alert--danger {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #fca5a5;
+    }
+
+    /* Quick steps pills */
+    .ovx .pro-quick-guide {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .ovx .pro-quick-item {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--c-muted);
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      padding: 4px 10px;
+      border-radius: 100px;
+    }
+
+    /* Event Picker Pills */
+    .ovx .pro-event-picker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .ovx .pro-event-picker button {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 100px;
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      color: var(--c-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .ovx .pro-event-picker button:hover {
+      color: var(--c-white);
+      border-color: var(--c-border-hi);
+    }
+
+    .ovx .pro-event-picker button.active {
+      background: var(--c-white);
+      color: var(--c-bg);
+      border-color: var(--c-white);
+      font-weight: 600;
+    }
+
+    /* Advanced Box Accordion */
+    .ovx details.pro-advanced-box {
+      border: 1px solid var(--c-border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.02);
+      margin-top: 10px;
+    }
+
+    .ovx details.pro-advanced-box summary {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--c-muted);
+      cursor: pointer;
+      user-select: none;
+      outline: none;
+    }
+
+    .ovx details.pro-advanced-box summary:hover {
+      color: var(--c-white);
+    }
+
+    /* Dynamic Item Cards (API Keys, Webhooks, Sessions) */
+    .ovx .pro-item-card,
+    .ovx .session-item-card,
+    .ovx .domain-item-card {
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .ovx .pro-item-card:hover,
+    .ovx .session-item-card:hover,
+    .ovx .domain-item-card:hover {
+      border-color: var(--c-border-hi);
+    }
+
+    /* Danger Button Style */
+    .ovx .m-cta--danger {
+      background: transparent;
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+    }
+
+    .ovx .m-cta--danger:hover {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: #ef4444;
+      color: #f87171;
+    }
+
+    /* DNS Help List */
+    .ovx .custom-domain-help-list {
+      margin: 10px 0 10px 20px;
+      color: var(--c-muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .ovx .custom-domain-help-list li {
+      margin-bottom: 4px;
+    }
+
+    /* Modal Dark Monolith Styling */
+    .ovx .modal-backdrop {
+      background-color: #000;
+    }
+    .ovx .modal-backdrop.show {
+      opacity: 0.85;
+      backdrop-filter: blur(8px);
+    }
+
+    .ovx .modal-content {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-hi);
+      border-radius: 16px;
+      color: var(--c-text);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.8);
+    }
+
+    .ovx .modal-header {
+      border-bottom: 1px solid var(--c-border);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ovx .modal-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--c-white);
+      margin: 0;
+    }
+
+    .ovx .btn-close {
+      background: none;
+      border: none;
+      color: var(--c-muted);
+      font-size: 16px;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s, color 0.2s;
+    }
+    .ovx .btn-close::before { content: '✕'; font-family: inherit; font-size: 16px; }
+    .ovx .btn-close:hover { opacity: 1; color: var(--c-white); }
+
+    .ovx .modal-body {
+      padding: 24px;
+    }
+
+    .ovx .font-monospace {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .ovx .m-account-main { padding: calc(var(--nav-h) + 24px) 0 60px; }
+      .ovx .m-card { padding: 20px 16px; border-radius: 14px; }
+      .ovx .m-form-row { grid-template-columns: 1fr; gap: 12px; }
+      .ovx .pro-head { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
 </head>
 
-<body class="home-page app-page animated-gradient-bg">
+<body class="ovx app-page account-page">
 
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Custom Monolith Cursor -->
+  <div id="mCursorArrow" aria-hidden="true">
+    <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4.5 3.5L27 13.5L16.5 17.5L12 28.5L4.5 3.5Z" fill="#0a0a0a" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div id="mCursorRing" aria-hidden="true"></div>
+
+  <!-- Scroll Progress -->
+  <div id="mScrollBar" aria-hidden="true"><div id="mScrollBar-fill"></div></div>
+
+  <!-- Ambient Cursor Glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
+
+  <!-- Announcement ribbon -->
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
-    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
-        <i class="fa-solid fa-bullhorn"></i>
-        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
-      </div>
+    <div id="siteAnnouncement" class="m-ribbon" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+      <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <!-- Monolith Navigation -->
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <!-- Main Settings Container -->
+  <main class="m-account-main" id="mainContent">
+    <div class="m-account-shell">
 
-
-  <main class="app-main">
-    <section class="container">
-      <div class="app-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
-          </div>
-          <h1 class="policy-title" data-i18n="account_title">Profil Parametrləri</h1>
-          <p class="hero-subtitle" data-i18n="account_subtitle">Hesab parametrlərinizi idarə edin</p>
+      <!-- Page Header -->
+      <header class="m-page-header">
+        <div class="m-page-chip">
+          <i class="fa-solid fa-user-gear"></i>
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
         </div>
+        <h1 class="m-page-title" data-i18n="account_title">Profil Parametrləri</h1>
+        <p class="m-page-sub" data-i18n="account_subtitle">Hesab parametrlərinizi idarə edin</p>
+      </header>
 
-        <div class="policy-card app-card" id="subscriptionSection">
-          <h5 class="mb-3 fw-bold"><i class="fa-solid fa-crown me-2"></i><span data-i18n="account_sub_title">Abunəlik</span></h5>
-          <% if (plan && plan.tier === 'pro') { %>
-            <p class="mb-1"><span class="badge rounded-pill bg-primary"><%= plan.status === 'paused' ? 'Paused' : 'PRO' %></span></p>
-            <% if (plan.expires_at) { %>
-              <p class="mb-2 small text-muted" data-i18n="account_sub_expires">Bitmə tarixi:</p>
-              <p class="fw-semibold"><%= new Date(plan.expires_at).toLocaleDateString() %></p>
-            <% } %>
-            <p class="small text-muted mb-3" data-i18n="account_sub_manage_hint">Abunəliyi ləğv et, yenilə və ya kart məlumatını dəyiş.</p>
-            <% if (!plan.polar_linked) { %>
-              <p class="small text-warning mb-3"><i class="fa-solid fa-circle-info me-1"></i><span data-i18n="account_sub_manual_note">Bu Pro abunəliyi admin tərəfindən aktivləşdirilib; Polar idarəetməsi mövcud deyil.</span></p>
-            <% } %>
-          <% } else { %>
-            <p class="mb-1 fw-semibold"><span data-i18n="account_sub_free">Free plan</span></p>
-            <p class="small text-muted mb-3" data-i18n="account_sub_free_hint">Pro imkanları üçün yüksəliş: limitsiz linklər, API, webhooklar və statistika.</p>
-            <a href="/pricing" class="btn btn-primary rounded-pill mb-2" data-i18n="account_sub_upgrade">Pro-ya keç</a>
-          <% } %>
-          <% if (showSubManage) { %>
-            <button id="proManageBtn" type="button" class="btn btn-outline-primary rounded-pill" data-is-logged-in="true" data-i18n="pro_manage_cta">Abunəliyi idarə et</button>
-          <% } %>
-        </div>
+      <div class="m-card-stack">
 
-        <div class="policy-card app-card" id="workspaceSection">
-          <h5 class="mb-3 fw-bold"><i class="fa-solid fa-users me-2"></i><span data-i18n="ws_title">Workspace</span></h5>
-          <p class="small text-muted" data-i18n="ws_account_hint">Komanda workspace-i və SSO (Okta) parametrlərini idarə edin. Workspace Pro planda mövcuddur.</p>
-          <a href="/workspaces" class="btn btn-outline-primary rounded-pill" data-i18n="ws_manage_btn">Workspace</a>
-        </div>
-
-        <div class="policy-card app-card" id="securitySection">
-          <h5 class="mb-3 fw-bold"><i class="fa-solid fa-shield-halved me-2"></i><span data-i18n="account_security_title">Təhlükəsizlik</span></h5>
-
-          <h6 class="fw-bold mb-2" data-i18n="account_2fa_title">İki faktorlu autentifikasiya (2FA)</h6>
-          <div id="twofaStatus" class="mb-3 small text-muted" data-i18n="account_2fa_loading">Yoxlanılır...</div>
-          <div id="twofaSetupWrap" class="d-none mb-3">
-            <img id="twofaQr" alt="2FA QR" class="mb-2 rounded border" width="200" height="200">
-            <div class="small text-break mb-2"><code id="twofaOtpauth"></code></div>
-            <div class="d-flex gap-2 mb-2">
-              <input type="text" id="twofaEnableCode" class="form-control" inputmode="numeric" maxlength="6" placeholder="123456">
-              <button type="button" id="twofaEnableBtn" class="btn btn-primary rounded-pill" data-i18n="account_2fa_enable_btn">Aktivləşdir</button>
-            </div>
-          </div>
-          <div id="twofaDisableWrap" class="d-none mb-3 d-grid gap-2">
-            <input type="password" id="twofaDisablePassword" class="form-control" data-i18n-placeholder="account_current_pass" placeholder="Cari şifrə">
-            <div class="d-flex gap-2">
-              <input type="text" id="twofaDisableCode" class="form-control" inputmode="numeric" maxlength="6" placeholder="123456">
-              <button type="button" id="twofaDisableBtn" class="btn btn-outline-danger rounded-pill" data-i18n="account_2fa_disable_btn">Söndür</button>
-            </div>
-          </div>
-          <button type="button" id="twofaSetupBtn" class="btn btn-outline-primary rounded-pill d-none" data-i18n="account_2fa_setup_btn">2FA-nı qur</button>
-
-          <hr class="my-4">
-
-          <h6 class="fw-bold mb-2" data-i18n="account_email_change_title">E-poçtu dəyiş</h6>
-          <div class="d-grid gap-2">
-            <input type="email" id="newEmailInput" class="form-control" placeholder="yeni@email.com" data-i18n-placeholder="account_new_email">
-            <input type="password" id="emailChangePassword" class="form-control" data-i18n-placeholder="account_current_pass" placeholder="Cari şifrə">
-            <button type="button" id="emailChangeBtn" class="btn btn-outline-primary rounded-pill" data-i18n="account_email_change_btn">Kod göndər</button>
-            <div id="emailConfirmWrap" class="d-none d-flex gap-2">
-              <input type="text" id="emailConfirmCode" class="form-control" inputmode="numeric" maxlength="6" placeholder="123456">
-              <button type="button" id="emailConfirmBtn" class="btn btn-primary rounded-pill" data-i18n="account_email_confirm_btn">Təsdiqlə</button>
-            </div>
-          </div>
-          <div id="securityMessage" class="small mt-2"></div>
-        </div>
-
-        <div class="policy-card app-card" id="profileSettingsSection">
-          <h5 class="mb-3 fw-bold"><i class="fa-solid fa-user-gear me-2"></i><span data-i18n="profile_settings_title">Profil Parametrləri</span></h5>
-          <form id="profileSettingsForm" class="d-grid gap-3">
-            <div>
-              <label class="form-label" data-i18n="profile_email">E-poçt</label>
-              <input id="profileEmail" type="email" class="form-control" disabled>
-            </div>
-            <div class="row g-2">
-              <div class="col-6">
-                <label class="form-label" data-i18n="profile_lang">Dil</label>
-                <select id="profileLang" class="form-select">
-                  <option value="az" data-i18n="lang_az">AZ</option>
-                  <option value="tr" data-i18n="lang_tr">TR</option>
-                  <option value="en" data-i18n="lang_en">EN</option>
-                </select>
-              </div>
-              <div class="col-6">
-                <label class="form-label" data-i18n="profile_theme">Tema</label>
-                <select id="profileTheme" class="form-select">
-                  <option value="light" data-i18n="theme_light">Açıq</option>
-                  <option value="dark" data-i18n="theme_dark">Qaranlıq</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label class="form-label" data-i18n="profile_notify_title">Bildiriş Seçimləri</label>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="notifyReport">
-                <label class="form-check-label" for="notifyReport" data-i18n="notif_report">Linkiniz şikayət edildi</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="notifyLimit">
-                <label class="form-check-label" for="notifyLimit" data-i18n="notif_limit">Klik limiti doldu</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="notifyDisabled">
-                <label class="form-check-label" for="notifyDisabled" data-i18n="notif_disabled">Link deaktiv edildi</label>
-              </div>
-            </div>
-
-            <button class="btn btn-primary rounded-pill" type="submit" data-i18n="profile_save">Yadda saxla</button>
-            <div id="profileSettingsMsg" class="small"></div>
-          </form>
-
-          <hr class="my-4">
-
-          <section id="customDomainSection" class="custom-domain-section">
-            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+        <!-- 1. Subscription Card -->
+        <section class="m-card" id="subscriptionSection">
+          <div class="m-card-header">
+            <div class="m-card-title-wrap">
+              <div class="m-card-icon"><i class="fa-solid fa-crown"></i></div>
               <div>
-                <h6 class="fw-bold mb-1"><i class="fa-solid fa-globe me-2"></i><span data-i18n="custom_domain_title">Xüsusi Domenlər</span></h6>
-                <p class="text-muted small mb-0" data-i18n="custom_domain_subtitle">Öz domeninizlə qısa link yaradın və tam nəzarət edin.</p>
+                <h2 class="m-card-h2" data-i18n="account_sub_title">Abunəlik</h2>
+                <div class="m-card-desc" data-i18n="account_sub_desc">Plan və ödəniş məlumatları</div>
               </div>
-              <span id="customDomainTargetBadge" class="badge text-bg-light border">CNAME target: -</span>
+            </div>
+          </div>
+
+          <div class="m-card-body">
+            <% if (plan && plan.tier === 'pro') { %>
+              <div class="m-inner-box">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+                  <span class="m-badge-pill m-badge-pill--pro">
+                    <i class="fa-solid fa-star"></i> <%= plan.status === 'paused' ? 'Paused' : 'PRO' %>
+                  </span>
+                  <% if (plan.expires_at) { %>
+                    <span class="m-badge-pill m-badge-pill--muted">
+                      <span data-i18n="account_sub_expires">Bitmə tarixi:</span>&nbsp;<strong><%= new Date(plan.expires_at).toLocaleDateString() %></strong>
+                    </span>
+                  <% } %>
+                </div>
+                <p class="m-card-desc" style="margin-bottom:16px;" data-i18n="account_sub_manage_hint">Abunəliyi ləğv et, yenilə və ya kart məlumatını dəyiş.</p>
+                <% if (!plan.polar_linked) { %>
+                  <div class="m-alert m-alert--warning" style="margin: 0 0 16px 0;">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span data-i18n="account_sub_manual_note">Bu Pro abunəliyi admin tərəfindən aktivləşdirilib; Polar idarəetməsi mövcud deyil.</span>
+                  </div>
+                <% } %>
+                <% if (showSubManage) { %>
+                  <button id="proManageBtn" type="button" class="m-cta m-cta--outline m-cta--sm" data-is-logged-in="true" data-i18n="pro_manage_cta">Abunəliyi idarə et</button>
+                <% } %>
+              </div>
+            <% } else { %>
+              <div class="m-inner-box">
+                <div style="margin-bottom:12px;">
+                  <span class="m-badge-pill m-badge-pill--muted" data-i18n="account_sub_free">Free plan</span>
+                </div>
+                <p class="m-card-desc" style="margin-bottom:18px;" data-i18n="account_sub_free_hint">Pro imkanları üçün yüksəliş: limitsiz linklər, API, webhooklar və statistika.</p>
+                <a href="/pricing" class="m-cta m-cta--white m-cta--sm" data-i18n="account_sub_upgrade">Pro-ya keç</a>
+              </div>
+            <% } %>
+          </div>
+        </section>
+
+        <!-- 2. Workspace Card -->
+        <section class="m-card" id="workspaceSection">
+          <div class="m-card-header">
+            <div class="m-card-title-wrap">
+              <div class="m-card-icon"><i class="fa-solid fa-users"></i></div>
+              <div>
+                <h2 class="m-card-h2" data-i18n="ws_title">Workspace</h2>
+                <div class="m-card-desc" data-i18n="ws_account_hint">Komanda workspace-i və SSO (Okta) parametrlərini idarə edin. Workspace Pro planda mövcuddur.</div>
+              </div>
+            </div>
+          </div>
+          <div class="m-card-body">
+            <a href="/workspaces" class="m-cta m-cta--outline m-cta--sm" data-i18n="ws_manage_btn">Workspace</a>
+          </div>
+        </section>
+
+        <!-- 3. Security Card (2FA & Email change) -->
+        <section class="m-card" id="securitySection">
+          <div class="m-card-header">
+            <div class="m-card-title-wrap">
+              <div class="m-card-icon"><i class="fa-solid fa-shield-halved"></i></div>
+              <div>
+                <h2 class="m-card-h2" data-i18n="account_security_title">Təhlükəsizlik</h2>
+                <div class="m-card-desc" data-i18n="account_security_subtitle">Hesabınızın təhlükəsizlik qatlarını tənzimləyin</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="m-card-body">
+            <!-- 2FA Section -->
+            <div class="m-section-subhead">
+              <i class="fa-solid fa-mobile-screen-button"></i>
+              <span data-i18n="account_2fa_title">İki faktorlu autentifikasiya (2FA)</span>
             </div>
 
-            <form id="customDomainForm" class="row g-2 align-items-end">
-              <div class="col-12 col-md-8">
-                <label for="customDomainInput" class="form-label small fw-bold" data-i18n="custom_domain_input_label">Domen və ya subdomen</label>
-                <input id="customDomainInput" type="text" class="form-control" placeholder="go.example.com" autocomplete="off" spellcheck="false">
+            <div id="twofaStatus" class="m-card-desc" style="margin-bottom:16px;" data-i18n="account_2fa_loading">Yoxlanılır...</div>
+
+            <div id="twofaSetupWrap" class="d-none m-inner-box" style="margin-bottom:16px;">
+              <div style="display:flex;flex-direction:column;align-items:flex-start;gap:12px;">
+                <img id="twofaQr" alt="2FA QR" style="border-radius:10px;border:1px solid var(--c-border);background:#fff;padding:8px;" width="180" height="180">
+                <div style="font-size:12px;color:var(--c-muted);word-break:break-all;">
+                  <code id="twofaOtpauth" style="color:var(--c-white);background:rgba(255,255,255,0.06);padding:4px 8px;border-radius:6px;"></code>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;width:100%;max-width:340px;">
+                  <input type="text" id="twofaEnableCode" class="m-adv-input font-monospace" inputmode="numeric" maxlength="6" placeholder="123456" style="text-align:center;letter-spacing:0.2em;font-size:16px;">
+                  <button type="button" id="twofaEnableBtn" class="m-cta m-cta--white m-cta--sm" data-i18n="account_2fa_enable_btn">Aktivləşdir</button>
+                </div>
               </div>
-              <div class="col-12 col-md-4 d-grid">
-                <button id="customDomainAddBtn" class="btn btn-outline-primary rounded-pill" type="submit" data-i18n="custom_domain_add_btn">Domen Əlavə Et</button>
+            </div>
+
+            <div id="twofaDisableWrap" class="d-none m-inner-box" style="margin-bottom:16px;">
+              <div style="display:flex;flex-direction:column;gap:10px;max-width:380px;">
+                <input type="password" id="twofaDisablePassword" class="m-adv-input" data-i18n-placeholder="account_current_pass" placeholder="Cari şifrə">
+                <div style="display:flex;gap:10px;">
+                  <input type="text" id="twofaDisableCode" class="m-adv-input font-monospace" inputmode="numeric" maxlength="6" placeholder="123456" style="text-align:center;letter-spacing:0.2em;font-size:16px;">
+                  <button type="button" id="twofaDisableBtn" class="m-cta--danger" data-i18n="account_2fa_disable_btn">Söndür</button>
+                </div>
               </div>
+            </div>
+
+            <button type="button" id="twofaSetupBtn" class="m-cta m-cta--outline m-cta--sm d-none" data-i18n="account_2fa_setup_btn">2FA-nı qur</button>
+
+            <hr class="m-divider-hairline">
+
+            <!-- Email Change Section -->
+            <div class="m-section-subhead">
+              <i class="fa-regular fa-envelope"></i>
+              <span data-i18n="account_email_change_title">E-poçtu dəyiş</span>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px;max-width:440px;">
+              <div class="m-form-group">
+                <label class="m-adv-label" for="newEmailInput" data-i18n="account_new_email">Yeni e-poçt</label>
+                <input type="email" id="newEmailInput" class="m-adv-input" placeholder="yeni@email.com" data-i18n-placeholder="account_new_email">
+              </div>
+              <div class="m-form-group">
+                <label class="m-adv-label" for="emailChangePassword" data-i18n="account_current_pass">Cari şifrə</label>
+                <input type="password" id="emailChangePassword" class="m-adv-input" data-i18n-placeholder="account_current_pass" placeholder="Cari şifrə">
+              </div>
+              <div>
+                <button type="button" id="emailChangeBtn" class="m-cta m-cta--outline m-cta--sm" data-i18n="account_email_change_btn">Kod göndər</button>
+              </div>
+              <div id="emailConfirmWrap" class="d-none" style="gap:10px;align-items:center;margin-top:6px;">
+                <input type="text" id="emailConfirmCode" class="m-adv-input font-monospace" inputmode="numeric" maxlength="6" placeholder="123456" style="text-align:center;letter-spacing:0.2em;max-width:140px;">
+                <button type="button" id="emailConfirmBtn" class="m-cta m-cta--white m-cta--sm" data-i18n="account_email_confirm_btn">Təsdiqlə</button>
+              </div>
+            </div>
+            <div id="securityMessage" style="font-size:13px;margin-top:12px;"></div>
+          </div>
+        </section>
+
+        <!-- 4. Profile Settings Card -->
+        <section class="m-card" id="profileSettingsSection">
+          <div class="m-card-header">
+            <div class="m-card-title-wrap">
+              <div class="m-card-icon"><i class="fa-solid fa-sliders"></i></div>
+              <div>
+                <h2 class="m-card-h2" data-i18n="profile_settings_title">Profil Parametrləri</h2>
+                <div class="m-card-desc" data-i18n="profile_settings_subtitle">Dil, tema və bildiriş tənzimləmələri</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="m-card-body">
+            <form id="profileSettingsForm">
+              <div class="m-form-group">
+                <label class="m-adv-label" for="profileEmail" data-i18n="profile_email">E-poçt</label>
+                <input id="profileEmail" type="email" class="m-adv-input" disabled>
+              </div>
+
+              <div class="m-form-row">
+                <div class="m-form-group">
+                  <label class="m-adv-label" for="profileLang" data-i18n="profile_lang">Dil</label>
+                  <select id="profileLang" class="m-adv-input">
+                    <option value="az" data-i18n="lang_az">AZ</option>
+                    <option value="tr" data-i18n="lang_tr">TR</option>
+                    <option value="en" data-i18n="lang_en">EN</option>
+                  </select>
+                </div>
+                <div class="m-form-group">
+                  <label class="m-adv-label" for="profileTheme" data-i18n="profile_theme">Tema</label>
+                  <select id="profileTheme" class="m-adv-input">
+                    <option value="light" data-i18n="theme_light">Açıq</option>
+                    <option value="dark" data-i18n="theme_dark">Qaranlıq</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="m-form-group" style="margin-top:8px;">
+                <label class="m-adv-label" data-i18n="profile_notify_title">Bildiriş Seçimləri</label>
+                <div class="m-checkbox-group">
+                  <label class="m-checkbox-label" for="notifyReport">
+                    <input type="checkbox" id="notifyReport">
+                    <span data-i18n="notif_report">Linkiniz şikayət edildi</span>
+                  </label>
+                  <label class="m-checkbox-label" for="notifyLimit">
+                    <input type="checkbox" id="notifyLimit">
+                    <span data-i18n="notif_limit">Klik limiti doldu</span>
+                  </label>
+                  <label class="m-checkbox-label" for="notifyDisabled">
+                    <input type="checkbox" id="notifyDisabled">
+                    <span data-i18n="notif_disabled">Link deaktiv edildi</span>
+                  </label>
+                </div>
+              </div>
+
+              <div style="margin-top:24px;">
+                <button class="m-cta m-cta--white m-cta--sm" type="submit" data-i18n="profile_save">Yadda saxla</button>
+              </div>
+              <div id="profileSettingsMsg" style="font-size:13px;margin-top:10px;"></div>
             </form>
 
-            <div class="alert alert-info mt-3 mb-0 small" role="alert">
-              <strong class="d-block mb-2" data-i18n="custom_domain_dns_title">DNS addımları:</strong>
-              <p class="mb-2" data-i18n="custom_domain_dns_help_intro">Domeni əlavə etdikdən sonra aşağıdakı qeydləri DNS panelinizə daxil edin:</p>
-              <ol class="custom-domain-help-list mb-2">
-                <li data-i18n="custom_domain_dns_step_1">TXT qeydini tam şəkildə əlavə edin və dəyəri olduğu kimi saxlayın.</li>
-                <li data-i18n="custom_domain_dns_step_2">Subdomen üçün CNAME qeydini ovlink.sbs ünvanına yönləndirin (və ya DNS provayderiniz CNAME dəstəkləmirsə A/AAAA istifadə edin).</li>
-                <li data-i18n="custom_domain_dns_step_3">Qeydlər yayıldıqdan sonra burada “Yoxla” düyməsinə basın.</li>
-                <li data-i18n="custom_domain_dns_step_4">Cloudflare və bənzər xidmət istifadə edirsinizsə, doğrulama bitənə qədər qeyd “DNS only” rejimində olmalıdır.</li>
-                <li data-i18n="custom_domain_dns_step_5">Yoxlama uğurlu olduqdan sonra domeni qısa link yaradarkən domen siyahısından seçə bilərsiniz.</li>
-              </ol>
-              <p class="mb-0 text-muted" data-i18n="custom_domain_dns_note">Qeyd: DNS yenilənməsi provayderdən asılı olaraq adətən bir neçə dəqiqə, bəzən isə 24 saata qədər çəkə bilər.</p>
-            </div>
+            <hr class="m-divider-hairline">
 
-            <div id="customDomainMsg" class="small mt-3"></div>
-            <div id="customDomainList" class="d-grid gap-3 mt-3"></div>
-          </section>
-
-          <hr class="my-4">
-
-          <section id="proPanelSection" class="pro-panel-section">
-            <div class="pro-head d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-              <div class="pro-head-text">
-                <h6 class="fw-bold mb-1 pro-head-title"><i class="fa-solid fa-crown me-2"></i><span data-i18n="pro_panel_title">Pro Paneli</span></h6>
-                <p class="text-muted small mb-2" data-i18n="pro_panel_subtitle">Pro planınızla API açarları ve webhook axınlarını idarə edin.</p>
-                <a href="/api-guide" class="btn btn-sm btn-outline-secondary rounded-pill" data-i18n="pro_panel_guide_btn">API necə istifadə olunur?</a>
+            <!-- Custom Domain Section -->
+            <section id="customDomainSection" class="custom-domain-section">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+                <div>
+                  <div class="m-section-subhead">
+                    <i class="fa-solid fa-globe"></i>
+                    <span data-i18n="custom_domain_title">Xüsusi Domenlər</span>
+                  </div>
+                  <p class="m-card-desc" data-i18n="custom_domain_subtitle">Öz domeninizlə qısa link yaradın və tam nəzarət edin.</p>
+                </div>
+                <span id="customDomainTargetBadge" class="m-badge-pill m-badge-pill--muted font-monospace">CNAME target: -</span>
               </div>
-              <% if (plan && plan.tier === 'pro' && plan.is_active) { %>
-                <span id="proPlanBadge" class="badge text-bg-success" data-i18n="pro_badge_active">Pro Active</span>
-              <% } else if (plan && plan.tier === 'pro' && plan.status === 'paused') { %>
-                <span id="proPlanBadge" class="badge text-bg-warning" data-i18n="pro_badge_paused">Pro Paused</span>
-              <% } else if (plan && plan.tier === 'pro') { %>
-                <span id="proPlanBadge" class="badge text-bg-secondary" data-i18n="pro_badge_expired">Pro Expired</span>
-              <% } else { %>
-                <span id="proPlanBadge" class="badge text-bg-light border" data-i18n="pro_badge_free">Free Plan</span>
-              <% } %>
-            </div>
 
-            <div id="proPlanMeta" class="small text-muted mb-2"></div>
-            <div id="proPanelMsg" class="small"></div>
-            <div class="pro-quick-guide mb-3">
-              <span class="pro-quick-item" data-i18n="pro_quick_step_1">1) API açarı yarat</span>
-              <span class="pro-quick-item" data-i18n="pro_quick_step_2">2) Webhook URL əlavə et</span>
-              <span class="pro-quick-item" data-i18n="pro_quick_step_3">3) Test et və keç</span>
-            </div>
+              <form id="customDomainForm" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:18px;">
+                <div style="flex:1;min-width:260px;">
+                  <label for="customDomainInput" class="m-adv-label" data-i18n="custom_domain_input_label">Domen və ya subdomen</label>
+                  <input id="customDomainInput" type="text" class="m-adv-input" placeholder="go.example.com" autocomplete="off" spellcheck="false">
+                </div>
+                <button id="customDomainAddBtn" class="m-cta m-cta--outline m-cta--sm" type="submit" data-i18n="custom_domain_add_btn" style="height:42px;">Domen Əlavə Et</button>
+              </form>
 
-            <div id="proLockedNotice" class="alert alert-warning mt-3 mb-0 <%= (plan && plan.tier === 'pro' && plan.is_active) ? 'd-none' : '' %>" role="alert">
-              <strong data-i18n="pro_locked_title">Pro tələb olunur.</strong>
-              <span class="d-block mt-1" data-i18n="pro_locked_text">Bu bölmədə API açarı və webhook idarəetməsi yalnız aktiv Pro plan üçün açıqdır.</span>
-            </div>
+              <div class="m-inner-box">
+                <strong style="color:var(--c-white);font-size:13.5px;display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                  <i class="fa-solid fa-circle-info" style="color:var(--c-muted);"></i>
+                  <span data-i18n="custom_domain_dns_title">DNS addımları:</span>
+                </strong>
+                <p style="font-size:13px;color:var(--c-muted);margin-bottom:8px;" data-i18n="custom_domain_dns_help_intro">Domeni əlavə etdikdən sonra aşağıdakı qeydləri DNS panelinizə daxil edin:</p>
+                <ol class="custom-domain-help-list">
+                  <li data-i18n="custom_domain_dns_step_1">TXT qeydini tam şəkildə əlavə edin və dəyəri olduğu kimi saxlayın.</li>
+                  <li data-i18n="custom_domain_dns_step_2">Subdomen üçün CNAME qeydini ovlink.sbs ünvanına yönləndirin (və ya DNS provayderiniz CNAME dəstəkləmirsə A/AAAA istifadə edin).</li>
+                  <li data-i18n="custom_domain_dns_step_3">Qeydlər yayıldıqdan sonra burada “Yoxla” düyməsinə basın.</li>
+                  <li data-i18n="custom_domain_dns_step_4">Cloudflare və bənzər xidmət istifadə edirsinizsə, doğrulama bitənə qədər qeyd “DNS only” rejimində olmalıdır.</li>
+                  <li data-i18n="custom_domain_dns_step_5">Yoxlama uğurlu olduqdan sonra domeni qısa link yaradarkən domen siyahısından seçə bilərsiniz.</li>
+                </ol>
+                <p style="font-size:12px;color:var(--c-faint);margin:0;" data-i18n="custom_domain_dns_note">Qeyd: DNS yenilənməsi provayderdən asılı olaraq adətən bir neçə dəqiqə, bəzən isə 24 saata qədər çəkə bilər.</p>
+              </div>
 
-            <div id="proFeatureWrap" class="<%= (plan && plan.tier === 'pro' && plan.is_active) ? '' : 'd-none' %> mt-3">
-              <div class="row g-3">
-                <div class="col-12 col-lg-6">
-                  <div class="pro-surface border rounded-4 p-3 h-100">
-                    <h6 class="fw-bold mb-2"><i class="fa-solid fa-key me-2"></i><span data-i18n="pro_api_keys_title">API Açarları</span></h6>
-                    <p class="text-muted small mb-3" data-i18n="pro_api_keys_subtitle">Aktiv limit: maksimum 2 açar. Açar dəyəri yalnız yaradılarkən göstərilir.</p>
+              <div id="customDomainMsg" style="font-size:13px;margin-top:12px;"></div>
+              <div id="customDomainList" style="display:flex;flex-direction:column;gap:10px;margin-top:16px;"></div>
+            </section>
 
-                    <form id="proApiKeyForm" class="row g-2 align-items-end mb-3">
-                      <div class="col-12 col-md-8">
-                        <label for="proApiKeyName" class="form-label small fw-bold" data-i18n="pro_api_key_name_label">Açar adı</label>
-                        <input id="proApiKeyName" type="text" class="form-control" maxlength="60" data-i18n="pro_api_key_name_placeholder" placeholder="Production key">
+            <hr class="m-divider-hairline">
+
+            <!-- Pro Panel Section (API Keys, Webhooks, Rate limit) -->
+            <section id="proPanelSection" class="pro-panel-section">
+              <div class="pro-head" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+                <div class="pro-head-text">
+                  <div class="m-section-subhead">
+                    <i class="fa-solid fa-crown" style="color:var(--c-white);"></i>
+                    <span data-i18n="pro_panel_title">Pro Paneli</span>
+                  </div>
+                  <p class="m-card-desc" style="margin-bottom:10px;" data-i18n="pro_panel_subtitle">Pro planınızla API açarları ve webhook axınlarını idarə edin.</p>
+                  <a href="/api-guide" class="m-cta m-cta--outline m-cta--sm" data-i18n="pro_panel_guide_btn">API necə istifadə olunur?</a>
+                </div>
+
+                <% if (plan && plan.tier === 'pro' && plan.is_active) { %>
+                  <span id="proPlanBadge" class="m-badge-pill m-badge-pill--success" data-i18n="pro_badge_active">Pro Active</span>
+                <% } else if (plan && plan.tier === 'pro' && plan.status === 'paused') { %>
+                  <span id="proPlanBadge" class="m-badge-pill m-badge-pill--warning" data-i18n="pro_badge_paused">Pro Paused</span>
+                <% } else if (plan && plan.tier === 'pro') { %>
+                  <span id="proPlanBadge" class="m-badge-pill m-badge-pill--muted" data-i18n="pro_badge_expired">Pro Expired</span>
+                <% } else { %>
+                  <span id="proPlanBadge" class="m-badge-pill m-badge-pill--muted" data-i18n="pro_badge_free">Free Plan</span>
+                <% } %>
+              </div>
+
+              <div id="proPlanMeta" style="font-size:13px;color:var(--c-muted);margin-bottom:8px;"></div>
+              <div id="proPanelMsg" style="font-size:13px;margin-bottom:8px;"></div>
+
+              <div class="pro-quick-guide">
+                <span class="pro-quick-item" data-i18n="pro_quick_step_1">1) API açarı yarat</span>
+                <span class="pro-quick-item" data-i18n="pro_quick_step_2">2) Webhook URL əlavə et</span>
+                <span class="pro-quick-item" data-i18n="pro_quick_step_3">3) Test et və keç</span>
+              </div>
+
+              <div id="proLockedNotice" class="m-alert m-alert--warning <%= (plan && plan.tier === 'pro' && plan.is_active) ? 'd-none' : '' %>">
+                <i class="fa-solid fa-lock"></i>
+                <div>
+                  <strong data-i18n="pro_locked_title">Pro tələb olunur.</strong>
+                  <span style="display:block;margin-top:2px;" data-i18n="pro_locked_text">Bu bölmədə API açarı və webhook idarəetməsi yalnız aktiv Pro plan üçün açıqdır.</span>
+                </div>
+              </div>
+
+              <div id="proFeatureWrap" class="<%= (plan && plan.tier === 'pro' && plan.is_active) ? '' : 'd-none' %>" style="margin-top:20px;">
+                <div class="m-form-row">
+
+                  <!-- API Keys Subcard -->
+                  <div class="m-inner-box">
+                    <div class="m-section-subhead">
+                      <i class="fa-solid fa-key"></i>
+                      <span data-i18n="pro_api_keys_title">API Açarları</span>
+                    </div>
+                    <p class="m-card-desc" style="margin-bottom:14px;" data-i18n="pro_api_keys_subtitle">Aktiv limit: maksimum 2 açar. Açar dəyəri yalnız yaradılarkən göstərilir.</p>
+
+                    <form id="proApiKeyForm" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+                      <div class="m-form-group">
+                        <label for="proApiKeyName" class="m-adv-label" data-i18n="pro_api_key_name_label">Açar adı</label>
+                        <input id="proApiKeyName" type="text" class="m-adv-input" maxlength="60" data-i18n="pro_api_key_name_placeholder" placeholder="Production key">
                       </div>
-                      <div class="col-12 col-md-4 d-grid">
-                        <button id="proApiKeyCreateBtn" class="btn btn-outline-primary rounded-pill" type="submit" data-i18n="pro_api_key_create_btn">Açar yarat</button>
+                      <div>
+                        <button id="proApiKeyCreateBtn" class="m-cta m-cta--outline m-cta--sm" type="submit" data-i18n="pro_api_key_create_btn">Açar yarat</button>
                       </div>
                     </form>
 
-                    <div id="proApiKeyReveal" class="alert alert-info small d-none mb-3"></div>
-                    <div id="proApiKeyList" class="d-grid gap-2"></div>
+                    <div id="proApiKeyReveal" class="m-alert m-alert--info d-none"></div>
+                    <div id="proApiKeyList" style="display:flex;flex-direction:column;gap:8px;"></div>
                   </div>
-                </div>
 
-                <div class="col-12 col-lg-6">
-                  <div class="pro-surface border rounded-4 p-3 h-100">
-                    <h6 class="fw-bold mb-2"><i class="fa-solid fa-link me-2"></i><span data-i18n="pro_webhooks_title">Webhooklar</span></h6>
-                    <p class="text-muted small mb-3" data-i18n="pro_webhooks_subtitle">Retry siyasəti: 5 cəhd, exponential backoff.</p>
-                    <p class="small text-success mb-3">
-                      <i class="fa-brands fa-discord me-1"></i>
+                  <!-- Webhooks Subcard -->
+                  <div class="m-inner-box">
+                    <div class="m-section-subhead">
+                      <i class="fa-solid fa-link"></i>
+                      <span data-i18n="pro_webhooks_title">Webhooklar</span>
+                    </div>
+                    <p class="m-card-desc" style="margin-bottom:10px;" data-i18n="pro_webhooks_subtitle">Retry siyasəti: 5 cəhd, exponential backoff.</p>
+                    <p style="font-size:12.5px;color:#10b981;display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                      <i class="fa-brands fa-discord"></i>
                       <span data-i18n="pro_webhooks_discord_hint">Discord Incoming Webhook linkləri avtomatik uyğun formatda göndərilir.</span>
                     </p>
-                    <div class="alert alert-warning small py-2 mb-3">
-                      <i class="fa-solid fa-triangle-exclamation me-1"></i>
-                      <span data-i18n="pro_webhook_security_warning">Tanımadığınız webhook endpointlərini əlavə etməyin. Qarşı tərəf bağlantı zamanı mənbə IP-ni loglaya bilər.</span>
+                    <div class="m-alert m-alert--warning" style="margin: 0 0 14px 0;padding:10px 14px;">
+                      <i class="fa-solid fa-triangle-exclamation"></i>
+                      <span style="font-size:12.5px;" data-i18n="pro_webhook_security_warning">Tanımadığınız webhook endpointlərini əlavə etməyin. Qarşı tərəf bağlantı zamanı mənbə IP-ni loglaya bilər.</span>
                     </div>
 
-                    <form id="proWebhookForm" class="row g-2 align-items-end mb-3">
-                      <div class="col-12">
-                        <label for="proWebhookUrl" class="form-label small fw-bold" data-i18n="pro_webhook_url_label">Webhook URL</label>
-                        <input id="proWebhookUrl" type="url" class="form-control" placeholder="https://example.com/webhooks/ovlink">
+                    <form id="proWebhookForm" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;">
+                      <div class="m-form-group">
+                        <label for="proWebhookUrl" class="m-adv-label" data-i18n="pro_webhook_url_label">Webhook URL</label>
+                        <input id="proWebhookUrl" type="url" class="m-adv-input" placeholder="https://example.com/webhooks/ovlink">
                       </div>
-                      <div class="col-12">
-                        <label for="proWebhookEvents" class="form-label small fw-bold" data-i18n="pro_webhook_events_label">Eventlər (vergüllə)</label>
-                        <div id="proWebhookEventPicker" class="pro-event-picker mb-2">
-                          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-webhook-event-option="link.created">link.created</button>
-                          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-webhook-event-option="link.updated">link.updated</button>
-                          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-webhook-event-option="link.deleted">link.deleted</button>
-                          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-webhook-event-option="webhook.test">webhook.test</button>
-                          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-webhook-event-option="*">*</button>
+
+                      <div class="m-form-group">
+                        <label for="proWebhookEvents" class="m-adv-label" data-i18n="pro_webhook_events_label">Eventlər (vergüllə)</label>
+                        <div id="proWebhookEventPicker" class="pro-event-picker">
+                          <button type="button" data-webhook-event-option="link.created">link.created</button>
+                          <button type="button" data-webhook-event-option="link.updated">link.updated</button>
+                          <button type="button" data-webhook-event-option="link.deleted">link.deleted</button>
+                          <button type="button" data-webhook-event-option="webhook.test">webhook.test</button>
+                          <button type="button" data-webhook-event-option="*">*</button>
                         </div>
-                        <input id="proWebhookEvents" type="text" class="form-control" data-i18n-placeholder="pro_webhook_events_placeholder" placeholder="link.created, webhook.test" readonly>
-                        <p class="small text-muted mb-0 mt-1" data-i18n="pro_webhook_events_help">Eventləri butonlardan seçin. * seçilərsə bütün eventlər göndərilir.</p>
+                        <input id="proWebhookEvents" type="text" class="m-adv-input" data-i18n-placeholder="pro_webhook_events_placeholder" placeholder="link.created, webhook.test" readonly>
+                        <p style="font-size:11.5px;color:var(--c-faint);margin:4px 0 0;" data-i18n="pro_webhook_events_help">Eventləri butonlardan seçin. * seçilərsə bütün eventlər göndərilir.</p>
                       </div>
-                      <div class="col-12">
-                        <details class="pro-advanced-box">
-                          <summary data-i18n="pro_webhook_advanced_toggle">Gelişmiş mesaj ayarları</summary>
-                          <div class="mt-2">
-                            <div class="row g-2 mb-2">
-                              <div class="col-12 col-md-6">
-                                <label for="proWebhookLocale" class="form-label small fw-bold" data-i18n="pro_webhook_locale_label">Mesaj dili</label>
-                                <select id="proWebhookLocale" class="form-select">
-                                  <option value="auto" data-i18n="pro_webhook_locale_auto">Auto (profil dili)</option>
-                                  <option value="az" data-i18n="pro_webhook_locale_az">Azerbaijani</option>
-                                  <option value="tr" data-i18n="pro_webhook_locale_tr">Turkish</option>
-                                  <option value="en" data-i18n="pro_webhook_locale_en">English</option>
-                                </select>
-                              </div>
-                              <div class="col-12 col-md-6">
-                                <label for="proWebhookTemplate" class="form-label small fw-bold" data-i18n="pro_webhook_template_label">Öz mesaj şablonu (opsional)</label>
-                                <input id="proWebhookTemplate" type="text" class="form-control" maxlength="240" data-i18n="pro_webhook_template_placeholder" placeholder="Yeni link: {short_url}">
-                              </div>
+
+                      <details class="pro-advanced-box">
+                        <summary data-i18n="pro_webhook_advanced_toggle">Gelişmiş mesaj ayarları</summary>
+                        <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px;">
+                          <div class="m-form-row">
+                            <div class="m-form-group">
+                              <label for="proWebhookLocale" class="m-adv-label" data-i18n="pro_webhook_locale_label">Mesaj dili</label>
+                              <select id="proWebhookLocale" class="m-adv-input">
+                                <option value="auto" data-i18n="pro_webhook_locale_auto">Auto (profil dili)</option>
+                                <option value="az" data-i18n="pro_webhook_locale_az">Azerbaijani</option>
+                                <option value="tr" data-i18n="pro_webhook_locale_tr">Turkish</option>
+                                <option value="en" data-i18n="pro_webhook_locale_en">English</option>
+                              </select>
                             </div>
-                            <p class="small text-muted mb-1" data-i18n="pro_webhook_template_picker_label">Dəyişən əlavə et (kliklə):</p>
-                            <div id="proWebhookTemplateTokenPicker" class="pro-event-picker mb-2">
-                              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-template-token="{event}">{event}</button>
-                              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-template-token="{short_url}">{short_url}</button>
-                              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-template-token="{original_url}">{original_url}</button>
-                              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-template-token="{domain}">{domain}</button>
-                              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-template-token="{attempt}">{attempt}</button>
-                              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-template-token="{sent_at}">{sent_at}</button>
+                            <div class="m-form-group">
+                              <label for="proWebhookTemplate" class="m-adv-label" data-i18n="pro_webhook_template_label">Öz mesaj şablonu (opsional)</label>
+                              <input id="proWebhookTemplate" type="text" class="m-adv-input" maxlength="240" data-i18n="pro_webhook_template_placeholder" placeholder="Yeni link: {short_url}">
                             </div>
-                            <p class="small text-muted mb-0" data-i18n="pro_webhook_template_help">Dəyişənlər: {event}, {short_url}, {original_url}, {domain}, {attempt}, {sent_at}</p>
                           </div>
-                        </details>
-                      </div>
-                      <div class="col-12 d-grid">
-                        <button id="proWebhookCreateBtn" class="btn btn-outline-primary rounded-pill" type="submit" data-i18n="pro_webhook_create_btn">Webhook əlavə et</button>
+                          <div>
+                            <p class="m-adv-label" style="margin-bottom:6px;" data-i18n="pro_webhook_template_picker_label">Dəyişən əlavə et (kliklə):</p>
+                            <div id="proWebhookTemplateTokenPicker" class="pro-event-picker">
+                              <button type="button" data-template-token="{event}">{event}</button>
+                              <button type="button" data-template-token="{short_url}">{short_url}</button>
+                              <button type="button" data-template-token="{original_url}">{original_url}</button>
+                              <button type="button" data-template-token="{domain}">{domain}</button>
+                              <button type="button" data-template-token="{attempt}">{attempt}</button>
+                              <button type="button" data-template-token="{sent_at}">{sent_at}</button>
+                            </div>
+                            <p style="font-size:11.5px;color:var(--c-faint);margin:0;" data-i18n="pro_webhook_template_help">Dəyişənlər: {event}, {short_url}, {original_url}, {domain}, {attempt}, {sent_at}</p>
+                          </div>
+                        </div>
+                      </details>
+
+                      <div style="margin-top:6px;">
+                        <button id="proWebhookCreateBtn" class="m-cta m-cta--outline m-cta--sm" type="submit" data-i18n="pro_webhook_create_btn">Webhook əlavə et</button>
                       </div>
                     </form>
 
-                    <div id="proWebhookSecretReveal" class="alert alert-info small d-none mb-3"></div>
-                    <div id="proWebhookList" class="d-grid gap-2"></div>
+                    <div id="proWebhookSecretReveal" class="m-alert m-alert--info d-none"></div>
+                    <div id="proWebhookList" style="display:flex;flex-direction:column;gap:8px;"></div>
                   </div>
                 </div>
-              </div>
 
-              <div class="pro-surface border rounded-4 p-3 mt-3">
-                <h6 class="fw-bold mb-2"><i class="fa-solid fa-gauge-high me-2"></i><span data-i18n="pro_api_usage_title">API Rate Limit Dashboard</span></h6>
-                <p class="text-muted small mb-3" data-i18n="pro_api_usage_subtitle">Cari pəncərə istifadəsi, qalan kota və son 24 saatlıq xəta bölünməsi.</p>
+                <!-- API Rate Limit Dashboard -->
+                <div class="m-inner-box" style="margin-top:16px;">
+                  <div class="m-section-subhead">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span data-i18n="pro_api_usage_title">API Rate Limit Dashboard</span>
+                  </div>
+                  <p class="m-card-desc" style="margin-bottom:16px;" data-i18n="pro_api_usage_subtitle">Cari pəncərə istifadəsi, qalan kota və son 24 saatlıq xəta bölünməsi.</p>
 
-                <div class="row g-2">
-                  <div class="col-12 col-md-6">
-                    <div class="pro-item-card border rounded-3 p-2 h-100">
-                      <small class="text-muted d-block mb-1" data-i18n="pro_api_usage_read_window">Read pəncərəsi</small>
-                      <strong id="proApiUsageReadWindow">0 / 0</strong>
-                      <div class="small text-muted" id="proApiUsageReadRemaining">Qalan: 0</div>
+                  <div class="m-form-row" style="margin-bottom:12px;">
+                    <div class="m-inner-box--nested">
+                      <span class="m-adv-label" style="display:block;margin-bottom:4px;" data-i18n="pro_api_usage_read_window">Read pəncərəsi</span>
+                      <strong id="proApiUsageReadWindow" style="font-size:18px;color:var(--c-white);">0 / 0</strong>
+                      <div style="font-size:12px;color:var(--c-muted);margin-top:2px;" id="proApiUsageReadRemaining">Qalan: 0</div>
+                    </div>
+                    <div class="m-inner-box--nested">
+                      <span class="m-adv-label" style="display:block;margin-bottom:4px;" data-i18n="pro_api_usage_write_window">Write pəncərəsi</span>
+                      <strong id="proApiUsageWriteWindow" style="font-size:18px;color:var(--c-white);">0 / 0</strong>
+                      <div style="font-size:12px;color:var(--c-muted);margin-top:2px;" id="proApiUsageWriteRemaining">Qalan: 0</div>
                     </div>
                   </div>
-                  <div class="col-12 col-md-6">
-                    <div class="pro-item-card border rounded-3 p-2 h-100">
-                      <small class="text-muted d-block mb-1" data-i18n="pro_api_usage_write_window">Write pəncərəsi</small>
-                      <strong id="proApiUsageWriteWindow">0 / 0</strong>
-                      <div class="small text-muted" id="proApiUsageWriteRemaining">Qalan: 0</div>
-                    </div>
+
+                  <div class="m-inner-box--nested" style="margin-bottom:12px;">
+                    <span class="m-adv-label" style="display:block;margin-bottom:4px;" data-i18n="pro_api_usage_24h_summary">Son 24 saat</span>
+                    <strong id="proApiUsageLast24h" style="font-size:18px;color:var(--c-white);">0</strong>
+                    <div style="font-size:12px;color:var(--c-muted);margin-top:2px;" id="proApiUsageLast24hErrors">Xəta: 0</div>
+                  </div>
+
+                  <div style="margin-bottom:10px;">
+                    <span class="m-adv-label" style="display:block;margin-bottom:6px;" data-i18n="pro_api_usage_error_types">Xəta tipləri</span>
+                    <div id="proApiUsageErrorTypes" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+                  </div>
+
+                  <div>
+                    <span class="m-adv-label" style="display:block;margin-bottom:6px;" data-i18n="pro_api_usage_status_codes">HTTP status bölünməsi</span>
+                    <div id="proApiUsageStatusCodes" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
                   </div>
                 </div>
 
-                <div class="pro-item-card border rounded-3 p-2 mt-2">
-                  <small class="text-muted d-block mb-1" data-i18n="pro_api_usage_24h_summary">Son 24 saat</small>
-                  <strong id="proApiUsageLast24h">0</strong>
-                  <div class="small text-muted" id="proApiUsageLast24hErrors">Xəta: 0</div>
+                <!-- Webhook Deliveries Accordion -->
+                <div class="m-inner-box" style="margin-top:16px;">
+                  <details class="pro-advanced-box" style="margin:0;padding:0;border:none;background:none;">
+                    <summary style="font-size:14px;font-weight:600;color:var(--c-white);display:flex;align-items:center;gap:8px;">
+                      <i class="fa-solid fa-truck-fast"></i>
+                      <span data-i18n="pro_deliveries_title">Son webhook çatdırılmaları</span>
+                    </summary>
+                    <div id="proDeliveryList" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
+                  </details>
                 </div>
 
-                <div class="mt-2">
-                  <small class="text-muted d-block mb-1" data-i18n="pro_api_usage_error_types">Xəta tipləri</small>
-                  <div id="proApiUsageErrorTypes" class="d-flex flex-wrap gap-2"></div>
+              </div>
+            </section>
+
+            <hr class="m-divider-hairline">
+
+            <!-- Active Sessions Section -->
+            <section id="activeSessionsSection" class="active-sessions-section">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+                <div>
+                  <div class="m-section-subhead">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span data-i18n="profile_sessions_title">Aktiv Sessiyalar</span>
+                  </div>
+                  <p class="m-card-desc" data-i18n="profile_sessions_subtitle">Hesabınıza daxil olan cihazları burada idarə edə bilərsiniz.</p>
                 </div>
+                <button id="revokeOtherSessionsBtn" type="button" class="m-cta--danger" data-i18n="profile_sessions_revoke_others">Digər sessiyaları bağla</button>
+              </div>
+              <div id="activeSessionsMsg" style="font-size:13px;"></div>
+              <div id="activeSessionsList" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
+            </section>
 
-                <div class="mt-2">
-                  <small class="text-muted d-block mb-1" data-i18n="pro_api_usage_status_codes">HTTP status bölünməsi</small>
-                  <div id="proApiUsageStatusCodes" class="d-flex flex-wrap gap-2"></div>
+            <hr class="m-divider-hairline">
+
+            <!-- Password Change Section -->
+            <section>
+              <div class="m-section-subhead">
+                <i class="fa-solid fa-key"></i>
+                <span id="passwordSectionTitle" data-i18n="profile_password_title">Şifrə Dəyişdir</span>
+              </div>
+
+              <form id="passwordChangeForm" style="display:flex;flex-direction:column;gap:12px;max-width:440px;">
+                <div id="currentPasswordGroup" class="m-form-group">
+                  <label for="currentPassword" class="m-adv-label" data-i18n="profile_current_password">Cari şifrə</label>
+                  <input type="password" id="currentPassword" class="m-adv-input" data-i18n-placeholder="profile_current_password" placeholder="Cari şifrə">
                 </div>
-              </div>
+                <div class="m-form-group">
+                  <label for="newPassword" class="m-adv-label" data-i18n="profile_new_password">Yeni şifrə</label>
+                  <input type="password" id="newPassword" class="m-adv-input" data-i18n-placeholder="profile_new_password" placeholder="Yeni şifrə">
+                </div>
+                <div class="m-form-group">
+                  <label for="newPasswordConfirm" class="m-adv-label" data-i18n="profile_new_password_confirm">Yeni şifrə (təkrar)</label>
+                  <input type="password" id="newPasswordConfirm" class="m-adv-input" data-i18n-placeholder="profile_new_password_confirm" placeholder="Yeni şifrə (təkrar)">
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:6px;">
+                  <button id="passwordActionBtn" class="m-cta m-cta--outline m-cta--sm" type="submit" data-i18n="profile_password_save">Şifrəni yenilə</button>
+                  <a href="/forgot-password" style="font-size:13px;color:var(--c-muted);text-decoration:underline;" data-i18n="forgot_password_link">Şifrəni unutmusunuz?</a>
+                </div>
+                <div id="passwordChangeMsg" style="font-size:13px;margin-top:6px;"></div>
+              </form>
+            </section>
 
-              <div class="pro-surface border rounded-4 p-3 mt-3">
-                <details class="pro-advanced-box">
-                  <summary><i class="fa-solid fa-truck-fast me-2"></i><span data-i18n="pro_deliveries_title">Son webhook çatdırılmaları</span></summary>
-                  <div id="proDeliveryList" class="d-grid gap-2 mt-2"></div>
-                </details>
-              </div>
-            </div>
-          </section>
+          </div>
+        </section>
 
-          <hr class="my-4">
-
-          <section id="activeSessionsSection" class="active-sessions-section">
-            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-              <div>
-                <h6 class="fw-bold mb-1"><i class="fa-solid fa-shield-halved me-2"></i><span data-i18n="profile_sessions_title">Aktiv Sessiyalar</span></h6>
-                <p class="text-muted small mb-0" data-i18n="profile_sessions_subtitle">Hesabınıza daxil olan cihazları burada idarə edə bilərsiniz.</p>
-              </div>
-              <button id="revokeOtherSessionsBtn" type="button" class="btn btn-outline-danger btn-sm rounded-pill" data-i18n="profile_sessions_revoke_others">Digər sessiyaları bağla</button>
-            </div>
-            <div id="activeSessionsMsg" class="small"></div>
-            <div id="activeSessionsList" class="d-grid gap-2 mt-2"></div>
-          </section>
-
-          <hr class="my-4">
-
-          <h6 class="fw-bold mb-3"><i class="fa-solid fa-key me-2"></i><span id="passwordSectionTitle" data-i18n="profile_password_title">Şifrə Dəyişdir</span></h6>
-          <form id="passwordChangeForm" class="d-grid gap-2">
-            <div id="currentPasswordGroup"><input type="password" id="currentPassword" class="form-control" data-i18n-placeholder="profile_current_password" placeholder="Cari şifrə"></div>
-            <input type="password" id="newPassword" class="form-control" data-i18n-placeholder="profile_new_password" placeholder="Yeni şifrə">
-            <input type="password" id="newPasswordConfirm" class="form-control" data-i18n-placeholder="profile_new_password_confirm" placeholder="Yeni şifrə (təkrar)">
-            <button id="passwordActionBtn" class="btn btn-outline-primary rounded-pill" type="submit" data-i18n="profile_password_save">Şifrəni yenilə</button>
-            <a href="/forgot-password" class="text-decoration-none small" data-i18n="forgot_password_link">Şifrəni unutmusunuz?</a>
-            <div id="passwordChangeMsg" class="small"></div>
-          </form>
-        </div>
       </div>
-    </section>
+    </div>
   </main>
 
+  <!-- Pro Secret Modal -->
   <div class="modal fade" id="proSecretModal" tabindex="-1" aria-labelledby="proSecretModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:500px;margin:1.75rem auto;">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="proSecretModalTitle" data-i18n="pro_secret_modal_title_api_key">API açarı yaradıldı</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <p id="proSecretModalDesc" class="small text-muted mb-3" data-i18n="pro_secret_modal_desc_api_key">Bu açar yalnız bir dəfə göstərilir. Təhlükəsiz yerdə saxlayın.</p>
-          <div class="input-group mb-2">
-            <input id="proSecretValue" type="password" class="form-control font-monospace" autocomplete="off" spellcheck="false" readonly>
-            <button id="proSecretToggleBtn" class="btn btn-outline-secondary" type="button" aria-label="Toggle visibility">
+          <p id="proSecretModalDesc" style="font-size:13.5px;color:var(--c-muted);margin-bottom:14px;" data-i18n="pro_secret_modal_desc_api_key">Bu açar yalnız bir dəfə göstərilir. Təhlükəsiz yerdə saxlayın.</p>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <input id="proSecretValue" type="password" class="m-adv-input font-monospace" autocomplete="off" spellcheck="false" readonly style="flex:1;">
+            <button id="proSecretToggleBtn" class="m-cta m-cta--outline m-cta--sm" type="button" aria-label="Toggle visibility">
               <i class="fa-solid fa-eye"></i>
             </button>
-            <button id="proSecretCopyBtn" class="btn btn-primary" type="button" data-i18n="pro_secret_copy_btn">Kopyala</button>
+            <button id="proSecretCopyBtn" class="m-cta m-cta--white m-cta--sm" type="button" data-i18n="pro_secret_copy_btn">Kopyala</button>
           </div>
-          <div id="proSecretCopyMsg" class="small mb-2"></div>
-          <p id="proSecretModalHint" class="small text-muted mb-0" data-i18n="pro_secret_modal_hint">Təhlükəsizlik səbəbi ilə bu dəyər sonradan yenidən göstərilmir.</p>
+          <div id="proSecretCopyMsg" style="font-size:12.5px;margin-bottom:10px;"></div>
+          <p id="proSecretModalHint" style="font-size:12px;color:var(--c-faint);margin:0;" data-i18n="pro_secret_modal_hint">Təhlükəsizlik səbəbi ilə bu dəyər sonradan yenidən göstərilmir.</p>
         </div>
       </div>
     </div>
   </div>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <!-- Monolith Footer -->
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Core App Scripts -->
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+
+  <!-- 2FA & Email Change Logic (Preserved and Refined) -->
   <script nonce="<%= nonce %>">
     (function () {
       var msgEl = document.getElementById('securityMessage');
@@ -442,16 +1146,17 @@
       var disableWrap = document.getElementById('twofaDisableWrap');
 
       function render2faState(enabled) {
+        if (!statusEl) return;
         statusEl.removeAttribute('data-i18n');
         if (enabled) {
           statusEl.textContent = tr('2FA aktivdir. ✅', '2FA is enabled. ✅', '2FA etkin. ✅');
-          disableWrap.classList.remove('d-none');
-          setupBtn.classList.add('d-none');
-          setupWrap.classList.add('d-none');
+          if (disableWrap) disableWrap.classList.remove('d-none');
+          if (setupBtn) setupBtn.classList.add('d-none');
+          if (setupWrap) setupWrap.classList.add('d-none');
         } else {
           statusEl.textContent = tr('2FA deaktivdir. Hesabınızı daha da qorumaq üçün aktivləşdirin.', '2FA is disabled. Enable it to protect your account further.', '2FA devre dışı. Hesabınızı daha da korumak için etkinleştirin.');
-          setupBtn.classList.remove('d-none');
-          disableWrap.classList.add('d-none');
+          if (setupBtn) setupBtn.classList.remove('d-none');
+          if (disableWrap) disableWrap.classList.add('d-none');
         }
       }
 
@@ -459,79 +1164,281 @@
         .then(function (res) { return res.json(); })
         .then(function (data) { render2faState(!!(data && data.user && data.user.twofaEnabled)); })
         .catch(function () { render2faState(false); });
-      if (setupBtn) setupBtn.addEventListener('click', function () {
-        postJsonWithCsrf('/api/user/2fa/setup', {})
-          .then(function (res) { return res.json(); })
-          .then(function (data) {
-            if (!data || !data.otpauthUrl) { showMsg((data && data.error) || tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); return; }
-            document.getElementById('twofaOtpauth').textContent = data.otpauthUrl;
-            if (data.qr) document.getElementById('twofaQr').src = data.qr;
-            setupWrap.classList.remove('d-none');
-            showMsg(tr('Tətbiqə skan edin və kodu daxil edin.', 'Scan with an authenticator app and enter the code.', 'Uygulamayla tarayın ve kodu girin.'), true);
-          })
-          .catch(function () { showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
-      });
+
+      if (setupBtn) {
+        setupBtn.addEventListener('click', function () {
+          if (typeof postJsonWithCsrf !== 'function') return;
+          postJsonWithCsrf('/api/user/2fa/setup', {})
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+              if (!data || !data.otpauthUrl) {
+                showMsg((data && data.error) || tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false);
+                return;
+              }
+              var otpEl = document.getElementById('twofaOtpauth');
+              if (otpEl) otpEl.textContent = data.otpauthUrl;
+              var qrEl = document.getElementById('twofaQr');
+              if (qrEl && data.qr) qrEl.src = data.qr;
+              if (setupWrap) setupWrap.classList.remove('d-none');
+              showMsg(tr('Tətbiqə skan edin və kodu daxil edin.', 'Scan with an authenticator app and enter the code.', 'Uygulamayla tarayın ve kodu girin.'), true);
+            })
+            .catch(function () { showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
+        });
+      }
 
       var enableBtn = document.getElementById('twofaEnableBtn');
-      if (enableBtn) enableBtn.addEventListener('click', function () {
-        postJsonWithCsrf('/api/user/2fa/enable', { code: document.getElementById('twofaEnableCode').value.trim() })
-          .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
-          .then(function (r) {
-            if (r.ok) { render2faState(true); showMsg(r.d.message, true); }
-            else showMsg(r.d.error, false);
-          })
-          .catch(function () { showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
-      });
+      if (enableBtn) {
+        enableBtn.addEventListener('click', function () {
+          var codeEl = document.getElementById('twofaEnableCode');
+          if (!codeEl || typeof postJsonWithCsrf !== 'function') return;
+          postJsonWithCsrf('/api/user/2fa/enable', { code: codeEl.value.trim() })
+            .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
+            .then(function (r) {
+              if (r.ok) { render2faState(true); showMsg(r.d.message, true); }
+              else showMsg(r.d.error, false);
+            })
+            .catch(function () { showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
+        });
+      }
 
       var disableBtn = document.getElementById('twofaDisableBtn');
-      if (disableBtn) disableBtn.addEventListener('click', function () {
-        postJsonWithCsrf('/api/user/2fa/disable', {
-          password: document.getElementById('twofaDisablePassword').value,
-          code: document.getElementById('twofaDisableCode').value.trim()
-        })
-          .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
-          .then(function (r) {
-            if (r.ok) { render2faState(false); showMsg(r.d.message, true); }
-            else showMsg(r.d.error, false);
+      if (disableBtn) {
+        disableBtn.addEventListener('click', function () {
+          var passEl = document.getElementById('twofaDisablePassword');
+          var codeEl = document.getElementById('twofaDisableCode');
+          if (!passEl || !codeEl || typeof postJsonWithCsrf !== 'function') return;
+          postJsonWithCsrf('/api/user/2fa/disable', {
+            password: passEl.value,
+            code: codeEl.value.trim()
           })
-          .catch(function () { showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
-      });
+            .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
+            .then(function (r) {
+              if (r.ok) { render2faState(false); showMsg(r.d.message, true); }
+              else showMsg(r.d.error, false);
+            })
+            .catch(function () { showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
+        });
+      }
 
       // --- Email change ---
       var emailChangeBtn = document.getElementById('emailChangeBtn');
       var emailConfirmWrap = document.getElementById('emailConfirmWrap');
-      if (emailChangeBtn) emailChangeBtn.addEventListener('click', function () {
-        emailChangeBtn.disabled = true;
-        postJsonWithCsrf('/api/user/email/change', {
-          new_email: document.getElementById('newEmailInput').value.trim(),
-          current_password: document.getElementById('emailChangePassword').value
-        })
-          .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
-          .then(function (r) {
-            emailChangeBtn.disabled = false;
-            if (r.ok) { emailConfirmWrap.classList.remove('d-none'); emailConfirmWrap.classList.add('d-flex'); showMsg(r.d.message, true); }
-            else showMsg(r.d.error, false);
+      if (emailChangeBtn) {
+        emailChangeBtn.addEventListener('click', function () {
+          var newEmailEl = document.getElementById('newEmailInput');
+          var passEl = document.getElementById('emailChangePassword');
+          if (!newEmailEl || !passEl || typeof postJsonWithCsrf !== 'function') return;
+          emailChangeBtn.disabled = true;
+          postJsonWithCsrf('/api/user/email/change', {
+            new_email: newEmailEl.value.trim(),
+            current_password: passEl.value
           })
-          .catch(function () { emailChangeBtn.disabled = false; showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
-      });
+            .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
+            .then(function (r) {
+              emailChangeBtn.disabled = false;
+              if (r.ok) {
+                if (emailConfirmWrap) {
+                  emailConfirmWrap.classList.remove('d-none');
+                  emailConfirmWrap.style.display = 'flex';
+                }
+                showMsg(r.d.message, true);
+              } else {
+                showMsg(r.d.error, false);
+              }
+            })
+            .catch(function () {
+              emailChangeBtn.disabled = false;
+              showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false);
+            });
+        });
+      }
 
       var emailConfirmBtn = document.getElementById('emailConfirmBtn');
-      if (emailConfirmBtn) emailConfirmBtn.addEventListener('click', function () {
-        postJsonWithCsrf('/api/user/email/confirm', { code: document.getElementById('emailConfirmCode').value.trim() })
-          .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
-          .then(function (r) {
-            if (r.ok) {
-              showMsg(r.d.message, true);
-              emailConfirmWrap.classList.add('d-none');
-              var profileEmail = document.getElementById('profileEmail');
-              if (profileEmail && r.d.email) profileEmail.value = r.d.email;
-            } else showMsg(r.d.error, false);
-          })
-          .catch(function () { showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
-      });
+      if (emailConfirmBtn) {
+        emailConfirmBtn.addEventListener('click', function () {
+          var codeEl = document.getElementById('emailConfirmCode');
+          if (!codeEl || typeof postJsonWithCsrf !== 'function') return;
+          postJsonWithCsrf('/api/user/email/confirm', { code: codeEl.value.trim() })
+            .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
+            .then(function (r) {
+              if (r.ok) {
+                showMsg(r.d.message, true);
+                if (emailConfirmWrap) emailConfirmWrap.classList.add('d-none');
+                var profileEmail = document.getElementById('profileEmail');
+                if (profileEmail && r.d.email) profileEmail.value = r.d.email;
+              } else {
+                showMsg(r.d.error, false);
+              }
+            })
+            .catch(function () { showMsg(tr('Xəta baş verdi.', 'An error occurred.', 'Hata oluştu.'), false); });
+        });
+      }
     })();
+  </script>
+
+  <!-- Monolith Motion & Interaction Engine -->
+  <script nonce="<%= nonce %>">
+  (function(){
+    var isMobile = !matchMedia('(hover:hover)').matches;
+
+    /* ─── 1. Custom Cursor ─── */
+    var arrow = document.getElementById('mCursorArrow');
+    var ring  = document.getElementById('mCursorRing');
+    if (arrow && ring && !isMobile) {
+      var mx = -100, my = -100, rx = -100, ry = -100;
+      var rafId = null;
+      function loop(){
+        rx += (mx - rx) * 0.15;
+        ry += (my - ry) * 0.15;
+        ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+        if (Math.abs(mx - rx) > 0.1 || Math.abs(my - ry) > 0.1) {
+          rafId = requestAnimationFrame(loop);
+        } else {
+          rx = mx; ry = my;
+          ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+          rafId = null;
+        }
+      }
+      function updatePos(e){
+        mx = e.clientX; my = e.clientY;
+        arrow.style.transform = 'translate(' + mx + 'px,' + my + 'px)';
+        if (!rafId) rafId = requestAnimationFrame(loop);
+      }
+      window.addEventListener('mousemove', updatePos, {passive:true});
+      window.addEventListener('pointermove', updatePos, {passive:true});
+      document.addEventListener('mouseover', function(e){
+        var interactive = e.target && e.target.closest && e.target.closest('a,button,input,textarea,select,label,[role="button"],summary');
+        if (interactive) {
+          arrow.classList.add('hover');
+          ring.classList.add('hover');
+        } else {
+          arrow.classList.remove('hover');
+          ring.classList.remove('hover');
+        }
+      }, {passive:true});
+      document.addEventListener('mousedown', function(){
+        arrow.classList.add('clicking');
+        ring.classList.add('clicking');
+      });
+      document.addEventListener('mouseup', function(){
+        arrow.classList.remove('clicking');
+        ring.classList.remove('clicking');
+      });
+      document.addEventListener('mouseleave', function(){
+        arrow.classList.add('hidden');
+        ring.classList.add('hidden');
+      });
+      document.addEventListener('mouseenter', function(){
+        arrow.classList.remove('hidden');
+        ring.classList.remove('hidden');
+      });
+    } else {
+      if (arrow) arrow.style.display = 'none';
+      if (ring)  ring.style.display  = 'none';
+    }
+
+    /* ─── 2. Cursor Glow ─── */
+    var glow = document.getElementById('cursorGlow');
+    if (glow && !isMobile) {
+      document.addEventListener('mousemove', function(e){
+        glow.style.left = e.clientX + 'px';
+        glow.style.top  = e.clientY + 'px';
+      }, {passive:true});
+    } else if (glow) {
+      glow.style.display = 'none';
+    }
+
+    /* ─── 3. Scroll Progress Bar ─── */
+    var sbFill = document.getElementById('mScrollBar-fill');
+    if (sbFill) {
+      window.addEventListener('scroll', function(){
+        var h = document.documentElement;
+        var pct = (h.scrollTop || document.body.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        sbFill.style.width = pct + '%';
+      }, {passive:true});
+    }
+
+    /* ─── 4. Nav scroll class ─── */
+    var nav = document.getElementById('mNav');
+    if (nav) {
+      var onScroll = function(){ nav.classList.toggle('scrolled', window.scrollY > 10); };
+      window.addEventListener('scroll', onScroll, {passive:true});
+      onScroll();
+    }
+
+    /* ─── 5. Ripple Effect ─── */
+    function addRipple(btn) {
+      btn.addEventListener('click', function(e){
+        var r = btn.getBoundingClientRect();
+        var size = Math.max(r.width, r.height);
+        var span = document.createElement('span');
+        span.className = 'm-ripple';
+        span.style.width = span.style.height = size + 'px';
+        span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+        span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+        btn.appendChild(span);
+        setTimeout(function(){ span.remove(); }, 600);
+      });
+    }
+    document.querySelectorAll('.m-cta, .m-btn-solid').forEach(addRipple);
+
+    /* ─── 6. Mobile Menu & Dropdowns ─── */
+    function setupDropdown(btnId, panelId) {
+      var btn = document.getElementById(btnId);
+      var panel = document.getElementById(panelId);
+      if(!btn || !panel) return;
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel').forEach(function(p) { p.classList.remove('open', 'is-open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+        if(!isExpanded) {
+          panel.classList.add('open');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    }
+    setupDropdown('langToggleBtn', 'ovxLangPanel');
+    setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+    setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel').forEach(function(p) { p.classList.remove('open', 'is-open'); });
+      document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+    });
+
+    var burger = document.getElementById('mBurger');
+    var mobileMenu = document.getElementById('mMobileMenu');
+    var mClose = document.getElementById('mMobileClose');
+    function closeMobileMenu() {
+      if (mobileMenu && mobileMenu.classList.contains('open')) {
+        mobileMenu.classList.remove('open');
+        document.body.style.overflow = '';
+        if (burger) burger.setAttribute('aria-expanded', 'false');
+      }
+    }
+    if (burger && mobileMenu) {
+      burger.addEventListener('click', function(){
+        mobileMenu.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        burger.setAttribute('aria-expanded', 'true');
+      });
+    }
+    if (mClose) mClose.addEventListener('click', closeMobileMenu);
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') closeMobileMenu();
+    });
+
+    /* ─── 7. Announcement Ribbon i18n ─── */
+    var ribbon = document.getElementById('siteAnnouncement');
+    if (ribbon) {
+      var savedLang = (function(){ try { return localStorage.getItem('lang') || 'az'; } catch(_){ return 'az'; } })();
+      var t = ribbon.dataset[savedLang] || ribbon.dataset.az || ribbon.dataset.tr || ribbon.dataset.en;
+      var ael = document.getElementById('siteAnnouncementText');
+      if (ael && t) ael.textContent = t;
+      document.body.classList.add('has-ribbon');
+    }
+  })();
   </script>
 </body>
 
 </html>
-

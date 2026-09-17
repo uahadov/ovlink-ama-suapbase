@@ -46,35 +46,13 @@ function buildBanMessage(uiLang, banUntil, banReason) {
   return msg;
 }
 
-function handleLogout(req, res) {
-  const isApi = req.path.startsWith('/api/');
-  if (req.session) {
-    if (req.session.userId) {
-      db.run('DELETE FROM express_sessions WHERE user_id = ? AND sid = ?', [req.session.userId, req.sessionID], () => {
-        req.session.destroy(() => {
-          res.clearCookie('connect.sid');
-          return isApi ? res.json({ message: 'Çıkış yapıldı.' }) : res.redirect('/');
-        });
-      });
-    } else {
-      req.session.destroy(() => {
-        res.clearCookie('connect.sid');
-        return isApi ? res.json({ message: 'Çıkış yapıldı.' }) : res.redirect('/');
-      });
-    }
-  } else {
-    return isApi ? res.json({ message: 'Çıkış yapıldı.' }) : res.redirect('/');
-  }
-}
-
 router.post('/api/register',
   authLimiter,
   [
     body('email')
       .isEmail().withMessage('Düzgün bir e-poçt ünvanı daxil edin.')
       .normalizeEmail()
-      .trim()
-      .escape(),
+      .trim(),
     body('password')
       .isLength({ min: 6 }).withMessage('Şifrə ən az 6 simvoldan ibarət olmalıdır.')
       .trim()
@@ -295,8 +273,7 @@ router.post('/api/login',
     body('email')
       .isEmail().withMessage('Düzgün bir e-poçt ünvanı daxil edin.')
       .normalizeEmail()
-      .trim()
-      .escape(),
+      .trim(),
     body('password')
       .notEmpty().withMessage('Şifrə tələb olunur.')
       .trim()
@@ -755,6 +732,14 @@ function handleLogout(req, res) {
     db.run(
       'UPDATE user_sessions SET is_revoked = 1, revoked_at = ? WHERE user_id = ? AND session_token = ?',
       [revokeNow, userId, sessionToken],
+      () => {}
+    );
+  }
+
+  if (userId && req.sessionID) {
+    db.run(
+      'DELETE FROM express_sessions WHERE user_id = ? AND sid = ?',
+      [userId, req.sessionID],
       () => {}
     );
   }

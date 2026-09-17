@@ -1,73 +1,170 @@
 <!doctype html>
-<html lang="en">
+<html lang="az">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title data-i18n="notifications_title">Bildiriş Mərkəzi</title>
+  <title data-i18n="notifications_title">Bildiriş Mərkəzi - Ovlink</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+  <link rel="manifest" href="/site.webmanifest" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
 </head>
 
-<body class="home-page app-page animated-gradient-bg">
+<body class="ovx home-page notifications-page">
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell">
 
-
-  <main class="app-main">
-    <section class="container">
-      <div class="app-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
-          </div>
-          <h1 class="policy-title" data-i18n="notifications_title">Bildiriş Mərkəzi</h1>
-          <p class="hero-subtitle" data-i18n="notifications_subtitle">Son bildirişlər və xəbərdarlıqlar</p>
+      <!-- Header Section -->
+      <div class="text-center" style="margin-bottom: 44px;">
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 16px;">
+          <i class="fa-solid fa-bell" style="font-size:11px; color:var(--c-white);" aria-hidden="true"></i>
+          <span data-i18n="notif_center_title">Bildiriş Mərkəzi</span>
         </div>
-
-        <div class="policy-card app-card" id="notificationsSection">
-          <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-            <div class="d-flex align-items-center gap-2">
-              <h5 class="mb-0 fw-bold"><i class="fa-solid fa-bell me-2"></i><span data-i18n="notif_center_title">Bildiriş Mərkəzi</span></h5>
-              <span id="notifPageBadge" class="notif-badge d-none">0</span>
-            </div>
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-              <button id="notifMarkAllReadBtn" class="btn btn-outline-primary btn-sm rounded-pill" data-i18n="notif_mark_read">Hamısını oxundu et</button>
-              <button id="notifMarkAllUnreadBtn" class="btn btn-outline-secondary btn-sm rounded-pill" data-i18n="notif_mark_unread">Hamısını oxunmadı et</button>
-              <button id="notifDeleteAllBtn" class="btn btn-outline-danger btn-sm rounded-pill" data-i18n="notif_delete_all">Hamısını sil</button>
-            </div>
-          </div>
-          <div id="notifCount" class="small text-muted mb-3 d-none"></div>
-          <div id="notificationsList" class="d-grid gap-3"></div>
-          <div id="notificationsEmpty" class="text-muted" data-i18n="notif_empty">Bildiriş yoxdur.</div>
-        </div>
+        <h1 class="m-section-h2" data-i18n="notifications_title">Bildiriş Mərkəzi</h1>
+        <p class="m-section-sub" style="max-width: 540px; margin: 10px auto 0;" data-i18n="notifications_subtitle">
+          Son bildirişlər və xəbərdarlıqlar
+        </p>
       </div>
-    </section>
+
+      <!-- Notifications Card Container -->
+      <div class="m-notif-card m-reveal" id="notificationsSection">
+
+        <!-- Top Header & Actions Toolbar -->
+        <div class="m-notif-header">
+          <div class="m-notif-header-title">
+            <i class="fa-solid fa-bell" aria-hidden="true"></i>
+            <span data-i18n="notif_center_title">Bildiriş Mərkəzi</span>
+            <span id="notifPageBadge" class="m-notif-counter notif-badge d-none">0</span>
+          </div>
+
+          <div class="m-notif-header-actions">
+            <button type="button" id="notifMarkAllReadBtn" class="m-cta m-cta--outline m-cta--sm">
+              <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+              <span data-i18n="notif_mark_read">Hamısını oxundu et</span>
+            </button>
+            <button type="button" id="notifMarkAllUnreadBtn" class="m-cta m-cta--outline m-cta--sm">
+              <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+              <span data-i18n="notif_mark_unread">Hamısını oxunmadı et</span>
+            </button>
+            <button type="button" id="notifDeleteAllBtn" class="m-cta m-cta--outline m-cta--sm" style="border-color: rgba(248, 113, 113, 0.3); color: #f87171;">
+              <i class="fa-solid fa-trash" aria-hidden="true"></i>
+              <span data-i18n="notif_delete_all">Hamısını sil</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Unread Counter Notice -->
+        <div id="notifCount" class="m-alert-box d-none" style="margin-bottom: 18px; padding: 10px 16px; font-size: 13px;"></div>
+
+        <!-- Notifications Dynamic List Container -->
+        <div id="notificationsList"></div>
+
+        <!-- Empty State Container -->
+        <div id="notificationsEmpty" class="m-notif-empty d-none">
+          <i class="fa-regular fa-bell-slash" style="display:block; opacity:0.35; font-size: 38px; margin-bottom: 16px;" aria-hidden="true"></i>
+          <span data-i18n="notif_empty">Bildiriş yoxdur.</span>
+        </div>
+
+      </div>
+
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      /* ─── Dropdowns & Navbar Logic ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function (p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function () {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function (p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+      });
+
+      /* ─── Mobile Menu ─── */
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function () {
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button Ripple Effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left = (e.clientX - r.left - size / 2) + 'px';
+          span.style.top = (e.clientY - r.top - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function () { span.remove(); }, 600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>
-

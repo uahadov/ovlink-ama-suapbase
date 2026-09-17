@@ -1,0 +1,249 @@
+<%# Universal Navigation — "Monolith" design system. Scoped to .ovx. %>
+<%
+  const hasUser = typeof user !== 'undefined' && user;
+  const isProUser = hasUser && !!user.isPro;
+  const unreadCount = typeof unreadNotifCount !== 'undefined' ? unreadNotifCount : 0;
+%>
+<nav class="m-nav" id="mNav" aria-label="Main" data-i18n-aria="aria_nav_main">
+  <div class="m-nav-inner">
+
+    <!-- Brand -->
+    <a class="m-brand" href="/" aria-label="Ovlink home" data-i18n-aria="aria_home">
+      <img src="/home-logo.svg" alt="Ovlink Logo" data-i18n-alt="aria_logo_alt" class="m-brand-logo" width="34" height="34" />
+    </a>
+
+    <!-- Desktop links -->
+    <ul class="m-nav-links" role="list">
+      <li><a href="/how-it-works" data-i18n="navx_how">How it works</a></li>
+      <li><a href="/why-ovlink" data-i18n="navx_why">Why Ovlink</a></li>
+      <li id="navPricingLinkItem" <%= isProUser ? 'hidden' : '' %>><a href="/pricing" id="navPricingLink"><span data-i18n="navx_pro">Pro</span></a></li>
+      <li><a href="/faq" data-i18n="navx_faq">FAQ</a></li>
+    </ul>
+
+    <!-- Desktop actions -->
+    <div class="m-nav-end">
+      <!-- Language -->
+      <div class="m-lang-wrap">
+        <button type="button" class="m-lang-btn" id="langToggleBtn"
+          aria-haspopup="true" aria-expanded="false" aria-controls="ovxLangPanel" aria-label="Language" data-i18n-aria="aria_lang"><%= (typeof defaultLang !== 'undefined' && defaultLang ? defaultLang : 'az').toUpperCase() %></button>
+        <div class="m-lang-panel" id="ovxLangPanel" role="menu">
+          <button type="button" class="m-lang-item" data-lang="az" role="menuitem">AZ</button>
+          <button type="button" class="m-lang-item" data-lang="tr" role="menuitem">TR</button>
+          <button type="button" class="m-lang-item" data-lang="en" role="menuitem">EN</button>
+        </div>
+      </div>
+
+      <!-- Guest auth -->
+      <a class="m-btn-ghost" id="navAuthGuestLogin" href="/login" data-i18n="nav_login" <%= hasUser ? 'hidden' : '' %>>Log in</a>
+      <a class="m-btn-solid" id="navAuthGuestReg" href="/register" data-i18n="nav_register" <%= hasUser ? 'hidden' : '' %>>Sign up</a>
+
+      <!-- Pro link (shown when guest or when logged in as free user) -->
+      <a class="m-btn-ghost" id="navPricingItem" href="/pricing" <%= isProUser ? 'hidden' : '' %>>
+        <span data-i18n="navx_pro">Pro</span>
+      </a>
+
+      <!-- User menu (shown when logged in) -->
+      <div class="m-user-wrap" id="navAuthUser" <%= hasUser ? '' : 'hidden' %>>
+        <button type="button" class="m-user-btn" id="navUserMenuBtn"
+          aria-haspopup="true" aria-expanded="false" aria-controls="ovxUserPanel" aria-label="Account menu" data-i18n-aria="aria_user_menu">
+          <i class="fa-regular fa-user" aria-hidden="true"></i>
+          <span class="m-notif-dot" id="navNotifBadge" <%= unreadCount > 0 ? '' : 'hidden' %>></span>
+        </button>
+        <div class="m-user-panel" id="ovxUserPanel" role="menu">
+          <div class="m-user-label" style="display: flex; align-items: center; justify-content: space-between;">
+            <span data-i18n="nav_my_account">My Account</span>
+            <span class="m-nav-pro-badge" id="navUserProBadge" <%= isProUser ? '' : 'hidden' %> style="font-size: 10px; padding: 2px 7px; background: #fff; color: #0a0a0a; border-radius: 999px; font-weight: 700; letter-spacing: 0.04em;">PRO</span>
+          </div>
+          <a class="m-user-item" href="/dashboard">
+            <i class="fa-solid fa-chart-line"></i>
+            <span data-i18n="dashboard_stats_link">Statistics</span>
+          </a>
+          <a class="m-user-item" href="/workspaces">
+            <i class="fa-solid fa-users"></i>
+            <span data-i18n="ws_title">Workspaces</span>
+          </a>
+          <a class="m-user-item" href="/account">
+            <i class="fa-solid fa-user-gear"></i>
+            <span data-i18n="profile_settings_title">Profile settings</span>
+          </a>
+          <a class="m-user-item" href="/notifications">
+            <i class="fa-solid fa-bell"></i>
+            <span data-i18n="notif_center_title">Notifications</span>
+            <span class="m-badge" id="navNotifBadgeMenu" <%= unreadCount > 0 ? '' : 'hidden' %>><%= unreadCount %></span>
+          </a>
+          <div class="m-divider"></div>
+          <button type="button" class="m-user-item" id="navLogoutBtn">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            <span data-i18n="nav_logout">Log out</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Burger -->
+    <button type="button" class="m-burger" id="mBurger" aria-expanded="false" aria-controls="mMobileMenu" aria-label="Menu" data-i18n-aria="aria_menu">
+      <i class="fa-solid fa-bars" aria-hidden="true"></i>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile menu overlay -->
+<div class="m-mobile-menu" id="mMobileMenu" aria-label="Mobile navigation" data-i18n-aria="aria_nav_main">
+  <button type="button" class="m-mobile-close" id="mMobileClose" aria-label="Close menu" data-i18n-aria="aria_close_menu">
+    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+  </button>
+  <a href="/how-it-works" data-i18n="navx_how">How it works</a>
+  <a href="/why-ovlink" data-i18n="navx_why">Why Ovlink</a>
+  <a href="/pricing" id="navPricingLinkMobile" <%= isProUser ? 'hidden' : '' %>><span data-i18n="navx_pro">Pro</span></a>
+  <a href="/faq" data-i18n="navx_faq">FAQ</a>
+  <div class="m-mobile-end">
+    <div class="m-lang-wrap">
+      <button type="button" class="m-lang-btn" id="langToggleBtnMobile" aria-haspopup="true" aria-expanded="false" aria-label="Language" data-i18n-aria="aria_lang"><%= (typeof defaultLang !== 'undefined' && defaultLang ? defaultLang : 'az').toUpperCase() %></button>
+      <div class="m-lang-panel" id="ovxLangPanelMobile" role="menu">
+        <button type="button" class="m-lang-item" data-lang="az" role="menuitem">AZ</button>
+        <button type="button" class="m-lang-item" data-lang="tr" role="menuitem">TR</button>
+        <button type="button" class="m-lang-item" data-lang="en" role="menuitem">EN</button>
+      </div>
+    </div>
+    <!-- Mobile guest links -->
+    <a class="m-cta m-cta--outline m-cta--sm" id="navAuthGuestLoginM" href="/login" data-i18n="nav_login" <%= hasUser ? 'hidden' : '' %>>Log in</a>
+    <a class="m-cta m-cta--white m-cta--sm" id="navAuthGuestRegM" href="/register" data-i18n="nav_register" <%= hasUser ? 'hidden' : '' %>>Sign up</a>
+    <!-- Mobile user links -->
+    <a class="m-cta m-cta--white m-cta--sm" id="navAuthUserM" href="/account" data-i18n="nav_my_account" <%= hasUser ? '' : 'hidden' %>>My Account</a>
+    <button type="button" class="m-cta m-cta--outline m-cta--sm" id="navLogoutBtnMobile" data-i18n="nav_logout" <%= hasUser ? '' : 'hidden' %>>Log out</button>
+  </div>
+</div>
+
+<script nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
+(function() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+  function initUniversalNavbar() {
+    /* ─── 1. Dropdown Toggle (Lang & User) ─── */
+    function setupDropdown(btnId, panelId) {
+      var btn = document.getElementById(btnId);
+      var panel = document.getElementById(panelId);
+      if (!btn || !panel) return;
+      if (btn.__dropdownInit) return;
+      btn.__dropdownInit = true;
+
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var isOpen = panel.classList.contains('open');
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+        if (!isOpen) {
+          panel.classList.add('open');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    }
+
+    setupDropdown('langToggleBtn', 'ovxLangPanel');
+    setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+    setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+      document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+    });
+
+    /* ─── 2. Mobile Burger Menu ─── */
+    var burger = document.getElementById('mBurger');
+    var mobileMenu = document.getElementById('mMobileMenu');
+    var mClose = document.getElementById('mMobileClose');
+
+    function closeMobileMenu() {
+      if (mobileMenu && mobileMenu.classList.contains('open')) {
+        mobileMenu.classList.remove('open');
+        document.body.style.overflow = '';
+        if (burger) burger.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    if (burger && mobileMenu && !burger.__menuInit) {
+      burger.__menuInit = true;
+      burger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        mobileMenu.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        burger.setAttribute('aria-expanded', 'true');
+      });
+    }
+
+    if (mClose && !mClose.__closeInit) {
+      mClose.__closeInit = true;
+      mClose.addEventListener('click', closeMobileMenu);
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeMobileMenu();
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+      }
+    });
+
+    if (mobileMenu) {
+      mobileMenu.querySelectorAll('a').forEach(function(link) {
+        link.addEventListener('click', closeMobileMenu);
+      });
+    }
+
+    /* ─── 3. Mobile Logout Listener ─── */
+    var logoutM = document.getElementById('navLogoutBtnMobile');
+    if (logoutM && !logoutM.__logoutInit) {
+      logoutM.__logoutInit = true;
+      logoutM.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (typeof clientLogout === 'function') {
+          clientLogout();
+        } else {
+          fetch('/api/logout', { method: 'POST', credentials: 'include' }).finally(function() {
+            try { localStorage.removeItem('isLoggedIn'); } catch(_) {}
+            window.location.href = '/';
+          });
+        }
+      });
+    }
+
+    /* ─── 4. Language Button Label Sync ─── */
+    function syncLangLabel(lang) {
+      var l = (lang || (function() {
+        try { return localStorage.getItem('lang') || localStorage.getItem('ovlink_lang') || document.documentElement.lang || 'az'; } catch(_) { return 'az'; }
+      })()).toUpperCase();
+      var dBtn = document.getElementById('langToggleBtn');
+      var mBtn = document.getElementById('langToggleBtnMobile');
+      if (dBtn) dBtn.textContent = l;
+      if (mBtn) mBtn.textContent = l;
+    }
+    syncLangLabel();
+    window.addEventListener('ovlink:languageChanged', function(e) {
+      if (e.detail && e.detail.lang) syncLangLabel(e.detail.lang);
+    });
+
+    /* ─── 5. Ripple Effect ─── */
+    document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function(btn) {
+      if (btn.__rippleInit) return;
+      btn.__rippleInit = true;
+      btn.addEventListener('click', function(e) {
+        var r = btn.getBoundingClientRect();
+        var size = Math.max(r.width, r.height);
+        var span = document.createElement('span');
+        span.className = 'm-ripple';
+        span.style.width = span.style.height = size + 'px';
+        span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+        span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+        btn.appendChild(span);
+        setTimeout(function(){ span.remove(); }, 600);
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUniversalNavbar);
+  } else {
+    initUniversalNavbar();
+  }
+})();
+</script>

@@ -5,15 +5,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — FAQ' %></title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
   <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
   <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
@@ -33,69 +36,476 @@
   <% } %>
 </head>
 
-<body class="home-page policy-page animated-gradient-bg">
+<body class="ovx home-page resources-page faq-page">
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell" style="max-width: 960px; width: 100%;">
 
-  <main class="policy-main">
-    <section class="container">
-      <div class="policy-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+      <!-- Header / Hero Section -->
+      <section class="m-content-hero" aria-labelledby="faqPageHeading">
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 18px;">
+          <span class="m-live-dot" aria-hidden="true"></span>
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+        </div>
+        <h1 id="faqPageHeading" data-i18n="faq_page_title">FAQ</h1>
+        <p data-i18n="faq_page_intro">
+          Ovlink ilə bağlı ən çox verilən suallar və qısa cavablar.
+        </p>
+      </section>
+
+      <!-- Bespoke UX: Instant Search & Category Filter Controls -->
+      <div class="m-faq-controls">
+        <div class="m-faq-search-wrapper">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <input type="text" id="faqSearchInput" class="m-faq-search-input" placeholder="Açar sözlə suallarda axtarın (məs: şifrə, limit, pulsuz, API)..." autocomplete="off">
+        </div>
+
+        <div class="m-faq-filter-row">
+          <div class="m-faq-tabs" id="faqCategoryTabs">
+            <button type="button" class="m-faq-tab active" data-cat="all">Hamısı</button>
+            <button type="button" class="m-faq-tab" data-cat="general">Ümumi</button>
+            <button type="button" class="m-faq-tab" data-cat="features">Funksiyalar &amp; Şifrə</button>
+            <button type="button" class="m-faq-tab" data-cat="security">Təhlükəsizlik &amp; Siyasət</button>
+            <button type="button" class="m-faq-tab" data-cat="support">Dəstək</button>
           </div>
-          <h1 class="policy-title" data-i18n="faq_page_title">FAQ</h1>
-        </div>
 
-        <div class="policy-list">
-          <article class="policy-card">
-            <p data-i18n="faq_page_intro">Ovlink ilə bağlı ən çox verilən suallar və qısa cavablar.</p>
-          </article>
-
-          <article class="policy-card faq-list-card">
-            <details class="faq-item"><summary data-i18n="faq_q1">Ovlink nədir?</summary><p data-i18n="faq_a1">Ovlink qısa link yaratmaq, paylaşmaq və idarə etmək üçün URL qısaltma xidmətidir.</p></details>
-            <details class="faq-item"><summary data-i18n="faq_q2">Ovlink pulsuzdurmu?</summary><p data-i18n="faq_a2">Əsas qısaltma funksiyaları standart istifadə üçün mövcuddur. Fair-use və xidmət şərtləri tətbiq olunur.</p></details>
-            <details class="faq-item"><summary data-i18n="faq_q3">Qısaldılmış link nədir?</summary><p data-i18n="faq_a3">Qısaldılmış link uzun URL-i daha qısa formaya salan və eyni ünvana yönləndirən linkdir.</p></details>
-            <details class="faq-item"><summary data-i18n="faq_q4">Qısa linki necə yaradıram?</summary><p data-i18n="faq_a4">Ana səhifədə hədəf URL daxil edib istəyə bağlı parametrlərlə link yarada bilərsiniz.</p></details>
-            <details class="faq-item"><summary data-i18n="faq_q5">Xüsusi ad (alias) seçə bilərəm?</summary><p data-i18n="faq_a5">Bəli, boşdursa linkiniz üçün xüsusi ad təyin edə bilərsiniz.</p></details>
-            <details class="faq-item"><summary data-i18n="faq_q6">Linkə şifrə qoya bilərəm?</summary><p data-i18n="faq_a6">Bəli. Şifrəli linklərdə ziyarətçi yönləndirmədən əvvəl təsdiq etməlidir.</p></details>
-            <details class="faq-item"><summary data-i18n="faq_q7">Bitmə tarixi və klik limiti var?</summary><p data-i18n="faq_a7">Bəli. Link yaradarkən bitmə tarixi və maksimum klik limiti təyin edilə bilər.</p></details>
-            <details class="faq-item"><summary data-i18n="faq_q8">Kimsə qısa linkə klik edəndə nə olur?</summary><p data-i18n="faq_a8">Ziyarətçi əvvəlcə siyasət və təhlükəsizlik yoxlamalarından keçir, sonra icazə varsa yönləndirilir.</p></details>
-            <details class="faq-item"><summary data-i18n="faq_q9">Zərərli linklər silinə bilərmi?</summary><p data-i18n="faq_a9">Bəli. Şikayət olunan linklər yoxlanıla və təhlükəsizlik səbəbi ilə məhdudlaşdırıla/deaktiv edilə bilər.</p></details>
-            <details class="faq-item"><summary data-i18n="faq_q10">Hansı məlumatlar emal olunur?</summary><p data-i18n="faq_a10">Xidmətin işləməsi üçün hesab/link məlumatları və texniki metadata emal oluna bilər.</p></details>
-            <details class="faq-item"><summary data-i18n="faq_q11">Cookie istifadə olunurmu?</summary><p data-i18n="faq_a11">Bəli. Essential cookie-lər sessiya və təhlükəsizlik üçün istifadə olunur.</p></details>
-            <details class="faq-item"><summary data-i18n="faq_q12">Link açılmırsa səbəb nə ola bilər?</summary><p data-i18n="faq_a12">Bitmə vaxtı, klik limiti, moderasiya, hədəf sayt problemi və ya siyasət məhdudiyyəti ola bilər.</p></details>
-            <details class="faq-item"><summary data-i18n="faq_q13">Şikayəti necə göndərim?</summary><p data-i18n="faq_a13">Saytdakı report axınından istifadə edib link və səbəbi qeyd edə bilərsiniz.</p></details>
-            <details class="faq-item"><summary data-i18n="faq_q14">Dəstək ilə necə əlaqə saxlayım?</summary><p data-i18n="faq_a14">/contact səhifəsində göstərilən dəstək kanallarından istifadə edin.</p></details>
-          </article>
-        </div>
-
-        <div class="policy-back">
-          <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
+          <div class="m-faq-actions-row">
+            <button type="button" id="expandAllBtn" class="m-copy-btn" title="Hamısını aç">
+              <i class="fa-solid fa-angles-down" aria-hidden="true"></i>
+              <span>Hamısını aç</span>
+            </button>
+            <button type="button" id="collapseAllBtn" class="m-copy-btn" title="Hamısını bağla">
+              <i class="fa-solid fa-angles-up" aria-hidden="true"></i>
+              <span>Hamısını bağla</span>
+            </button>
+            <span style="font-size: 12px; color: var(--c-muted); margin-left: 4px;">
+              <span id="faqCount">14</span> sual
+            </span>
+          </div>
         </div>
       </div>
-    </section>
+
+      <!-- FAQ Accordion List -->
+      <div class="m-faq-list" id="faqList">
+
+        <!-- Item 01 -->
+        <details class="m-faq-item" data-cat="general">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">01</span>
+              <span data-i18n="faq_q1">Ovlink nədir?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a1">Ovlink qısa link yaratmaq, paylaşmaq və idarə etmək üçün URL qısaltma xidmətidir.</p>
+          </div>
+        </details>
+
+        <!-- Item 02 -->
+        <details class="m-faq-item" data-cat="general">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">02</span>
+              <span data-i18n="faq_q2">Ovlink pulsuzdurmu?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a2">Əsas qısaltma funksiyaları standart istifadə üçün mövcuddur. Fair-use və xidmət şərtləri tətbiq olunur.</p>
+          </div>
+        </details>
+
+        <!-- Item 03 -->
+        <details class="m-faq-item" data-cat="general">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">03</span>
+              <span data-i18n="faq_q3">Qısaldılmış link nədir?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a3">Qısaldılmış link uzun URL-i daha qısa formaya salan və eyni ünvana yönləndirən linkdir.</p>
+          </div>
+        </details>
+
+        <!-- Item 04 -->
+        <details class="m-faq-item" data-cat="features">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">04</span>
+              <span data-i18n="faq_q4">Qısa linki necə yaradıram?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a4">Ana səhifədə hədəf URL daxil edib istəyə bağlı parametrlərlə link yarada bilərsiniz.</p>
+          </div>
+        </details>
+
+        <!-- Item 05 -->
+        <details class="m-faq-item" data-cat="features">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">05</span>
+              <span data-i18n="faq_q5">Xüsusi ad (alias) seçə bilərəm?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a5">Bəli, boşdursa linkiniz üçün xüsusi ad təyin edə bilərsiniz.</p>
+          </div>
+        </details>
+
+        <!-- Item 06 -->
+        <details class="m-faq-item" data-cat="features">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">06</span>
+              <span data-i18n="faq_q6">Linkə şifrə qoya bilərəm?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a6">Bəli. Şifrəli linklərdə ziyarətçi yönləndirmədən əvvəl təsdiq etməlidir.</p>
+          </div>
+        </details>
+
+        <!-- Item 07 -->
+        <details class="m-faq-item" data-cat="features">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">07</span>
+              <span data-i18n="faq_q7">Bitmə tarixi və klik limiti var?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a7">Bəli. Link yaradarkən bitmə tarixi və maksimum klik limiti təyin edilə bilər.</p>
+          </div>
+        </details>
+
+        <!-- Item 08 -->
+        <details class="m-faq-item" data-cat="security">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">08</span>
+              <span data-i18n="faq_q8">Kimsə qısa linkə klik edəndə nə olur?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a8">Ziyarətçi əvvəlcə siyasət və təhlükəsizlik yoxlamalarından keçir, sonra icazə varsa yönləndirilir.</p>
+          </div>
+        </details>
+
+        <!-- Item 09 -->
+        <details class="m-faq-item" data-cat="security">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">09</span>
+              <span data-i18n="faq_q9">Zərərli linklər silinə bilərmi?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a9">Bəli. Şikayət olunan linklər yoxlanıla və təhlükəsizlik səbəbi ilə məhdudlaşdırıla/deaktiv edilə bilər.</p>
+          </div>
+        </details>
+
+        <!-- Item 10 -->
+        <details class="m-faq-item" data-cat="security">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">10</span>
+              <span data-i18n="faq_q10">Hansı məlumatlar emal olunur?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a10">Xidmətin işləməsi üçün hesab/link məlumatları və texniki metadata emal oluna bilər.</p>
+          </div>
+        </details>
+
+        <!-- Item 11 -->
+        <details class="m-faq-item" data-cat="security">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">11</span>
+              <span data-i18n="faq_q11">Cookie istifadə olunurmu?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a11">Bəli. Essential cookie-lər sessiya və təhlükəsizlik üçün istifadə olunur.</p>
+          </div>
+        </details>
+
+        <!-- Item 12 -->
+        <details class="m-faq-item" data-cat="support">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">12</span>
+              <span data-i18n="faq_q12">Link açılmırsa səbəb nə ola bilər?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a12">Bitmə vaxtı, klik limiti, moderasiya, hədəf sayt problemi və ya siyasət məhdudiyyəti ola bilər.</p>
+          </div>
+        </details>
+
+        <!-- Item 13 -->
+        <details class="m-faq-item" data-cat="support">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">13</span>
+              <span data-i18n="faq_q13">Şikayəti necə göndərim?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a13">Saytdakı report axınından istifadə edib link və səbəbi qeyd edə bilərsiniz.</p>
+          </div>
+        </details>
+
+        <!-- Item 14 -->
+        <details class="m-faq-item" data-cat="support">
+          <summary class="m-faq-summary">
+            <div class="m-faq-summary-left">
+              <span class="m-faq-num">14</span>
+              <span data-i18n="faq_q14">Dəstək ilə necə əlaqə saxlayım?</span>
+            </div>
+            <span class="m-faq-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          </summary>
+          <div class="m-faq-body">
+            <p data-i18n="faq_a14">/contact səhifəsində göstərilən dəstək kanallarından istifadə edin.</p>
+          </div>
+        </details>
+
+      </div>
+
+      <!-- Empty State -->
+      <div class="m-faq-empty" id="faqEmptyState">
+        <i class="fa-solid fa-magnifying-glass" style="font-size: 28px; color: var(--c-muted); margin-bottom: 12px;" aria-hidden="true"></i>
+        <div style="font-size: 16px; font-weight: 700; color: var(--c-white); margin-bottom: 6px;">Axtarışa uyğun sual tapılmadı</div>
+        <p style="font-size: 13.5px; color: var(--c-muted); max-width: 420px; margin: 0 auto 18px;">
+          Fərqli açar sözlərlə axtarış edə və ya dəstək komandamızla birbaşa əlaqə saxlaya bilərsiniz.
+        </p>
+        <button type="button" id="faqResetSearchBtn" class="m-cta m-cta--outline" style="padding: 8px 18px; font-size: 13px;">
+          Axtarışı sıfırla
+        </button>
+      </div>
+
+      <!-- Still have questions? Bento Banner -->
+      <section class="m-card-monolith" style="margin-top: 48px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--c-border); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--c-white);">
+            <i class="fa-solid fa-comments" aria-hidden="true"></i>
+          </div>
+          <div>
+            <div style="font-size: 16px; font-weight: 700; color: var(--c-white); margin-bottom: 3px;">
+              Axtardığınız sualın cavabını tapmadınız?
+            </div>
+            <div style="font-size: 13px; color: var(--c-muted);">
+              Dəstək komandamız 24/7 aktivdir və sizə yardım etməyə hazırdır.
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <a href="/docs" class="m-cta m-cta--outline" style="padding: 10px 20px; font-size: 13px;">
+            <i class="fa-solid fa-book" aria-hidden="true"></i>
+            <span data-i18n="nav_docs">Documentation</span>
+          </a>
+          <a href="/contact" class="m-cta m-cta--white" style="padding: 10px 20px; font-size: 13px;">
+            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+            <span>Bizə Yazın</span>
+          </a>
+        </div>
+      </section>
+
+      <!-- Action Navigation Footer -->
+      <div style="display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 48px;">
+        <a href="/" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <i class="fa-solid fa-arrow-left" style="font-size: 11px;" aria-hidden="true"></i>
+          <span data-i18n="nav_home">Home</span>
+        </a>
+        <a href="/docs" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="nav_docs">Documentation</span>
+        </a>
+        <a href="/contact" class="m-cta m-cta--white" style="padding: 10px 22px; font-size: 13.5px;">
+          <span>Əlaqə</span>
+          <i class="fa-solid fa-arrow-right" style="font-size: 11px;" aria-hidden="true"></i>
+        </a>
+      </div>
+
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      /* ─── Instant Search & Category Filtering ─── */
+      var searchInput = document.getElementById('faqSearchInput');
+      var categoryTabs = document.querySelectorAll('#faqCategoryTabs .m-faq-tab');
+      var faqItems = document.querySelectorAll('.m-faq-item');
+      var emptyState = document.getElementById('faqEmptyState');
+      var countEl = document.getElementById('faqCount');
+      var resetBtn = document.getElementById('faqResetSearchBtn');
+      var currentCategory = 'all';
+
+      function filterFAQ() {
+        var query = (searchInput.value || '').trim().toLowerCase();
+        var visibleCount = 0;
+
+        faqItems.forEach(function(item) {
+          var itemCat = item.getAttribute('data-cat') || 'general';
+          var matchesCat = (currentCategory === 'all' || itemCat === currentCategory);
+
+          var text = item.textContent.toLowerCase();
+          var matchesQuery = !query || text.indexOf(query) !== -1;
+
+          if (matchesCat && matchesQuery) {
+            item.style.display = '';
+            visibleCount++;
+          } else {
+            item.style.display = 'none';
+          }
+        });
+
+        if (countEl) countEl.textContent = visibleCount;
+        if (emptyState) {
+          emptyState.style.display = (visibleCount === 0) ? 'block' : 'none';
+        }
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener('input', filterFAQ);
+      }
+
+      categoryTabs.forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          categoryTabs.forEach(function(t) { t.classList.remove('active'); });
+          tab.classList.add('active');
+          currentCategory = tab.getAttribute('data-cat') || 'all';
+          filterFAQ();
+        });
+      });
+
+      if (resetBtn && searchInput) {
+        resetBtn.addEventListener('click', function() {
+          searchInput.value = '';
+          currentCategory = 'all';
+          categoryTabs.forEach(function(t) {
+            if (t.getAttribute('data-cat') === 'all') t.classList.add('active');
+            else t.classList.remove('active');
+          });
+          filterFAQ();
+        });
+      }
+
+      /* ─── Expand / Collapse All ─── */
+      var expandBtn = document.getElementById('expandAllBtn');
+      var collapseBtn = document.getElementById('collapseAllBtn');
+      if (expandBtn) {
+        expandBtn.addEventListener('click', function() {
+          faqItems.forEach(function(item) {
+            if (item.style.display !== 'none') item.setAttribute('open', '');
+          });
+        });
+      }
+      if (collapseBtn) {
+        collapseBtn.addEventListener('click', function() {
+          faqItems.forEach(function(item) {
+            item.removeAttribute('open');
+          });
+        });
+      }
+
+      /* ─── Navbar interactive logic ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+      });
+
+      /* ─── Mobile Menu ─── */
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function(){
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button ripple effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+          span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function(){ span.remove(); }, 600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>
-
-
-

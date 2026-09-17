@@ -5,15 +5,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — Privacy Policy' %></title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
   <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
   <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
@@ -33,93 +36,289 @@
   <% } %>
 </head>
 
-<body class="home-page policy-page animated-gradient-bg">
+<body class="ovx home-page legal-page privacy-page">
+
+  <!-- Top reading progress bar -->
+  <div id="readingProgress" class="m-reading-progress" aria-hidden="true"></div>
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell" style="max-width: 1080px; width: 100%;">
 
-  <main class="policy-main">
-    <section class="container">
-      <div class="policy-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
-          </div>
-          <h1 class="policy-title" data-i18n="privacy_title">Məxfilik Siyasəti</h1>
+      <!-- Header / Hero Section -->
+      <section class="m-content-hero" aria-labelledby="privacyPageHeading">
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 18px;">
+          <span class="m-live-dot" aria-hidden="true"></span>
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+        </div>
+        <h1 id="privacyPageHeading" data-i18n="privacy_title">Məxfilik Siyasəti</h1>
+        <p>
+          Transparency, data minimization, and strict security protocols governing your data on Ovlink.
+        </p>
+      </section>
+
+      <!-- 2-Column Legal Shell: Sticky TOC + Content -->
+      <div class="m-legal-layout">
+
+        <!-- Left Sticky TOC -->
+        <nav class="m-legal-toc" aria-label="Table of Contents">
+          <div class="m-legal-toc-title">Mündəricat</div>
+          <a href="#sec-collection" class="m-legal-toc-link active" data-i18n="privacy_data_collection_title">Topladığımız məlumatlar</a>
+          <a href="#sec-account" class="m-legal-toc-link" data-i18n="privacy_account_title">Hesab məlumatları</a>
+          <a href="#sec-analytics" class="m-legal-toc-link" data-i18n="privacy_analytics_title">Statistika və təhlükəsizlik</a>
+          <a href="#sec-ip" class="m-legal-toc-link" data-i18n="privacy_ip_handling_title">IP məlumatlarının idarəsi</a>
+          <a href="#sec-moderation" class="m-legal-toc-link" data-i18n="privacy_moderation_title">Şikayətlər və moderasiya</a>
+          <a href="#sec-cookies" class="m-legal-toc-link" data-i18n="privacy_cookies_title">Kukilər</a>
+          <a href="#sec-third-party" class="m-legal-toc-link" data-i18n="privacy_third_party_title">Üçüncü tərəflər</a>
+          <a href="#sec-disclaimer" class="m-legal-toc-link" data-i18n="privacy_disclaimer_title">Təhlükəsizlik bildirişi</a>
+          <a href="#sec-retention" class="m-legal-toc-link" data-i18n="privacy_retention_title">Saxlama müddəti</a>
+        </nav>
+
+        <!-- Right Content Articles -->
+        <div class="m-legal-content">
+
+          <!-- Section 1: Data Collection -->
+          <article class="m-legal-section" id="sec-collection">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-database" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="privacy_data_collection_title">Topladığımız məlumatlar</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="privacy_data_collection_text">
+              Ovlink istifadə edilərkən emal olunan məlumatlar: hesab məlumatları (e-poçt, şifrə hash-i, auth provider, hesab/giriş vaxtları), link məlumatları (hədəf URL, qısa kod, alias, bitmə tarixi, klik limiti, seçilmiş domen, link şifrəsinin hash-i), klik statistikası (klik vaxtı, tam IP ünvanı, brauzer, əməliyyat sistemi, ölkə, şəhər), təhlükəsizlik/sessiya qeydləri (session token, user-agent, cihaz etiketi, country, device fingerprint, IP hash), Pro funksiyalar üçün API açarı meta-məlumatları (ad, prefix, last4, istifadə vaxtı), webhook konfiqurasiyaları (URL, event siyahısı, aktivlik statusu, failure sayğacı) və webhook çatdırılma logları (status, cəhd sayı, HTTP kodu, retry vaxtı), həmçinin şikayət/moderasiya məlumatları.
+            </p>
+          </article>
+
+          <!-- Section 2: Account Info -->
+          <article class="m-legal-section" id="sec-account">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="privacy_account_title">Hesab məlumatları</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="privacy_account_text">
+              Şifrələr açıq mətn kimi saxlanılmır; yalnız hash dəyəri saxlanılır. E-poçt təsdiqi, şifrə bərpası tokenləri və sessiya idarəetməsi hesab təhlükəsizliyi üçün istifadə olunur.
+            </p>
+          </article>
+
+          <!-- Section 3: Analytics & Security -->
+          <article class="m-legal-section" id="sec-analytics">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="privacy_analytics_title">Statistika və təhlükəsizlik</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="privacy_analytics_text">
+              Məlumatlar xidmət funksionallığı, statistikaların göstərilməsi, sui-istifadənin azaldılması və təhlükəsizlik üçün emal olunur. Redirect consent rejimində istifadəçi 'essential' seçərsə minimal klik qeydi, 'analytics' seçərsə brauzer/OS/ölkə statistikası saxlanılır. İstifadəçi davam etməzsə yönləndirmə və klik qeydiyyatı baş vermir.
+            </p>
+          </article>
+
+          <!-- Section 4: IP Handling -->
+          <article class="m-legal-section" id="sec-ip">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-network-wired" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="privacy_ip_handling_title">IP məlumatlarının idarəsi</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="privacy_ip_handling_text">
+              Sorğu zamanı IP məlumatı geolokasiya və təhlükəsizlik yoxlamaları üçün emal olunur. Yeni cihaz bildiriş e-poçtlarında tam IP göstərilmir və cihaz sessiyalarında tam IP əvəzinə IP hash saxlanılır. Klik qeydlərində isə təhlükəsizlik və analitika məqsədi ilə tam IP ünvanı və şəhər məlumatları saxlanılır.
+            </p>
+          </article>
+
+          <!-- Section 5: Moderation -->
+          <article class="m-legal-section" id="sec-moderation">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-flag" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="privacy_moderation_title">Şikayətlər və moderasiya</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="privacy_moderation_text">
+              İstifadəçilər linkləri şikayət edə bilər. Təhlükəsizlik məqsədi ilə linklər deaktiv edilə, domenlər bloklana və hesablar məhdudlaşdırıla bilər.
+            </p>
+          </article>
+
+          <!-- Section 6: Cookies -->
+          <article class="m-legal-section" id="sec-cookies">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-cookie-bite" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="privacy_cookies_title">Kukilər</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="privacy_cookies_text">
+              Sayt connect.sid (sessiya), ovlink_redirect_consent (redirect razılığı) və lang_default (dil seçimi) cookie-lərindən istifadə edir. localStorage-da tema, dil və cookie banner razılığı (cookieConsent) saxlanıla bilər. Reklam aktiv olduqda reklam iframe-lərində üçüncü tərəf cookie və oxşar identifikator texnologiyaları işləyə bilər.
+            </p>
+          </article>
+
+          <!-- Section 7: Third Party -->
+          <article class="m-legal-section" id="sec-third-party">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-handshake" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="privacy_third_party_title">Üçüncü tərəflər</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="privacy_third_party_text">
+              Xidmət Resend (e-poçt), Google OAuth (qeydiyyat üçün), Telegram (bot inteqrasiyası), CDN kitabxanaları və reklam vendorları (infrastruktur tərəfdaşları) kimi üçüncü tərəflərdən istifadə edir. Telegram botla əlaqələndirmə üçün sizin Telegram ID-niz bazada istifadəçi ID-nizlə əlaqələndirilir.
+            </p>
+          </article>
+
+          <!-- Section 8: Disclaimer -->
+          <article class="m-legal-section" id="sec-disclaimer">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-shield-virus" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="privacy_disclaimer_title">Təhlükəsizlik bildirişi</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="privacy_disclaimer_text">
+              Təhlükəsizlik tədbirləri görürük, lakin internet mühitində tam təhlükəsizlik zəmanəti yoxdur.
+            </p>
+          </article>
+
+          <!-- Section 9: Retention -->
+          <article class="m-legal-section" id="sec-retention">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="privacy_retention_title">Saxlama müddəti</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="privacy_retention_text">
+              Məlumatlar xidmətin işləməsi, təhlükəsizlik, hüquqi öhdəliklər və mübahisələrin həlli üçün zəruri olduğu müddətdə saxlanılır.
+            </p>
+          </article>
+
         </div>
 
-        <div class="policy-list">
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-database me-2"></i><span data-i18n="privacy_data_collection_title">Topladığımız məlumatlar</span></h3>
-            <p data-i18n="privacy_data_collection_text">Ovlink istifadə edilərkən emal olunan məlumatlar: hesab məlumatları (e-poçt, şifrə hash-i, auth provider, hesab/giriş vaxtları), link məlumatları (hədəf URL, qısa kod, alias, bitmə tarixi, klik limiti, seçilmiş domen, link şifrəsinin hash-i), klik statistikası (klik vaxtı, tam IP ünvanı, brauzer, əməliyyat sistemi, ölkə, şəhər), təhlükəsizlik/sessiya qeydləri (session token, user-agent, cihaz etiketi, country, device fingerprint, IP hash), Pro funksiyalar üçün API açarı meta-məlumatları (ad, prefix, last4, istifadə vaxtı), webhook konfiqurasiyaları (URL, event siyahısı, aktivlik statusu, failure sayğacı) və webhook çatdırılma logları (status, cəhd sayı, HTTP kodu, retry vaxtı), həmçinin şikayət/moderasiya məlumatları.</p>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-user-shield me-2"></i><span data-i18n="privacy_account_title">Hesab məlumatları</span></h3>
-            <p data-i18n="privacy_account_text">Şifrələr açıq mətn kimi saxlanılmır; yalnız hash dəyəri saxlanılır. E-poçt təsdiqi, şifrə bərpası tokenləri və sessiya idarəetməsi hesab təhlükəsizliyi üçün istifadə olunur.</p>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-chart-line me-2"></i><span data-i18n="privacy_analytics_title">Statistika və təhlükəsizlik</span></h3>
-            <p data-i18n="privacy_analytics_text">Məlumatlar xidmət funksionallığı, statistikaların göstərilməsi, sui-istifadənin azaldılması və təhlükəsizlik üçün emal olunur. Redirect consent rejimində istifadəçi 'essential' seçərsə minimal klik qeydi, 'analytics' seçərsə brauzer/OS/ölkə statistikası saxlanılır. İstifadəçi davam etməzsə yönləndirmə və klik qeydiyyatı baş vermir.</p>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-network-wired me-2"></i><span data-i18n="privacy_ip_handling_title">IP məlumatlarının idarəsi</span></h3>
-            <p data-i18n="privacy_ip_handling_text">Sorğu zamanı IP məlumatı geolokasiya və təhlükəsizlik yoxlamaları üçün emal olunur. Yeni cihaz bildiriş e-poçtlarında tam IP göstərilmir və cihaz sessiyalarında tam IP əvəzinə IP hash saxlanılır. Klik qeydlərində isə təhlükəsizlik və analitika məqsədi ilə tam IP ünvanı və şəhər məlumatları saxlanılır.</p>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-flag me-2"></i><span data-i18n="privacy_moderation_title">Şikayətlər və moderasiya</span></h3>
-            <p data-i18n="privacy_moderation_text">İstifadəçilər linkləri şikayət edə bilər. Təhlükəsizlik məqsədi ilə linklər deaktiv edilə, domenlər bloklana və hesablar məhdudlaşdırıla bilər.</p>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-cookie-bite me-2"></i><span data-i18n="privacy_cookies_title">Kukilər</span></h3>
-            <p data-i18n="privacy_cookies_text">Sayt connect.sid (sessiya), ovlink_redirect_consent (redirect razılığı) və lang_default (dil seçimi) cookie-lərindən istifadə edir. localStorage-da tema, dil və cookie banner razılığı (cookieConsent) saxlanıla bilər. Reklam aktiv olduqda reklam iframe-lərində üçüncü tərəf cookie və oxşar identifikator texnologiyaları işləyə bilər.</p>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-handshake me-2"></i><span data-i18n="privacy_third_party_title">Üçüncü tərəflər</span></h3>
-            <p data-i18n="privacy_third_party_text">Xidmət Resend (e-poçt), Google OAuth (qeydiyyat üçün), Telegram (bot inteqrasiyası), CDN kitabxanaları və reklam vendorları (infrastruktur tərəfdaşları) kimi üçüncü tərəflərdən istifadə edir. Telegram botla əlaqələndirmə üçün sizin Telegram ID-niz bazada istifadəçi ID-nizlə əlaqələndirilir.</p>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-shield-virus me-2"></i><span data-i18n="privacy_disclaimer_title">Təhlükəsizlik bildirişi</span></h3>
-            <p data-i18n="privacy_disclaimer_text">Təhlükəsizlik tədbirləri görürük, lakin internet mühitində tam təhlükəsizlik zəmanəti yoxdur.</p>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-clock-rotate-left me-2"></i><span data-i18n="privacy_retention_title">Saxlama müddəti</span></h3>
-            <p data-i18n="privacy_retention_text">Məlumatlar xidmətin işləməsi, təhlükəsizlik, hüquqi öhdəliklər və mübahisələrin həlli üçün zəruri olduğu müddətdə saxlanılır.</p>
-          </article>
-        </div>
-
-        <div class="policy-back">
-          <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
-        </div>
       </div>
-    </section>
+
+      <!-- Action Navigation Footer -->
+      <div style="display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 48px;">
+        <a href="/" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <i class="fa-solid fa-arrow-left" style="font-size: 11px;" aria-hidden="true"></i>
+          <span data-i18n="nav_home">Home</span>
+        </a>
+        <a href="/terms" class="m-cta m-cta--white" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="terms_title">İstifadə Şərtləri</span>
+          <i class="fa-solid fa-arrow-right" style="font-size: 11px;" aria-hidden="true"></i>
+        </a>
+        <a href="/cookie-policy" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="cookie_policy_title">Kuki Siyasəti</span>
+        </a>
+      </div>
+
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      /* ─── Reading Progress Bar ─── */
+      var progressBar = document.getElementById('readingProgress');
+      function updateProgress() {
+        if (!progressBar) return;
+        var totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+        if (totalHeight <= 0) return;
+        var progress = (window.scrollY / totalHeight) * 100;
+        progressBar.style.width = Math.min(100, Math.max(0, progress)) + '%';
+      }
+      window.addEventListener('scroll', updateProgress, { passive: true });
+
+      /* ─── ScrollSpy for TOC ─── */
+      var tocLinks = document.querySelectorAll('.m-legal-toc-link');
+      var sections = document.querySelectorAll('.m-legal-section');
+      if (sections.length && tocLinks.length && 'IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+              var id = entry.target.getAttribute('id');
+              tocLinks.forEach(function(link) {
+                if (link.getAttribute('href') === '#' + id) {
+                  link.classList.add('active');
+                } else {
+                  link.classList.remove('active');
+                }
+              });
+            }
+          });
+        }, { rootMargin: '-20% 0px -70% 0px' });
+        sections.forEach(function(sec) { observer.observe(sec); });
+      }
+
+      /* ─── Navbar interactive logic ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+      });
+
+      /* ─── Mobile Menu ─── */
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function(){
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button ripple effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+          span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function(){ span.remove(); }, 600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>
+
 
 
 

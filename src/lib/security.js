@@ -15,7 +15,7 @@ const DEFAULT_API_KEY_SCOPES_STORAGE = DEFAULT_API_KEY_SCOPES.join(',');
 const ALLOWED_API_KEY_SCOPES = new Set(DEFAULT_API_KEY_SCOPES);
 
 const { API_KEY_HASH_KEY_MATERIAL, WEBHOOK_HASH_KEY_MATERIAL } = require('../config/index');
-const { getSafeHostHeader, normalizeHostName } = require('./url-helpers');
+const { getSafeHostHeader, normalizeHostName, isLocalOrPrivateHost } = require('./url-helpers');
 
 const PRO_API_KEY_MAX_ACTIVE = 2;
 
@@ -172,16 +172,23 @@ refreshInternalHostCache();
 
 function isInternalHost(rawHost) {
   const host = normalizeHostName(rawHost);
-  return !!host && INTERNAL_HOSTS.has(host);
+  if (!host) return false;
+  if (INTERNAL_HOSTS.has(host)) return true;
+  return isLocalOrPrivateHost(host);
 }
 
 function getPublicBaseUrl(req) {
-  const configured = getConfiguredPublicBaseUrl();
-  if (configured) return configured;
-
-  const proto = req.secure ? 'https' : 'http';
+  const proto = req && req.secure ? 'https' : 'http';
   const hostHeader = getSafeHostHeader(req);
   const host = normalizeHostName(hostHeader);
+
+  // If accessed directly via local/private IP (e.g. mobile on LAN) or localhost, use current local origin
+  if (hostHeader && host && isLocalOrPrivateHost(host)) {
+    return `${proto}://${hostHeader.toLowerCase()}`.replace(/\/+$/, '');
+  }
+
+  const configured = getConfiguredPublicBaseUrl();
+  if (configured) return configured;
 
   // Avoid host-header poisoning: only accept first-party/internal hosts.
   if (hostHeader && host && isInternalHost(host)) {

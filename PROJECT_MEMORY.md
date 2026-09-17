@@ -53,7 +53,7 @@ cd /var/www/ovlink && git fetch origin && git reset --hard origin/main && chmod 
 ## 4. Key Subsystems & Architecture Patterns
 
 ### A. Authentication & Navbar Sync (SSR + Client-Side)
-* **Navbar Partial:** `views/partials/public-navbar.ejs` is used across all public views and account views.
+* **Navbar Partial:** `views/partials/home-navbar.ejs` and `views/partials/home-footer.ejs` are used universally across all public views, auth views, dashboard, and account views.
 * **Authentication State Desync Protection:**
   * When SSR renders the navbar with `user` data, `#navAuthUser` is displayed and `#navAuthGuestLogin` / `#navAuthGuestReg` receive `d-none`.
   * `getClientSession()` in `public/script.js` and `public/home.js` checks three layers:

@@ -59,6 +59,16 @@ function pickFirstInputValue(...candidates) {
   return '';
 }
 
+function isLocalOrPrivateHost(rawHost) {
+  const host = normalizeHostName(rawHost);
+  if (!host) return false;
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return true;
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  return false;
+}
+
 function normalizeHostName(raw) {
   const value = (raw || '').toString().trim().toLowerCase();
   if (!value) return '';
@@ -145,6 +155,7 @@ module.exports = {
   isReservedShortAlias,
   generateSafeShortCode,
   pickFirstInputValue,
+  isLocalOrPrivateHost,
   normalizeCustomDomainInput,
   normalizeHostName,
   getSafeHostHeader,

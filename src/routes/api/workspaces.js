@@ -24,6 +24,10 @@ const { trackUserSession: upsertUserSessionRecord } = require('../../lib/session
 const { isProdRuntime } = require('../../config/index');
 const crypto = require('crypto');
 
+const WORKSPACE_NAME_MAX_LENGTH = 64;
+const WORKSPACE_INVITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+const WORKSPACE_MAX_MEMBERS = 25;
+
 const WORKSPACE_ROLES = Object.freeze({
   OWNER: 'owner',
   ADMIN: 'admin',
@@ -617,7 +621,7 @@ router.post('/sso/:workspaceId/acs', async (req, res) => {
   const { valid: isRelayValid, returnTo: safeDestination } = verifySignedRelayState(rawRelayState, loaded.workspace.id, process.env.SESSION_SECRET);
   if (!isRelayValid) {
     logSecurityEvent(req, 'sso.acs', 'blocked', { reason: 'invalid_relay_state', workspace_id: loaded.workspace.id });
-    return redirectError('invalid_relay');
+    return redirectError('error');
   }
 
   // Browser-bound RelayState validation (F-03)
@@ -628,7 +632,7 @@ router.post('/sso/:workspaceId/acs', async (req, res) => {
     const bufB = Buffer.from(rawRelayState);
     if (bufA.length !== bufB.length || !crypto.timingSafeEqual(bufA, bufB)) {
       logSecurityEvent(req, 'sso.acs', 'blocked', { reason: 'relay_state_browser_mismatch', workspace_id: loaded.workspace.id });
-      return redirectError('invalid_relay');
+      return redirectError('error');
     }
   }
 

@@ -9,6 +9,7 @@ const { isProdRuntime } = require('./config/index');
 const { getRequestGeoMeta, parseAcceptLang } = require('./lib/geo');
 const { sendOpsAlert } = require('./lib/alerts');
 const { getPublicBaseUrl, hasApiKeyAuthHeader } = require('./lib/security');
+const { isLocalOrPrivateHost } = require('./lib/url-helpers');
 
 // Middleware imports
 const langMiddleware = require('./middleware/lang');
@@ -23,6 +24,7 @@ const { jsonParser, urlencodedParser } = require('./middleware/body-parser');
 const { maintenanceMiddleware, attachSiteSettingsMiddleware } = require('./middleware/maintenance');
 const { adsGuardMiddleware, adSandboxMiddleware } = require('./middleware/ads-guard');
 const { noindexMiddleware } = require('./middleware/noindex');
+const { authLocalsMiddleware } = require('./middleware/auth');
 const { mountRoutes } = require('./routes/index');
 
 const app = express();
@@ -140,9 +142,9 @@ app.use((req, res, next) => {
       orig(function(err) {
         if (err) return cb(err);
         const hostHeader = (req.get('host') || '').toLowerCase();
-        const isLocalhost = hostHeader.includes('localhost') || hostHeader.includes('127.0.0.1') || hostHeader.includes('[::1]');
+        const isLocal = isLocalOrPrivateHost(hostHeader);
         const forceSecureCookie = ['1', 'true', 'yes', 'on'].includes((process.env.FORCE_SECURE_COOKIE || '').toString().trim().toLowerCase());
-        if (isLocalhost) {
+        if (isLocal) {
           req.session.cookie.secure = false;
         } else {
           req.session.cookie.secure = forceSecureCookie || req.secure || isProdRuntime;
@@ -158,9 +160,9 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   if (req.session && req.session.cookie) {
     const hostHeader = (req.get('host') || '').toLowerCase();
-    const isLocalhost = hostHeader.includes('localhost') || hostHeader.includes('127.0.0.1') || hostHeader.includes('[::1]');
+    const isLocal = isLocalOrPrivateHost(hostHeader);
     const forceSecureCookie = ['1', 'true', 'yes', 'on'].includes((process.env.FORCE_SECURE_COOKIE || '').toString().trim().toLowerCase());
-    if (isLocalhost) {
+    if (isLocal) {
       req.session.cookie.secure = false;
     } else {
       req.session.cookie.secure = forceSecureCookie || req.secure || isProdRuntime;
@@ -169,8 +171,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Populate user and notification locals for SSR
+app.use(authLocalsMiddleware);
+
 function requiresInlineCsrfRoute(pathname) {
   const path = (pathname || '').toString();
+  if (/\.(css|js|png|jpg|jpeg|webp|svg|ico|woff2?|ttf|map|txt|xml|webmanifest)$/i.test(path)) {
+    return false;
+  }
   return path.startsWith('/admin')
     || path === '/login'
     || path === '/register'
@@ -179,6 +187,15 @@ function requiresInlineCsrfRoute(pathname) {
     || path.startsWith('/proceed/')
     || path.startsWith('/consent/redirect/');
 }
+
+app.use((req, res, next) => {
+  if (req.session && requiresInlineCsrfRoute(req.path)) {
+    if (!req.session.csrfInit) {
+      req.session.csrfInit = 1;
+    }
+  }
+  next();
+});
 
 function isServerWebhookRoute(pathname) {
   const path = (pathname || '').toString();

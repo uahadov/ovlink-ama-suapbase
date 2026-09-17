@@ -5,126 +5,211 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <link rel="icon" href="/logo.ico" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
   <title data-i18n="register_title">Qeydiyyat - URL Qısaltma</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
+  <link rel="icon" href="/logo.ico" />
+  <link rel="manifest" href="/site.webmanifest" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
   <meta name="description" content="Ovlink-də qeydiyyatdan keçin. Pulsuz hesab yaradın, linklərinizi qısaldın və idarə etməyə başlayın." />
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
   <style nonce="<%= nonce %>">
     .step { display: none; }
-    .step.active { display: block; animation: fadeIn 0.5s; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    .step.active { display: block; animation: fadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   </style>
 </head>
 
-<body class="home-page auth-policy-page animated-gradient-bg">
+<body class="ovx home-page auth-page">
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
-        <i class="fa-solid fa-bullhorn"></i>
+      <div class="shell">
+        <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <%- include('partials/public-navbar') %>
+  <%- include('partials/home-navbar') %>
 
-    <main class="auth-main-shell">
-    <section id="hero" class="d-flex align-items-center auth-hero">
-      <div class="container">
-        <div class="text-center auth-hero-head reveal">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-4 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
-          </div>
-          <h1 class="hero-title auth-display-title" data-i18n="register_title">Qeydiyyat</h1>
-          <p class="hero-subtitle auth-display-subtitle" data-i18n="register_subtitle">Yeni hesab yaradın</p>
+  <main class="m-auth-shell" id="mainContent">
+    <div class="m-auth-container">
+      <div class="m-auth-head">
+        <div class="m-auth-eyebrow">
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+        </div>
+        <h1 class="m-auth-title" data-i18n="register_title">Qeydiyyat</h1>
+        <p class="m-auth-sub" data-i18n="register_subtitle">Yeni hesab yaradın</p>
+      </div>
+
+      <div class="m-auth-card">
+        <div class="m-auth-glyph" aria-hidden="true">
+          <i class="fa-solid fa-user-plus"></i>
         </div>
 
-        <div class="glass-card home-form-card auth-home-card reveal" style="transition-delay: 0.2s">
-          <div class="auth-head-icon" aria-hidden="true">
-            <i class="fa-solid fa-user-plus"></i>
+        <!-- Step 1: Email & Password -->
+        <div id="step1" class="step m-auth-step active">
+          <form id="registerForm" novalidate>
+            <div class="m-auth-field">
+              <label for="email" class="m-auth-label" data-i18n="login_email">E-poçt Ünvanı</label>
+              <div class="m-auth-input-wrap">
+                <i class="fa-solid fa-envelope m-auth-input-icon" aria-hidden="true"></i>
+                <input type="email" class="m-auth-input" id="email" required placeholder="numune@email.com" data-i18n-placeholder="login_email_placeholder" autocomplete="email">
+              </div>
+            </div>
+
+            <div class="m-auth-field">
+              <label for="password" class="m-auth-label" data-i18n="login_pass">Şifrə</label>
+              <div class="m-auth-input-wrap">
+                <i class="fa-solid fa-lock m-auth-input-icon" aria-hidden="true"></i>
+                <input type="password" class="m-auth-input" id="password" required placeholder="••••••••" autocomplete="new-password">
+              </div>
+            </div>
+
+            <button type="submit" id="regSubmitBtn" class="m-cta m-cta--white m-auth-submit">
+              <span data-i18n="register_btn">Qeydiyyatdan Keç</span> <i class="fa-solid fa-arrow-right ms-2" aria-hidden="true"></i>
+            </button>
+
+            <div class="m-auth-divider"><span data-i18n="auth_or">və ya</span></div>
+
+            <a href="/auth/google" class="m-auth-oauth-btn">
+              <i class="fa-brands fa-google" aria-hidden="true"></i>
+              <span data-i18n="register_google">Google ilə qeydiyyat</span>
+            </a>
+          </form>
+
+          <p id="regMessage" class="m-auth-msg auth-message"></p>
+        </div>
+
+        <!-- Step 2: Verification Code -->
+        <div id="step2" class="step m-auth-step">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="font-size: 18px; font-weight: 700; color: var(--c-white); margin-bottom: 6px;" data-i18n="verify_title">Təsdiqləmə</h2>
+            <p style="font-size: 13.5px; color: var(--c-muted); line-height: 1.5;" data-i18n="verify_subtitle">E-poçt ünvanınıza gələn 6 rəqəmli kodu daxil edin.</p>
           </div>
 
-          <div id="step1" class="step active">
-            <form id="registerForm" novalidate>
-              <div class="mb-3 auth-field">
-                <label for="email" class="form-label" data-i18n="login_email">E-poçt Ünvanı</label>
-                <div class="input-group auth-input shadow-sm">
-                  <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
-                  <input type="email" class="form-control form-control-animated" id="email" required placeholder="numune@email.com" data-i18n-placeholder="login_email_placeholder">
-                </div>
+          <form id="verifyForm" novalidate>
+            <div class="m-auth-field">
+              <label for="vCode" class="m-auth-label" data-i18n="verify_code">Təsdiqləmə Kodu</label>
+              <div class="m-auth-input-wrap">
+                <i class="fa-solid fa-key m-auth-input-icon" aria-hidden="true"></i>
+                <input type="text" class="m-auth-input m-auth-code-input" id="vCode" maxlength="6" required placeholder="123456" inputmode="numeric" autocomplete="one-time-code">
               </div>
+            </div>
 
-              <div class="mb-3 auth-field">
-                <label for="password" class="form-label" data-i18n="login_pass">Şifrə</label>
-                <div class="input-group auth-input shadow-sm">
-                  <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                  <input type="password" class="form-control form-control-animated" id="password" required placeholder="******">
-                </div>
-              </div>
+            <button type="submit" id="verifySubmitBtn" class="m-cta m-cta--white m-auth-submit">
+              <span data-i18n="verify_btn">Təsdiqlə</span> <i class="fa-solid fa-check ms-2" aria-hidden="true"></i>
+            </button>
 
-              <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill py-3 fw-bold shadow-lg home-primary-btn auth-submit-btn btn-animated btn-glow btn-shimmer btn-magnetic btn-stagger">
-                <span data-i18n="register_btn">Qeydiyyatdan Keç</span> <i class="fa-solid fa-user-plus ms-2"></i>
-              </button>
+            <button type="button" id="resendCodeBtn" class="m-cta m-cta--outline m-cta--sm" style="width: 100%; justify-content: center; margin-top: 10px;">
+              <i class="fa-solid fa-rotate me-2" aria-hidden="true"></i>
+              <span data-i18n="resend_code">Kodu Yenidən Göndər</span>
+            </button>
+          </form>
 
-              <div class="auth-divider"><span data-i18n="auth_or">vəya</span></div>
+          <p id="verifyMessage" class="m-auth-msg auth-message"></p>
+        </div>
 
-              <a href="/auth/google" class="btn w-100 rounded-pill fw-semibold py-3 auth-google-btn btn-animated btn-stagger">
-                <i class="fa-brands fa-google me-2"></i><span data-i18n="register_google">Google ilə qeydiyyat</span>
-              </a>
-            </form>
-
-            <p id="regMessage" class="text-center small mt-3 mb-0 auth-message"></p>
-          </div>
-
-          <div id="step2" class="step">
-            <h2 class="h4 fw-bold mb-2 text-center" data-i18n="verify_title">Təsdiqləmə</h2>
-            <p class="text-muted mb-3 text-center" data-i18n="verify_subtitle">E-poçt ünvanınıza gələn 6 rəqəmli kodu daxil edin.</p>
-
-            <form id="verifyForm" novalidate>
-              <div class="mb-3 auth-field">
-                <label for="vCode" class="form-label" data-i18n="verify_code">Təsdiqləmə Kodu</label>
-                <div class="input-group auth-input shadow-sm">
-                  <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
-                  <input type="text" class="form-control form-control-animated" id="vCode" maxlength="6" required placeholder="123456" inputmode="numeric" autocomplete="one-time-code">
-                </div>
-              </div>
-
-              <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill py-3 fw-bold shadow-lg home-primary-btn auth-submit-btn btn-animated btn-glow btn-shimmer btn-magnetic btn-stagger">
-                <span data-i18n="verify_btn">Təsdiqlə</span> <i class="fa-solid fa-check-circle ms-2"></i>
-              </button>
-
-              <button type="button" id="resendCodeBtn" class="btn btn-outline-secondary btn-sm w-100 rounded-pill py-2 mt-2 fw-semibold">
-                <i class="fa-solid fa-rotate me-2"></i><span data-i18n="resend_code">Kodu Yenidən Göndər</span>
-              </button>
-            </form>
-
-            <p id="verifyMessage" class="text-center small mt-3 mb-0 auth-message"></p>
-          </div>
-
-          <p class="auth-links mb-0 reveal" style="transition-delay: 0.4s">
+        <div class="m-auth-footer">
+          <div class="m-auth-footer-text">
             <span data-i18n="have_account">Artıq hesabınız var?</span>
             <a href="/login" data-i18n="login_link">Giriş</a>
-          </p>
-
-          <div class="policy-back">
-            <a href="/" class="btn home-outline-btn rounded-pill btn-animated" data-i18n="nav_home">Ana Səhifə</a>
           </div>
+          <a href="/" class="m-cta m-cta--outline m-cta--sm m-auth-back-btn">
+            <i class="fa-solid fa-house" aria-hidden="true"></i>
+            <span data-i18n="nav_home">Ana Səhifə</span>
+          </a>
         </div>
       </div>
-    </section>
+    </div>
   </main>
 
+  <%- include('partials/home-footer') %>
+
+  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>">
+    (function () {
+      /* ─── Navbar dropdown & mobile menu ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+      });
+
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function(){
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button ripple effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid, .m-auth-oauth-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var r = btn.getBoundingClientRect();
+          var rip = document.createElement('span');
+          rip.className = 'm-ripple';
+          rip.style.left = (e.clientX - r.left) + 'px';
+          rip.style.top  = (e.clientY - r.top) + 'px';
+          btn.appendChild(rip);
+          setTimeout(function() { rip.remove(); }, 600);
+        });
+      });
+
+      /* ─── Ambient Glow Mouse Tracking ─── */
+      var glow = document.getElementById('cursorGlow');
+      if (glow && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        document.addEventListener('mousemove', function(e) {
+          glow.style.left = e.clientX + 'px';
+          glow.style.top = e.clientY + 'px';
+        }, { passive: true });
+      }
+    })();
+
     let userEmail = "";
 
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
@@ -132,15 +217,16 @@
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
       const msg = document.getElementById('regMessage');
+      const activeLang = (typeof currentLang !== 'undefined') ? currentLang : 'az';
 
-      msg.textContent = currentLang === 'az' ? "İşlənilir..." : (currentLang === 'en' ? "Processing..." : "İşleniyor...");
-      msg.className = "text-center text-muted small";
+      msg.textContent = activeLang === 'az' ? "İşlənilir..." : (activeLang === 'en' ? "Processing..." : "İşleniyor...");
+      msg.className = "m-auth-msg text-muted";
 
       try {
         if (!getCsrfToken()) {
           await refreshCsrfToken();
         }
-        const res = await postJsonWithCsrf('/api/register', { email, password, lang: currentLang });
+        const res = await postJsonWithCsrf('/api/register', { email, password, lang: activeLang });
         const data = await res.json();
 
         if (res.ok) {
@@ -149,11 +235,12 @@
           document.getElementById('step2').classList.add('active');
           setTimeout(() => document.getElementById('vCode')?.focus(), 50);
         } else {
-          msg.className = "text-center text-danger small";
+          msg.className = "m-auth-msg text-danger";
           msg.textContent = data.error;
         }
       } catch (err) {
-        msg.textContent = currentLang === 'az' ? "Xəta baş verdi." : (currentLang === 'en' ? "An error occurred." : "Hata oluştu.");
+        msg.className = "m-auth-msg text-danger";
+        msg.textContent = activeLang === 'az' ? "Xəta baş verdi." : (activeLang === 'en' ? "An error occurred." : "Hata oluştu.");
       }
     });
 
@@ -161,16 +248,17 @@
       e.preventDefault();
       const code = document.getElementById('vCode').value;
       const msg = document.getElementById('verifyMessage');
+      const activeLang = (typeof currentLang !== 'undefined') ? currentLang : 'az';
 
       try {
         if (!getCsrfToken()) {
           await refreshCsrfToken();
         }
-        const res = await postJsonWithCsrf('/api/verify-email', { email: userEmail, verificationCode: code, lang: currentLang });
+        const res = await postJsonWithCsrf('/api/verify-email', { email: userEmail, verificationCode: code, lang: activeLang });
         const data = await res.json();
 
         if (res.ok) {
-          msg.className = "text-center text-success small";
+          msg.className = "m-auth-msg text-success";
           msg.textContent = data.message;
           setClientSession({ email: userEmail, isAdmin: false });
           setTimeout(() => {
@@ -179,11 +267,12 @@
             window.location.href = safeRedirect;
           }, 1500);
         } else {
-          msg.className = "text-center text-danger small";
+          msg.className = "m-auth-msg text-danger";
           msg.textContent = data.error;
         }
       } catch (err) {
-        msg.textContent = currentLang === 'az' ? "Xəta baş verdi." : (currentLang === 'en' ? "An error occurred." : "Hata oluştu.");
+        msg.className = "m-auth-msg text-danger";
+        msg.textContent = activeLang === 'az' ? "Xəta baş verdi." : (activeLang === 'en' ? "An error occurred." : "Hata oluştu.");
       }
     });
 
@@ -191,28 +280,29 @@
     document.getElementById('resendCodeBtn')?.addEventListener('click', async () => {
       const btn = document.getElementById('resendCodeBtn');
       const msg = document.getElementById('verifyMessage');
+      const activeLang = (typeof currentLang !== 'undefined') ? currentLang : 'az';
       
       if (!userEmail) {
-        msg.className = "text-center text-danger small";
-        msg.textContent = currentLang === 'az' ? "E-poçt ünvanı tapılmadı." : (currentLang === 'en' ? "Email address not found." : "E-posta adresi bulunamadı.");
+        msg.className = "m-auth-msg text-danger";
+        msg.textContent = activeLang === 'az' ? "E-poçt ünvanı tapılmadı." : (activeLang === 'en' ? "Email address not found." : "E-posta adresi bulunamadı.");
         return;
       }
 
       const originalText = btn.innerHTML;
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>' + (currentLang === 'az' ? "Göndərilir..." : (currentLang === 'en' ? "Sending..." : "Gönderiliyor..."));
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>' + (activeLang === 'az' ? "Göndərilir..." : (activeLang === 'en' ? "Sending..." : "Gönderiliyor..."));
       msg.textContent = "";
 
       try {
         if (!getCsrfToken()) {
           await refreshCsrfToken();
         }
-        const res = await postJsonWithCsrf('/api/resend-verification', { email: userEmail, lang: currentLang });
+        const res = await postJsonWithCsrf('/api/resend-verification', { email: userEmail, lang: activeLang });
         const data = await res.json();
 
         if (res.ok) {
-          msg.className = "text-center text-success small";
-          msg.textContent = data.message || (currentLang === 'az' ? "Kod yenidən göndərildi." : (currentLang === 'en' ? "Code resent successfully." : "Kod başarıyla yeniden gönderildi."));
+          msg.className = "m-auth-msg text-success";
+          msg.textContent = data.message || (activeLang === 'az' ? "Kod yenidən göndərildi." : (activeLang === 'en' ? "Code resent successfully." : "Kod başarıyla yeniden gönderildi."));
           
           // Disable resend button for 60 seconds
           let countdown = 60;
@@ -226,25 +316,19 @@
             }
           }, 1000);
         } else {
-          msg.className = "text-center text-danger small";
+          msg.className = "m-auth-msg text-danger";
           msg.textContent = data.error;
           btn.disabled = false;
           btn.innerHTML = originalText;
         }
       } catch (err) {
-        msg.className = "text-center text-danger small";
-        msg.textContent = currentLang === 'az' ? "Xəta baş verdi." : (currentLang === 'en' ? "An error occurred." : "Hata oluştu.");
+        msg.className = "m-auth-msg text-danger";
+        msg.textContent = activeLang === 'az' ? "Xəta baş verdi." : (activeLang === 'en' ? "An error occurred." : "Hata oluştu.");
         btn.disabled = false;
         btn.innerHTML = originalText;
       }
     });
   </script>
-
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
-
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
-  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
 </body>
 
 </html>

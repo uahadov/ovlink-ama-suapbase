@@ -6,17 +6,21 @@
     <title><%= title %></title>
     <meta name="robots" content="noindex,nofollow" />
     <link rel="icon" href="/logo.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/admin/admin.css" />
     <meta name="csrf-token" content="<%= csrfToken %>" />
   </head>
   <body class="admin-page">
+    <div id="cursorGlow" aria-hidden="true"></div>
     <div class="admin-shell">
       <aside class="sidebar">
         <div class="sidebar__brand">
           <div class="brand">
-            <img class="brand__logo-img" src="/logo.png" alt="Ovlink" />
+            <img class="brand__logo-img" src="/logo.webp" alt="Ovlink" />
             <div>
-              <div class="brand__title">Ovlink Admin</div>
+              <div class="brand__title">Ovlink Console</div>
               <div class="sidebar__meta"><%= admin && admin.email ? admin.email : '' %> · <%= admin && admin.role ? admin.role : '' %></div>
             </div>
           </div>

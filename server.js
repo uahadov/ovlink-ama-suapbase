@@ -25,6 +25,7 @@ const { dbRunAsync, dbGetAsync, dbAllAsync } = require('./src/db/helpers');
 const { pool } = require('./src/db/pool');
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
+const HOST = process.env.HOST || '0.0.0.0';
 
 if (require.main === module) {
   (async () => {
@@ -48,8 +49,8 @@ if (require.main === module) {
     scheduleWeeklySafetyScan();
     scheduleWebhookRecoveryWorker();
 
-    app.listen(PORT, () => {
-      console.log(`[ovlink] Server listening on port ${PORT}`);
+    app.listen(PORT, HOST, () => {
+      console.log(`[ovlink] Server listening on ${HOST}:${PORT}`);
 
       // Start bots & marketing background services safely without blocking or crashing the server
       (async () => {

@@ -75,13 +75,12 @@ test('Polar Server-Side Checkout Sessions API', async (t) => {
     createdTestUserIds.push(user.id);
 
     // Create session in DB to bypass the /login route for testing
-    const sid = `test_sid_${Date.now()}_${Math.random()}`;
+    const sid = `test_sid_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     createdTestSids.push(sid);
     const sessData = { cookie: { originalMaxAge: 3600000 }, userId: user.id };
-    const expireStr = new Date(Date.now() + 3600000).toISOString();
     await helpers.dbRunAsync(
-      "INSERT INTO express_sessions (sid, sess, expire) VALUES (?, ?, ?)",
-      [sid, JSON.stringify(sessData), expireStr]
+      "INSERT INTO express_sessions (sid, sess, expire) VALUES (?, ?, to_timestamp(?))",
+      [sid, JSON.stringify(sessData), Math.floor(Date.now() / 1000 + 3600)]
     );
 
     // session signature (connect-pg-simple uses express-session signing logic)

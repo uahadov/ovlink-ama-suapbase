@@ -1,0 +1,205 @@
+<%# Homepage footer — "Monolith" design system. Do not reuse on other pages. %>
+<footer class="m-footer">
+  <div class="shell-wide m-section-inner">
+
+    <div class="m-footer-top">
+      <!-- Brand + tagline -->
+      <div>
+        <div class="m-footer-brand">
+          <img src="/home-logo.svg" alt="Ovlink" width="30" height="30" style="border-radius:7px;display:block;" />
+        </div>
+        <p class="m-footer-tagline" data-i18n="home_foot_note_intro">
+          Trustworthy, manageable short links. Built for legitimate sharing.
+        </p>
+      </div>
+
+      <!-- Link columns -->
+      <div class="m-footer-cols">
+        <div>
+          <div class="m-footer-col-title" data-i18n="footer_group_company">Company</div>
+          <div class="m-footer-col">
+            <a href="/about" data-i18n="about_policy">About</a>
+            <a href="/why-ovlink" data-i18n="why_ovlink_link">Why Ovlink?</a>
+            <a href="/updates" data-i18n="updates_link">Updates</a>
+            <a href="/contact" data-i18n="contact_policy">Contact</a>
+          </div>
+        </div>
+        <div>
+          <div class="m-footer-col-title" data-i18n="footer_group_legal">Legal</div>
+          <div class="m-footer-col">
+            <a href="/privacy" data-i18n="privacy_policy">Privacy Policy</a>
+            <a href="/terms" data-i18n="terms_policy">Terms of Use</a>
+            <a href="/cookie-policy" data-i18n="cookie_policy">Cookie Policy</a>
+            <a href="/abuse-safety" data-i18n="abuse_safety_link">Abuse &amp; Safety</a>
+          </div>
+        </div>
+        <div>
+          <div class="m-footer-col-title" data-i18n="footer_group_resources">Resources</div>
+          <div class="m-footer-col">
+            <a href="/faq" data-i18n="faq_link">FAQ</a>
+            <a href="/help" data-i18n="help_link">Help</a>
+            <a href="/docs" data-i18n="docs_link">Docs</a>
+            <a href="/api-guide" data-i18n="api_guide_link">API Guide</a>
+            <a href="/pricing" data-i18n="pricing_link">Pro Pricing</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="m-footer-bottom">
+      <span class="m-footer-copy" data-i18n="footer_text">© 2026 · Developed &amp; Powered by <strong>Ulvi Ahadov</strong></span>
+      <a href="https://www.launchpact.io/startups" target="_blank" rel="noopener noreferrer" style="opacity:0.5;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='0.5'">
+        <img src="/launchpact-badge.svg" alt="Listed on LaunchPact" width="130" height="44" loading="lazy" decoding="async" fetchpriority="low" />
+      </a>
+    </div>
+  </div>
+</footer>
+
+<!-- Promo float -->
+<aside class="m-promo" id="floatingPricingBanner" aria-label="Ovlink Pro promotion" data-i18n-aria="aria_promo">
+  <button type="button" class="m-promo-close" data-floating-pricing-close aria-label="Close promotion" data-i18n-aria="aria_promo_close">&times;</button>
+  <a class="m-promo-link" href="/pricing">
+    <img class="m-promo-logo" src="/home-logo.svg" alt="Ovlink Pro" width="36" height="36" loading="lazy" decoding="async" style="border-radius: 8px;" />
+    <span class="m-promo-body">
+      <span class="m-promo-tag" data-i18n="floating_pricing_badge">PRO</span>
+      <strong class="m-promo-title" data-i18n="floating_pricing_title">Unlock Premium features</strong>
+      <small class="m-promo-sub" data-i18n="floating_pricing_text">$4.99/mo · API + Webhooks · 3-Day Free Trial</small>
+    </span>
+  </a>
+</aside>
+
+<!-- Cookie banner -->
+<div class="m-cookie" id="cookieBanner" hidden>
+  <p>
+    <span data-i18n="cookie_text">This site uses cookies to improve your experience.</span>
+    <a href="/privacy" data-i18n="cookie_more_info" style="margin-left:5px;">Learn more</a>
+  </p>
+  <button id="acceptCookieBtn" class="m-cta m-cta--white m-cta--sm" type="button">
+    <span data-i18n="cookie_accept">OK</span>
+  </button>
+</div>
+
+<script nonce="<%= nonce %>">
+(function(){
+  var cookieBanner = document.getElementById('cookieBanner');
+  var acceptCookieBtn = document.getElementById('acceptCookieBtn');
+  if (!cookieBanner) return;
+  var hasConsent = false;
+  try { hasConsent = localStorage.getItem('cookieConsent') === 'true'; } catch(_){}
+  if (!hasConsent) cookieBanner.hidden = false;
+  if (acceptCookieBtn) {
+    acceptCookieBtn.addEventListener('click', function(){
+      try { localStorage.setItem('cookieConsent', 'true'); } catch(_){}
+      cookieBanner.hidden = true;
+    });
+  }
+})();
+
+(function(){
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  if (window.__monolithCursorInit) return;
+  window.__monolithCursorInit = true;
+
+  var isTouch = !window.matchMedia('(hover: hover)').matches;
+  var arrow = document.getElementById('mCursorArrow');
+  var ring = document.getElementById('mCursorRing');
+  var glow = document.getElementById('cursorGlow');
+
+  if (isTouch) {
+    if (arrow) arrow.style.display = 'none';
+    if (ring) ring.style.display = 'none';
+    if (glow) glow.style.display = 'none';
+    return;
+  }
+
+  if (!arrow) {
+    arrow = document.createElement('div');
+    arrow.id = 'mCursorArrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.innerHTML = '<svg width="30" height="30" viewBox="0 0 32 32" fill="none"><path d="M4.5 3.5L27 13.5L16.5 17.5L12 28.5L4.5 3.5Z" fill="#0a0a0a" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    document.body.appendChild(arrow);
+  }
+
+  if (!ring) {
+    ring = document.createElement('div');
+    ring.id = 'mCursorRing';
+    ring.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(ring);
+  }
+
+  if (!glow && document.querySelector('.ovx')) {
+    glow = document.createElement('div');
+    glow.id = 'cursorGlow';
+    glow.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(glow);
+  }
+
+  document.body.classList.add('has-custom-cursor');
+
+  var mx = -100, my = -100, rx = -100, ry = -100;
+  var rafId = null;
+
+  function loop(){
+    rx += (mx - rx) * 0.15;
+    ry += (my - ry) * 0.15;
+    if (ring) ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+    if (Math.abs(mx - rx) > 0.1 || Math.abs(my - ry) > 0.1) {
+      rafId = requestAnimationFrame(loop);
+    } else {
+      rx = mx;
+      ry = my;
+      if (ring) ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+      rafId = null;
+    }
+  }
+
+  function updatePos(e){
+    mx = e.clientX;
+    my = e.clientY;
+    if (arrow) arrow.style.transform = 'translate(' + mx + 'px,' + my + 'px)';
+    if (glow) {
+      glow.style.left = mx + 'px';
+      glow.style.top = my + 'px';
+      glow.style.opacity = '1';
+    }
+    if (!rafId) {
+      rafId = requestAnimationFrame(loop);
+    }
+  }
+
+  window.addEventListener('mousemove', updatePos, {passive:true});
+  window.addEventListener('pointermove', updatePos, {passive:true});
+
+  document.addEventListener('mouseover', function(e){
+    var interactive = e.target && e.target.closest && e.target.closest('a,button,select,label,[role="button"],.m-cta,.m-btn-ghost,.m-btn-solid,.m-lang-item,.lang-option');
+    if (interactive) {
+      if (arrow) arrow.classList.add('hover');
+      if (ring) ring.classList.add('hover');
+    } else {
+      if (arrow) arrow.classList.remove('hover');
+      if (ring) ring.classList.remove('hover');
+    }
+  }, {passive:true});
+
+  document.addEventListener('mousedown', function(){
+    if (arrow) arrow.classList.add('clicking');
+    if (ring) ring.classList.add('clicking');
+  });
+
+  document.addEventListener('mouseup', function(){
+    if (arrow) arrow.classList.remove('clicking');
+    if (ring) ring.classList.remove('clicking');
+  });
+
+  document.addEventListener('mouseleave', function(){
+    if (arrow) arrow.classList.add('hidden');
+    if (ring) ring.classList.add('hidden');
+    if (glow) glow.style.opacity = '0';
+  });
+
+  document.addEventListener('mouseenter', function(){
+    if (arrow) arrow.classList.remove('hidden');
+    if (ring) ring.classList.remove('hidden');
+  });
+})();
+</script>

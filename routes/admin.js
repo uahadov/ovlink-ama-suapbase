@@ -8,13 +8,22 @@ const geoip = require('geoip-lite');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
+function safeDecrypt(payload, fallback = '') {
+  if (!payload) return fallback;
+  try {
+    return decryptAES256GCM(payload) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 const REPORT_THRESHOLD = 4;
 const SHORT_CODE_RE = /^[A-Za-z0-9_-]{1,50}$/;
 
 const LINKS_SORT_SQL = Object.freeze({
-  recent: 'datetime(u.created_at) DESC',
-  reports: 'u.reports DESC, datetime(u.created_at) DESC',
-  clicks: 'clicks_count DESC, datetime(u.created_at) DESC',
+  recent: 'u.created_at DESC',
+  reports: 'u.reports DESC, u.created_at DESC',
+  clicks: 'clicks_count DESC, u.created_at DESC',
 });
 
 const SITE_USERS_SORT_SQL = Object.freeze({
@@ -947,7 +956,7 @@ module.exports = function createAdminRouter(db, options = {}) {
       [safeShort],
     );
     if (row && row.owner_email) {
-      row.owner_email = decryptAES256GCM(row.owner_email);
+      row.owner_email = safeDecrypt(row.owner_email);
     }
     return row;
   }
@@ -965,7 +974,7 @@ module.exports = function createAdminRouter(db, options = {}) {
     );
     (rows || []).forEach((r) => {
       if (r.reporter_email) {
-        r.reporter_email = decryptAES256GCM(r.reporter_email);
+        r.reporter_email = safeDecrypt(r.reporter_email);
       }
     });
     return rows;
@@ -1084,7 +1093,7 @@ module.exports = function createAdminRouter(db, options = {}) {
 
     (rows || []).forEach((r) => {
       if (r.owner_email) {
-        r.owner_email = decryptAES256GCM(r.owner_email);
+        r.owner_email = safeDecrypt(r.owner_email);
       }
     });
 
@@ -1317,7 +1326,7 @@ module.exports = function createAdminRouter(db, options = {}) {
 
     rows.forEach(u => {
       if (u.email) {
-        u.email = decryptAES256GCM(u.email);
+        u.email = safeDecrypt(u.email);
       }
     });
     return res.render('admin/site-users', {
@@ -1343,7 +1352,7 @@ module.exports = function createAdminRouter(db, options = {}) {
     );
     if (!user) return res.status(404).render('admin/not-found');
     if (user.email) {
-      user.email = decryptAES256GCM(user.email);
+      user.email = safeDecrypt(user.email);
     }
 
     // Aggregate stats
@@ -1877,7 +1886,7 @@ module.exports = function createAdminRouter(db, options = {}) {
         : normalizeCountryCode(meta && meta.country);
       return {
         ...row,
-        admin_email: row.admin_email ? decryptAES256GCM(row.admin_email) : '',
+        admin_email: safeDecrypt(row.admin_email),
         country_display: explicitCountry || getCountryCodeFromIp(row && row.ip),
       };
     });

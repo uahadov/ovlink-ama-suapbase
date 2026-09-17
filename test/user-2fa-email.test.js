@@ -84,10 +84,10 @@ test('user 2FA and email change flows', async (t) => {
   const user = await helpers.dbGetAsync('SELECT id FROM users WHERE email_hash = ?', [blindIndex(email)]);
   createdTestUserIds.push(user.id);
 
-  const sid = trackSid(`test_2fa_${Date.now()}_${Math.random()}`);
+  const sid = trackSid(`test_2fa_${Date.now()}_${Math.random().toString(36).slice(2)}`);
   await helpers.dbRunAsync(
-    "INSERT INTO express_sessions (sid, sess, expire) VALUES (?, ?, ?)",
-    [sid, JSON.stringify({ cookie: { originalMaxAge: 3600000 }, userId: user.id }), new Date(Date.now() + 3600000).toISOString()]
+    "INSERT INTO express_sessions (sid, sess, expire) VALUES (?, ?, to_timestamp(?))",
+    [sid, JSON.stringify({ cookie: { originalMaxAge: 3600000 }, userId: user.id }), Math.floor(Date.now() / 1000 + 3600)]
   );
   const cookie = forgeSessionCookie(sid);
 
@@ -129,10 +129,10 @@ test('user 2FA and email change flows', async (t) => {
   await t.test('3. login now requires the second factor', async () => {
     // Use a disposable session: the login flow regenerates the session, which
     // would invalidate the dashboard cookie used by the later subtests.
-    const loginSid = trackSid(`test_2fa_login3_${Date.now()}_${Math.random()}`);
+    const loginSid = trackSid(`test_2fa_login3_${Date.now()}_${Math.random().toString(36).slice(2)}`);
     await helpers.dbRunAsync(
-      "INSERT INTO express_sessions (sid, sess, expire) VALUES (?, ?, ?)",
-      [loginSid, JSON.stringify({ cookie: { originalMaxAge: 3600000 } }), new Date(Date.now() + 3600000).toISOString()]
+      "INSERT INTO express_sessions (sid, sess, expire) VALUES (?, ?, to_timestamp(?))",
+      [loginSid, JSON.stringify({ cookie: { originalMaxAge: 3600000 } }), Math.floor(Date.now() / 1000 + 3600)]
     );
     const login = await post('/api/login', { email, password: TEST_PASSWORD }, forgeSessionCookie(loginSid));
     assert.equal(login.status, 200);
@@ -144,10 +144,10 @@ test('user 2FA and email change flows', async (t) => {
     const secret = decryptAES256GCM(row.totp_secret);
 
     // Need the login-session cookie (holds pending2faUserId), not the dashboard one.
-    const guestSid = trackSid(`test_2fa_login_${Date.now()}_${Math.random()}`);
+    const guestSid = trackSid(`test_2fa_login_${Date.now()}_${Math.random().toString(36).slice(2)}`);
     await helpers.dbRunAsync(
-      "INSERT INTO express_sessions (sid, sess, expire) VALUES (?, ?, ?)",
-      [guestSid, JSON.stringify({ cookie: { originalMaxAge: 3600000 }, pending2faUserId: user.id, pending2faStartedAt: Date.now() }), new Date(Date.now() + 3600000).toISOString()]
+      "INSERT INTO express_sessions (sid, sess, expire) VALUES (?, ?, to_timestamp(?))",
+      [guestSid, JSON.stringify({ cookie: { originalMaxAge: 3600000 }, pending2faUserId: user.id, pending2faStartedAt: Date.now() }), Math.floor(Date.now() / 1000 + 3600)]
     );
     const loginCookie = forgeSessionCookie(guestSid);
 

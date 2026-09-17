@@ -5,15 +5,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — API Usage Guide' %></title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
   <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
   <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
@@ -33,70 +36,153 @@
   <% } %>
 </head>
 
-<body class="home-page policy-page api-guide-page animated-gradient-bg">
+<body class="ovx home-page resources-page api-guide-page">
+
+  <!-- Top reading progress bar -->
+  <div id="readingProgress" class="m-reading-progress" aria-hidden="true"></div>
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell" style="max-width: 1080px; width: 100%;">
 
-  <main class="policy-main">
-    <section class="container">
-      <div class="policy-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-plug me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
-          </div>
-          <h1 class="policy-title" data-i18n="api_guide_page_title">API Usage Guide</h1>
-          <p class="hero-subtitle" data-i18n="api_guide_page_intro">Pro API key ilə avtomatik link yaratmaq və hesab məlumatlarını oxumaq üçün sürətli bələdçi.</p>
+      <!-- Header / Hero Section -->
+      <section class="m-content-hero" aria-labelledby="apiGuideHeading">
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 18px;">
+          <span class="m-live-dot" aria-hidden="true"></span>
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
         </div>
+        <h1 id="apiGuideHeading" data-i18n="api_guide_page_title">API Usage Guide</h1>
+        <p data-i18n="api_guide_page_intro">
+          Pro API key ilə avtomatik link yaratmaq və hesab məlumatlarını oxumaq üçün sürətli bələdçi.
+        </p>
+      </section>
 
-        <div class="policy-list">
-          <article class="policy-card api-guide-card">
-            <h3><i class="fa-solid fa-key me-2"></i><span data-i18n="api_guide_auth_title">1) API key ilə autentifikasiya</span></h3>
-            <p data-i18n="api_guide_auth_text">Sorğularda API key göndərmək üçün <code>x-api-key</code> və ya <code>Authorization: Bearer ...</code> istifadə edin.</p>
-            <ul>
-              <li data-i18n="api_guide_auth_item1">Endpoint: <code>GET /api/pro/v1/account</code></li>
-              <li data-i18n="api_guide_auth_item2">Pro plan aktiv deyilsə cavab: <code>403 Pro plan required</code></li>
-            </ul>
-          </article>
+      <!-- 2-Column Documentation Shell: Sticky TOC + Content -->
+      <div class="m-legal-layout">
 
-          <article class="policy-card api-guide-card">
-            <h3><i class="fa-solid fa-link me-2"></i><span data-i18n="api_guide_shorten_title">2) API ilə link yaratmaq</span></h3>
-            <p data-i18n="api_guide_shorten_text">Yeni endpoint: <code>POST /api/pro/v1/shorten</code>. JSON body-də ən azı <code>original_url</code> göndərin.</p>
-            <ul>
-              <li data-i18n="api_guide_shorten_item1"><code>custom_alias</code> (opsional)</li>
-              <li data-i18n="api_guide_shorten_item2"><code>custom_domain</code> (opsional, hesabınıza bağlı və aktiv olmalıdır)</li>
-              <li data-i18n="api_guide_shorten_item3"><code>max_clicks</code>, <code>expires_at</code> (opsional)</li>
-            </ul>
-          </article>
+        <!-- Left Sticky TOC -->
+        <nav class="m-legal-toc" aria-label="Table of Contents">
+          <div class="m-legal-toc-title">Mündəricat</div>
+          <a href="#sec-auth" class="m-legal-toc-link active" data-i18n="api_guide_auth_title">1) API key ilə autentifikasiya</a>
+          <a href="#sec-shorten" class="m-legal-toc-link" data-i18n="api_guide_shorten_title">2) API ilə link yaratmaq</a>
+          <a href="#sec-samples" class="m-legal-toc-link" data-i18n="api_guide_examples_title">Kod nümunələri</a>
+          <a href="#sec-security" class="m-legal-toc-link" data-i18n="api_guide_security_title">Təhlükəsizlik qeydləri</a>
+          <a href="#sec-quickstart" class="m-legal-toc-link" data-i18n="api_guide_back_account_btn">Pro panelə qayıt</a>
+        </nav>
 
-          <article class="policy-card api-guide-card">
-            <h3><i class="fa-solid fa-terminal me-2"></i><span data-i18n="api_guide_examples_title">Kod nümunələri</span></h3>
-            <div class="api-guide-tabs" role="tablist" aria-label="Code samples">
-              <button type="button" class="api-guide-tab-btn is-active" data-api-sample-tab="curl" role="tab" aria-selected="true">curl</button>
-              <button type="button" class="api-guide-tab-btn" data-api-sample-tab="powershell" role="tab" aria-selected="false">PowerShell</button>
-              <button type="button" class="api-guide-tab-btn" data-api-sample-tab="nodejs" role="tab" aria-selected="false">Node.js</button>
-              <button type="button" class="api-guide-tab-btn" data-api-sample-tab="python" role="tab" aria-selected="false">Python</button>
-              <button type="button" class="api-guide-tab-btn" data-api-sample-tab="csharp" role="tab" aria-selected="false">C#</button>
-              <button type="button" class="api-guide-tab-btn" data-api-sample-tab="cpp" role="tab" aria-selected="false">C++</button>
+        <!-- Right Content Articles -->
+        <div class="m-legal-content">
+
+          <!-- Section 1: Authentication -->
+          <article class="m-legal-section" id="sec-auth">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-key" style="color: var(--c-white);" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="api_guide_auth_title">1) API key ilə autentifikasiya</h2>
             </div>
+            <p class="m-legal-section-text" data-i18n="api_guide_auth_text">
+              Sorğularda API key göndərmək üçün <code>x-api-key</code> və ya <code>Authorization: Bearer ...</code> istifadə edin.
+            </p>
 
-            <section class="api-guide-sample-panel is-active" data-api-sample-panel="curl" role="tabpanel">
-              <div class="api-guide-code-wrap">
-                <div class="api-guide-code-head">
-                  <span class="api-guide-code-lang">curl</span>
-                  <button type="button" class="btn btn-sm btn-outline-light" data-copy-target="apiGuideCurl" data-i18n="api_guide_copy_btn">Kopyala</button>
+            <div class="m-api-spec-box">
+              <div class="m-api-endpoint-bar">
+                <span class="m-method-badge m-method-badge--get">GET</span>
+                <span class="m-endpoint-url">https://ovlink.sbs/api/pro/v1/account</span>
+              </div>
+              <ul class="m-help-steps-list" style="margin: 0;">
+                <li class="m-help-step-item">
+                  <i class="fa-solid fa-circle-info" style="color: var(--c-muted); font-size: 13px; margin-top: 3px;" aria-hidden="true"></i>
+                  <span data-i18n="api_guide_auth_item1">Endpoint: <code>GET /api/pro/v1/account</code></span>
+                </li>
+                <li class="m-help-step-item">
+                  <i class="fa-solid fa-shield-halved" style="color: #ef4444; font-size: 13px; margin-top: 3px;" aria-hidden="true"></i>
+                  <span data-i18n="api_guide_auth_item2">Pro plan aktiv deyilsə cavab: <code>403 Pro plan required</code></span>
+                </li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- Section 2: Create Link Endpoint -->
+          <article class="m-legal-section" id="sec-shorten">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-link" style="color: var(--c-white);" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="api_guide_shorten_title">2) API ilə link yaratmaq</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="api_guide_shorten_text">
+              Yeni endpoint: <code>POST /api/pro/v1/shorten</code>. JSON body-də ən azı <code>original_url</code> göndərin.
+            </p>
+
+            <div class="m-api-spec-box">
+              <div class="m-api-endpoint-bar">
+                <span class="m-method-badge m-method-badge--post">POST</span>
+                <span class="m-endpoint-url">https://ovlink.sbs/api/pro/v1/shorten</span>
+              </div>
+              <div style="font-size: 12.5px; font-weight: 600; color: var(--c-white);">Parametrlər (JSON Body):</div>
+              <ul class="m-help-steps-list" style="margin: 0;">
+                <li class="m-help-step-item">
+                  <span class="m-help-step-num" style="background: rgba(74,222,128,0.1); color: #4ade80; border-color: rgba(74,222,128,0.3);">REQ</span>
+                  <span><code>original_url</code>: Qısaldılacaq hədəf veb ünvan (mütləq).</span>
+                </li>
+                <li class="m-help-step-item">
+                  <span class="m-help-step-num">OPT</span>
+                  <span data-i18n="api_guide_shorten_item1"><code>custom_alias</code> (opsional)</span>
+                </li>
+                <li class="m-help-step-item">
+                  <span class="m-help-step-num">OPT</span>
+                  <span data-i18n="api_guide_shorten_item2"><code>custom_domain</code> (opsional, hesabınıza bağlı və aktiv olmalıdır)</span>
+                </li>
+                <li class="m-help-step-item">
+                  <span class="m-help-step-num">OPT</span>
+                  <span data-i18n="api_guide_shorten_item3"><code>max_clicks</code>, <code>expires_at</code> (opsional)</span>
+                </li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- Section 3: Code Samples Terminal -->
+          <article class="m-legal-section" id="sec-samples">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-terminal" style="color: var(--c-white);" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="api_guide_examples_title">Kod nümunələri</h2>
+            </div>
+            <p class="m-legal-section-text">
+              Proqramlaşdırma dilinizi seçin və hazır inteqrasiya kodunu bir kliklə layihənizə kopyalayın:
+            </p>
+
+            <!-- Bespoke UX: Code Terminal -->
+            <div class="m-api-terminal">
+              <div class="m-api-terminal-head">
+                <div class="m-api-tabs-nav" role="tablist" aria-label="Code samples">
+                  <button type="button" class="m-api-tab-btn active" data-tab="curl">curl</button>
+                  <button type="button" class="m-api-tab-btn" data-tab="powershell">PowerShell</button>
+                  <button type="button" class="m-api-tab-btn" data-tab="nodejs">Node.js</button>
+                  <button type="button" class="m-api-tab-btn" data-tab="python">Python</button>
+                  <button type="button" class="m-api-tab-btn" data-tab="csharp">C#</button>
+                  <button type="button" class="m-api-tab-btn" data-tab="cpp">C++</button>
                 </div>
-                <pre id="apiGuideCurl" class="api-guide-code-pre"><code>curl -X POST "https://ovlink.sbs/api/pro/v1/shorten" \
+                <button type="button" id="copyCodeBtn" class="m-copy-btn" title="Kodu kopyala">
+                  <i class="fa-solid fa-copy" aria-hidden="true"></i>
+                  <span data-i18n="api_guide_copy_btn">Kopyala</span>
+                </button>
+              </div>
+
+              <!-- curl Snippet -->
+              <pre id="snippet-curl" class="m-api-code-pre"><code>curl -X POST "https://ovlink.sbs/api/pro/v1/shorten" \
   -H "Content-Type: application/json" \
   -H "x-api-key: ovk_your_api_key_here" \
   -d '{
@@ -104,16 +190,9 @@
     "custom_alias": "my-product",
     "max_clicks": 500
   }'</code></pre>
-              </div>
-            </section>
 
-            <section class="api-guide-sample-panel" data-api-sample-panel="powershell" role="tabpanel" hidden>
-              <div class="api-guide-code-wrap">
-                <div class="api-guide-code-head">
-                  <span class="api-guide-code-lang">PowerShell (Invoke-RestMethod)</span>
-                  <button type="button" class="btn btn-sm btn-outline-light" data-copy-target="apiGuidePowerShell" data-i18n="api_guide_copy_btn">Kopyala</button>
-                </div>
-                <pre id="apiGuidePowerShell" class="api-guide-code-pre"><code>$headers = @{ "x-api-key" = "ovk_your_api_key_here" }
+              <!-- PowerShell Snippet -->
+              <pre id="snippet-powershell" class="m-api-code-pre" style="display: none;"><code>$headers = @{ "x-api-key" = "ovk_your_api_key_here" }
 
 $body = @{
   original_url = "https://example.com/product/123"
@@ -126,16 +205,9 @@ Invoke-RestMethod -Method Post `
   -Headers $headers `
   -ContentType "application/json" `
   -Body $body</code></pre>
-              </div>
-            </section>
 
-            <section class="api-guide-sample-panel" data-api-sample-panel="nodejs" role="tabpanel" hidden>
-              <div class="api-guide-code-wrap">
-                <div class="api-guide-code-head">
-                  <span class="api-guide-code-lang">Node.js (fetch)</span>
-                  <button type="button" class="btn btn-sm btn-outline-light" data-copy-target="apiGuideNode" data-i18n="api_guide_copy_btn">Kopyala</button>
-                </div>
-                <pre id="apiGuideNode" class="api-guide-code-pre"><code>const res = await fetch("https://ovlink.sbs/api/pro/v1/shorten", {
+              <!-- Node.js Snippet -->
+              <pre id="snippet-nodejs" class="m-api-code-pre" style="display: none;"><code>const res = await fetch("https://ovlink.sbs/api/pro/v1/shorten", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -149,16 +221,9 @@ Invoke-RestMethod -Method Post `
 
 const data = await res.json();
 console.log(data);</code></pre>
-              </div>
-            </section>
 
-            <section class="api-guide-sample-panel" data-api-sample-panel="python" role="tabpanel" hidden>
-              <div class="api-guide-code-wrap">
-                <div class="api-guide-code-head">
-                  <span class="api-guide-code-lang">Python (requests)</span>
-                  <button type="button" class="btn btn-sm btn-outline-light" data-copy-target="apiGuidePython" data-i18n="api_guide_copy_btn">Kopyala</button>
-                </div>
-                <pre id="apiGuidePython" class="api-guide-code-pre"><code>import requests
+              <!-- Python Snippet -->
+              <pre id="snippet-python" class="m-api-code-pre" style="display: none;"><code>import requests
 
 url = "https://ovlink.sbs/api/pro/v1/shorten"
 headers = {
@@ -172,16 +237,9 @@ payload = {
 
 r = requests.post(url, headers=headers, json=payload, timeout=15)
 print(r.status_code, r.json())</code></pre>
-              </div>
-            </section>
 
-            <section class="api-guide-sample-panel" data-api-sample-panel="csharp" role="tabpanel" hidden>
-              <div class="api-guide-code-wrap">
-                <div class="api-guide-code-head">
-                  <span class="api-guide-code-lang">C# (HttpClient)</span>
-                  <button type="button" class="btn btn-sm btn-outline-light" data-copy-target="apiGuideCSharp" data-i18n="api_guide_copy_btn">Kopyala</button>
-                </div>
-                <pre id="apiGuideCSharp" class="api-guide-code-pre"><code>using System.Net.Http;
+              <!-- C# Snippet -->
+              <pre id="snippet-csharp" class="m-api-code-pre" style="display: none;"><code>using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 
@@ -199,16 +257,9 @@ var content = new StringContent(json, Encoding.UTF8, "application/json");
 var response = await client.PostAsync("https://ovlink.sbs/api/pro/v1/shorten", content);
 var body = await response.Content.ReadAsStringAsync();
 Console.WriteLine(body);</code></pre>
-              </div>
-            </section>
 
-            <section class="api-guide-sample-panel" data-api-sample-panel="cpp" role="tabpanel" hidden>
-              <div class="api-guide-code-wrap">
-                <div class="api-guide-code-head">
-                  <span class="api-guide-code-lang">C++ (libcurl)</span>
-                  <button type="button" class="btn btn-sm btn-outline-light" data-copy-target="apiGuideCpp" data-i18n="api_guide_copy_btn">Kopyala</button>
-                </div>
-                <pre id="apiGuideCpp" class="api-guide-code-pre"><code>#include &lt;curl/curl.h&gt;
+              <!-- C++ Snippet -->
+              <pre id="snippet-cpp" class="m-api-code-pre" style="display: none;"><code>#include &lt;curl/curl.h&gt;
 #include &lt;string&gt;
 
 int main() {
@@ -234,36 +285,222 @@ int main() {
   curl_easy_cleanup(curl);
   return rc == CURLE_OK ? 0 : 1;
 }</code></pre>
-              </div>
-            </section>
+            </div>
           </article>
 
-          <article class="policy-card api-guide-card">
-            <h3><i class="fa-solid fa-shield-halved me-2"></i><span data-i18n="api_guide_security_title">Təhlükəsizlik qeydləri</span></h3>
-            <ul>
-              <li data-i18n="api_guide_security_item1">API key-i frontend koduna yerləşdirməyin, yalnız backend/server mühitində saxlayın.</li>
-              <li data-i18n="api_guide_security_item2">Sızma şübhəsində key-i dərhal rotate/revoke edin.</li>
-              <li data-i18n="api_guide_security_item3">Webhook secret və API key dəyərləri yalnız bir dəfə göstərilir.</li>
+          <!-- Section 4: Security Best Practices -->
+          <article class="m-legal-section" id="sec-security">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-shield-halved" style="color: #4ade80;" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="api_guide_security_title">Təhlükəsizlik qeydləri</h2>
+            </div>
+            <ul class="m-help-steps-list">
+              <li class="m-help-step-item">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b; font-size: 13px; margin-top: 3px;" aria-hidden="true"></i>
+                <span data-i18n="api_guide_security_item1">API key-i frontend koduna yerləşdirməyin, yalnız backend/server mühitində saxlayın.</span>
+              </li>
+              <li class="m-help-step-item">
+                <i class="fa-solid fa-arrows-rotate" style="color: var(--c-white); font-size: 13px; margin-top: 3px;" aria-hidden="true"></i>
+                <span data-i18n="api_guide_security_item2">Sızma şübhəsində key-i dərhal rotate/revoke edin.</span>
+              </li>
+              <li class="m-help-step-item">
+                <i class="fa-solid fa-eye-slash" style="color: #ef4444; font-size: 13px; margin-top: 3px;" aria-hidden="true"></i>
+                <span data-i18n="api_guide_security_item3">Webhook secret və API key dəyərləri yalnız bir dəfə göstərilir.</span>
+              </li>
             </ul>
           </article>
+
+          <!-- Section 5: Quickstart Pro Panel Callout -->
+          <article class="m-legal-section" id="sec-quickstart">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-rocket" style="color: var(--c-white);" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title">İnteqrasiyaya İndi Başlayın</h2>
+            </div>
+            <p class="m-legal-section-text">
+              Pro plan hesabı ilə API açarınızı dərhal yaradın və bir neçə dəqiqə ərzində avtomatlaşdırmanı işə salın.
+            </p>
+            <div style="margin-top: 18px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <a href="/account" class="m-cta m-cta--white" style="padding: 10px 22px; font-size: 13.5px;">
+                <i class="fa-solid fa-user-gear" aria-hidden="true"></i>
+                <span data-i18n="api_guide_back_account_btn">Pro panelə qayıt</span>
+                <i class="fa-solid fa-arrow-right" style="font-size: 11px;" aria-hidden="true"></i>
+              </a>
+              <a href="/docs" class="m-cta m-cta--outline" style="padding: 10px 20px; font-size: 13.5px;">
+                <span data-i18n="nav_docs">Documentation</span>
+              </a>
+            </div>
+          </article>
+
         </div>
 
-        <div class="policy-back d-flex flex-wrap gap-2 justify-content-center">
-          <a href="/account" class="btn home-outline-btn rounded-pill" data-i18n="api_guide_back_account_btn">Pro panelə qayıt</a>
-          <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
-        </div>
       </div>
-    </section>
+
+      <!-- Action Navigation Footer -->
+      <div style="display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 48px;">
+        <a href="/" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <i class="fa-solid fa-arrow-left" style="font-size: 11px;" aria-hidden="true"></i>
+          <span data-i18n="nav_home">Home</span>
+        </a>
+        <a href="/docs" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="nav_docs">Documentation</span>
+        </a>
+        <a href="/account" class="m-cta m-cta--white" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="api_guide_back_account_btn">Pro panelə qayıt</span>
+          <i class="fa-solid fa-arrow-right" style="font-size: 11px;" aria-hidden="true"></i>
+        </a>
+      </div>
+
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      /* ─── Reading Progress Bar ─── */
+      var progressBar = document.getElementById('readingProgress');
+      function updateProgress() {
+        if (!progressBar) return;
+        var totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+        if (totalHeight <= 0) return;
+        var progress = (window.scrollY / totalHeight) * 100;
+        progressBar.style.width = Math.min(100, Math.max(0, progress)) + '%';
+      }
+      window.addEventListener('scroll', updateProgress, { passive: true });
+
+      /* ─── ScrollSpy for TOC ─── */
+      var tocLinks = document.querySelectorAll('.m-legal-toc-link');
+      var sections = document.querySelectorAll('.m-legal-section');
+      if (sections.length && tocLinks.length && 'IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+              var id = entry.target.getAttribute('id');
+              tocLinks.forEach(function(link) {
+                if (link.getAttribute('href') === '#' + id) {
+                  link.classList.add('active');
+                } else {
+                  link.classList.remove('active');
+                }
+              });
+            }
+          });
+        }, { rootMargin: '-20% 0px -70% 0px' });
+        sections.forEach(function(sec) { observer.observe(sec); });
+      }
+
+      /* ─── Code Sample Tab Switching & Copy ─── */
+      var tabBtns = document.querySelectorAll('.m-api-tab-btn');
+      var snippets = {
+        'curl': document.getElementById('snippet-curl'),
+        'powershell': document.getElementById('snippet-powershell'),
+        'nodejs': document.getElementById('snippet-nodejs'),
+        'python': document.getElementById('snippet-python'),
+        'csharp': document.getElementById('snippet-csharp'),
+        'cpp': document.getElementById('snippet-cpp')
+      };
+      var currentTab = 'curl';
+
+      tabBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          tabBtns.forEach(function(b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          var target = btn.getAttribute('data-tab');
+          currentTab = target;
+          Object.keys(snippets).forEach(function(k) {
+            if (snippets[k]) {
+              snippets[k].style.display = (k === target) ? 'block' : 'none';
+            }
+          });
+        });
+      });
+
+      var copyBtn = document.getElementById('copyCodeBtn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+          var el = snippets[currentTab];
+          if (!el) return;
+          var code = el.textContent || '';
+          navigator.clipboard.writeText(code).then(function() {
+            var span = copyBtn.querySelector('span');
+            var icon = copyBtn.querySelector('i');
+            if (span) span.textContent = 'Kopyalandı!';
+            if (icon) icon.className = 'fa-solid fa-check';
+            copyBtn.classList.add('copied');
+            setTimeout(function() {
+              if (span) span.textContent = 'Kopyala';
+              if (icon) icon.className = 'fa-solid fa-copy';
+              copyBtn.classList.remove('copied');
+            }, 1800);
+          }).catch(function() {});
+        });
+      }
+
+      /* ─── Navbar interactive logic ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+      });
+
+      /* ─── Mobile Menu ─── */
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function(){
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button ripple effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+          span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function(){ span.remove(); }, 600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>
-
-
-

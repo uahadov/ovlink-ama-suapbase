@@ -1,400 +1,349 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="az">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title data-i18n="bot_auth_title">Bot Bağlantısı - Ovlink</title>
+  <title data-i18n="bot_auth_title">Bot Doğrulaması - Ovlink</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="manifest" href="/site.webmanifest" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>">
-  <style nonce="<%= nonce %>">
-    /* Custom Styles for Bot Auth Page */
-    .bot-auth-wrapper {
-      min-height: calc(100vh - 80px);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      position: relative;
-      z-index: 2;
-      padding: 3rem 0 5rem 0;
-    }
 
-    /* Ambient Background Glows */
-    .ambient-glow {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(100px);
-      z-index: 1;
-      opacity: 0.5;
-      animation: float 10s infinite ease-in-out alternate;
-      pointer-events: none;
-    }
-    .glow-primary {
-      background: rgba(99, 102, 241, 0.35);
-      width: 600px;
-      height: 600px;
-      top: -10%;
-      left: 10%;
-    }
-    .glow-info {
-      background: rgba(6, 182, 212, 0.25);
-      width: 500px;
-      height: 500px;
-      bottom: -10%;
-      right: 10%;
-      animation-delay: -5s;
-    }
-
-    /* Main Auth Card (Centered) */
-    .bot-auth-card {
-      border-radius: 32px;
-      padding: 3.5rem 3rem;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(40px);
-      -webkit-backdrop-filter: blur(40px);
-      border: 1px solid rgba(255, 255, 255, 1);
-      box-shadow: 0 30px 60px -10px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
-      position: relative;
-      overflow: hidden;
-      margin-bottom: 3rem;
-      z-index: 3;
-    }
-    body.dark-mode .bot-auth-card {
-      background: rgba(30, 41, 59, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 30px 60px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.2);
-    }
-
-    /* Platform Head */
-    .platform-header {
-      margin-bottom: 2rem;
-    }
-    .platform-icon-wrapper {
-      width: 80px;
-      height: 80px;
-      border-radius: 24px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      box-shadow: 0 15px 30px -10px rgba(0,0,0,0.2);
-    }
-    .platform-telegram {
-      background: linear-gradient(135deg, #229ED9 0%, #0088cc 100%);
-      color: #fff;
-    }
-    .platform-discord {
-      background: linear-gradient(135deg, #5865F2 0%, #4752C4 100%);
-      color: #fff;
-    }
-
-    /* User Profile Badge */
-    .user-profile-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1.25rem;
-      background: rgba(99, 102, 241, 0.1);
-      border: 1px solid rgba(99, 102, 241, 0.2);
-      border-radius: 99px;
-      font-weight: 600;
-      color: #4f46e5;
-      font-size: 0.95rem;
-    }
-    body.dark-mode .user-profile-badge {
-      background: rgba(99, 102, 241, 0.15);
-      border-color: rgba(99, 102, 241, 0.3);
-      color: #818cf8;
-    }
-
-    /* Status Circle Icons */
-    .status-icon-circle {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1.5rem;
-      font-size: 2.2rem;
-      animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    }
-    .status-success {
-      background: rgba(16, 185, 129, 0.15);
-      color: #10b981;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-    .status-error {
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-    .status-info {
-      background: rgba(56, 189, 248, 0.15);
-      color: #0284c7;
-      border: 1px solid rgba(56, 189, 248, 0.3);
-    }
-    body.dark-mode .status-info { color: #38bdf8; }
-
-    /* Action Buttons */
-    .action-btn {
-      padding: 1rem 2rem;
-      border-radius: 16px;
-      font-size: 1.1rem;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      letter-spacing: 0.3px;
-    }
-    .action-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
-    }
-
-    /* Feature Cards (Bottom Grid) */
-    .features-container {
-      position: relative;
-      z-index: 3;
-    }
-    .feature-glass-card {
-      background: rgba(255, 255, 255, 0.6);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 24px;
-      padding: 2.5rem 2rem;
-      height: 100%;
-      border: 1px solid rgba(255, 255, 255, 0.8);
-      box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.08);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      text-align: center;
-    }
-    .feature-glass-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 25px 45px -15px rgba(0, 0, 0, 0.15);
-    }
-    body.dark-mode .feature-glass-card {
-      background: rgba(30, 41, 59, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.3);
-    }
-    body.dark-mode .feature-glass-card:hover {
-      box-shadow: 0 25px 45px -15px rgba(0, 0, 0, 0.5);
-    }
-
-    .feature-icon-wrapper {
-      width: 64px;
-      height: 64px;
-      border-radius: 20px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.8rem;
-      margin-bottom: 1.5rem;
-      background: rgba(99, 102, 241, 0.1);
-      color: #6366f1;
-    }
-    body.dark-mode .feature-icon-wrapper {
-      background: rgba(99, 102, 241, 0.2);
-      color: #818cf8;
-    }
-
-    .feature-icon-green { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-    body.dark-mode .feature-icon-green { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-    
-    .feature-icon-orange { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-    body.dark-mode .feature-icon-orange { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-
-    @keyframes scaleIn {
-      from { transform: scale(0); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-    @keyframes float {
-      0% { transform: translateY(0) scale(1); }
-      100% { transform: translateY(-30px) scale(1.05); }
-    }
-  </style>
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
 </head>
 
-<body class="home-page app-page animated-gradient-bg">
+<body class="ovx home-page bot-auth-page">
 
-  <div class="ambient-glow glow-primary"></div>
-  <div class="ambient-glow glow-info"></div>
-  <div id="particlesContainer" class="particles-container"></div>
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
 
-  <nav class="navbar navbar-expand-lg navbar-light home-navbar shadow-sm position-relative z-3">
-    <div class="container">
-      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
-        <img src="/logo.png" alt="Ovlink" class="home-brand-logo" width="148" height="48" decoding="async" />
-      </a>
-      <div class="ms-auto d-flex align-items-center gap-2">
-        <button class="theme-toggle home-theme-btn theme-toggle-animated" aria-label="Temanı Dəyiş" data-i18n-title="theme_toggle_aria">
-          <i class="fa-solid fa-sun"></i>
-        </button>
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
+
+  <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
+    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <div class="shell">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
-  </nav>
+  <% } %>
 
-  <main class="bot-auth-wrapper">
-    <div class="container">
-      
-      <!-- Top Row: Centered Auth Card -->
-      <div class="row justify-content-center">
-        <div class="col-lg-6 col-md-8">
-          
-          <div class="bot-auth-card text-center">
-            
-            <div class="platform-header">
-              <div class="platform-icon-wrapper <%= platform === 'telegram' ? 'platform-telegram' : 'platform-discord' %>">
-                <i class="fa-brands fa-<%= platform %>"></i>
-              </div>
-              <h2 class="fw-bolder mb-2"><%= platform === 'telegram' ? 'Telegram' : 'Discord' %> Botu</h2>
-              <% if (platformUsername) { %>
-                <div class="user-profile-badge">
-                  <i class="fa-solid fa-at"></i><%= platformUsername %>
-                </div>
-              <% } %>
-            </div>
+  <%- include('partials/home-navbar') %>
 
-            <% if (status === 'success') { %>
-              <!-- Uğurlu Bağlantı -->
-              <div class="status-icon-circle status-success mx-auto">
-                <i class="fa-solid fa-check"></i>
-              </div>
-              
-              <h3 class="fw-bold mb-3">Uğurla Bağlandı!</h3>
-              <p class="mb-4 opacity-75 px-3">
-                Ovlink hesabınız <strong><%= platform === 'telegram' ? 'Telegram' : 'Discord' %></strong> profilinizlə əlaqələndirildi. İndi daha yüksək limitlərlə botdan tam istifadə edə bilərsiniz.
-              </p>
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell">
 
-              <% if (platform === 'telegram') { %>
-                <a href="https://t.me/OvlinkBOT" class="btn btn-primary w-100 action-btn home-primary-btn">
-                  <i class="fa-brands fa-telegram me-2"></i> Telegram-a Qayıt
-                </a>
-              <% } else { %>
-                <a href="/" class="btn btn-primary w-100 action-btn home-primary-btn">
-                  <i class="fa-solid fa-house me-2"></i> Ana Səhifəyə Get
-                </a>
-              <% } %>
+      <!-- Centered Monolith Bot Auth Card -->
+      <div class="m-bot-card m-reveal">
 
-            <% } else if (status === 'confirm' && user) { %>
-              <!-- Təsdiq Ekranı -->
-              <div class="status-icon-circle status-info mx-auto">
-                <i class="fa-solid fa-link"></i>
-              </div>
-
-              <h3 class="fw-bold mb-2">Hesabı Təsdiqləyin</h3>
-              <p class="mb-4 opacity-75">
-                Bu profili aşağıdakı hesabınıza bağlamaq istəyirsiniz?
-              </p>
-              
-              <div class="p-3 bg-light rounded-4 mb-4 text-center dark-bg-opacity mx-auto" style="max-width: 300px; border: 1px solid rgba(0,0,0,0.05);">
-                <div class="small text-muted mb-1" data-i18n="bot_auth_your_account">Ovlink Hesabınız</div>
-                <div class="fw-bold fs-6"><%= user.email %></div>
-              </div>
-
-              <form method="POST" action="/bot/auth/confirm">
-                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                <input type="hidden" name="platform" value="<%= platform %>">
-                <input type="hidden" name="id" value="<%= platformUserId %>">
-                <input type="hidden" name="name" value="<%= platformUsername %>">
-                
-                <button type="submit" class="btn btn-primary w-100 action-btn home-primary-btn mb-3">
-                  <i class="fa-solid fa-circle-check me-2"></i> Bəli, Bağla
-                </button>
-              </form>
-
-              <a href="/" class="text-muted text-decoration-none fw-medium hover-primary transition-all small">
-                Ləğv et
-              </a>
-
-            <% } else if (status === 'error') { %>
-              <!-- Xəta Ekranı -->
-              <div class="status-icon-circle status-error mx-auto">
-                <i class="fa-solid fa-xmark"></i>
-              </div>
-
-              <h3 class="fw-bold mb-3">Bağlantı Xətası</h3>
-              <p class="mb-4 opacity-75">
-                <%= errorMessage || '' %> <span data-i18n="bot_auth_error_fallback" class="<%= errorMessage ? 'd-none' : '' %>">Gözlənilməz xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.</span>
-              </p>
-
-              <a href="/" class="btn btn-secondary w-100 action-btn">
-                <i class="fa-solid fa-house me-2"></i> Ana Səhifəyə Qayıt
-              </a>
-
-            <% } else { %>
-              <!-- Giriş Edilməyib -->
-              <div class="status-icon-circle status-info mx-auto">
-                <i class="fa-solid fa-shield-halved"></i>
-              </div>
-
-              <h3 class="fw-bold mb-3">Hesab Təsdiqi</h3>
-              <p class="mb-4 opacity-75 px-2">
-                Profilinizi bağlamaq üçün zəhmət olmasa Ovlink hesabınıza daxil olun və ya yeni hesab yaradın.
-              </p>
-
-              <div class="d-grid gap-3">
-                <a href="/login?redirect=<%= encodeURIComponent('/bot/auth?platform=' + platform + '&id=' + platformUserId + '&name=' + encodeURIComponent(platformUsername)) %>" class="btn btn-primary w-100 action-btn home-primary-btn d-flex align-items-center justify-content-center">
-                  <i class="fa-solid fa-right-to-bracket me-2"></i> Giriş Et
-                </a>
-                <a href="/register?redirect=<%= encodeURIComponent('/bot/auth?platform=' + platform + '&id=' + platformUserId + '&name=' + encodeURIComponent(platformUsername)) %>" class="btn btn-outline-secondary w-100 action-btn d-flex align-items-center justify-content-center">
-                  <i class="fa-solid fa-user-plus me-2"></i> Yeni Hesab Yarat
-                </a>
-              </div>
-            <% } %>
-
-          </div>
-          
+        <!-- Platform Header -->
+        <div class="m-bot-avatar <%= platform === 'telegram' ? 'm-bot-avatar--telegram' : 'm-bot-avatar--discord' %>" aria-hidden="true">
+          <i class="fa-brands fa-<%= platform %>"></i>
         </div>
+
+        <div class="m-kicker mb-2" data-i18n="bot_auth_gateway_badge">Bot Gateway</div>
+        <h1 class="m-gateway-title" style="font-size: clamp(22px, 3.5vw, 28px); margin-bottom: 8px;">
+          <%= platform === 'telegram' ? 'Telegram' : 'Discord' %> Bot
+        </h1>
+
+        <% if (platformUsername) { %>
+          <div class="m-bot-user-pill">
+            <i class="fa-solid fa-at" aria-hidden="true"></i>
+            <span><%= platformUsername %></span>
+          </div>
+        <% } %>
+
+        <!-- Pairing Code Box with 1-Click Copy -->
+        <% if (platformUserId) { %>
+          <div class="m-bot-pairing-box">
+            <div class="m-bot-pairing-info">
+              <span class="m-bot-pairing-label" data-i18n="bot_auth_pairing_code">Qoşulma Kodu / ID</span>
+              <code class="m-bot-pairing-code" id="pairingCodeVal"><%= platformUserId %></code>
+            </div>
+            <button type="button" class="m-copy-btn" id="copyPairingCodeBtn" data-copy="<%= platformUserId %>" aria-label="Copy code">
+              <i class="fa-regular fa-clone" aria-hidden="true"></i>
+              <span class="m-copy-text" data-i18n="bot_auth_copy">Kopyala</span>
+            </button>
+          </div>
+        <% } %>
+
+        <% if (status === 'success') { %>
+          <!-- SUCCESS STATE -->
+          <div class="m-bot-status-glyph m-bot-status-glyph--success" aria-hidden="true">
+            <i class="fa-solid fa-check"></i>
+          </div>
+
+          <h2 class="m-gateway-title" data-i18n="bot_auth_success_title">Uğurla Bağlandı!</h2>
+          <p class="m-gateway-sub" data-i18n="bot_auth_success_desc">
+            Ovlink hesabınız bot profilinizlə əlaqələndirildi. İndi daha yüksək limitlərlə botdan tam istifadə edə bilərsiniz.
+          </p>
+
+          <div class="m-actions-row">
+            <% if (platform === 'telegram') { %>
+              <a href="https://t.me/OvlinkBOT" class="m-cta m-cta--white">
+                <i class="fa-brands fa-telegram" aria-hidden="true"></i>
+                <span data-i18n="bot_auth_return_telegram">Telegram-a Qayıt</span>
+              </a>
+            <% } else { %>
+              <a href="/" class="m-cta m-cta--white">
+                <i class="fa-solid fa-house" aria-hidden="true"></i>
+                <span data-i18n="bot_auth_go_home">Ana Səhifəyə Get</span>
+              </a>
+            <% } %>
+            <a href="/dashboard" class="m-cta m-cta--outline">
+              <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+              <span data-i18n="dashboard_title">Dashboard</span>
+            </a>
+          </div>
+
+        <% } else if (status === 'confirm' && user) { %>
+          <!-- CONFIRM STATE (Logged In) -->
+          <div class="m-bot-status-glyph m-bot-status-glyph--info" aria-hidden="true">
+            <i class="fa-solid fa-link"></i>
+          </div>
+
+          <h2 class="m-gateway-title" data-i18n="bot_auth_confirm_title">Hesabı Təsdiqləyin</h2>
+          <p class="m-gateway-sub" data-i18n="bot_auth_confirm_desc">
+            Bu bot profilini aşağıdakı Ovlink hesabınıza bağlamaq istəyirsiniz?
+          </p>
+
+          <div class="m-bot-account-box">
+            <div class="m-bot-account-icon" aria-hidden="true">
+              <i class="fa-regular fa-user"></i>
+            </div>
+            <div class="m-bot-account-meta">
+              <div class="m-bot-account-label" data-i18n="bot_auth_your_account">Ovlink Hesabınız</div>
+              <div class="m-bot-account-email"><%= user.email %></div>
+            </div>
+          </div>
+
+          <form method="POST" action="/bot/auth/confirm" class="m-actions-row" style="flex-direction: column; width: 100%;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="platform" value="<%= platform %>">
+            <input type="hidden" name="id" value="<%= platformUserId %>">
+            <input type="hidden" name="name" value="<%= platformUsername %>">
+
+            <button type="submit" class="m-cta m-cta--white" style="width: 100%; justify-content: center;">
+              <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+              <span data-i18n="bot_auth_confirm_btn">Hesabı Təsdiqlə və Bağla</span>
+            </button>
+            <a href="/" class="m-cta m-cta--outline" style="width: 100%; justify-content: center;">
+              <span data-i18n="bot_auth_cancel_btn">Ləğv et</span>
+            </a>
+          </form>
+
+        <% } else if (status === 'error') { %>
+          <!-- ERROR STATE -->
+          <div class="m-bot-status-glyph m-bot-status-glyph--danger" aria-hidden="true">
+            <i class="fa-solid fa-xmark"></i>
+          </div>
+
+          <h2 class="m-gateway-title" data-i18n="bot_auth_error_title">Bağlantı Xətası</h2>
+          <p class="m-gateway-sub">
+            <%= errorMessage || '' %>
+            <span data-i18n="bot_auth_error_fallback" class="<%= errorMessage ? 'd-none' : '' %>">
+              Doğrulama xətası baş verdi. Zəhmət olmasa yenidən cəhd edin.
+            </span>
+          </p>
+
+          <div class="m-actions-row">
+            <a href="/" class="m-cta m-cta--outline">
+              <i class="fa-solid fa-house" aria-hidden="true"></i>
+              <span data-i18n="bot_auth_go_home">Ana Səhifəyə Get</span>
+            </a>
+          </div>
+
+        <% } else { %>
+          <!-- LOGIN REQUIRED STATE (Guest) -->
+          <div class="m-bot-status-glyph m-bot-status-glyph--info" aria-hidden="true">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+
+          <h2 class="m-gateway-title" data-i18n="bot_auth_login_req_title">Hesab Girişi Tələb Olunur</h2>
+          <p class="m-gateway-sub" data-i18n="bot_auth_login_req_desc">
+            Bot profilinizi bağlamaq üçün zəhmət olmasa Ovlink hesabınıza daxil olun və ya yeni hesab yaradın.
+          </p>
+
+          <div class="m-bot-steps">
+            <div class="m-bot-step">
+              <div class="m-bot-step-num">Step 01</div>
+              <div class="m-bot-step-title" data-i18n="bot_auth_step1">1. Ovlink Hesabına Daxil Olun</div>
+            </div>
+            <div class="m-bot-step">
+              <div class="m-bot-step-num">Step 02</div>
+              <div class="m-bot-step-title" data-i18n="bot_auth_step2">2. Bot Əlaqəsini Təsdiqləyin</div>
+            </div>
+          </div>
+
+          <div class="m-actions-row" style="flex-direction: column; width: 100%;">
+            <a href="/login?redirect=<%= encodeURIComponent('/bot/auth?platform=' + platform + '&id=' + platformUserId + '&name=' + encodeURIComponent(platformUsername)) %>" class="m-cta m-cta--white" style="width: 100%; justify-content: center;">
+              <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+              <span data-i18n="bot_auth_login_btn">Daxil Ol</span>
+            </a>
+            <a href="/register?redirect=<%= encodeURIComponent('/bot/auth?platform=' + platform + '&id=' + platformUserId + '&name=' + encodeURIComponent(platformUsername)) %>" class="m-cta m-cta--outline" style="width: 100%; justify-content: center;">
+              <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+              <span data-i18n="bot_auth_register_btn">Qeydiyyatdan Keç</span>
+            </a>
+          </div>
+        <% } %>
+
       </div>
 
-      <!-- Bottom Row: Features Grid -->
-      <div class="row features-container mt-4">
-        <div class="col-12 text-center mb-5">
-          <h4 class="fw-bold opacity-75" style="letter-spacing: -0.5px;">Niyə Botdan İstifade Etməliyəm?</h4>
-        </div>
-        
-        <div class="col-lg-4 col-md-6 mb-4">
-          <div class="feature-glass-card">
-            <div class="feature-icon-wrapper">
-              <i class="fa-solid fa-bolt"></i>
-            </div>
-            <h5 class="fw-bold mb-2">Sürətli Qısaltma</h5>
-            <p class="mb-0 opacity-75 small">Sayta daxil olmadan istənilən linki bota göndərin və dərhal qısaldılmış versiyasını əldə edin.</p>
+      <!-- Feature Grid: Why Use Bot -->
+      <div style="text-align: center; margin-top: 48px; margin-bottom: 24px;">
+        <h3 class="m-section-h2" style="font-size: 22px; font-weight: 700; color: var(--c-white);" data-i18n="bot_auth_why_title">
+          Niyə Botdan İstifadə Etməliyəm?
+        </h3>
+      </div>
+
+      <div class="m-bot-features-grid">
+        <article class="m-bot-feature-card">
+          <div class="m-bot-feature-icon" aria-hidden="true">
+            <i class="fa-solid fa-bolt"></i>
           </div>
-        </div>
-        
-        <div class="col-lg-4 col-md-6 mb-4">
-          <div class="feature-glass-card">
-            <div class="feature-icon-wrapper feature-icon-green">
-              <i class="fa-solid fa-qrcode"></i>
-            </div>
-            <h5 class="fw-bold mb-2">Anında QR Kodlar</h5>
-            <p class="mb-0 opacity-75 small">Linkləriniz üçün dərhal yüksək keyfiyyətli QR kodları birbaşa mesajlaşma çatından yükləyin.</p>
+          <h4 class="m-bot-feature-title" data-i18n="bot_auth_feat_speed_title">Sürətli Qısaltma</h4>
+          <p class="m-bot-feature-desc" data-i18n="bot_auth_feat_speed_desc">
+            Sayta daxil olmadan istənilən linki bota göndərin və dərhal qısaldılmış versiyasını əldə edin.
+          </p>
+        </article>
+
+        <article class="m-bot-feature-card">
+          <div class="m-bot-feature-icon" aria-hidden="true">
+            <i class="fa-solid fa-qrcode"></i>
           </div>
-        </div>
-        
-        <div class="col-lg-4 col-md-6 mb-4 mx-auto">
-          <div class="feature-glass-card">
-            <div class="feature-icon-wrapper feature-icon-orange">
-              <i class="fa-solid fa-chart-pie"></i>
-            </div>
-            <h5 class="fw-bold mb-2">Canlı Statistika</h5>
-            <p class="mb-0 opacity-75 small">Linklərinizə neçə dəfə klikləndiyini, baxışları və günlük limit vəziyyətinizi asanlıqla yoxlayın.</p>
+          <h4 class="m-bot-feature-title" data-i18n="bot_auth_feat_qr_title">Anında QR Kodlar</h4>
+          <p class="m-bot-feature-desc" data-i18n="bot_auth_feat_qr_desc">
+            Linkləriniz üçün dərhal yüksək keyfiyyətli QR kodları birbaşa mesajlaşma çatından yükləyin.
+          </p>
+        </article>
+
+        <article class="m-bot-feature-card">
+          <div class="m-bot-feature-icon" aria-hidden="true">
+            <i class="fa-solid fa-chart-pie"></i>
           </div>
-        </div>
+          <h4 class="m-bot-feature-title" data-i18n="bot_auth_feat_stats_title">Canlı Statistika</h4>
+          <p class="m-bot-feature-desc" data-i18n="bot_auth_feat_stats_desc">
+            Linklərinizə neçə dəfə klikləndiyini, baxışları və günlük limit vəziyyətinizi asanlıqla yoxlayın.
+          </p>
+        </article>
       </div>
 
     </div>
   </main>
 
-  <!-- Script for Theme Toggle -->
-  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
-  <script nonce="<%= nonce %>" src="/lang.js"></script>
-</body>
+  <%- include('partials/home-footer') %>
 
+  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      /* ─── Dropdowns & Navbar Logic ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function (p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function () {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function (p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+      });
+
+      /* ─── Mobile Menu ─── */
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function () {
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button Ripple Effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left = (e.clientX - r.left - size / 2) + 'px';
+          span.style.top = (e.clientY - r.top - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function () { span.remove(); }, 600);
+        });
+      });
+
+      /* ─── 1-Click Copy Pairing Code ─── */
+      var copyBtn = document.getElementById('copyPairingCodeBtn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+          var textToCopy = copyBtn.getAttribute('data-copy') || '';
+          if (!textToCopy) return;
+
+          function showCopied() {
+            copyBtn.classList.add('copied');
+            var icon = copyBtn.querySelector('i');
+            var text = copyBtn.querySelector('.m-copy-text');
+            if (icon) icon.className = 'fa-solid fa-check';
+            if (text) text.textContent = (window.ovlinkI18n && window.ovlinkI18n.t) ? window.ovlinkI18n.t('bot_auth_copied') : 'Copied!';
+            setTimeout(function () {
+              copyBtn.classList.remove('copied');
+              if (icon) icon.className = 'fa-regular fa-clone';
+              if (text) text.textContent = (window.ovlinkI18n && window.ovlinkI18n.t) ? window.ovlinkI18n.t('bot_auth_copy') : 'Copy';
+            }, 2000);
+          }
+
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textToCopy).then(showCopied).catch(function () {
+              legacyCopy(textToCopy);
+            });
+          } else {
+            legacyCopy(textToCopy);
+          }
+
+          function legacyCopy(val) {
+            var input = document.createElement('input');
+            input.value = val;
+            document.body.appendChild(input);
+            input.select();
+            try { document.execCommand('copy'); showCopied(); } catch (_) {}
+            document.body.removeChild(input);
+          }
+        });
+      }
+    })();
+  </script>
+</body>
 </html>

@@ -60,23 +60,33 @@
   const THEME_KEY = 'admin_theme';
 
   const applyTheme = (mode) => {
-    const isDark = mode === 'dark';
-    document.body.classList.toggle('admin-dark', isDark);
-    if (themeToggleText) themeToggleText.textContent = isDark ? 'Light mode' : 'Dark mode';
+    const isLight = mode === 'light';
+    document.body.classList.toggle('admin-light', isLight);
+    document.body.classList.toggle('admin-dark', !isLight);
+    if (themeToggleText) themeToggleText.textContent = isLight ? 'Dark mode' : 'Light mode';
   };
 
-  let storedTheme = 'light';
+  let storedTheme = 'dark';
   try {
-    storedTheme = localStorage.getItem(THEME_KEY) || 'light';
+    storedTheme = localStorage.getItem(THEME_KEY) || 'dark';
   } catch (_) {}
-  applyTheme(storedTheme === 'dark' ? 'dark' : 'light');
+  applyTheme(storedTheme);
 
   if (themeToggleBtn) {
     themeToggleBtn.addEventListener('click', () => {
-      const next = document.body.classList.contains('admin-dark') ? 'light' : 'dark';
+      const isCurrentLight = document.body.classList.contains('admin-light');
+      const next = isCurrentLight ? 'dark' : 'light';
       try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
       applyTheme(next);
     });
+  }
+
+  // Interactive ambient cursor glow
+  const glow = qs('#cursorGlow');
+  if (glow) {
+    window.addEventListener('mousemove', (e) => {
+      glow.style.transform = `translate(${e.clientX - 300}px, ${e.clientY - 300}px)`;
+    }, { passive: true });
   }
 
   // Auto-focus first input on admin login

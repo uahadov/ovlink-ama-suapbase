@@ -46,7 +46,7 @@ const helmetMiddleware = helmet({
       manifestSrc: ["'self'"],
       mediaSrc: ["'self'"],
       workerSrc: ["'self'"],
-      upgradeInsecureRequests: []
+      upgradeInsecureRequests: isProd ? [] : null
     }
   },
   crossOriginEmbedderPolicy: false,

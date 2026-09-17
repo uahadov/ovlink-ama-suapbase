@@ -5,15 +5,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — Contact' %></title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
   <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
   <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
@@ -33,76 +36,293 @@
   <% } %>
 </head>
 
-<body class="home-page policy-page contact-page animated-gradient-bg">
+<body class="ovx home-page contact-page">
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell" style="max-width: 1040px; width: 100%;">
 
-  <main class="policy-main policy-main-compact">
-    <section class="container">
-      <div class="policy-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+      <!-- Header / Hero Section -->
+      <section class="m-content-hero" aria-labelledby="contactPageHeading">
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 18px;">
+          <span class="m-live-dot" aria-hidden="true"></span>
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+        </div>
+        <h1 id="contactPageHeading" data-i18n="contact_title">Əlaqə</h1>
+        <p data-i18n="contact_intro">
+          Dəstək və suallar üçün bizimlə əlaqə saxlayın.
+        </p>
+      </section>
+
+      <!-- 2x2 Bento Contact Grid with Bespoke SVGs -->
+      <div class="m-contact-grid">
+
+        <!-- Card 1: Direct Support Email -->
+        <article class="m-card-monolith">
+          <div class="m-card-monolith-icon" aria-hidden="true">
+            <!-- Bespoke Animated Mail Broadcast SVG -->
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="16" x="2" y="4" rx="2" stroke="#fff" fill="rgba(255,255,255,0.06)"></rect>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" stroke="#fff"></path>
+              <circle cx="18" cy="8" r="3" stroke="#4ade80" class="anim-pulse-ring"></circle>
+            </svg>
           </div>
-          <h1 class="policy-title" data-i18n="contact_title">Əlaqə</h1>
-        </div>
 
-        <div class="policy-list">
-          <article class="policy-card contact-info-card">
-            <p class="contact-intro" data-i18n="contact_intro">Dəstək və suallar üçün bizimlə əlaqə saxlayın.</p>
+          <h2 class="m-card-monolith-title">
+            <span data-i18n="contact_email_label">Dəstək e-poçtu</span>
+          </h2>
 
-            <div class="contact-row">
-              <div class="contact-icon-circle"><i class="fa-solid fa-envelope"></i></div>
-              <div>
-                <div class="contact-label" data-i18n="contact_email_label">Dəstək e-poçtu</div>
-                <a class="contact-link" href="mailto:support@ovlink.sbs">support@ovlink.sbs</a>
-              </div>
-            </div>
+          <p class="m-card-monolith-desc">
+            Direct communication channel for technical inquiries, workspace assistance, and platform questions.
+          </p>
 
-            <div class="contact-row">
-              <div class="contact-icon-circle"><i class="fa-brands fa-instagram"></i></div>
-              <div>
-                <div class="contact-label" data-i18n="contact_instagram_label">Instagram</div>
-                <a class="contact-link" href="https://instagram.com/ovlink.sbs" target="_blank" rel="noopener">ovlink.sbs</a>
-              </div>
-            </div>
+          <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <code style="font-size: 14px; color: var(--c-white); background: var(--c-surface-2); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--c-border); font-family: ui-monospace, monospace;">support@ovlink.sbs</code>
+            <button type="button" class="m-contact-action-btn" id="copyEmailBtn" data-email="support@ovlink.sbs" aria-label="Copy support email">
+              <i class="fa-solid fa-copy" id="copyIcon"></i>
+              <span id="copyText">Kopyala</span>
+            </button>
+          </div>
 
-            <div class="contact-row">
-              <div class="contact-icon-circle"><i class="fa-brands fa-tiktok"></i></div>
-              <div>
-                <div class="contact-label" data-i18n="contact_tiktok_label">TikTok</div>
-                <a class="contact-link" href="https://tiktok.com/@ovlink.sbs" target="_blank" rel="noopener">ovlink.sbs</a>
-              </div>
-            </div>
-          </article>
-        </div>
+          <div class="m-bento-chips">
+            <span class="m-bento-chip"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Direct Response</span>
+            <span class="m-bento-chip"><i class="fa-solid fa-lock" aria-hidden="true"></i> TLS Encrypted</span>
+          </div>
+        </article>
 
-        <div class="policy-back">
-          <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
-        </div>
+        <!-- Card 2: Security & Abuse Escalation -->
+        <article class="m-card-monolith">
+          <div class="m-card-monolith-icon" aria-hidden="true">
+            <!-- Bespoke Animated Radar Shield SVG -->
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#fff" fill="rgba(255,255,255,0.06)"></path>
+              <line x1="12" y1="8" x2="12" y2="12" stroke="#f87171" stroke-width="2"></line>
+              <circle cx="12" cy="15" r="1" fill="#f87171"></circle>
+              <circle cx="12" cy="12" r="7" stroke="rgba(248, 113, 113, 0.3)" stroke-dasharray="2 3" class="anim-pulse-ring"></circle>
+            </svg>
+          </div>
+
+          <h2 class="m-card-monolith-title">
+            <span>Security & Abuse Desk</span>
+          </h2>
+
+          <p class="m-card-monolith-desc">
+            Report malicious links, phishing attempts, malware distribution, or submit urgent security disclosures.
+          </p>
+
+          <div style="margin-bottom: 20px;">
+            <a href="/abuse-safety" class="m-contact-action-btn">
+              <i class="fa-solid fa-flag" style="color: #f87171;"></i>
+              <span>Report Abuse Portal</span>
+            </a>
+          </div>
+
+          <div class="m-bento-chips">
+            <span class="m-bento-chip"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> URLhaus Live Feed</span>
+            <span class="m-bento-chip"><i class="fa-solid fa-clock" aria-hidden="true"></i> 24/7 Automated Triage</span>
+          </div>
+        </article>
+
+        <!-- Card 3: Social & Community -->
+        <article class="m-card-monolith">
+          <div class="m-card-monolith-icon" aria-hidden="true">
+            <!-- Bespoke Animated Network Nodes SVG -->
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18" cy="5" r="3" stroke="#fff"></circle>
+              <circle cx="6" cy="12" r="3" stroke="#fff"></circle>
+              <circle cx="18" cy="19" r="3" stroke="#fff"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="rgba(255,255,255,0.5)" class="anim-beam-dash"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="rgba(255,255,255,0.5)"></line>
+            </svg>
+          </div>
+
+          <h2 class="m-card-monolith-title">
+            <span>Social & Updates</span>
+          </h2>
+
+          <p class="m-card-monolith-desc">
+            Follow official releases, roadmap previews, system status notifications, and product discussions.
+          </p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+            <a class="m-contact-action-btn" href="https://instagram.com/ovlink.sbs" target="_blank" rel="noopener" aria-label="Instagram">
+              <i class="fa-brands fa-instagram"></i>
+              <span data-i18n="contact_instagram_label">Instagram</span>
+              <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px; opacity: 0.6;"></i>
+            </a>
+            <a class="m-contact-action-btn" href="https://tiktok.com/@ovlink.sbs" target="_blank" rel="noopener" aria-label="TikTok">
+              <i class="fa-brands fa-tiktok"></i>
+              <span data-i18n="contact_tiktok_label">TikTok</span>
+              <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px; opacity: 0.6;"></i>
+            </a>
+          </div>
+
+          <div class="m-bento-chips">
+            <span class="m-bento-chip"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> Official Announcements</span>
+          </div>
+        </article>
+
+        <!-- Card 4: Operations & Standards -->
+        <article class="m-card-monolith">
+          <div class="m-card-monolith-icon" aria-hidden="true">
+            <!-- Bespoke Animated System Globe / Uptime SVG -->
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" stroke="#fff" fill="rgba(255,255,255,0.06)"></circle>
+              <line x1="2" y1="12" x2="22" y2="12" stroke="rgba(255,255,255,0.4)"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="rgba(255,255,255,0.4)"></path>
+              <circle cx="12" cy="12" r="2" fill="#4ade80" class="anim-pulse-ring"></circle>
+            </svg>
+          </div>
+
+          <h2 class="m-card-monolith-title">
+            <span>Availability & SLA</span>
+            <span class="m-verified-badge"><span class="m-live-dot"></span> 99.9% Uptime</span>
+          </h2>
+
+          <p class="m-card-monolith-desc">
+            Distributed DNS edge architecture with persistent database replication and autonomous link routing.
+          </p>
+
+          <div style="font-size: 13px; color: var(--c-muted); line-height: 1.6; margin-bottom: 20px;">
+            <div><strong style="color: var(--c-white);">Operating Region:</strong> Baku, Azerbaijan (AZT • UTC+4)</div>
+            <div><strong style="color: var(--c-white);">Coverage:</strong> Global 24/7 Redirection & Threat Neutralization</div>
+          </div>
+
+          <div class="m-bento-chips">
+            <span class="m-bento-chip"><i class="fa-solid fa-server" aria-hidden="true"></i> Global Edge</span>
+            <span class="m-bento-chip"><i class="fa-solid fa-code-commit" aria-hidden="true"></i> Zero Downtime Deploys</span>
+          </div>
+        </article>
+
       </div>
-    </section>
+
+      <!-- Action Navigation Footer -->
+      <div style="display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 12px;">
+        <a href="/" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <i class="fa-solid fa-arrow-left" style="font-size: 11px;" aria-hidden="true"></i>
+          <span data-i18n="nav_home">Home</span>
+        </a>
+        <a href="/faq" class="m-cta m-cta--white" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="navx_faq">FAQ</span>
+          <i class="fa-solid fa-arrow-right" style="font-size: 11px;" aria-hidden="true"></i>
+        </a>
+        <a href="/help" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="nav_help">Help Center</span>
+        </a>
+      </div>
+
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      /* ─── 1-Click Copy with Animated Feedback ─── */
+      var copyBtn = document.getElementById('copyEmailBtn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+          var email = copyBtn.getAttribute('data-email');
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(email).then(function() {
+              var icon = document.getElementById('copyIcon');
+              var text = document.getElementById('copyText');
+              if (icon) icon.className = 'fa-solid fa-check';
+              if (text) text.textContent = 'Kopyalandı!';
+              setTimeout(function() {
+                if (icon) icon.className = 'fa-solid fa-copy';
+                if (text) text.textContent = 'Kopyala';
+              }, 2000);
+            });
+          }
+        });
+      }
+
+      /* ─── Navbar interactive logic ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+      });
+
+      /* ─── Mobile Menu ─── */
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function(){
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button ripple effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+          span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function(){ span.remove(); }, 600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>
+
 
 
 

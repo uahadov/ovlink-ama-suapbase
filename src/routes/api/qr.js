@@ -18,7 +18,7 @@ router.get('/api/qrcode', (req, res) => {
   if (!isHex(colorLight)) return res.status(400).json({ error: 'Invalid colorLight' });
 
   db.get('SELECT * FROM urls WHERE short = ?', [shortRaw], (err, row) => {
-    if (err || !row) return res.status(404).send('Belə Bir Link Tapılmadı');
+    if (err || !row) return res.status(404).json({ error: 'Belə Bir Link Tapılmadı' });
 
     const fullUrl = buildShortUrl(req, shortRaw, row.domain_host || '');
 
@@ -28,7 +28,7 @@ router.get('/api/qrcode', (req, res) => {
         light: colorLight
       }
     }, (err, url) => {
-      if (err) return res.status(500).send('QR kod oluşturulamadı.');
+      if (err) return res.status(500).json({ error: 'QR kod oluşturulamadı.' });
       res.json({ qrCode: url });
     });
   });

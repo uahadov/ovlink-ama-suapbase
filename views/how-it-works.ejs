@@ -5,15 +5,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink - How URL Shortening Works' %></title>
   <link rel="icon" href="/logo.ico" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
   <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
   <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
@@ -33,63 +33,221 @@
   <% } %>
 </head>
 
-<body class="home-page policy-page animated-gradient-bg">
+<body class="ovx home-page how-page">
+
+  <!-- Ambient Cursor Glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell" style="max-width: 1140px; width: 100%;">
 
-  <main class="policy-main">
-    <section class="container">
-      <div class="policy-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+      <!-- Hero Section -->
+      <section class="m-hiw-hero" aria-labelledby="hiwHeading">
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 16px;">
+          <span class="m-live-dot" aria-hidden="true"></span>
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+        </div>
+        <h1 id="hiwHeading" data-i18n="how_title">Link qısaltma necə işləyir?</h1>
+        <p data-i18n="how_subtitle">Daxil olan hər bir link qlobal kənarlarda təhlükəsizlik filtrindən keçir, saniyənin hissəsində təhlil olunur və yönləndirilir.</p>
+      </section>
+
+      <!-- 4-Step Pipeline Bento Grid -->
+      <section class="m-hiw-pipeline" aria-label="Processing Pipeline">
+
+        <!-- Step 1: Ingest & Link Synthesis -->
+        <article class="m-hiw-card">
+          <div class="m-hiw-card-top">
+            <span class="m-hiw-step-idx">STEP 01</span>
+            <span class="m-hiw-step-tag" data-i18n="how_pipeline_1_tag">GİRİŞ VƏ HASH</span>
           </div>
-          <h1 class="policy-title" data-i18n="how_title">How URL Shortening Works</h1>
-        </div>
+          <div class="m-hiw-svg-wrap" aria-hidden="true">
+            <svg width="180" height="90" viewBox="0 0 180 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="linkGrad1" x1="10" y1="45" x2="170" y2="45" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#3b82f6" stop-opacity="0.2"/>
+                  <stop offset="0.5" stop-color="#60a5fa" stop-opacity="0.9"/>
+                  <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+                </linearGradient>
+              </defs>
+              <!-- Background grid matrix dots -->
+              <circle cx="20" cy="20" r="1.5" fill="rgba(255,255,255,0.08)"/>
+              <circle cx="50" cy="20" r="1.5" fill="rgba(255,255,255,0.08)"/>
+              <circle cx="130" cy="20" r="1.5" fill="rgba(255,255,255,0.08)"/>
+              <circle cx="160" cy="20" r="1.5" fill="rgba(255,255,255,0.08)"/>
+              <circle cx="20" cy="70" r="1.5" fill="rgba(255,255,255,0.08)"/>
+              <circle cx="50" cy="70" r="1.5" fill="rgba(255,255,255,0.08)"/>
+              <circle cx="130" cy="70" r="1.5" fill="rgba(255,255,255,0.08)"/>
+              <circle cx="160" cy="70" r="1.5" fill="rgba(255,255,255,0.08)"/>
+              
+              <!-- Left Link Ring -->
+              <rect x="25" y="28" width="46" height="34" rx="17" stroke="rgba(255,255,255,0.3)" stroke-width="3" fill="none"/>
+              <!-- Right Link Ring -->
+              <rect x="109" y="28" width="46" height="34" rx="17" stroke="rgba(255,255,255,0.3)" stroke-width="3" fill="none"/>
+              <!-- Interlocking Center Bridge with animated dash -->
+              <path d="M 60 45 L 120 45" stroke="url(#linkGrad1)" stroke-width="4" stroke-linecap="round" class="m-anim-packet"/>
+              <!-- Floating Hash Nodes -->
+              <circle cx="90" cy="45" r="5" fill="#ededed">
+                <animate attributeName="r" values="4;6;4" dur="2s" repeatCount="indefinite"/>
+              </circle>
+            </svg>
+          </div>
+          <h2 class="m-hiw-card-title" data-i18n="how_pipeline_1_title">1) Link Girişi və Qısaltma</h2>
+          <p class="m-hiw-card-desc" data-i18n="how_pipeline_1_desc">Orijinal uzun URL qəbul edilir, kriptoqrafik xüsusi kod və ya istədiyiniz alias generasiya edilir, parametrlər təhlükəsiz qeyd olunur.</p>
+        </article>
 
-        <div class="policy-list">
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-link me-2"></i><span data-i18n="how_step1_title">1) Create a short link</span></h3>
-            <p data-i18n="how_step1_text">You paste a long URL, and the system generates a short code that points to it.</p>
+        <!-- Step 2: URLhaus Threat Scan -->
+        <article class="m-hiw-card">
+          <div class="m-hiw-card-top">
+            <span class="m-hiw-step-idx">STEP 02</span>
+            <span class="m-hiw-step-tag" data-i18n="how_pipeline_2_tag">TƏHDİD ANALİZİ</span>
+          </div>
+          <div class="m-hiw-svg-wrap" aria-hidden="true">
+            <svg width="120" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Radar Circles -->
+              <circle cx="50" cy="50" r="42" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" fill="none"/>
+              <circle cx="50" cy="50" r="28" stroke="rgba(255,255,255,0.12)" stroke-width="1" fill="none"/>
+              <circle cx="50" cy="50" r="14" stroke="rgba(255,255,255,0.18)" stroke-width="1" fill="none"/>
+              <line x1="50" y1="8" x2="50" y2="92" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+              <line x1="8" y1="50" x2="92" y2="50" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+              <!-- Scanning Beam -->
+              <g class="m-anim-radar">
+                <path d="M 50 50 L 88 22 A 42 42 0 0 0 50 8 Z" fill="url(#radarSweepGrad)"/>
+                <line x1="50" y1="50" x2="88" y2="22" stroke="#22c55e" stroke-width="1.5"/>
+              </g>
+              <!-- Verified Shield Center -->
+              <circle cx="50" cy="50" r="6" fill="#22c55e"/>
+              <defs>
+                <linearGradient id="radarSweepGrad" x1="50" y1="50" x2="88" y2="22" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#22c55e" stop-opacity="0.3"/>
+                  <stop offset="1" stop-color="#22c55e" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h2 class="m-hiw-card-title" data-i18n="how_pipeline_2_title">2) URLhaus Təhdid Filtrasiyası</h2>
+          <p class="m-hiw-card-desc" data-i18n="how_pipeline_2_desc">Hər təyinat URLhaus aktiv təhlükəsizlik bazası, phishing və zərərli proqram filtrləri ilə real vaxtda yoxlanılır.</p>
+        </article>
+
+        <!-- Step 3: Sub-Millisecond Global Routing -->
+        <article class="m-hiw-card">
+          <div class="m-hiw-card-top">
+            <span class="m-hiw-step-idx">STEP 03</span>
+            <span class="m-hiw-step-tag" data-i18n="how_pipeline_3_tag">GLOBAL EDGE</span>
+          </div>
+          <div class="m-hiw-svg-wrap" aria-hidden="true">
+            <svg width="180" height="90" viewBox="0 0 180 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Edge Constellation Nodes -->
+              <circle cx="30" cy="45" r="5" fill="#3b82f6"/>
+              <circle cx="90" cy="20" r="4" fill="rgba(255,255,255,0.4)"/>
+              <circle cx="90" cy="70" r="4" fill="rgba(255,255,255,0.4)"/>
+              <circle cx="150" cy="45" r="6" fill="#ededed"/>
+              <!-- Connectors -->
+              <path d="M 30 45 L 90 20 L 150 45" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none"/>
+              <path d="M 30 45 L 90 70 L 150 45" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none"/>
+              <path d="M 30 45 L 150 45" stroke="#60a5fa" stroke-width="2" class="m-anim-packet"/>
+              <!-- Target Node Pulsing Ping -->
+              <circle cx="150" cy="45" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="1" fill="none">
+                <animate attributeName="r" values="8;16;8" dur="1.8s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.8;0.1;0.8" dur="1.8s" repeatCount="indefinite"/>
+              </circle>
+            </svg>
+          </div>
+          <h2 class="m-hiw-card-title" data-i18n="how_pipeline_3_title">3) Ultra Sürətli Yönləndirmə</h2>
+          <p class="m-hiw-card-desc" data-i18n="how_pipeline_3_desc">Ziyarətçi qısa linki açdıqda ən yaxın edge nodu tərəfindən 301/302 HTTP statusu ilə gecikməsiz hədəfə çatdırılır.</p>
+        </article>
+
+        <!-- Step 4: Privacy-First Telemetry -->
+        <article class="m-hiw-card">
+          <div class="m-hiw-card-top">
+            <span class="m-hiw-step-idx">STEP 04</span>
+            <span class="m-hiw-step-tag" data-i18n="how_pipeline_4_tag">TELEMETRİYA</span>
+          </div>
+          <div class="m-hiw-svg-wrap" aria-hidden="true">
+            <svg width="180" height="90" viewBox="0 0 180 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Frequency bars with height animations -->
+              <rect x="25" y="55" width="8" height="20" rx="3" fill="rgba(255,255,255,0.2)"/>
+              <rect x="42" y="38" width="8" height="37" rx="3" fill="rgba(255,255,255,0.35)"/>
+              <rect x="59" y="24" width="8" height="51" rx="3" fill="#60a5fa"/>
+              <rect x="76" y="44" width="8" height="31" rx="3" fill="rgba(255,255,255,0.3)"/>
+              <rect x="93" y="16" width="8" height="59" rx="3" fill="#ededed"/>
+              <rect x="110" y="32" width="8" height="43" rx="3" fill="#3b82f6"/>
+              <rect x="127" y="48" width="8" height="27" rx="3" fill="rgba(255,255,255,0.35)"/>
+              <rect x="144" y="60" width="8" height="15" rx="3" fill="rgba(255,255,255,0.18)"/>
+              <!-- Baseline grid -->
+              <line x1="15" y1="78" x2="165" y2="78" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <h2 class="m-hiw-card-title" data-i18n="how_pipeline_4_title">4) Gizliliyi Qoruyan Analitika</h2>
+          <p class="m-hiw-card-desc" data-i18n="how_pipeline_4_desc">Kuki olmadan, GDPR uyğun şəkildə cihaz, ölkə və brauzer statistikası dəqiq qeydə alınır.</p>
+        </article>
+
+      </section>
+
+      <!-- Architecture Pillars Bento Grid -->
+      <section aria-labelledby="archHeading" style="margin-bottom: 64px;">
+        <h2 id="archHeading" class="m-hiw-pillars-title" data-i18n="how_arch_title">Platformanın Əsas Təhlükəsizlik Arxitekturası</h2>
+        <div class="m-hiw-pillars-grid">
+
+          <article class="m-hiw-pillar-card">
+            <div class="m-hiw-pillar-icon"><i class="fa-solid fa-shield-virus"></i></div>
+            <h3 class="m-hiw-pillar-name" data-i18n="how_arch_1_title">URLhaus Real-Time Karantin</h3>
+            <p class="m-hiw-pillar-text" data-i18n="how_arch_1_desc">Zərərli mənbələr və phishing cəhdləri avtomatik olaraq 451 Karantin qapısı ilə zərərsizləşdirilir.</p>
           </article>
 
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-share-nodes me-2"></i><span data-i18n="how_step2_title">2) Share and track</span></h3>
-            <p data-i18n="how_step2_text">When someone clicks the short link, we redirect them to the destination and record basic statistics.</p>
+          <article class="m-hiw-pillar-card">
+            <div class="m-hiw-pillar-icon"><i class="fa-solid fa-globe"></i></div>
+            <h3 class="m-hiw-pillar-name" data-i18n="how_arch_2_title">Xüsusi Branded Domenlər</h3>
+            <p class="m-hiw-pillar-text" data-i18n="how_arch_2_desc">DNS CNAME qeydləri vasitəsilə öz şəxsi korporativ domeninizlə etibarlı linklər yayımlayın.</p>
           </article>
 
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-shield-halved me-2"></i><span data-i18n="how_step3_title">3) Stay safe</span></h3>
-            <p data-i18n="how_step3_text">Abuse reports and moderation tools help prevent harmful links and keep the platform safe.</p>
+          <article class="m-hiw-pillar-card">
+            <div class="m-hiw-pillar-icon"><i class="fa-solid fa-users-gear"></i></div>
+            <h3 class="m-hiw-pillar-name" data-i18n="how_arch_3_title">SAML 2.0 & Workspace Təhlükəsizliyi</h3>
+            <p class="m-hiw-pillar-text" data-i18n="how_arch_3_desc">Okta, Google Workspace və Azure AD inteqrasiyaları ilə komandanız üçün təcrid olunmuş mühit.</p>
           </article>
-        </div>
 
-        <div class="policy-back">
-          <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
+          <article class="m-hiw-pillar-card">
+            <div class="m-hiw-pillar-icon"><i class="fa-solid fa-lock"></i></div>
+            <h3 class="m-hiw-pillar-name" data-i18n="how_arch_4_title">Avtomatik SSL & Yüksək Əlçatanlıq</h3>
+            <p class="m-hiw-pillar-text" data-i18n="how_arch_4_desc">Bütün domenlər üçün avtomatik TLS sertifikatı və 99.9% uptime zəmanəti.</p>
+          </article>
+
         </div>
-      </div>
-    </section>
+      </section>
+
+      <!-- Conversion Callout Section -->
+      <section class="m-composer-wrap text-center" style="margin: 0 auto 64px auto; max-width: 740px; padding: 40px 24px; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 18px;">
+        <h2 style="font-size: 24px; font-weight: 800; color: var(--c-white); margin-bottom: 10px;" data-i18n="how_cta_title">Linklərinizi peşəkar səviyyədə idarə etməyə hazırsınız?</h2>
+        <p style="font-size: 15px; color: var(--c-muted); max-width: 520px; margin: 0 auto 24px auto;" data-i18n="how_cta_desc">Limitsiz linklər, xüsusi domenlər və qabaqcıl analitika ilə dərhal başlayın.</p>
+        <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+          <a href="/register" class="m-btn m-btn-solid" style="display:inline-flex; align-items:center; gap:8px; padding: 10px 24px; border-radius: 999px; text-decoration:none;" data-i18n="how_cta_btn">Qeydiyyatdan Keç</a>
+          <a href="/" class="m-btn m-btn-ghost" style="display:inline-flex; align-items:center; gap:8px; padding: 10px 22px; border-radius: 999px; text-decoration:none;" data-i18n="nav_home">Ana Səhifə</a>
+        </div>
+      </section>
+
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/home.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
 </body>
 
 </html>
+
 
 
 

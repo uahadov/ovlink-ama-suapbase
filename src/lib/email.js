@@ -272,6 +272,80 @@ async function sendMail({ to, subject, html, text, preferSmtp = false, saveToSen
   }
 }
 
+function buildMonolithEmailShell({ uiLang = 'az', badge = 'OVLINK SECURITY', title = '', subtitle = '', contentHtml = '', footerNote = '' }) {
+  const safeLang = normalizeLang(uiLang, 'az');
+  const footerSec = pickLang(
+    safeLang,
+    'Bu avtomatik təhlükəsizlik bildirişidir. Əgər bu əməliyyatı siz etməmisinizsə, hesabınızı qorumaq üçün dərhal addım atın.',
+    'Bu otomatik bir güvenlik bildirimidir. Bu işlemi siz yapmadıysanız, hesabınızı korumak için lütfen hemen harekete geçin.',
+    'This is an automated security notification. If you did not perform this action, please take immediate steps to secure your account.'
+  );
+
+  return `<!DOCTYPE html>
+<html lang="${safeLang}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(title)}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap');
+    body { margin: 0; padding: 0; background-color: #0a0a0a; color: #f3f4f6; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+    table { border-collapse: collapse; }
+  </style>
+</head>
+<body style="margin:0; padding:0; background-color:#0a0a0a; color:#f3f4f6; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0a0a; width:100%; margin:0; padding:32px 12px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px; margin:0 auto; background-color:#111111; border:1px solid #262626; border-radius:16px; overflow:hidden; box-shadow:0 18px 40px rgba(0,0,0,0.75);">
+          <!-- Header Bar -->
+          <tr>
+            <td style="background-color:#161616; border-bottom:1px solid #262626; padding:18px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="left">
+                    <span style="display:inline-block; vertical-align:middle; font-weight:800; font-size:15px; letter-spacing:0.04em; color:#ffffff;">
+                      <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#3b82f6; margin-right:8px; box-shadow:0 0 10px #3b82f6;"></span>OVLINK
+                    </span>
+                  </td>
+                  <td align="right">
+                    <span style="display:inline-block; font-family:'JetBrains Mono', Consolas, monospace; font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#9ca3af; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:999px; padding:3px 10px;">
+                      ${escapeHtml(badge)}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Body Content -->
+          <tr>
+            <td style="padding:32px 28px;">
+              ${title ? `<h1 style="margin:0 0 8px 0; font-size:22px; font-weight:800; letter-spacing:-0.02em; color:#ffffff;">${escapeHtml(title)}</h1>` : ''}
+              ${subtitle ? `<p style="margin:0 0 24px 0; font-size:14px; line-height:1.6; color:#9ca3af;">${escapeHtml(subtitle)}</p>` : ''}
+              ${contentHtml}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 24px; background-color:#0d0d0d; border-top:1px solid #202020; text-align:center;">
+              ${footerNote ? `<p style="margin:0 0 8px 0; font-size:12px; color:#6b7280; line-height:1.5;">${escapeHtml(footerNote)}</p>` : ''}
+              <p style="margin:0 0 4px 0; font-size:11.5px; color:#4b5563;">
+                ${footerSec}
+              </p>
+              <p style="margin:6px 0 0 0; font-size:11px; color:#374151; font-family:'JetBrains Mono', monospace;">
+                © 2026 Ovlink · Next-Gen Link Management
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
 function sendVerificationEmail(to, code, lang = 'az') {
   const uiLang = normalizeLang(lang, 'az');
   const subject = pickLang(uiLang, "Ovlink Təsdiqləmə Kodunuz: " + code, "Ovlink Doğrulama Kodunuz: " + code, "Ovlink Verification Code: " + code);
@@ -279,90 +353,54 @@ function sendVerificationEmail(to, code, lang = 'az') {
   const translations = {
     tr: {
       welcome: "Hoş Geldiniz!",
-      instruction: "Hesabınızı doğrulamak ve Ovlink'in tüm özelliklerinden yararlanmak için aşağıdaki 6 haneli kodu kullanın.",
+      instruction: "Hesabınızı doğrulamak ve Ovlink'in tüm özelliklerinden yararlanmak için aşağıdaki 6 haneli tek kullanımlık kodu kullanın.",
       codeLabel: "DOĞRULAMA KODUNUZ",
-      warning: "Bu kod 30 dakika süreyle geçerlidir. Eğer bu işlemi siz yapmadıysanız, bu e-postayı güvenle silebilirsiniz.",
-      buttonText: "Kodu Doğrula",
+      warning: "Bu kod 30 dakika süreyle geçerlidir. Eğer bu işlemi siz yapmadıysanız, bu e-postayı güvenle yok sayabilirsiniz.",
       footer: "© 2026 Ovlink. Tüm hakları saklıdır."
     },
     az: {
       welcome: "Xoş Gəldiniz!",
-      instruction: "Hesabınızı təsdiqləmək və Ovlink-in bütün imkanlarından yararlanmaq üçün aşağıdakı 6 rəqəmli kodu istifadə edin.",
+      instruction: "Hesabınızı təsdiqləmək və Ovlink-in bütün imkanlarından yararlanmaq üçün aşağıdakı 6 rəqəmli birdəfəlik kodu istifadə edin.",
       codeLabel: "TƏSDİQLƏMƏ KODUNUZ",
-      warning: "Bu kod 30 dəqiqə ərzində keçərlidir. Əgər bu əməliyyatı siz etməmisinizsə, bu e-poçtu təhlükəsiz şəkildə silə bilərsiniz.",
-      buttonText: "Kodu Təsdiqlə",
+      warning: "Bu kod 30 dəqiqə ərzində keçərlidir. Əgər bu əməliyyatı siz etməmisinizsə, bu e-poçtu təhlükəsiz şəkildə nəzərə almaya bilərsiniz.",
       footer: "© 2026 Ovlink. Bütün hüquqlar qorunur."
     },
     en: {
       welcome: "Welcome!",
-      instruction: "Use the 6-digit code below to verify your account and access all Ovlink features.",
+      instruction: "Use the 6-digit one-time code below to verify your account and unlock all Ovlink features.",
       codeLabel: "YOUR VERIFICATION CODE",
       warning: "This code is valid for 30 minutes. If you did not request this, you can safely ignore this email.",
-      buttonText: "Verify Code",
       footer: "© 2026 Ovlink. All rights reserved."
     }
   };
 
   const t = translations[uiLang] || translations.az;
 
-  const html = `
-    <!DOCTYPE html>
-    <html lang="${uiLang}">
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${subject}</title>
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        
-        body { margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; color: #1e293b; }
-        .wrapper { width: 100%; table-layout: fixed; background-color: #f8fafc; padding-bottom: 40px; }
-        .main { background-color: #ffffff; margin: 40px auto; width: 100%; max-width: 600px; border-radius: 24px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
-        .header { background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); padding: 60px 40px; text-align: center; }
-        .logo { color: #ffffff; font-size: 32px; font-weight: 800; letter-spacing: -0.025em; margin: 0; }
-        .content { padding: 48px 40px; text-align: center; }
-        h1 { font-size: 28px; font-weight: 700; color: #0f172a; margin-bottom: 16px; margin-top: 0; }
-        p { font-size: 16px; line-height: 1.6; color: #475569; margin-bottom: 32px; }
-        .code-container { background: #f1f5f9; border-radius: 16px; padding: 32px; margin-bottom: 32px; border: 2px solid #e2e8f0; position: relative; }
-        .code-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; margin-bottom: 12px; display: block; }
-        .code { font-size: 48px; font-weight: 800; color: #2563eb; letter-spacing: 0.2em; margin: 0; text-shadow: 0 2px 4px rgba(37, 99, 235, 0.1); }
-        .btn { display: inline-block; padding: 16px 32px; background-color: #2563eb; color: #ffffff !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
-        .warning { font-size: 14px; color: #94a3b8; margin-top: 32px; padding: 20px; border-top: 1px solid #f1f5f9; }
-        .footer { text-align: center; padding: 24px 40px; color: #94a3b8; font-size: 13px; }
-        
-        /* Modern animasyon simulyasiyası */
-        @keyframes pulse {
-          0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.02); opacity: 0.95; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-      </style>
-    </head>
-    <body>
-      <div class="wrapper">
-        <div class="main">
-          <div class="header">
-            <div class="logo">OVLINK</div>
+  const contentHtml = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0;">
+      <tr>
+        <td align="center" style="background-color: #0a0a0a; border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 12px; padding: 26px 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);">
+          <div style="font-family: 'JetBrains Mono', Consolas, Monaco, monospace; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #60a5fa; margin-bottom: 10px;">
+            ${t.codeLabel}
           </div>
-          <div class="content">
-            <h1>${t.welcome}</h1>
-            <p>${t.instruction}</p>
-            <div class="code-container animate-pulse">
-              <span class="code-label">${t.codeLabel}</span>
-              <div class="code">${code}</div>
-            </div>
-            <p class="warning">${t.warning}</p>
+          <div style="font-family: 'JetBrains Mono', Consolas, Monaco, monospace; font-size: 40px; font-weight: 800; letter-spacing: 0.22em; color: #ffffff; text-shadow: 0 0 24px rgba(59, 130, 246, 0.4); padding-left: 0.22em;">
+            ${escapeHtml(code)}
           </div>
-          <div class="footer">
-            ${t.footer}<br>
-            Developed with &hearts; by Ulvi Ahadov
-          </div>
-        </div>
-      </div>
-    </body>
-    </html>
+        </td>
+      </tr>
+    </table>
+    <div style="background-color: #161616; border: 1px solid #262626; border-radius: 10px; padding: 12px 16px; color: #9ca3af; font-size: 12.5px; line-height: 1.5;">
+      <span style="color: #f59e0b; margin-right: 4px;">⏱</span> ${t.warning}
+    </div>
   `;
+
+  const html = buildMonolithEmailShell({
+    uiLang,
+    badge: 'VERIFICATION',
+    title: t.welcome,
+    subtitle: t.instruction,
+    contentHtml
+  });
 
   return sendMail({
     to,
@@ -376,35 +414,39 @@ function sendPasswordResetEmail(to, resetUrl, lang = 'az') {
   const uiLang = normalizeLang(lang, 'az');
   const subject = pickLang(uiLang, 'Şifrə Sıfırlama Linki', 'Şifre Sıfırlama Bağlantısı', 'Password Reset Link');
   const title = pickLang(uiLang, 'Şifrəni Sıfırlayın', 'Şifrenizi Sıfırlayın', 'Reset your password');
-  const body = pickLang(uiLang, 'Şifrəni sıfırlamaq üçün aşağıdakı linkdən istifadə edin. Bu link 30 dəqiqə etibarlıdır.', 'Şifrenizi sıfırlamak için aşağıdaki bağlantıyı kullanın. Bu bağlantı 30 dakika geçerlidir.', 'Use the link below to reset your password. This link is valid for 30 minutes.');
+  const subtitle = pickLang(uiLang, 'Şifrəni sıfırlamaq üçün aşağıdakı təhlükəsiz düyməyə klikləyin. Bu keçid 30 dəqiqə ərzində etibarlıdır.', 'Şifrenizi sıfırlamak için aşağıdaki güvenli butona tıklayın. Bu bağlantı 30 dakika geçerlidir.', 'Click the secure button below to reset your password. This link is valid for 30 minutes.');
   const button = pickLang(uiLang, 'Şifrəni Sıfırla', 'Şifreyi Sıfırla', 'Reset Password');
-  const footer = pickLang(uiLang, 'Əgər bu istəyi siz etməmisinizsə, bu e-poçtu nəzərə almayın.', 'Eğer bu isteği siz yapmadıysanız, bu e-postayı yok sayın.', 'If you did not request this, you can ignore this email.');
+  const footerNote = pickLang(uiLang, 'Əgər bu istəyi siz etməmisinizsə, bu e-poçtu nəzərə almayın. Mövcud şifrəniz dəyişməz qalacaq.', 'Eğer bu isteği siz yapmadıysanız, bu e-postayı yok sayabilirsiniz. Mevcut şifreniz değişmeyecektir.', 'If you did not request this, you can safely ignore this email. Your password will remain unchanged.');
 
-  const html = `
-    <!DOCTYPE html>
-    <html lang="${uiLang}">
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${subject}</title>
-    </head>
-    <body style="margin:0; padding:0; font-family:Arial, sans-serif; background:#f8fafc; color:#0f172a;">
-      <div style="max-width:600px; margin:40px auto; background:#ffffff; border-radius:18px; padding:32px; border:1px solid #e2e8f0;">
-        <h1 style="margin-top:0;">${title}</h1>
-        <p style="line-height:1.6;">${body}</p>
-        <div style="margin:24px 0;">
-          <a href="${resetUrl}" style="display:inline-block; padding:12px 20px; background:#2563eb; color:#ffffff; text-decoration:none; border-radius:10px; font-weight:700;">${button}</a>
-        </div>
-        <p style="font-size:13px; color:#64748b;">${footer}</p>
-      </div>
-    </body>
-    </html>
+  const contentHtml = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 8px 0 24px 0;">
+      <tr>
+        <td align="center">
+          <a href="${escapeHtml(resetUrl)}" style="display: inline-block; background-color: #2563eb; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 14px; font-weight: 700; letter-spacing: 0.02em; box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);">
+            ${escapeHtml(button)} →
+          </a>
+        </td>
+      </tr>
+    </table>
+    <div style="background-color: #0d0d0d; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px;">
+      <div style="font-size: 10.5px; font-family: 'JetBrains Mono', monospace; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 6px; letter-spacing: 0.06em;">DIRECT LINK:</div>
+      <a href="${escapeHtml(resetUrl)}" style="font-size: 11.5px; font-family: 'JetBrains Mono', monospace; color: #60a5fa; word-break: break-all; text-decoration: none;">${escapeHtml(resetUrl)}</a>
+    </div>
   `;
+
+  const html = buildMonolithEmailShell({
+    uiLang,
+    badge: 'SECURITY · RESET',
+    title,
+    subtitle,
+    contentHtml,
+    footerNote
+  });
 
   return sendMail({
     to,
     subject,
-    text: `${body} ${resetUrl}`,
+    text: `${subtitle}\n\n${resetUrl}\n\n${footerNote}`,
     html
   });
 }
@@ -471,50 +513,44 @@ function sendNewDeviceLoginEmail(to, details = {}, lang = 'en') {
   const resetBtn = pickLang(uiLang, 'Şifrəni yenilə', 'Şifreyi yenile', 'Reset password');
   const contactBtn = pickLang(uiLang, 'Dəstək ilə əlaqə', 'Destek ile iletişim', 'Contact support');
 
+  const rowStyle = 'padding:10px 14px; border-bottom:1px solid #202020; font-size:12.5px;';
+  const labelStyle = 'color:#9ca3af; font-family:\'JetBrains Mono\', monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.04em;';
+  const valStyle = 'color:#ffffff; font-weight:700; text-align:right; font-family:\'JetBrains Mono\', monospace; font-size:12px;';
+
   const rows = [
-    `<tr><td style="padding:10px 0;color:#667085;font-size:13px;">${deviceTitle}</td><td style="padding:10px 0;color:#0f172a;font-size:14px;font-weight:700;">${escapeHtml(deviceLabel)}</td></tr>`,
-    `<tr><td style="padding:10px 0;color:#667085;font-size:13px;">${countryTitle}</td><td style="padding:10px 0;color:#0f172a;font-size:14px;font-weight:700;">${escapeHtml(country)}</td></tr>`,
-    `<tr><td style="padding:10px 0;color:#667085;font-size:13px;">${methodTitle}</td><td style="padding:10px 0;color:#0f172a;font-size:14px;font-weight:700;">${escapeHtml(methodLabel)}</td></tr>`,
-    `<tr><td style="padding:10px 0;color:#667085;font-size:13px;">${timeLabel}</td><td style="padding:10px 0;color:#0f172a;font-size:14px;font-weight:700;">${escapeHtml(occurredAt)}</td></tr>`,
+    `<tr><td style="${rowStyle} ${labelStyle}">${deviceTitle}</td><td style="${rowStyle} ${valStyle}">${escapeHtml(deviceLabel)}</td></tr>`,
+    `<tr><td style="${rowStyle} ${labelStyle}">${countryTitle}</td><td style="${rowStyle} ${valStyle}">${escapeHtml(country)}</td></tr>`,
+    `<tr><td style="${rowStyle} ${labelStyle}">${methodTitle}</td><td style="${rowStyle} ${valStyle}">${escapeHtml(methodLabel)}</td></tr>`,
+    `<tr><td style="${rowStyle} ${labelStyle} border-bottom:none;">${timeLabel}</td><td style="${rowStyle} ${valStyle} border-bottom:none;">${escapeHtml(occurredAt)}</td></tr>`,
   ];
 
-  const html = `
-    <!DOCTYPE html>
-    <html lang="${uiLang}">
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>${subject}</title>
-    </head>
-    <body style="margin:0;padding:28px 14px;background:#eef2ff;font-family:Inter,Arial,sans-serif;color:#0f172a;">
-      <div style="max-width:660px;margin:0 auto;background:#ffffff;border:1px solid #dbe3ff;border-radius:24px;box-shadow:0 18px 34px rgba(79,70,229,.12);overflow:hidden;">
-        <div style="padding:20px 24px;background:linear-gradient(98deg,#4f46e5,#0ea5e9);color:#fff;">
-          <div style="font-weight:800;letter-spacing:.08em;font-size:14px;">OVLINK SECURITY</div>
-          <div style="opacity:.9;font-size:12px;margin-top:4px;">${pickLang(uiLang, 'Yeni giriş bildirişi', 'Yeni giriş bildirimi', 'New sign-in alert')}</div>
-        </div>
+  const contentHtml = `
+    <div style="background:#0d0d0d; border:1px solid #262626; border-radius:12px; overflow:hidden; margin-bottom:16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows.join('')}</table>
+    </div>
 
-        <div style="padding:24px;">
-          <h2 style="margin:0 0 10px 0;font-size:28px;line-height:1.15;color:#0b1329;">${title}</h2>
-          <p style="margin:0 0 18px 0;color:#334155;line-height:1.65;font-size:14px;">${intro}</p>
+    <div style="padding:12px 14px; border-radius:8px; background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.25); color:#fde68a; font-size:12px; line-height:1.55; margin-bottom:20px;">
+      <div>${privacyNote}</div>
+      <div style="margin-top:4px; opacity:0.9;">${locationNote}</div>
+    </div>
 
-          <div style="background:#f8faff;border:1px solid #dbe3ff;border-radius:16px;padding:14px 16px;">
-            <table style="width:100%;border-collapse:collapse;">${rows.join('')}</table>
-          </div>
-
-          <div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#eef4ff;border:1px solid #d6e2ff;color:#334155;font-size:12px;line-height:1.55;">
-            <div>${privacyNote}</div>
-            <div style="margin-top:4px;">${locationNote}</div>
-          </div>
-
-          <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
-            <a href="${escapeHtml(resetPasswordUrl)}" style="display:inline-block;padding:10px 16px;border-radius:12px;background:#4f46e5;color:#fff;text-decoration:none;font-size:13px;font-weight:700;">${resetBtn}</a>
-            <a href="${escapeHtml(contactUrl)}" style="display:inline-block;padding:10px 16px;border-radius:12px;border:1px solid #cbd5ff;color:#334155;text-decoration:none;font-size:13px;font-weight:700;background:#fff;">${contactBtn}</a>
-          </div>
-        </div>
-      </div>
-    </body>
-    </html>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td align="left">
+          <a href="${escapeHtml(resetPasswordUrl)}" style="display:inline-block; padding:11px 20px; border-radius:8px; background:#ef4444; color:#ffffff !important; text-decoration:none; font-size:13px; font-weight:700; margin-right:10px;">${resetBtn}</a>
+          <a href="${escapeHtml(contactUrl)}" style="display:inline-block; padding:11px 20px; border-radius:8px; border:1px solid #334155; color:#d1d5db !important; text-decoration:none; font-size:13px; font-weight:600; background:#181818;">${contactBtn}</a>
+        </td>
+      </tr>
+    </table>
   `;
+
+  const html = buildMonolithEmailShell({
+    uiLang,
+    badge: 'SECURITY ALERT',
+    title,
+    subtitle: intro,
+    contentHtml
+  });
 
   const text = [
     title,
@@ -556,19 +592,40 @@ function sendWorkspaceInviteEmail(to, workspaceName, inviteUrl, lang = 'az') {
     `Ovlink: "${safeWsName}" workspace'ine davet edildiniz`,
     `Ovlink: You've been invited to "${safeWsName}" workspace`
   );
-  const text = `${subject}\n\n${inviteUrl}`;
-  const html = `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #111;">Ovlink</h2>
-      <p style="font-size: 16px; color: #333;">${subject}</p>
-      <p style="margin: 24px 0;">
-        <a href="${escapeHtml(inviteUrl)}" style="display:inline-block;padding:12px 24px;background:#4f46e5;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">
-          ${pickLang(uiLang, 'Dəvəti Qəbul Et', 'Daveti Kabul Et', 'Accept Invitation')}
-        </a>
-      </p>
-      <p style="color:#666;font-size:12px;">Link: <a href="${escapeHtml(inviteUrl)}">${escapeHtml(inviteUrl)}</a></p>
+  const title = pickLang(uiLang, 'Workspace Dəvəti', 'Workspace Daveti', 'Workspace Invitation');
+  const subtitle = pickLang(
+    uiLang,
+    `Siz Ovlink platformasında "${safeWsName}" komanda workspace-nə qoşulmaq üçün dəvət aldınız.`,
+    `Ovlink platformunda "${safeWsName}" takım workspace'ine katılmak için davet aldınız.`,
+    `You have been invited to join the "${safeWsName}" team workspace on Ovlink.`
+  );
+  const acceptBtn = pickLang(uiLang, 'Dəvəti Qəbul Et', 'Daveti Kabul Et', 'Accept Invitation');
+
+  const contentHtml = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 8px 0 24px 0;">
+      <tr>
+        <td align="center">
+          <a href="${escapeHtml(inviteUrl)}" style="display:inline-block; background-color:#2563eb; color:#ffffff !important; text-decoration:none; padding:14px 32px; border-radius:8px; font-size:14px; font-weight:700; letter-spacing:0.02em; box-shadow:0 4px 16px rgba(37,99,235,0.4);">
+            ${escapeHtml(acceptBtn)} →
+          </a>
+        </td>
+      </tr>
+    </table>
+    <div style="background-color:#0d0d0d; border:1px solid #262626; border-radius:8px; padding:12px 14px;">
+      <div style="font-size:10.5px; font-family:'JetBrains Mono', monospace; font-weight:700; text-transform:uppercase; color:#64748b; margin-bottom:6px; letter-spacing:0.06em;">INVITATION LINK:</div>
+      <a href="${escapeHtml(inviteUrl)}" style="font-size:11.5px; font-family:'JetBrains Mono', monospace; color:#60a5fa; word-break:break-all; text-decoration:none;">${escapeHtml(inviteUrl)}</a>
     </div>
   `;
+
+  const html = buildMonolithEmailShell({
+    uiLang,
+    badge: 'WORKSPACE',
+    title,
+    subtitle,
+    contentHtml
+  });
+
+  const text = `${subject}\n\n${inviteUrl}`;
   return sendMail({ to, subject, html, text });
 }
 

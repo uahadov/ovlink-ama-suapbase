@@ -6,89 +6,350 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>" />
   <title data-i18n="stats_title">Statistics</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
-  <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Monolith Home CSS -->
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
+  <!-- Chart.js 4.4.1 -->
+  <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Monolith Detailed Analytics Scoped Styles -->
+  <style>
+    /* ================================================================
+       OVLINK DETAILED ANALYTICS — MONOLITH THEME
+       ================================================================ */
+    .ovx.stats-detail-page {
+      min-height: 100vh;
+      background: var(--c-bg);
+      color: var(--c-text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ovx .m-analytics-main {
+      flex: 1;
+      padding: calc(var(--nav-h) + 48px) 0 80px;
+      position: relative;
+    }
+
+    .ovx .m-analytics-shell {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Page Header */
+    .ovx .m-page-header {
+      margin-bottom: 36px;
+      animation: fadeUp 0.6s var(--ease) forwards;
+    }
+
+    .ovx .m-page-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--c-faint);
+      border: 1px solid var(--c-border);
+      padding: 5px 12px;
+      border-radius: 100px;
+      margin-bottom: 16px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .ovx .m-page-chip i { font-size: 10px; color: var(--c-muted); }
+
+    .ovx .m-page-title {
+      font-size: clamp(26px, 4vw, 36px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--c-white);
+      margin-bottom: 8px;
+    }
+
+    .ovx .m-code-badge {
+      color: var(--c-white);
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border-hi);
+      padding: 2px 10px;
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 600;
+    }
+
+    .ovx .m-page-sub {
+      font-size: 15px;
+      color: var(--c-muted);
+      line-height: 1.6;
+    }
+
+    /* Summary Bar */
+    .ovx .m-summary-bar {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 16px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+      animation: fadeUp 0.6s var(--ease) forwards;
+    }
+
+    .ovx .m-summary-clicks {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .ovx .m-summary-lbl {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--c-faint);
+    }
+
+    .ovx .m-summary-num {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--c-white);
+      line-height: 1;
+    }
+
+    .ovx .m-summary-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* Analytics Bento Grid (2x2) */
+    .ovx .m-charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .ovx .m-chart-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: border-color 0.25s var(--ease);
+      display: flex;
+      flex-direction: column;
+      animation: fadeUp 0.6s var(--ease) forwards;
+    }
+
+    .ovx .m-chart-card:hover {
+      border-color: var(--c-border-hi);
+    }
+
+    .ovx .m-chart-card-h2 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: var(--c-white);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ovx .m-chart-card-h2 i {
+      color: var(--c-muted);
+      font-size: 14px;
+    }
+
+    .ovx .m-chart-canvas-wrap {
+      position: relative;
+      width: 100%;
+      height: 260px;
+      flex: 1;
+    }
+
+    /* Time Meta Chips */
+    .ovx .stats-time-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .ovx .stats-time-chip {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--c-muted);
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      padding: 4px 10px;
+      border-radius: 100px;
+    }
+
+    .ovx .stats-time-note {
+      font-size: 12px;
+      color: var(--c-faint);
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 860px) {
+      .ovx .m-analytics-main { padding: calc(var(--nav-h) + 24px) 0 60px; }
+      .ovx .m-charts-grid { grid-template-columns: 1fr; gap: 16px; }
+      .ovx .m-chart-card { padding: 20px 16px; }
+      .ovx .m-summary-bar { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
 </head>
 
-<body class="home-page app-page stats-page animated-gradient-bg">
+<body class="ovx app-page stats-detail-page">
 
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Custom Monolith Cursor -->
+  <div id="mCursorArrow" aria-hidden="true">
+    <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4.5 3.5L27 13.5L16.5 17.5L12 28.5L4.5 3.5Z" fill="#0a0a0a" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div id="mCursorRing" aria-hidden="true"></div>
+
+  <!-- Scroll Progress -->
+  <div id="mScrollBar" aria-hidden="true"><div id="mScrollBar-fill"></div></div>
+
+  <!-- Ambient Cursor Glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
+
+  <!-- Announcement ribbon -->
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
-    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
-        <i class="fa-solid fa-bullhorn"></i>
-        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
-      </div>
+    <div id="siteAnnouncement" class="m-ribbon" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+      <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <!-- Monolith Navigation -->
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <!-- Main Analytics Container -->
+  <main class="m-analytics-main" id="mainContent">
+    <div class="m-analytics-shell">
 
-  <main class="app-main">
-    <section class="container">
-      <div class="app-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
-          </div>
-          <h1 class="policy-title"><span data-i18n="stats_title">Statistikalar</span>: <span class="text-primary"><%= shortCode %></span></h1>
-          <p class="hero-subtitle" data-i18n="dashboard_search_placeholder">Qısa / Orijinal link</p>
+      <!-- Page Header -->
+      <header class="m-page-header">
+        <div class="m-page-chip">
+          <i class="fa-solid fa-chart-line"></i>
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+        </div>
+        <h1 class="m-page-title">
+          <span data-i18n="stats_title">Statistikalar</span>:
+          <span class="m-code-badge"><%= shortCode %></span>
+        </h1>
+        <p class="m-page-sub" data-i18n="dashboard_search_placeholder">Qısa / Orijinal link</p>
+      </header>
+
+      <!-- Summary & Actions Bar -->
+      <div class="m-summary-bar">
+        <div class="m-summary-clicks">
+          <span class="m-summary-lbl" data-i18n="stats_total_clicks">Ümumi Klik Sayı</span>
+          <span class="m-summary-num" id="totalClicksDisplay">0</span>
         </div>
 
-        <div class="policy-card app-card stats-summary-card">
-          <a href="/dashboard" class="btn home-outline-btn rounded-pill">
-            <i class="fa-solid fa-arrow-left me-2"></i><span data-i18n="stats_back_btn">Dashboard-a qayıt</span>
+        <div class="m-summary-actions">
+          <!-- Export Dropdown / Buttons -->
+          <button type="button" class="m-cta m-cta--outline m-cta--sm" id="exportCsvBtn" title="Export CSV">
+            <i class="fa-solid fa-download"></i>
+            <span>Export CSV</span>
+          </button>
+          <button type="button" class="m-cta m-cta--outline m-cta--sm" id="exportJsonBtn" title="Export JSON">
+            <i class="fa-solid fa-code"></i>
+            <span>Export JSON</span>
+          </button>
+          <a href="/dashboard" class="m-cta m-cta--white m-cta--sm">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span data-i18n="stats_back_btn">Dashboard-a qayıt</span>
           </a>
-          <div class="stats-total-wrap">
-            <small class="text-muted d-block" data-i18n="stats_total_clicks">Ümumi Klik Sayı</small>
-            <h4 class="fw-bold text-primary mb-0" id="totalClicksDisplay">0</h4>
-          </div>
-        </div>
-
-        <div class="row g-3 stats-grid">
-          <div class="col-lg-6">
-            <div class="policy-card app-card stats-chart-card">
-              <h5 data-i18n="stats_browser_dist">Brauzer paylanması</h5>
-              <div class="chart-container"><canvas id="browserChart"></canvas></div>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="policy-card app-card stats-chart-card">
-              <h5 data-i18n="stats_os_dist">Əməliyyat sistemi</h5>
-              <div class="chart-container"><canvas id="osChart"></canvas></div>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="policy-card app-card stats-chart-card">
-              <h5 data-i18n="stats_country_dist">Ölkə paylanması</h5>
-              <div class="chart-container"><canvas id="countryChart"></canvas></div>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="policy-card app-card stats-chart-card">
-              <h5 data-i18n="stats_clicks_over_time">Zaman üzrə kliklər</h5>
-              <div class="chart-container"><canvas id="timeChart"></canvas></div>
-              <div id="timeChartMeta" class="stats-time-meta"></div>
-              <p class="stats-time-note text-muted mb-0" data-i18n="stats_time_note">Saatlıq qrafik brauzerinizin yerli vaxtına əsaslanır.</p>
-            </div>
-          </div>
         </div>
       </div>
-    </section>
+
+      <!-- Analytics Charts Grid -->
+      <div class="m-charts-grid">
+
+        <!-- 1. Browser Distribution -->
+        <section class="m-chart-card">
+          <h2 class="m-chart-card-h2">
+            <i class="fa-solid fa-window-maximize"></i>
+            <span data-i18n="stats_browser_dist">Brauzer paylanması</span>
+          </h2>
+          <div class="m-chart-canvas-wrap">
+            <canvas id="browserChart"></canvas>
+          </div>
+        </section>
+
+        <!-- 2. Operating System Distribution -->
+        <section class="m-chart-card">
+          <h2 class="m-chart-card-h2">
+            <i class="fa-solid fa-laptop"></i>
+            <span data-i18n="stats_os_dist">Əməliyyat sistemi</span>
+          </h2>
+          <div class="m-chart-canvas-wrap">
+            <canvas id="osChart"></canvas>
+          </div>
+        </section>
+
+        <!-- 3. Country Distribution -->
+        <section class="m-chart-card">
+          <h2 class="m-chart-card-h2">
+            <i class="fa-solid fa-globe"></i>
+            <span data-i18n="stats_country_dist">Ölkə paylanması</span>
+          </h2>
+          <div class="m-chart-canvas-wrap">
+            <canvas id="countryChart"></canvas>
+          </div>
+        </section>
+
+        <!-- 4. Clicks Over Time -->
+        <section class="m-chart-card">
+          <h2 class="m-chart-card-h2">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span data-i18n="stats_clicks_over_time">Zaman üzrə kliklər</span>
+          </h2>
+          <div class="m-chart-canvas-wrap">
+            <canvas id="timeChart"></canvas>
+          </div>
+          <div id="timeChartMeta" class="stats-time-meta"></div>
+          <p class="stats-time-note" data-i18n="stats_time_note">Saatlıq qrafik brauzerinizin yerli vaxtına əsaslanır.</p>
+        </section>
+
+      </div>
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <!-- Monolith Footer -->
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Core App Scripts -->
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
 
+  <!-- Analytics Logic & Dark Chart Configuration -->
   <script nonce="<%= nonce %>">
     const shortCode = <%- JSON.stringify(shortCode) %>;
     const essentialMarker = <%- JSON.stringify(consentMarker) %>;
@@ -110,10 +371,9 @@
     }
 
     function chartPalette() {
-      const isDark = document.body.classList.contains('dark-mode');
       return {
-        textColor: isDark ? '#cbd5e1' : '#334155',
-        gridColor: isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(15, 23, 42, 0.08)'
+        textColor: '#888888',
+        gridColor: 'rgba(255, 255, 255, 0.08)'
       };
     }
 
@@ -236,13 +496,42 @@
       const labels = Object.keys(valuesMap || {});
       const values = Object.values(valuesMap || {});
 
+      // Monolith monochromatic color palette
+      const monolithColors = [
+        '#ffffff',
+        '#d4d4d8',
+        '#a1a1aa',
+        '#71717a',
+        '#52525b',
+        '#3f3f46',
+        '#27272a'
+      ];
+
       const options = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
           legend: {
             position: 'bottom',
-            labels: { color: palette.textColor }
+            labels: {
+              color: palette.textColor,
+              font: { family: 'Inter', size: 12 },
+              padding: 14,
+              boxWidth: 12,
+              boxHeight: 12,
+              borderRadius: 3
+            }
+          },
+          tooltip: {
+            backgroundColor: '#111111',
+            titleColor: '#ffffff',
+            bodyColor: '#888888',
+            borderColor: 'rgba(255,255,255,0.15)',
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 8,
+            titleFont: { family: 'Inter', size: 13, weight: '600' },
+            bodyFont: { family: 'Inter', size: 13 }
           }
         }
       };
@@ -251,12 +540,12 @@
         options.scales = {
           y: {
             beginAtZero: true,
-            ticks: { precision: 0, color: palette.textColor },
-            grid: { color: palette.gridColor }
+            ticks: { precision: 0, color: palette.textColor, font: { family: 'Inter', size: 12 } },
+            grid: { color: palette.gridColor, drawBorder: false }
           },
           x: {
-            ticks: { color: palette.textColor },
-            grid: { color: palette.gridColor }
+            ticks: { color: palette.textColor, font: { family: 'Inter', size: 12 } },
+            grid: { color: palette.gridColor, drawBorder: false }
           }
         };
       }
@@ -268,7 +557,10 @@
           datasets: [{
             label,
             data: values,
-            backgroundColor: ['#6366f1', '#22d3ee', '#34d399', '#f59e0b', '#f43f5e', '#8b5cf6', '#3b82f6']
+            backgroundColor: type === 'bar' ? 'rgba(255, 255, 255, 0.2)' : monolithColors,
+            borderColor: type === 'bar' ? '#ffffff' : '#111111',
+            borderWidth: type === 'bar' ? 1 : 2,
+            borderRadius: type === 'bar' ? 6 : 0
           }]
         },
         options
@@ -293,11 +585,11 @@
           datasets: [{
             label: t('th_clicks'),
             data: values,
-            borderColor: '#4f46e5',
-            backgroundColor: 'rgba(79, 70, 229, 0.3)',
-            borderWidth: 2,
-            borderRadius: 8,
-            maxBarThickness: 30,
+            borderColor: '#ffffff',
+            backgroundColor: 'rgba(255, 255, 255, 0.25)',
+            borderWidth: 1,
+            borderRadius: 6,
+            maxBarThickness: 28,
             fill: false
           }]
         },
@@ -307,6 +599,15 @@
           plugins: {
             legend: { display: false },
             tooltip: {
+              backgroundColor: '#111111',
+              titleColor: '#ffffff',
+              bodyColor: '#888888',
+              borderColor: 'rgba(255,255,255,0.15)',
+              borderWidth: 1,
+              padding: 12,
+              cornerRadius: 8,
+              titleFont: { family: 'Inter', size: 13, weight: '600' },
+              bodyFont: { family: 'Inter', size: 13 },
               callbacks: {
                 label: (context) => `${t('th_clicks')}: ${context.parsed.y}`
               }
@@ -315,12 +616,12 @@
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { precision: 0, color: palette.textColor },
-              grid: { color: palette.gridColor }
+              ticks: { precision: 0, color: palette.textColor, font: { family: 'Inter', size: 12 } },
+              grid: { color: palette.gridColor, drawBorder: false }
             },
             x: {
-              ticks: { maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 10, color: palette.textColor },
-              grid: { color: palette.gridColor }
+              ticks: { maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 10, color: palette.textColor, font: { family: 'Inter', size: 12 } },
+              grid: { color: palette.gridColor, drawBorder: false }
             }
           }
         }
@@ -344,6 +645,55 @@
       chartState.time = createTimeChart(chartState.data.clicks_over_time || {}, chartState.data.total_clicks || 0);
     }
 
+    // Export CSV Handler
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    if (exportCsvBtn) {
+      exportCsvBtn.addEventListener('click', () => {
+        if (!chartState.data) return;
+        let csvContent = "data:text/csv;charset=utf-8,Category,Item,Count\n";
+        
+        // Browsers
+        Object.entries(chartState.data.browsers || {}).forEach(([k, v]) => {
+          csvContent += `Browser,"${k.replace(/"/g, '""')}",${v}\n`;
+        });
+        // OS
+        Object.entries(chartState.data.os || {}).forEach(([k, v]) => {
+          csvContent += `OS,"${k.replace(/"/g, '""')}",${v}\n`;
+        });
+        // Countries
+        Object.entries(chartState.data.countries || {}).forEach(([k, v]) => {
+          csvContent += `Country,"${k.replace(/"/g, '""')}",${v}\n`;
+        });
+        // Clicks over time
+        Object.entries(chartState.data.clicks_over_time || {}).forEach(([k, v]) => {
+          csvContent += `Time,"${k.replace(/"/g, '""')}",${v}\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `analytics_${shortCode}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      });
+    }
+
+    // Export JSON Handler
+    const exportJsonBtn = document.getElementById('exportJsonBtn');
+    if (exportJsonBtn) {
+      exportJsonBtn.addEventListener('click', () => {
+        if (!chartState.data) return;
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(chartState.data, null, 2));
+        const link = document.createElement("a");
+        link.setAttribute("href", dataStr);
+        link.setAttribute("download", `analytics_${shortCode}.json`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      });
+    }
+
     fetch('/api/stats/' + encodeURIComponent(shortCode), { credentials: 'include' })
       .then((res) => {
         if (!res.ok) throw new Error('stats_fetch_failed');
@@ -360,7 +710,160 @@
     window.addEventListener('ovlink:languageChanged', renderCharts);
     window.addEventListener('ovlink:themeChanged', renderCharts);
   </script>
+
+  <!-- Monolith Motion & Interaction Engine -->
+  <script nonce="<%= nonce %>">
+  (function(){
+    var isMobile = !matchMedia('(hover:hover)').matches;
+
+    /* ─── 1. Custom Cursor ─── */
+    var arrow = document.getElementById('mCursorArrow');
+    var ring  = document.getElementById('mCursorRing');
+    if (arrow && ring && !isMobile) {
+      var mx = -100, my = -100, rx = -100, ry = -100;
+      var rafId = null;
+      function loop(){
+        rx += (mx - rx) * 0.15;
+        ry += (my - ry) * 0.15;
+        ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+        if (Math.abs(mx - rx) > 0.1 || Math.abs(my - ry) > 0.1) {
+          rafId = requestAnimationFrame(loop);
+        } else {
+          rx = mx; ry = my;
+          ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+          rafId = null;
+        }
+      }
+      function updatePos(e){
+        mx = e.clientX; my = e.clientY;
+        arrow.style.transform = 'translate(' + mx + 'px,' + my + 'px)';
+        if (!rafId) rafId = requestAnimationFrame(loop);
+      }
+      window.addEventListener('mousemove', updatePos, {passive:true});
+      window.addEventListener('pointermove', updatePos, {passive:true});
+      document.addEventListener('mouseover', function(e){
+        var interactive = e.target && e.target.closest && e.target.closest('a,button,input,textarea,select,label,[role="button"]');
+        if (interactive) {
+          arrow.classList.add('hover');
+          ring.classList.add('hover');
+        } else {
+          arrow.classList.remove('hover');
+          ring.classList.remove('hover');
+        }
+      }, {passive:true});
+      document.addEventListener('mousedown', function(){
+        arrow.classList.add('clicking');
+        ring.classList.add('clicking');
+      });
+      document.addEventListener('mouseup', function(){
+        arrow.classList.remove('clicking');
+        ring.classList.remove('clicking');
+      });
+      document.addEventListener('mouseleave', function(){
+        arrow.classList.add('hidden');
+        ring.classList.add('hidden');
+      });
+      document.addEventListener('mouseenter', function(){
+        arrow.classList.remove('hidden');
+        ring.classList.remove('hidden');
+      });
+    } else {
+      if (arrow) arrow.style.display = 'none';
+      if (ring)  ring.style.display  = 'none';
+    }
+
+    /* ─── 2. Cursor Glow ─── */
+    var glow = document.getElementById('cursorGlow');
+    if (glow && !isMobile) {
+      document.addEventListener('mousemove', function(e){
+        glow.style.left = e.clientX + 'px';
+        glow.style.top  = e.clientY + 'px';
+      }, {passive:true});
+    } else if (glow) {
+      glow.style.display = 'none';
+    }
+
+    /* ─── 3. Scroll Progress Bar ─── */
+    var sbFill = document.getElementById('mScrollBar-fill');
+    if (sbFill) {
+      window.addEventListener('scroll', function(){
+        var h = document.documentElement;
+        var pct = (h.scrollTop || document.body.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        sbFill.style.width = pct + '%';
+      }, {passive:true});
+    }
+
+    /* ─── 4. Nav scroll class ─── */
+    var nav = document.getElementById('mNav');
+    if (nav) {
+      var onScroll = function(){ nav.classList.toggle('scrolled', window.scrollY > 10); };
+      window.addEventListener('scroll', onScroll, {passive:true});
+      onScroll();
+    }
+
+    /* ─── 5. Ripple Effect ─── */
+    function addRipple(btn) {
+      btn.addEventListener('click', function(e){
+        var r = btn.getBoundingClientRect();
+        var size = Math.max(r.width, r.height);
+        var span = document.createElement('span');
+        span.className = 'm-ripple';
+        span.style.width = span.style.height = size + 'px';
+        span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+        span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+        btn.appendChild(span);
+        setTimeout(function(){ span.remove(); }, 600);
+      });
+    }
+    document.querySelectorAll('.m-cta, .m-btn-solid').forEach(addRipple);
+
+    /* ─── 6. Mobile Menu & Dropdowns ─── */
+    function setupDropdown(btnId, panelId) {
+      var btn = document.getElementById(btnId);
+      var panel = document.getElementById(panelId);
+      if(!btn || !panel) return;
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel').forEach(function(p) { p.classList.remove('open', 'is-open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+        if(!isExpanded) {
+          panel.classList.add('open');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    }
+    setupDropdown('langToggleBtn', 'ovxLangPanel');
+    setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+    setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel').forEach(function(p) { p.classList.remove('open', 'is-open'); });
+      document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+    });
+
+    var burger = document.getElementById('mBurger');
+    var mobileMenu = document.getElementById('mMobileMenu');
+    var mClose = document.getElementById('mMobileClose');
+    function closeMobileMenu() {
+      if (mobileMenu && mobileMenu.classList.contains('open')) {
+        mobileMenu.classList.remove('open');
+        document.body.style.overflow = '';
+        if (burger) burger.setAttribute('aria-expanded', 'false');
+      }
+    }
+    if (burger && mobileMenu) {
+      burger.addEventListener('click', function(){
+        mobileMenu.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        burger.setAttribute('aria-expanded', 'true');
+      });
+    }
+    if (mClose) mClose.addEventListener('click', closeMobileMenu);
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') closeMobileMenu();
+    });
+  })();
+  </script>
 </body>
 
 </html>
-

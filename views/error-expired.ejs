@@ -4,49 +4,130 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="csrf-token" content="<%= csrfToken %>">
-  <title data-i18n="error_expired_title">Vaxtı Bitib</title>
+  <meta name="csrf-token" content="<%= (typeof csrfToken !== 'undefined') ? csrfToken : '' %>">
+  <title data-i18n="error_expired_title">Linkin Vaxtı Bitib - Ovlink</title>
   <link rel="icon" href="/logo.ico" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+  
+  <link rel="stylesheet" href="/home.css?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>" />
 </head>
 
-<body class="bg-light d-flex flex-column min-vh-100">
+<body class="ovx home-page error-page">
 
-  <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
+  <!-- Ambient Cursor Glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
+
+  <% if (typeof siteSettings !== 'undefined' && siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <main class="flex-grow-1 d-flex align-items-center justify-content-center py-5">
-    <div class="container text-center">
-      <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-          <div class="card border-0 shadow-lg p-5 rounded-5" style="background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px);">
-            <div class="mb-4">
-              <i class="fa-solid fa-hourglass-end fa-4x text-secondary mb-3"></i>
-              <h2 class="fw-bold" data-i18n="error_expired_title">Vaxtı Bitib</h2>
-              <p class="text-muted mb-0" data-i18n="error_expired_msg">Bu linkin istifadə müddəti bitib.</p>
-            </div>
+  <!-- Minimal Brand Header with Language Switcher -->
+  <header class="m-minimal-nav">
+    <a href="/" class="m-brand" aria-label="Ovlink Homepage" style="display:flex; align-items:center; gap:10px; text-decoration:none;">
+      <img src="/logo.webp" alt="Ovlink" width="28" height="28" style="border-radius:6px;">
+      <span style="font-weight:700; font-size:16px; color:var(--c-white); letter-spacing:-0.02em;">Ovlink</span>
+    </a>
 
-            <a href="/" class="btn btn-primary rounded-pill px-4 mt-4">
-              <i class="fa-solid fa-house me-2"></i> <span data-i18n="nav_home">Ana Səhifə</span>
-            </a>
-          </div>
+    <!-- Language Dropdown -->
+    <div class="m-nav-actions" style="display:flex; align-items:center; gap:8px;">
+      <div class="m-lang-picker" style="position:relative;">
+        <button id="langToggleBtn" type="button" class="m-btn m-btn-ghost" style="padding:6px 14px; font-size:12.5px; font-weight:700;" aria-label="Dil seçimi">
+          AZ
+        </button>
+        <div id="langDropdown" class="m-lang-menu" style="display:none; position:absolute; right:0; top:calc(100% + 6px); background:#111; border:1px solid var(--c-border); border-radius:10px; padding:6px; z-index:100; min-width:90px; box-shadow:0 8px 24px rgba(0,0,0,0.6);">
+          <button class="m-lang-opt lang-option" data-lang="az" type="button" style="display:block; width:100%; text-align:left; background:none; border:none; color:var(--c-white); padding:6px 10px; font-size:12px; border-radius:6px; cursor:pointer;">Azərbaycan</button>
+          <button class="m-lang-opt lang-option" data-lang="tr" type="button" style="display:block; width:100%; text-align:left; background:none; border:none; color:var(--c-white); padding:6px 10px; font-size:12px; border-radius:6px; cursor:pointer;">Türkçe</button>
+          <button class="m-lang-opt lang-option" data-lang="en" type="button" style="display:block; width:100%; text-align:left; background:none; border:none; color:var(--c-white); padding:6px 10px; font-size:12px; border-radius:6px; cursor:pointer;">English</button>
         </div>
       </div>
     </div>
+  </header>
+
+  <main class="m-page-shell" style="display:flex; align-items:center; justify-content:center; padding: 40px 16px 80px 16px;">
+    <div class="shell" style="max-width: 620px; width: 100%;">
+
+      <div class="m-gateway-card m-gateway-card--warning">
+
+        <!-- Animated Flowing Hourglass SVG -->
+        <div class="m-gateway-svg-wrap" aria-hidden="true">
+          <svg width="96" height="96" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="44" stroke="rgba(245,158,11,0.2)" stroke-width="1.5" fill="none"/>
+            <circle cx="50" cy="50" r="34" stroke="rgba(245,158,11,0.08)" stroke-width="1" fill="rgba(245,158,11,0.03)"/>
+            
+            <!-- Hourglass Caps -->
+            <path d="M 32 25 H 68 M 32 75 H 68" stroke="rgba(255,255,255,0.7)" stroke-width="3" stroke-linecap="round"/>
+            <!-- Glass Body Contours -->
+            <path d="M 36 26 C 36 42 46 48 50 50 C 54 48 64 42 64 26" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <path d="M 36 74 C 36 58 46 52 50 50 C 54 52 64 58 64 74" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" fill="none"/>
+            
+            <!-- Top Sand draining -->
+            <path d="M 42 35 C 45 42 55 42 58 35 Z" fill="rgba(245,158,11,0.5)"/>
+            
+            <!-- Bottom Sand accumulation -->
+            <path d="M 39 72 C 43 65 57 65 61 72 Z" fill="#f59e0b"/>
+            
+            <!-- Falling Sand Stream -->
+            <g class="m-anim-sand">
+              <circle cx="50" cy="50" r="1.5" fill="#f59e0b"/>
+              <circle cx="50" cy="56" r="1.5" fill="#f59e0b"/>
+              <circle cx="50" cy="62" r="1.5" fill="#f59e0b"/>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Status Badge -->
+        <div>
+          <div class="m-gateway-badge m-gateway-badge--amber">
+            <span class="m-live-dot" style="background:#f59e0b;" aria-hidden="true"></span>
+            <span data-i18n="error_expired_status">410 · MÜDDƏTİ BİTMİŞ LİNK</span>
+          </div>
+        </div>
+
+        <!-- Title & Subtitle -->
+        <h1 class="m-gateway-title" data-i18n="error_expired_title">Linkin Vaxtı Bitib</h1>
+        <p class="m-gateway-desc" data-i18n="error_expired_msg">Bu qısa keçid üçün müəyyən edilmiş etibarlılıq müddəti başa çatmışdır.</p>
+
+        <!-- Diagnostic info note -->
+        <div class="m-gateway-diag-box" style="margin-bottom: 28px; text-align: left;">
+          <div class="m-diag-row">
+            <span class="m-diag-label">Status</span>
+            <span class="m-diag-val" style="color: #fbbf24;">TTL Vaxt Aşımı (Expired)</span>
+          </div>
+          <div class="m-diag-row">
+            <span class="m-diag-label">Hədəf Resurs</span>
+            <span class="m-diag-val">Müvəqqəti Giriş Dayandırılıb</span>
+          </div>
+        </div>
+
+        <!-- Action Row -->
+        <div>
+          <a href="/" class="m-btn m-btn-solid" style="display:inline-flex; align-items:center; gap:8px; padding: 12px 28px; border-radius: 999px; text-decoration:none;">
+            <i class="fa-solid fa-house"></i>
+            <span data-i18n="error_expired_home">Ana Səhifəyə Qayıt</span>
+          </a>
+        </div>
+
+      </div>
+
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer mt-auto' }) %>
+  <footer style="text-align:center; padding:24px 16px; border-top:1px solid var(--c-border); color:var(--c-faint); font-size:12.5px;">
+    <span>&copy; <%= new Date().getFullYear() %> Ovlink Safe Edge Network. All rights reserved.</span>
+  </footer>
 
-  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
-  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script <% if (typeof nonce !== 'undefined' && nonce) { %>nonce="<%= nonce %>"<% } %> src="/lang.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
+  <script <% if (typeof nonce !== 'undefined' && nonce) { %>nonce="<%= nonce %>"<% } %> src="/home.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
+  <script <% if (typeof nonce !== 'undefined' && nonce) { %>nonce="<%= nonce %>"<% } %> src="/script.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
 </body>
 
 </html>

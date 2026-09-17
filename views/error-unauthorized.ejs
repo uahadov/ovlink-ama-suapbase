@@ -1,133 +1,142 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="csrf-token" content="<%= csrfToken %>">
-  <title data-i18n="unauth_page_title">İcazəsiz giriş</title>
+  <meta name="csrf-token" content="<%= (typeof csrfToken !== 'undefined') ? csrfToken : '' %>">
+  <title data-i18n="unauth_page_title">İcazəsiz Giriş - Ovlink</title>
   <link rel="icon" href="/logo.ico" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
-  <script nonce="<%= nonce %>">
-    (function () {
-      try {
-        var isDark = localStorage.getItem('theme') === 'dark';
-        if (isDark) {
-          document.documentElement.classList.add('dark-mode');
-          document.addEventListener('DOMContentLoaded', function () {
-            document.body.classList.add('dark-mode');
-          });
-        }
-      } catch {}
-    })();
-  </script>
+  
+  <link rel="stylesheet" href="/home.css?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>" />
 </head>
-<body class="bg-light page-shell">
-  <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
+
+<body class="ovx home-page error-page">
+
+  <!-- Ambient Cursor Glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
+
+  <% if (typeof siteSettings !== 'undefined' && siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
-    <div class="container">
-      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
-        <img src="/logo.webp" alt="Ovlink Logo" width="40" height="40" class="me-2 logo-img">
-      </a>
+  <!-- Minimal Brand Header with Language Switcher -->
+  <header class="m-minimal-nav">
+    <a href="/" class="m-brand" aria-label="Ovlink Homepage" style="display:flex; align-items:center; gap:10px; text-decoration:none;">
+      <img src="/logo.webp" alt="Ovlink" width="28" height="28" style="border-radius:6px;">
+      <span style="font-weight:700; font-size:16px; color:var(--c-white); letter-spacing:-0.02em;">Ovlink</span>
+    </a>
 
-      <div class="ms-auto d-flex align-items-center gap-2">
-        <div class="dropdown">
-          <button id="langToggleBtn" class="btn btn-outline-light btn-sm fw-bold dropdown-toggle" style="border-radius: 20px;" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            AZ
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><button class="dropdown-item lang-option" data-lang="az" type="button">AZ</button></li>
-            <li><button class="dropdown-item lang-option" data-lang="tr" type="button">TR</button></li>
-            <li><button class="dropdown-item lang-option" data-lang="en" type="button">EN</button></li>
-          </ul>
-        </div>
-
-        <button id="themeToggleBtn" type="button" class="theme-toggle position-static ms-2" style="transform: none; border: 1px solid white;" aria-label="Temanı dəyiş">
-          <i class="fa-solid fa-moon"></i>
+    <!-- Language Dropdown -->
+    <div class="m-nav-actions" style="display:flex; align-items:center; gap:8px;">
+      <div class="m-lang-picker" style="position:relative;">
+        <button id="langToggleBtn" type="button" class="m-btn m-btn-ghost" style="padding:6px 14px; font-size:12.5px; font-weight:700;" aria-label="Dil seçimi">
+          AZ
         </button>
+        <div id="langDropdown" class="m-lang-menu" style="display:none; position:absolute; right:0; top:calc(100% + 6px); background:#111; border:1px solid var(--c-border); border-radius:10px; padding:6px; z-index:100; min-width:90px; box-shadow:0 8px 24px rgba(0,0,0,0.6);">
+          <button class="m-lang-opt lang-option" data-lang="az" type="button" style="display:block; width:100%; text-align:left; background:none; border:none; color:var(--c-white); padding:6px 10px; font-size:12px; border-radius:6px; cursor:pointer;">Azərbaycan</button>
+          <button class="m-lang-opt lang-option" data-lang="tr" type="button" style="display:block; width:100%; text-align:left; background:none; border:none; color:var(--c-white); padding:6px 10px; font-size:12px; border-radius:6px; cursor:pointer;">Türkçe</button>
+          <button class="m-lang-opt lang-option" data-lang="en" type="button" style="display:block; width:100%; text-align:left; background:none; border:none; color:var(--c-white); padding:6px 10px; font-size:12px; border-radius:6px; cursor:pointer;">English</button>
+        </div>
       </div>
     </div>
-  </nav>
+  </header>
 
-  <main class="container py-5 flex-grow-1 d-flex align-items-center justify-content-center">
-    <div class="col-12 col-md-10 col-lg-7">
-      <div class="card border-0 shadow-lg rounded-5 p-4 p-md-5 text-center">
-        <div class="mb-3">
-          <i class="fa-solid fa-lock fa-3x text-warning"></i>
+  <main class="m-page-shell" style="display:flex; align-items:center; justify-content:center; padding: 40px 16px 80px 16px;">
+    <div class="shell" style="max-width: 620px; width: 100%;">
+
+      <div class="m-gateway-card m-gateway-card--warning">
+
+        <!-- Animated Security Lock Beam SVG -->
+        <div class="m-gateway-svg-wrap" aria-hidden="true">
+          <svg width="96" height="96" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="lockAmberGrad" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#fbbf24"/>
+                <stop offset="1" stop-color="#d97706"/>
+              </linearGradient>
+              <linearGradient id="beamScanGrad" x1="50" y1="40" x2="50" y2="80" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#fbbf24" stop-opacity="0.8"/>
+                <stop offset="1" stop-color="#fbbf24" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Padlock Shackle -->
+            <path d="M 34 45 L 34 30 C 34 21.16 41.16 14 50 14 C 58.84 14 66 21.16 66 30 L 66 45" stroke="rgba(251, 191, 36, 0.6)" stroke-width="6" stroke-linecap="round" fill="none"/>
+            
+            <!-- Padlock Body -->
+            <rect x="24" y="44" width="52" height="42" rx="10" fill="#141414" stroke="url(#lockAmberGrad)" stroke-width="2.5"/>
+
+            <!-- Keyhole Beam Scan -->
+            <g class="m-anim-beam">
+              <polygon points="50,56 40,78 60,78" fill="url(#beamScanGrad)"/>
+            </g>
+
+            <!-- Keyhole Cutout -->
+            <circle cx="50" cy="60" r="4.5" fill="#fbbf24"/>
+            <rect x="48" y="62" width="4" height="8" rx="1" fill="#fbbf24"/>
+          </svg>
         </div>
-        <h1 class="fw-bold mb-2" data-i18n="unauth_title">İcazəsiz giriş</h1>
-        <p class="text-muted mb-1" data-i18n="unauth_stats_msg">Bu statistika səhifəsini görüntüləmək üçün icazəniz yoxdur.</p>
-        <% if (shortCode) { %>
-          <p class="small text-muted mb-4"><code><%= shortCode %></code></p>
-        <% } else { %>
-          <div class="mb-4"></div>
+
+        <!-- Status Badge -->
+        <div>
+          <div class="m-gateway-badge m-gateway-badge--amber">
+            <span class="m-live-dot" style="background:#fbbf24;" aria-hidden="true"></span>
+            <span data-i18n="unauth_title">İcazəsiz Giriş</span>
+          </div>
+        </div>
+
+        <!-- Title & Subtitle -->
+        <h1 class="m-gateway-title" data-i18n="unauth_title">İcazəsiz Giriş</h1>
+        <p class="m-gateway-desc" data-i18n="unauth_stats_msg">Bu resursu və ya statistika səhifəsini görüntüləmək üçün lazımi icazəniz yoxdur.</p>
+
+        <% if (typeof shortCode !== 'undefined' && shortCode) { %>
+          <div style="margin-bottom: 24px;">
+            <span class="m-code-chip"><i class="fa-solid fa-link me-1" style="font-size:11px;"></i> <%= shortCode %></span>
+          </div>
         <% } %>
 
-        <div class="d-flex flex-wrap justify-content-center gap-2">
-          <a href="/dashboard" class="btn btn-primary rounded-pill px-4">
-            <i class="fa-solid fa-chart-line me-2"></i>
-            <span data-i18n="unauth_back_dashboard">Dashboard-a qayıt</span>
+        <p style="font-size: 13.5px; color: var(--c-muted); max-width: 460px; margin: 0 auto 32px auto; line-height: 1.55;" data-i18n="unauth_desc">
+          Bu keçid yalnız link sahibi və ya eyni Workspace üzvləri üçün əlçatandır.
+        </p>
+
+        <!-- Action Row -->
+        <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+          <a href="/dashboard" class="m-btn m-btn-solid" style="display:inline-flex; align-items:center; gap:8px; padding: 12px 24px; border-radius: 999px; text-decoration:none;">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span data-i18n="unauth_back_dashboard">Dashboard-a Qayıt</span>
           </a>
-          <a href="/" class="btn btn-outline-secondary rounded-pill px-4">
-            <i class="fa-solid fa-house me-2"></i>
+          <a href="/" class="m-btn m-btn-ghost" style="display:inline-flex; align-items:center; gap:8px; padding: 12px 22px; border-radius: 999px; text-decoration:none;">
+            <i class="fa-solid fa-house"></i>
             <span data-i18n="unauth_back_home">Ana Səhifə</span>
           </a>
         </div>
+
       </div>
+
     </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer mt-auto' }) %>
+  <footer style="text-align:center; padding:24px 16px; border-top:1px solid var(--c-border); color:var(--c-faint); font-size:12.5px;">
+    <span>&copy; <%= new Date().getFullYear() %> Ovlink Security Gateway. All rights reserved.</span>
+  </footer>
 
-  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
-  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
-  <script nonce="<%= nonce %>">
-    (function () {
-      const root = document.documentElement;
-      const body = document.body;
-
-      function applyTheme(theme) {
-        const isDark = theme === 'dark';
-        root.classList.toggle('dark-mode', isDark);
-        body.classList.toggle('dark-mode', isDark);
-        try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch {}
-      }
-
-      const stored = (function () { try { return localStorage.getItem('theme'); } catch { return null; } })();
-      applyTheme(stored === 'dark' ? 'dark' : 'light');
-
-      const themeBtn = document.getElementById('themeToggleBtn');
-      const themeIcon = themeBtn ? themeBtn.querySelector('i') : null;
-
-      function syncThemeIcon() {
-        if (!themeIcon) return;
-        const isDark = root.classList.contains('dark-mode');
-        themeIcon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-      }
-
-      syncThemeIcon();
-
-      if (themeBtn) {
-        themeBtn.addEventListener('click', function (e) {
-          e.preventDefault();
-          const isDark = root.classList.contains('dark-mode');
-          applyTheme(isDark ? 'light' : 'dark');
-          syncThemeIcon();
-        });
-      }
-    })();
-  </script>
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script <% if (typeof nonce !== 'undefined' && nonce) { %>nonce="<%= nonce %>"<% } %> src="/lang.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
+  <script <% if (typeof nonce !== 'undefined' && nonce) { %>nonce="<%= nonce %>"<% } %> src="/home.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
+  <script <% if (typeof nonce !== 'undefined' && nonce) { %>nonce="<%= nonce %>"<% } %> src="/script.js?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>"></script>
 </body>
+
 </html>
+
 
 

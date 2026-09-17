@@ -6,66 +6,395 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
   <title data-i18n="ws_accept_title">Workspace dəvəti</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <!-- Monolith Home CSS -->
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
+  <!-- Monolith Accept Scoped Styles -->
+  <style>
+    /* ================================================================
+       OVLINK WORKSPACE ACCEPT — MONOLITH THEME
+       ================================================================ */
+    .ovx.ws-accept-page {
+      min-height: 100vh;
+      background: var(--c-bg);
+      color: var(--c-text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ovx .m-accept-main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: calc(var(--nav-h) + 40px) 20px 80px;
+      position: relative;
+    }
+
+    .ovx .m-accept-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 20px;
+      padding: 48px 36px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+      transition: border-color 0.3s;
+      animation: fadeUp 0.6s var(--ease) forwards;
+      position: relative;
+    }
+
+    .ovx .m-accept-card:hover {
+      border-color: var(--c-border-hi);
+    }
+
+    .ovx .m-accept-glyph {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: var(--c-white);
+      margin-bottom: 24px;
+      transition: transform 0.3s var(--ease), border-color 0.3s;
+    }
+
+    .ovx .m-accept-card:hover .m-accept-glyph {
+      border-color: var(--c-border-hi);
+      transform: scale(1.05);
+    }
+
+    .ovx .m-accept-h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: var(--c-white);
+      margin-bottom: 8px;
+    }
+
+    .ovx .m-accept-sub {
+      font-size: 14.5px;
+      color: var(--c-muted);
+      line-height: 1.55;
+      margin-bottom: 20px;
+    }
+
+    .ovx .m-ws-name-box {
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border-hi);
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--c-white);
+      margin-bottom: 28px;
+      word-break: break-word;
+    }
+
+    .ovx .m-accept-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    /* Alert Boxes */
+    .ovx .m-alert {
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      line-height: 1.55;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+
+    .ovx .m-alert--warning {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: #fcd34d;
+    }
+
+    .ovx .m-alert--success {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #6ee7b7;
+    }
+
+    .ovx .m-alert--danger {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #fca5a5;
+    }
+
+    @media (max-width: 520px) {
+      .ovx .m-accept-card { padding: 32px 20px; }
+      .ovx .m-accept-actions { flex-direction: column; width: 100%; }
+      .ovx .m-accept-actions .m-cta { width: 100%; justify-content: center; }
+    }
+  </style>
 </head>
 
-<body class="home-page app-page animated-gradient-bg">
+<body class="ovx app-page ws-accept-page">
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
 
-  <%- include('partials/public-navbar') %>
+  <!-- Custom Monolith Cursor -->
+  <div id="mCursorArrow" aria-hidden="true">
+    <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4.5 3.5L27 13.5L16.5 17.5L12 28.5L4.5 3.5Z" fill="#0a0a0a" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div id="mCursorRing" aria-hidden="true"></div>
 
-  <main class="app-main">
-    <section class="container d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 100px);">
-      <div class="app-shell" style="max-width: 500px; width: 100%;">
-        <div class="policy-card app-card text-center p-4 p-md-5">
-          <div class="mb-4">
-            <div class="d-inline-flex justify-content-center align-items-center bg-primary bg-opacity-10 text-primary rounded-circle mb-3" style="width: 72px; height: 72px;">
-              <i class="fa-solid fa-users fa-2x"></i>
-            </div>
-            <h2 class="fw-bold mb-2" data-i18n="ws_accept_title">Workspace dəvəti</h2>
-          </div>
+  <!-- Scroll Progress -->
+  <div id="mScrollBar" aria-hidden="true"><div id="mScrollBar-fill"></div></div>
 
-          <% if (state === 'ready') { %>
-            <p class="text-muted mb-2" data-i18n="ws_accept_desc">Siz workspace-ə dəvət olundunuz:</p>
-            <h4 class="fw-bold text-gradient mb-4"><%= workspaceName %></h4>
-            
-            <form method="POST" action="/workspaces/accept">
-              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-              <input type="hidden" name="token" value="<%= token %>">
-              <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap">
-                <button type="submit" class="btn btn-primary rounded-pill px-4 py-2" data-i18n="ws_accept_btn">Dəvəti qəbul et</button>
-                <a href="/dashboard" class="btn btn-outline-secondary rounded-pill px-4 py-2" data-i18n="ws_accept_decline">İmtina et</a>
-              </div>
-            </form>
-          <% } else if (state === 'login_required') { %>
-            <p class="mb-4 text-muted" data-i18n="ws_accept_login_first">Dəvəti qəbul etmək üçün əvvəlcə hesabınıza daxil olun, sonra bu linki yenidən açın.</p>
-            <a href="/login" class="btn btn-primary rounded-pill px-4 py-2" data-i18n="nav_login">Giriş</a>
-          <% } else if (state === 'wrong_email') { %>
-            <div class="alert alert-warning py-3 mb-3 small" data-i18n="ws_accept_wrong_email">Bu dəvət başqa bir e-poçt ünvanı üçün göndərilib. Düzgün hesabla daxil olun.</div>
-            <p class="small text-muted mb-0"><span data-i18n="ws_accept_invited_email">Dəvət olunan ünvan:</span> <code class="fw-bold"><%= invitedEmailMasked %></code></p>
-          <% } else if (state === 'already_member' || state === 'accepted') { %>
-            <div class="alert alert-success py-3 mb-4" data-i18n="ws_accept_already"><i class="fa-solid fa-check-circle me-2"></i> Siz bu workspace-in üzvüsünüz.</div>
-            <a href="/dashboard" class="btn btn-primary rounded-pill px-4 py-2" data-i18n="ws_open_dashboard">Linklər</a>
-          <% } else { %>
-            <div class="alert alert-danger py-3 mb-4" data-i18n="ws_accept_invalid"><i class="fa-solid fa-circle-exclamation me-2"></i> Bu dəvət etibarsızdır, vaxtı bitib və ya ləğv edilib.</div>
-            <a href="/dashboard" class="btn btn-outline-secondary rounded-pill px-4 py-2" data-i18n="ws_open_dashboard">Linklər</a>
-          <% } %>
-        </div>
+  <!-- Ambient Cursor Glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
+
+  <!-- Monolith Navigation -->
+  <%- include('partials/home-navbar') %>
+
+  <!-- Main Accept View -->
+  <main class="m-accept-main" id="mainContent">
+    <section class="m-accept-card">
+      <div class="m-accept-glyph">
+        <i class="fa-solid fa-users"></i>
       </div>
+
+      <h1 class="m-accept-h1" data-i18n="ws_accept_title">Workspace dəvəti</h1>
+
+      <% if (state === 'ready') { %>
+        <p class="m-accept-sub" data-i18n="ws_accept_desc">Siz workspace-ə dəvət olundunuz:</p>
+        
+        <div class="m-ws-name-box"><%= workspaceName %></div>
+        
+        <form method="POST" action="/workspaces/accept">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="token" value="<%= token %>">
+          <div class="m-accept-actions">
+            <button type="submit" class="m-cta m-cta--white" data-i18n="ws_accept_btn">Dəvəti qəbul et</button>
+            <a href="/dashboard" class="m-cta m-cta--outline" data-i18n="ws_accept_decline">İmtina et</a>
+          </div>
+        </form>
+      <% } else if (state === 'login_required') { %>
+        <p class="m-accept-sub" style="margin-bottom:28px;" data-i18n="ws_accept_login_first">Dəvəti qəbul etmək üçün əvvəlcə hesabınıza daxil olun, sonra bu linki yenidən açın.</p>
+        <div class="m-accept-actions">
+          <a href="/login" class="m-cta m-cta--white" data-i18n="nav_login">Giriş</a>
+        </div>
+      <% } else if (state === 'wrong_email') { %>
+        <div class="m-alert m-alert--warning" data-i18n="ws_accept_wrong_email">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Bu dəvət başqa bir e-poçt ünvanı üçün göndərilib. Düzgün hesabla daxil olun.</span>
+        </div>
+        <p class="m-accept-sub" style="margin-bottom:24px;">
+          <span data-i18n="ws_accept_invited_email">Dəvət olunan ünvan:</span>&nbsp;<code style="color:var(--c-white);background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:6px;"><%= invitedEmailMasked %></code>
+        </p>
+        <div class="m-accept-actions">
+          <a href="/login" class="m-cta m-cta--white" data-i18n="nav_login">Fərqli hesabla daxil ol</a>
+        </div>
+      <% } else if (state === 'already_member' || state === 'accepted') { %>
+        <div class="m-alert m-alert--success" data-i18n="ws_accept_already">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Siz bu workspace-in üzvüsünüz.</span>
+        </div>
+        <div class="m-accept-actions">
+          <a href="/dashboard" class="m-cta m-cta--white" data-i18n="ws_open_dashboard">Linklər</a>
+        </div>
+      <% } else { %>
+        <div class="m-alert m-alert--danger" data-i18n="ws_accept_invalid">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span>Bu dəvət etibarsızdır, vaxtı bitib və ya ləğv edilib.</span>
+        </div>
+        <div class="m-accept-actions">
+          <a href="/dashboard" class="m-cta m-cta--outline" data-i18n="ws_open_dashboard">Linklər</a>
+        </div>
+      <% } %>
     </section>
   </main>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Monolith Footer -->
+  <%- include('partials/home-footer') %>
+
+  <!-- Core App Scripts -->
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+
+  <!-- Monolith Motion & Interaction Engine -->
+  <script nonce="<%= nonce %>">
+  (function(){
+    var isMobile = !matchMedia('(hover:hover)').matches;
+
+    /* ─── 1. Custom Cursor ─── */
+    var arrow = document.getElementById('mCursorArrow');
+    var ring  = document.getElementById('mCursorRing');
+    if (arrow && ring && !isMobile) {
+      var mx = -100, my = -100, rx = -100, ry = -100;
+      var rafId = null;
+      function loop(){
+        rx += (mx - rx) * 0.15;
+        ry += (my - ry) * 0.15;
+        ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+        if (Math.abs(mx - rx) > 0.1 || Math.abs(my - ry) > 0.1) {
+          rafId = requestAnimationFrame(loop);
+        } else {
+          rx = mx; ry = my;
+          ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+          rafId = null;
+        }
+      }
+      function updatePos(e){
+        mx = e.clientX; my = e.clientY;
+        arrow.style.transform = 'translate(' + mx + 'px,' + my + 'px)';
+        if (!rafId) rafId = requestAnimationFrame(loop);
+      }
+      window.addEventListener('mousemove', updatePos, {passive:true});
+      window.addEventListener('pointermove', updatePos, {passive:true});
+      document.addEventListener('mouseover', function(e){
+        var interactive = e.target && e.target.closest && e.target.closest('a,button,input,textarea,select,label,[role="button"]');
+        if (interactive) {
+          arrow.classList.add('hover');
+          ring.classList.add('hover');
+        } else {
+          arrow.classList.remove('hover');
+          ring.classList.remove('hover');
+        }
+      }, {passive:true});
+      document.addEventListener('mousedown', function(){
+        arrow.classList.add('clicking');
+        ring.classList.add('clicking');
+      });
+      document.addEventListener('mouseup', function(){
+        arrow.classList.remove('clicking');
+        ring.classList.remove('clicking');
+      });
+      document.addEventListener('mouseleave', function(){
+        arrow.classList.add('hidden');
+        ring.classList.add('hidden');
+      });
+      document.addEventListener('mouseenter', function(){
+        arrow.classList.remove('hidden');
+        ring.classList.remove('hidden');
+      });
+    } else {
+      if (arrow) arrow.style.display = 'none';
+      if (ring)  ring.style.display  = 'none';
+    }
+
+    /* ─── 2. Cursor Glow ─── */
+    var glow = document.getElementById('cursorGlow');
+    if (glow && !isMobile) {
+      document.addEventListener('mousemove', function(e){
+        glow.style.left = e.clientX + 'px';
+        glow.style.top  = e.clientY + 'px';
+      }, {passive:true});
+    } else if (glow) {
+      glow.style.display = 'none';
+    }
+
+    /* ─── 3. Scroll Progress Bar ─── */
+    var sbFill = document.getElementById('mScrollBar-fill');
+    if (sbFill) {
+      window.addEventListener('scroll', function(){
+        var h = document.documentElement;
+        var pct = (h.scrollTop || document.body.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        sbFill.style.width = pct + '%';
+      }, {passive:true});
+    }
+
+    /* ─── 4. Nav scroll class ─── */
+    var nav = document.getElementById('mNav');
+    if (nav) {
+      var onScroll = function(){ nav.classList.toggle('scrolled', window.scrollY > 10); };
+      window.addEventListener('scroll', onScroll, {passive:true});
+      onScroll();
+    }
+
+    /* ─── 5. Ripple Effect ─── */
+    function addRipple(btn) {
+      btn.addEventListener('click', function(e){
+        var r = btn.getBoundingClientRect();
+        var size = Math.max(r.width, r.height);
+        var span = document.createElement('span');
+        span.className = 'm-ripple';
+        span.style.width = span.style.height = size + 'px';
+        span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+        span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+        btn.appendChild(span);
+        setTimeout(function(){ span.remove(); }, 600);
+      });
+    }
+    document.querySelectorAll('.m-cta, .m-btn-solid').forEach(addRipple);
+
+    /* ─── 6. Mobile Menu & Dropdowns ─── */
+    function setupDropdown(btnId, panelId) {
+      var btn = document.getElementById(btnId);
+      var panel = document.getElementById(panelId);
+      if(!btn || !panel) return;
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel').forEach(function(p) { p.classList.remove('open', 'is-open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+        if(!isExpanded) {
+          panel.classList.add('open');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    }
+    setupDropdown('langToggleBtn', 'ovxLangPanel');
+    setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+    setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel').forEach(function(p) { p.classList.remove('open', 'is-open'); });
+      document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+    });
+
+    var burger = document.getElementById('mBurger');
+    var mobileMenu = document.getElementById('mMobileMenu');
+    var mClose = document.getElementById('mMobileClose');
+    function closeMobileMenu() {
+      if (mobileMenu && mobileMenu.classList.contains('open')) {
+        mobileMenu.classList.remove('open');
+        document.body.style.overflow = '';
+        if (burger) burger.setAttribute('aria-expanded', 'false');
+      }
+    }
+    if (burger && mobileMenu) {
+      burger.addEventListener('click', function(){
+        mobileMenu.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        burger.setAttribute('aria-expanded', 'true');
+      });
+    }
+    if (mClose) mClose.addEventListener('click', closeMobileMenu);
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') closeMobileMenu();
+    });
+  })();
+  </script>
 </body>
 
 </html>
-

@@ -232,8 +232,8 @@ test('Regression tests for 5 verified fixes', async (t) => {
     const user = await seedUser({ plan: 'pro' });
 
     await helpers.dbRunAsync(
-      "INSERT INTO webhooks (user_id, url, events, is_active, created_at) VALUES (?, 'https://example.com/hook', 'link.created', 1, ?)",
-      [user.id, new Date().toISOString()]
+      "INSERT INTO webhooks (user_id, url, secret_hash, events, is_active, created_at, updated_at) VALUES (?, 'https://example.com/hook', 'dummy_secret_hash_64_chars_test_only_00000000000000000000000000000000', 'link.created', 1, ?, ?)",
+      [user.id, new Date().toISOString(), new Date().toISOString()]
     );
     const hook = await helpers.dbGetAsync('SELECT id FROM webhooks WHERE user_id = ?', [user.id]);
 

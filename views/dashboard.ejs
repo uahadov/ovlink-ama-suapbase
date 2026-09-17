@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="<%= (typeof uiLang !== 'undefined' && uiLang) ? uiLang : 'az' %>">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content="<%= csrfToken %>" />
+    <title data-i18n="dashboard_title">Dashboard - Ovlink</title>
+    <link rel="icon" href="/logo.ico" />
+
+    <!-- Typography: Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- Monolith Core Stylesheet -->
+    <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
+    <style>
+      .ovx .m-adv-input {
+        width: 100%;
+        background: var(--c-surface-2, #181818);
+        border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+        color: var(--c-text, #ffffff);
+        padding: 9px 14px;
+        border-radius: 9px;
+        font-size: 13.5px;
+        transition: border-color 0.2s;
+        font-family: inherit;
+      }
+      .ovx .m-adv-input:focus {
+        outline: none;
+        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.3));
+      }
+      .ovx .m-adv-select {
+        background: var(--c-surface-2, #181818);
+        border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+        color: var(--c-text, #ffffff);
+        padding: 8px 14px;
+        border-radius: 9px;
+        font-size: 13px;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      .ovx .m-adv-select:focus {
+        outline: none;
+        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.3));
+      }
+      .ovx .m-adv-label {
+        font-size: 11.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--c-faint, #737373);
+        margin-bottom: 6px;
+        display: block;
+      }
+      .ovx .m-table-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: nowrap;
+      }
+      .ovx .m-btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+        background: var(--c-surface-2, #181818);
+        color: var(--c-muted, #a3a3a3);
+        font-size: 12.5px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .ovx .m-btn-icon:hover {
+        border-color: var(--c-border-hi, rgba(255, 255, 255, 0.25));
+        color: #ffffff;
+      }
+      .ovx .m-checkbox {
+        width: 16px;
+        height: 16px;
+        accent-color: #ffffff;
+        cursor: pointer;
+      }
+      .ovx .m-pill-opt {
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--c-muted, #a3a3a3);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .ovx .m-pill-opt:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #ffffff;
+      }
+      .ovx .m-list-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .ovx .m-list-item {
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+    </style>
+  </head>
+  <body class="ovx">
+    <!-- Ambient Cursor Glow -->
+    <div id="cursorGlow" aria-hidden="true"></div>
+
+    <% if (typeof announcementHtml !== 'undefined' && announcementHtml) { %>
+      <%- announcementHtml %>
+    <% } %>
+
+    <!-- Universal Navigation -->
+    <%- include('partials/home-navbar') %>
+
+    <main class="m-page-shell" style="padding-top: 48px; padding-bottom: 80px;">
+      <div class="m-page-container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+
+        <!-- 1. Header & Hero Title -->
+        <div class="m-dash-hero">
+          <div class="m-page-badge" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 12px; font-weight: 600; color: #a3a3a3; margin-bottom: 16px;">
+            <i class="fa-solid fa-chart-line" style="color: #60a5fa;"></i>
+            <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+          </div>
+          <h1 style="font-size: clamp(28px, 4vw, 36px); font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin: 0 0 8px 0;" data-i18n="dashboard_title">Dashboard</h1>
+          <p style="font-size: 15px; color: var(--c-muted, #a3a3a3); margin: 0;" data-i18n="dashboard_search_placeholder">Qısa / Orijinal Link</p>
+        </div>
+
+        <!-- 2. Bento Statistics Grid -->
+        <div class="m-dash-bento">
+          <!-- Total Links -->
+          <div class="m-bento-card">
+            <div>
+              <div class="m-bento-label" data-i18n="dashboard_total_links">Ümumi Link</div>
+              <div class="m-bento-val"><%= totalLinks %></div>
+            </div>
+            <div class="m-bento-icon" style="color: #60a5fa; border-color: rgba(96, 165, 250, 0.25);">
+              <i class="fa-solid fa-link"></i>
+            </div>
+          </div>
+
+          <!-- Total Reports -->
+          <div class="m-bento-card">
+            <div>
+              <div class="m-bento-label" data-i18n="dashboard_total_reports">Ümumi Şikayət</div>
+              <div class="m-bento-val" style="<%= totalReports > 0 ? 'color: #ef4444;' : '' %>"><%= totalReports %></div>
+            </div>
+            <div class="m-bento-icon" style="<%= totalReports > 0 ? 'color: #ef4444; border-color: rgba(239, 68, 68, 0.25);' : '' %>">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+          </div>
+
+          <!-- Status / Workspace -->
+          <div class="m-bento-card">
+            <div>
+              <div class="m-bento-label" data-i18n="dashboard_account_status">Hesab Vəziyyəti</div>
+              <div class="m-bento-val" style="color: #10b981; font-size: 20px; text-transform: capitalize;">
+                <%= activeWorkspace ? activeWorkspace.name : (isPro ? 'Pro' : 'Aktiv') %>
+              </div>
+            </div>
+            <div class="m-bento-icon" style="color: #10b981; border-color: rgba(16, 185, 129, 0.25);">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Quick Shorten Composer -->
+        <div class="m-dash-quick">
+          <form id="dashboardQuickCreateForm" class="m-dash-quick-form" onsubmit="return false;" data-workspace-id="<%= activeWorkspace ? activeWorkspace.id : '' %>">
+            <div style="flex: 2; min-width: 260px;">
+              <label class="m-adv-label" for="dashboardQuickUrl" data-i18n="ws_quick_url_label">Hədəf URL</label>
+              <input id="dashboardQuickUrl" class="m-adv-input" type="url" placeholder="https://example.com" data-i18n-placeholder="ws_quick_url_placeholder" required />
+            </div>
+            <div style="flex: 1; min-width: 180px;">
+              <label class="m-adv-label" for="dashboardQuickAlias" data-i18n="ws_quick_alias_label">Xüsusi alias (istəyə bağlı)</label>
+              <input id="dashboardQuickAlias" class="m-adv-input" type="text" maxlength="50" placeholder="kampaniya-2026" data-i18n-placeholder="ws_quick_alias_placeholder" />
+            </div>
+            <div style="min-width: 120px;">
+              <button type="submit" class="m-cta m-cta--white m-cta--sm" style="width: 100%; height: 40px; justify-content: center;" data-i18n="ws_quick_create_btn">
+                <i class="fa-solid fa-bolt"></i>
+                <span>Qısalt</span>
+              </button>
+            </div>
+            <div style="width: 100%;"><div id="dashboardQuickMsg" class="small"></div></div>
+          </form>
+        </div>
+
+        <!-- 4. Links Table & Toolbar Panel -->
+        <div class="m-dash-panel">
+          <!-- Panel Header -->
+          <div class="m-dash-panel-header">
+            <h2 class="m-dash-panel-title">
+              <i class="fa-solid fa-list" style="color: #a3a3a3;"></i>
+              <span data-i18n="dashboard_my_links">Linklərim</span>
+              <% if (activeWorkspace) { %>
+                <span class="m-badge-pill m-badge-pill--pro ms-2" style="font-size: 11px; padding: 2px 8px;">
+                  <i class="fa-solid fa-users me-1"></i><%= activeWorkspace.name %>
+                </span>
+              <% } %>
+            </h2>
+
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+              <!-- Workspace Scope Selector -->
+              <select id="workspaceScopeSelect" class="m-adv-select" aria-label="Workspace" title="Workspace">
+                <option value="" data-i18n="ws_scope_personal">Şəxsi linklər</option>
+                <% if (Array.isArray(memberships)) { %>
+                  <% memberships.forEach(function(m) { %>
+                    <option value="<%= m.id %>" <%= activeWorkspace && activeWorkspace.id === m.id ? 'selected' : '' %>>
+                      <%= m.name %>
+                    </option>
+                  <% }); %>
+                <% } %>
+              </select>
+
+              <a href="/workspaces" class="m-cta m-cta--outline m-cta--sm">
+                <i class="fa-solid fa-users-gear"></i>
+                <span data-i18n="ws_manage_btn">Workspace</span>
+              </a>
+              <a href="/api/user/export?format=csv" class="m-cta m-cta--outline m-cta--sm" data-i18n="dashboard_export_csv">
+                <i class="fa-solid fa-file-csv"></i> CSV
+              </a>
+              <button id="bulkImportBtn" type="button" class="m-cta m-cta--outline m-cta--sm" data-i18n="dashboard_import_btn">
+                <i class="fa-solid fa-file-import"></i> <span data-i18n="dashboard_import_btn">Toplu import</span>
+              </button>
+              <button id="bulkDeleteBtn" type="button" class="m-cta m-cta--danger m-cta--sm" data-i18n="bulk_delete_btn">
+                <i class="fa-solid fa-trash-can"></i> <span data-i18n="bulk_delete_btn">Seçilənləri sil</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter & Search Toolbar -->
+          <div class="m-dash-toolbar">
+            <div style="flex: 2; min-width: 220px;">
+              <input id="dashboardSearch" class="m-adv-input" placeholder="Kısa / Orijinal Link" data-i18n-placeholder="dashboard_search_placeholder" value="<%= typeof q !== 'undefined' ? q : '' %>" />
+            </div>
+            <div style="flex: 1; min-width: 140px;">
+              <select id="dashboardFilter" class="m-adv-select" style="width: 100%;">
+                <option value="all" <%= (typeof filter !== 'undefined' && filter === 'all') ? 'selected' : '' %> data-i18n="dashboard_filter_all">Hamısı</option>
+                <option value="reported" <%= (typeof filter !== 'undefined' && filter === 'reported') ? 'selected' : '' %> data-i18n="dashboard_filter_reported">Şikayətli</option>
+                <option value="password" <%= (typeof filter !== 'undefined' && filter === 'password') ? 'selected' : '' %> data-i18n="dashboard_filter_password">Şifrəli</option>
+                <option value="disabled" <%= (typeof filter !== 'undefined' && filter === 'disabled') ? 'selected' : '' %> data-i18n="dashboard_filter_disabled">Deaktiv</option>
+              </select>
+            </div>
+            <div style="flex: 1; min-width: 140px;">
+              <select id="dashboardSort" class="m-adv-select" style="width: 100%;">
+                <option value="newest" <%= (typeof sort !== 'undefined' && sort === 'newest') ? 'selected' : '' %> data-i18n="dashboard_sort_newest">Yeni → Köhnə</option>
+                <option value="oldest" <%= (typeof sort !== 'undefined' && sort === 'oldest') ? 'selected' : '' %> data-i18n="dashboard_sort_oldest">Köhnə → Yeni</option>
+                <option value="reports" <%= (typeof sort !== 'undefined' && sort === 'reports') ? 'selected' : '' %> data-i18n="dashboard_sort_reports">Şikayət Sayı</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Table Container -->
+          <div class="m-table-wrap">
+            <table class="m-table">
+              <thead>
+                <tr>
+                  <th style="width: 44px; text-align: center;">
+                    <input type="checkbox" id="bulkSelectAll" class="m-checkbox" aria-label="Select all" />
+                  </th>
+                  <th data-i18n="th_short">Qısa Link</th>
+                  <th data-i18n="th_original">Orijinal Link</th>
+                  <th data-i18n="th_folder">Qovluq</th>
+                  <th data-i18n="th_tags">Teqlər</th>
+                  <th data-i18n="th_date">Tarix</th>
+                  <th style="text-align: center;" data-i18n="th_report">Şikayət</th>
+                  <th style="text-align: right; padding-right: 24px;" data-i18n="th_actions">Əməliyyatlar</th>
+                </tr>
+              </thead>
+              <tbody id="dashboardTableBody">
+                <% if (!displayRows || displayRows.length === 0) { %>
+                  <tr>
+                    <td colspan="8" style="text-align: center; padding: 48px 16px; color: var(--c-faint, #737373);" data-i18n="empty_list">
+                      Hələ heç bir link yaratmamısınız.
+                    </td>
+                  </tr>
+                  <tr id="dashboardNoResults" class="d-none">
+                    <td colspan="8" style="text-align: center; padding: 48px 16px; color: var(--c-faint, #737373);" data-i18n="dashboard_no_results">
+                      Nəticə tapılmadı.
+                    </td>
+                  </tr>
+                <% } else { %>
+                  <% displayRows.forEach(function(row) { %>
+                    <%
+                      const shortCode = (row.short || '').toString();
+                      const originalUrl = (row.original || '').toString();
+                      const shortUrl = buildShortUrl(shortCode, row.domain_host || '');
+                      const createdDate = row.created_at ? new Date(row.created_at).toLocaleDateString() : '';
+                      const reportsCount = Number(row.reports || 0);
+                      const folderName = normalizeFolderName(row.folder_name || '');
+                      const tags = parseTagsJson(row.tags_json || '');
+                      const tagsJoined = tags.join(', ');
+                      const safeStatsPath = '/stats-page/' + encodeURIComponent(shortCode);
+                      const safeOriginalEncoded = encodeURIComponent(originalUrl);
+                    %>
+                    <tr data-short="<%= shortCode %>"
+                        data-original="<%= originalUrl.toLowerCase() %>"
+                        data-folder="<%= folderName.toLowerCase() %>"
+                        data-tags="<%= tagsJoined.toLowerCase() %>"
+                        data-folder-raw="<%= folderName %>"
+                        data-tags-json="<%= JSON.stringify(tags) %>"
+                        data-reports="<%= reportsCount %>"
+                        data-created="<%= row.created_at || '' %>"
+                        data-password="<%= row.link_password ? 1 : 0 %>"
+                        data-disabled="<%= row.disabled ? 1 : 0 %>">
+                      <td style="text-align: center;">
+                        <input type="checkbox" class="m-checkbox bulk-select" value="<%= shortCode %>" aria-label="Select link" />
+                      </td>
+                      <td style="font-weight: 600;">
+                        <a href="<%= shortUrl %>" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: none;">
+                          <%= shortCode %>
+                        </a>
+                        <% if (row.disabled) { %>
+                          <span class="m-badge-quarantine ms-1" data-i18n="link_quarantined">Karantin</span>
+                        <% } %>
+                        <% if (row.link_password) { %>
+                          <i class="fa-solid fa-lock ms-1" style="font-size: 11px; color: #fcd34d;" title="Şifrəli"></i>
+                        <% } %>
+                      </td>
+                      <td style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<%= originalUrl %>">
+                        <%= originalUrl %>
+                      </td>
+                      <td style="font-size: 12.5px;">
+                        <% if (folderName) { %>
+                          <span class="m-tag-pill"><i class="fa-regular fa-folder me-1"></i><%= folderName %></span>
+                        <% } else { %>
+                          <span style="color: var(--c-faint, #737373);">-</span>
+                        <% } %>
+                      </td>
+                      <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <% if (tags.length > 0) { %>
+                          <% tags.forEach(function(tag) { %>
+                            <span class="m-tag-pill"><%= tag %></span>
+                          <% }); %>
+                        <% } else { %>
+                          <span style="color: var(--c-faint, #737373);">-</span>
+                        <% } %>
+                      </td>
+                      <td style="font-size: 12.5px; color: var(--c-muted, #a3a3a3); white-space: nowrap;">
+                        <%= createdDate %>
+                      </td>
+                      <td style="text-align: center;">
+                        <% if (reportsCount > 0) { %>
+                          <span class="m-badge-reports"><%= reportsCount %></span>
+                        <% } else { %>
+                          <span class="m-badge-reports m-badge-reports--zero">0</span>
+                        <% } %>
+                      </td>
+                      <td style="text-align: right; padding-right: 24px;">
+                        <div class="m-table-actions">
+                          <!-- Edit -->
+                          <button type="button" class="m-btn-icon" data-edit-short="<%= shortCode %>" data-edit-original="<%= safeOriginalEncoded %>" aria-label="Edit" title="Düzəliş">
+                            <i class="fa-solid fa-pen"></i>
+                          </button>
+                          <!-- Metadata (folder/tags) -->
+                          <button type="button" class="m-btn-icon" data-meta-short="<%= shortCode %>" data-meta-folder="<%= folderName %>" data-meta-tags="<%= JSON.stringify(tags) %>" aria-label="Metadata" title="Qovluq və Teq">
+                            <i class="fa-solid fa-tags"></i>
+                          </button>
+                          <!-- Copy -->
+                          <button type="button" class="m-btn-icon" data-copy-text="<%= shortUrl %>" aria-label="Copy" title="Kopyala">
+                            <i class="fa-solid fa-copy"></i>
+                          </button>
+                          <!-- Stats -->
+                          <a href="<%= safeStatsPath %>" class="m-btn-icon" aria-label="Stats" title="Statistika">
+                            <i class="fa-solid fa-chart-bar"></i>
+                          </a>
+                          <!-- Delete Form -->
+                          <form method="POST" action="/api/user/delete" style="display: inline-block; margin: 0;">
+                            <input type="hidden" name="short" value="<%= shortCode %>" />
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                            <button type="submit" class="m-btn-icon" style="color: #f87171; border-color: rgba(239, 68, 68, 0.2);" aria-label="Delete" title="Sil">
+                              <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  <% }); %>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Bar -->
+          <% if (totalPages > 1) { %>
+            <div class="m-pagination-bar">
+              <div>
+                <span>Səhifə <%= currentPage %> / <%= totalPages %></span> (<%= totalLinks %> link)
+              </div>
+              <nav aria-label="Dashboard pagination">
+                <ul class="m-pagination-list">
+                  <!-- Previous -->
+                  <li>
+                    <a class="m-page-btn <%= currentPage <= 1 ? 'disabled' : '' %>" href="<%= currentPage > 1 ? paginationUrl(currentPage - 1) : '#' %>" aria-label="Previous">
+                      <i class="fa-solid fa-chevron-left"></i>
+                    </a>
+                  </li>
+
+                  <!-- Page numbers -->
+                  <%
+                    const maxVisible = 5;
+                    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+                    if (endPage - startPage + 1 < maxVisible) {
+                      startPage = Math.max(1, endPage - maxVisible + 1);
+                    }
+                    for (let p = startPage; p <= endPage; p++) {
+                  %>
+                    <li>
+                      <a class="m-page-btn <%= p === currentPage ? 'active' : '' %>" href="<%= paginationUrl(p) %>">
+                        <%= p %>
+                      </a>
+                    </li>
+                  <% } %>
+
+                  <!-- Next -->
+                  <li>
+                    <a class="m-page-btn <%= currentPage >= totalPages ? 'disabled' : '' %>" href="<%= currentPage < totalPages ? paginationUrl(currentPage + 1) : '#' %>" aria-label="Next">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          <% } %>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- ==========================================================================
+         Dashboard Modals (Pure Monolith Dark Style)
+         ========================================================================== -->
+
+    <!-- 1. Edit Link Modal -->
+    <div class="modal fade" id="dashboardEditLinkModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 class="modal-title" data-i18n="dashboard_edit_modal_title">
+              <i class="fa-solid fa-pen-to-square" style="color: #60a5fa;"></i>
+              <span>Hədəf Linki Yenilə</span>
+            </h3>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div style="margin-bottom: 16px;">
+              <label class="m-adv-label">Qısa Kod</label>
+              <input id="dashboardEditShortDisplay" class="m-adv-input" type="text" readonly disabled style="opacity: 0.6;" />
+            </div>
+            <div style="margin-bottom: 16px;">
+              <label class="m-adv-label" for="dashboardEditOriginalInput" data-i18n="dashboard_edit_url_label">Yeni Hədəf URL</label>
+              <input id="dashboardEditOriginalInput" class="m-adv-input" type="url" placeholder="https://example.com/yeni-link" data-i18n-placeholder="dashboard_edit_url_placeholder" required />
+            </div>
+            <div id="dashboardEditMsg" class="small"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="m-cta m-cta--outline m-cta--sm" data-bs-dismiss="modal" data-i18n="cancel_btn">Ləğv et</button>
+            <button type="button" class="m-cta m-cta--white m-cta--sm" id="dashboardEditSaveBtn" data-i18n="dashboard_edit_save">Yenilə</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Metadata (Folder & Tags) Modal -->
+    <div class="modal fade" id="dashboardMetaModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 class="modal-title" data-i18n="dashboard_meta_modal_title">
+              <i class="fa-solid fa-tags" style="color: #a78bfa;"></i>
+              <span>Qovluq və teq düzəlişi</span>
+            </h3>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div style="margin-bottom: 16px;">
+              <label class="m-adv-label" for="dashboardMetaFolderInput" data-i18n="dashboard_meta_folder_label">Qovluq</label>
+              <input id="dashboardMetaFolderInput" class="m-adv-input" data-i18n-placeholder="dashboard_meta_folder_placeholder" placeholder="Məs: kampaniyalar" />
+              <div id="dashboardMetaFolderPills" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px;"></div>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <label class="m-adv-label" for="dashboardMetaTagsInput" data-i18n="dashboard_meta_tags_label">Teqlər</label>
+              <input id="dashboardMetaTagsInput" class="m-adv-input" data-i18n-placeholder="dashboard_meta_tags_placeholder" placeholder="Məs: reklam, instagram, yaz" />
+              <div id="dashboardMetaTagPills" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px;"></div>
+            </div>
+            <div id="dashboardMetaMsg" class="small"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="m-cta m-cta--outline m-cta--sm" data-bs-dismiss="modal" data-i18n="dashboard_meta_cancel">Ləğv et</button>
+            <button type="button" class="m-cta m-cta--white m-cta--sm" id="dashboardMetaSaveBtn" data-i18n="dashboard_meta_save">Yadda saxla</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Bulk Import Modal -->
+    <div class="modal fade" id="bulkImportModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 class="modal-title" data-i18n="dashboard_import_title">
+              <i class="fa-solid fa-file-import" style="color: #34d399;"></i>
+              <span>Toplu link import</span>
+            </h3>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p style="font-size: 13.5px; color: var(--c-muted, #a3a3a3); margin-bottom: 12px;" data-i18n="dashboard_import_help">
+              Hər sətrə bir URL yazın və ya CSV yapışdırın. URL sütunu avtomatik oxunur.
+            </p>
+            <textarea id="bulkImportInput" class="m-adv-input" rows="8" style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px;" data-i18n-placeholder="dashboard_import_placeholder" placeholder="https://example.com/page-1&#10;https://example.com/page-2"></textarea>
+            <div id="bulkImportMsg" class="small" style="margin-top: 8px;"></div>
+            <div id="bulkImportResults" class="d-none" style="margin-top: 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                <strong style="color: #ffffff;" data-i18n="dashboard_import_created_links">Yaradılan linklər</strong>
+                <div style="display: flex; gap: 6px;">
+                  <button type="button" id="bulkImportCopyAll" class="m-cta m-cta--outline m-cta--sm" data-i18n="dashboard_import_copy_all">
+                    <i class="fa-solid fa-copy me-1"></i>Hamısını kopyala
+                  </button>
+                  <button type="button" id="bulkImportDownloadCsv" class="m-cta m-cta--white m-cta--sm" data-i18n="dashboard_import_download_csv">
+                    <i class="fa-solid fa-file-csv me-1"></i>CSV yüklə
+                  </button>
+                </div>
+              </div>
+              <div id="bulkImportLinks" class="m-list-group small"></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="m-cta m-cta--outline m-cta--sm" data-bs-dismiss="modal" data-i18n="cancel_btn">Ləğv et</button>
+            <button type="button" id="bulkImportSubmit" class="m-cta m-cta--white m-cta--sm" data-i18n="dashboard_import_submit">Import et</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Universal Footer -->
+    <%- include('partials/home-footer') %>
+
+    <!-- Application Scripts -->
+    <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+    <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  </body>
+</html>

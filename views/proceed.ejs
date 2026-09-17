@@ -14,131 +14,217 @@
   <link rel="alternate" hreflang="az" href="<%= (seo && seo.hreflangAz) ? seo.hreflangAz : '' %>" />
   <link rel="alternate" hreflang="tr" href="<%= (seo && seo.hreflangTr) ? seo.hreflangTr : '' %>" />
   <link rel="alternate" hreflang="x-default" href="<%= (seo && seo.hreflangXDefault) ? seo.hreflangXDefault : '' %>" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
 </head>
 
-<body class="home-page auth-policy-page proceed-page">
+<body class="ovx home-page auth-page proceed-page">
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
-        <i class="fa-solid fa-bullhorn"></i>
+      <div class="shell">
+        <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <%- include('partials/public-navbar') %>
+  <%- include('partials/home-navbar') %>
 
-  <main class="auth-main-shell">
-    <section id="hero" class="d-flex align-items-center auth-hero">
-      <div class="container">
-        <div class="text-center auth-hero-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-4 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
-          </div>
-          <h1 class="hero-title auth-display-title" data-i18n="password_title">Şifrə tələb olunur</h1>
-          <p class="hero-subtitle auth-display-subtitle" data-i18n="password_subtitle">Bu link şifrə ilə qorunur.</p>
+  <main class="m-auth-shell" id="mainContent">
+    <div class="m-auth-container">
+      <div class="m-auth-head">
+        <div class="m-auth-eyebrow">
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+        </div>
+        <h1 class="m-auth-title" data-i18n="password_title">Şifrə tələb olunur</h1>
+        <p class="m-auth-sub" data-i18n="password_subtitle">Bu link şifrə ilə qorunur.</p>
+      </div>
+
+      <div class="m-auth-card">
+        <div class="m-auth-glyph" aria-hidden="true">
+          <i class="fa-solid fa-shield-halved"></i>
         </div>
 
-        <div class="glass-card home-form-card auth-home-card proceed-card">
-          <div class="auth-head-icon" aria-hidden="true">
-            <i class="fa-solid fa-lock"></i>
-          </div>
-
-          <form id="proceedForm" novalidate>
-            <div class="mb-3 auth-field">
-              <label for="linkPasswordInput" class="form-label" data-i18n="password_input_label">Link Şifrəsi</label>
-              <div class="input-group auth-input shadow-sm">
-                <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
-                <input type="password" class="form-control" id="linkPasswordInput" required data-i18n-placeholder="password_input_label" placeholder="Link Şifrəsi" autocomplete="current-password">
-              </div>
+        <form id="proceedForm" novalidate>
+          <div class="m-auth-field">
+            <label for="linkPasswordInput" class="m-auth-label" data-i18n="password_input_label">Link Şifrəsi</label>
+            <div class="m-auth-input-wrap">
+              <i class="fa-solid fa-key m-auth-input-icon" aria-hidden="true"></i>
+              <input type="password" class="m-auth-input" id="linkPasswordInput" required data-i18n-placeholder="password_input_label" placeholder="Link Şifrəsi" autocomplete="current-password">
             </div>
-
-            <button type="submit" id="proceedSubmitBtn" class="btn btn-primary btn-lg w-100 rounded-pill py-3 fw-bold shadow-lg home-primary-btn auth-submit-btn">
-              <span data-i18n="password_submit_btn">Göndər</span>
-            </button>
-          </form>
-
-          <p id="proceedMessage" class="text-center small mt-3 mb-0 auth-message"></p>
-
-          <div class="policy-back">
-            <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
           </div>
+
+          <button type="submit" id="proceedSubmitBtn" class="m-cta m-cta--white m-auth-submit">
+            <span data-i18n="password_submit_btn">Göndər</span> <i class="fa-solid fa-arrow-right ms-2" aria-hidden="true"></i>
+          </button>
+        </form>
+
+        <p id="proceedMessage" class="m-auth-msg auth-message"></p>
+
+        <div class="m-auth-footer">
+          <a href="/" class="m-cta m-cta--outline m-cta--sm m-auth-back-btn">
+            <i class="fa-solid fa-house" aria-hidden="true"></i>
+            <span data-i18n="nav_home">Ana Səhifə</span>
+          </a>
         </div>
       </div>
-    </section>
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <%- include('partials/home-footer') %>
 
+  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>">
-    const proceedForm = document.getElementById('proceedForm');
-    const proceedInput = document.getElementById('linkPasswordInput');
-    const proceedBtn = document.getElementById('proceedSubmitBtn');
-    const proceedMsg = document.getElementById('proceedMessage');
+    (function () {
+      /* ─── Navbar dropdown & mobile menu ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+      });
 
-    const proceedSetMessage = (text, kind = 'danger') => {
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function(){
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button ripple effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var r = btn.getBoundingClientRect();
+          var rip = document.createElement('span');
+          rip.className = 'm-ripple';
+          rip.style.left = (e.clientX - r.left) + 'px';
+          rip.style.top  = (e.clientY - r.top) + 'px';
+          btn.appendChild(rip);
+          setTimeout(function() { rip.remove(); }, 600);
+        });
+      });
+
+      /* ─── Ambient Glow Mouse Tracking ─── */
+      var glow = document.getElementById('cursorGlow');
+      if (glow && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        document.addEventListener('mousemove', function(e) {
+          glow.style.left = e.clientX + 'px';
+          glow.style.top = e.clientY + 'px';
+        }, { passive: true });
+      }
+    })();
+
+    /* ─── Password Gate Form Verification Flow ─── */
+    var proceedForm = document.getElementById('proceedForm');
+    var proceedInput = document.getElementById('linkPasswordInput');
+    var proceedBtn = document.getElementById('proceedSubmitBtn');
+    var proceedMsg = document.getElementById('proceedMessage');
+
+    function proceedSetMessage(text, kind) {
+      kind = kind || 'danger';
       if (!proceedMsg) return;
-      proceedMsg.className = `text-center small mt-3 mb-0 text-${kind}`;
+      proceedMsg.className = 'm-auth-msg auth-message text-center small text-' + kind;
       proceedMsg.textContent = text || '';
-    };
+    }
 
     if (proceedForm) {
-      proceedForm.addEventListener('submit', async (e) => {
+      proceedForm.addEventListener('submit', async function (e) {
         e.preventDefault();
-        const password = (proceedInput && proceedInput.value ? proceedInput.value : '').trim();
+        var password = (proceedInput && proceedInput.value ? proceedInput.value : '').trim();
         if (!password) {
-          proceedSetMessage(pickLang('Şifrəni daxil edin.', 'Şifre girin.', 'Please enter the password.'), 'danger');
+          proceedSetMessage(typeof pickLang === 'function' ? pickLang('Şifrəni daxil edin.', 'Şifre girin.', 'Please enter the password.') : 'Şifrəni daxil edin.', 'danger');
           return;
         }
 
         if (proceedBtn) {
           proceedBtn.disabled = true;
-          proceedBtn.textContent = pickLang('Yoxlanılır...', 'Kontrol ediliyor...', 'Checking...');
+          var checkingText = typeof pickLang === 'function' ? pickLang('Yoxlanılır...', 'Kontrol ediliyor...', 'Checking...') : 'Yoxlanılır...';
+          proceedBtn.innerHTML = '<span>' + checkingText + '</span> <i class="fa-solid fa-spinner fa-spin ms-2" aria-hidden="true"></i>';
         }
 
         try {
-          if (!getCsrfToken()) {
-            await refreshCsrfToken();
+          if (typeof getCsrfToken === 'function' && !getCsrfToken()) {
+            if (typeof refreshCsrfToken === 'function') await refreshCsrfToken();
           }
-          const res = await postJsonWithCsrf('/verify/<%= shortPath %>', { password, lang: currentLang });
-          const data = await res.json().catch(() => ({}));
+          var activeLang = (typeof currentLang !== 'undefined') ? currentLang : 'az';
+          var res = await postJsonWithCsrf('/verify/<%= shortPath %>', { password: password, lang: activeLang });
+          var data = await res.json().catch(function () { return {}; });
 
           if (!res.ok) {
-            proceedSetMessage(data.error || pickLang('Şifrə doğrulanmadı.', 'Şifre doğrulanamadı.', 'Password verification failed.'), 'danger');
+            var failText = typeof pickLang === 'function' ? pickLang('Şifrə doğrulanmadı.', 'Şifre doğrulanamadı.', 'Password verification failed.') : 'Şifrə doğrulanmadı.';
+            proceedSetMessage(data.error || failText, 'danger');
             return;
           }
 
           if (data.success && data.redirect) {
-            proceedSetMessage(pickLang('Yönləndirilirsiniz...', 'Yönlendiriliyorsunuz...', 'Redirecting...'), 'success');
+            var redirectText = typeof pickLang === 'function' ? pickLang('Yönləndirilirsiniz...', 'Yönlendiriliyorsunuz...', 'Redirecting...') : 'Yönləndirilirsiniz...';
+            proceedSetMessage(redirectText, 'success');
             window.location.href = data.redirect;
             return;
           }
 
-          proceedSetMessage(pickLang('Yönləndirmə alınmadı.', 'Yönlendirme alınamadı.', 'Redirect could not be started.'), 'danger');
+          var startFailText = typeof pickLang === 'function' ? pickLang('Yönləndirmə alınmadı.', 'Yönlendirme alınamadı.', 'Redirect could not be started.') : 'Yönləndirmə alınmadı.';
+          proceedSetMessage(startFailText, 'danger');
         } catch (err) {
-          proceedSetMessage((err && err.message) || pickLang('Xəta baş verdi.', 'Bir hata oluştu.', 'An error occurred.'), 'danger');
+          var errText = typeof pickLang === 'function' ? pickLang('Xəta baş verdi.', 'Bir hata oluştu.', 'An error occurred.') : 'Xəta baş verdi.';
+          proceedSetMessage((err && err.message) || errText, 'danger');
         } finally {
           if (proceedBtn) {
             proceedBtn.disabled = false;
-            proceedBtn.textContent = pickLang('Göndər', 'Gönder', 'Submit');
+            var submitText = typeof pickLang === 'function' ? pickLang('Göndər', 'Gönder', 'Submit') : 'Göndər';
+            proceedBtn.innerHTML = '<span data-i18n="password_submit_btn">' + submitText + '</span> <i class="fa-solid fa-arrow-right ms-2" aria-hidden="true"></i>';
           }
         }
       });
     }
   </script>
-
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
-  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
 </body>
 
 </html>

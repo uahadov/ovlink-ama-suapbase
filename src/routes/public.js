@@ -8,6 +8,9 @@ const { normalizeLang, pickLang } = require('../lib/i18n');
 const { decryptAES256GCM } = require('../../utils/crypto');
 const { requireSignedIn } = require('../middleware/auth');
 const { getEffectivePlanForUser, isProAccessActive } = require('../lib/plans');
+const { sensitiveActionLimiter } = require('../middleware/rate-limiter');
+const { logSecurityEvent } = require('../lib/security');
+const { createBotShared } = require('../../bots/shared');
 
 const router = express.Router();
 
@@ -468,6 +471,46 @@ router.get('/bot/auth', (req, res) => {
       status: 'login_required',
       user: null,
       errorMessage: null,
+    });
+  });
+});
+
+// Confirm and execute bot linking (POST /bot/auth/confirm)
+router.post('/bot/auth/confirm', requireSignedIn, sensitiveActionLimiter, (req, res) => {
+  const platform = (req.body.platform || '').toString().trim().toLowerCase();
+  const platformUserId = (req.body.id || '').toString().trim();
+  const platformUsername = (req.body.name || '').toString().trim();
+
+  if (!platform || !platformUserId || !['telegram', 'discord'].includes(platform)) {
+    return res.status(400).render('error-disabled', { csrfToken: res.locals._csrf, reason: 'Geçersiz parametreler.' });
+  }
+
+  db.get('SELECT id, email FROM users WHERE id = ?', [req.session.userId], (uErr, user) => {
+    if (uErr || !user) return res.redirect('/login');
+    const emailPlain = user.email ? (user.email.includes(':') ? decryptAES256GCM(user.email) : user.email) : '';
+    const botShared = createBotShared(db, {});
+    botShared.linkBotUser(platform, platformUserId, platformUsername, req.session.userId).then((ok) => {
+      if (ok) {
+        logSecurityEvent(req, `bot.${platform}.link`, 'success', { user_id: req.session.userId });
+        return res.render('bot-auth', {
+          csrfToken: res.locals._csrf,
+          platform,
+          platformUserId,
+          platformUsername,
+          status: 'success',
+          user: { id: user.id, email: emailPlain },
+          errorMessage: null,
+        });
+      }
+      return res.render('bot-auth', {
+        csrfToken: res.locals._csrf,
+        platform,
+        platformUserId,
+        platformUsername,
+        status: 'error',
+        user: { id: user.id, email: emailPlain },
+        errorMessage: 'Hesabınızı bağlamaq mümkün olmadı. Zəhmət olmasa yenidən cəhd edin.',
+      });
     });
   });
 });

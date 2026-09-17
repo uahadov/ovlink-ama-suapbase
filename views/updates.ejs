@@ -5,15 +5,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — Updates & Changelog' %></title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
   <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
   <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
@@ -33,285 +36,635 @@
   <% } %>
 </head>
 
-<body class="home-page policy-page updates-page animated-gradient-bg">
+<body class="ovx home-page updates-page">
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell" style="max-width: 900px; width: 100%;">
 
-  <main class="policy-main">
-    <section class="container">
-      <div class="policy-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-rocket me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
-          </div>
-          <h1 class="policy-title" data-i18n="updates_page_title">Yeniliklər</h1>
-          <p class="hero-subtitle" data-i18n="updates_page_intro">Ovlink üçün son ictimai yenilikləri burada görəcəksiniz.</p>
+      <!-- Header / Hero Section -->
+      <section class="m-content-hero" aria-labelledby="updatesPageHeading">
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 18px;">
+          <span class="m-live-dot" aria-hidden="true"></span>
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
         </div>
+        <h1 id="updatesPageHeading" data-i18n="updates_page_title">Yeniliklər</h1>
+        <p data-i18n="updates_page_intro">
+          Ovlink üçün son ictimai yenilikləri burada görəcəksiniz.
+        </p>
+      </section>
 
-        <div class="policy-list updates-list">
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-wifi me-2 text-primary"></i><span data-i18n="updates_release_20260908_pwa_title">PWA & Çevrimdışı Dayanıqlıq Təkmilləşdirməsi</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260908_pwa_badge">08.09.2026</span>
+      <!-- Scope Notice Card -->
+      <aside class="m-card-monolith mb-5" style="padding: 20px 24px; margin-bottom: 40px; border-left: 3px solid var(--c-white); display: flex; flex-direction: row; align-items: center; gap: 16px;">
+        <div style="font-size: 20px; color: var(--c-white); flex-shrink: 0;" aria-hidden="true">
+          <i class="fa-solid fa-bullseye"></i>
+        </div>
+        <div>
+          <div style="font-size: 14px; font-weight: 700; color: var(--c-white); margin-bottom: 4px;" data-i18n="updates_scope_title">Bu səhifənin məqsədi</div>
+          <div style="font-size: 13px; color: var(--c-muted); line-height: 1.5;" data-i18n="updates_scope_desc">Burada yalnız istifadəçiyə təsir edən yenilikləri paylaşırıq. Daxili texniki dəyişikliklər bu siyahıya əlavə edilmir.</div>
+        </div>
+      </aside>
+
+      <!-- Monolith Timeline -->
+      <div class="m-timeline">
+
+                <!-- Entry 0: Monolith Email Templates & Offline PWA HUD -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-envelope-open-text" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260917_emails_title">Monolith E-poçt Şablonları və Oflayn PWA HUD</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260917_emails_badge">17.09.2026</span>
             </div>
-            <p data-i18n="updates_release_20260908_pwa_desc">Offline rejimdə etibarlı xəta səhifəsi, Service Worker keş yeniləmələri və ani versiya sinxronizasiyası tətbiq edildi.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260917_emails_desc">Bütün tranzaksiya e-poçtları (təsdiqləmə kodları, şifrə sıfırlama, təhlükəsizlik bildirişləri və dəvətlər) Monolith qaranlıq kətanına keçirildi, oflayn PWA ekranı kibernetik HUD ilə yeniləndi.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20260917_emails_item1">Zifiri Qaranlıq Tranzaksiya E-poçtları: #0a0a0a kətan, #111111 kart strukturu, JetBrains Mono 6 rəqəmli monospace kod bloku və bütün e-poçt müştəriləri ilə tam uyğunluq.</li>
+              <li data-i18n="updates_release_20260917_emails_item2">Kibernetik Oflayn PWA HUD: İnternet kəsildikdə animasiyalı radar/antenna SVG diaqramı, oflayn status bildirişi və əlaqə bərpa olunduqda avtomatik səhifə yenilənməsi.</li>
+              <li data-i18n="updates_release_20260917_emails_item3">Təhlükəsizlik və Çoxdilli Uyğunluq: Giriş cihazı telemetriyası, IP məxfilik qorunması və AZ/TR/EN dillərində tam sinxronizasiya.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry 0: Admin Console Monolith Redesign & System Cleanup -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-terminal" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260917_admin_title">Admin Konsolu Monolith Redizaynı və Sistem Təmizliyi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260917_admin_badge">17.09.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260917_admin_desc">Bütün idarəetmə konsolu (/admin/*), giriş səhifələri və audit jurnalları yüksək kontrastlı pitch-black Monolith dizaynına keçirildi, artıq partial fayllar təmizləndi.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20260917_admin_item1">Pitch-black Cyber Konsol: 17 admin alt səhifəsi, zifiri qaranlıq kətan (#0a0a0a), kart səthləri (#111111), hairline haşiyələr və Inter/JetBrains Mono şriftləri.</li>
+              <li data-i18n="updates_release_20260917_admin_item2">Ambient Kursor və Giriş Təhlükəsizliyi: Giriş və 2FA ekranlarında #cursorGlow animasiyası, gücləndirilmiş audit jurnalları və yenilənmiş loqo.</li>
+              <li data-i18n="updates_release_20260917_admin_item3">Kod Bazası Optimallaşdırması: Köhnəlmiş və təkrar partial faylların (public-navbar, public-footer, cookie-banner) tam silinməsi və arxitektura təmizlənməsi.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry 0: Dashboard Redesign & Bootstrap-Free Modals -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-chart-line" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260917_dash_title">Monolith Dashboard və 100% Bootstrap-Free Modal Redizaynı</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260917_dash_badge">17.09.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260917_dash_desc">İstifadəçi idarə paneli (/dashboard) sıfırdan Monolith Bento arxitekturasına keçirildi və bütün modal pəncərələr 100% Bootstrap-dan azad vanilla mühərriklə yeniləndi.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20260917_dash_item1">Bento Dashboard və İntellektual İdarə Paneli: Link sayı, şikayət telemetriyası və hesab vəziyyəti üçün Bento grid, ani axtarış, filtr və sıralama idarəetməsi.</li>
+              <li data-i18n="updates_release_20260917_dash_item2">100% Bootstrap-Free Modal Mühərriki: Workspaces, Profil, Qovluq/Teq və Toplu Link idxalı dialoqları sıfır xarici asılılıqlı, sürətli və qaranlıq Monolith modallarla əvəzləndi.</li>
+              <li data-i18n="updates_release_20260917_dash_item3">Monoxrom Estetika və İnteraktivlik: Pitch-black kətan, hairline sərhədlər, ambient kursor (#cursorGlow) və mobil responsiv cədvəl təcrübəsi.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry 1: Monolith Trio -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-layer-group" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260916_monolith_trio_title">Monolith Redizaynı: Bot Qapısı, Bildiriş Mərkəzi və 404 Səhifəsi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260916_monolith_trio_badge">16.09.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260916_monolith_trio_desc">Bot bağlantısı, bildiriş mərkəzi və 404 xəta səhifələri Monolith dizayn sisteminə uyğun olaraq sıfırdan yenidən quruldu.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20260916_monolith_trio_item1">Telegram &amp; Discord Bot Qapısı: Tək toxunuşla qoşulma kodu kopyalama, təmiz mərkəzləşdirilmiş qaranlıq kart və addım-addım doğrulama.</li>
+              <li data-i18n="updates_release_20260916_monolith_trio_item2">Bildiriş Mərkəzi: Hamısını oxundu/oxunmadı etmə və silmə əməliyyatları üçün Monolith idarə paneli və işıqlı oxunmamış bildiriş nöqtəsi.</li>
+              <li data-i18n="updates_release_20260916_monolith_trio_item3">Minimalist 404 Səhifəsi: Yüksək təsirli monoxrom tipoqrafiya, sürətli bərpa düymələri və təmiz naviqasiya strukturu.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry 2: Auth Gate Redesign -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-lock" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260916_authgate_title">Monolith Şifrə Sıfırlama və Keçid Qapısı Redizaynı</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260916_authgate_badge">16.09.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260916_authgate_desc">Şifrə sıfırlama (reset-password) və qorunan link keçid (proceed) səhifələri Monolith dizayn sisteminə uyğun olaraq sıfırdan yeniləndi.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20260916_authgate_item1">Qaranlıq Monoxrom Estetika: Pitch-black kətan, hairline sərhədlər, Inter tipoqrafiyası və dinamik kursor effektləri.</li>
+              <li data-i18n="updates_release_20260916_authgate_item2">Təkmilləşdirilmiş Təhlükəsizlik və UI: Tam responsive Monolith formaları, axıcı fokus halqaları və toxunma ekranlarına uyğunlaşdırılmış hərəkət fiziki.</li>
+              <li data-i18n="updates_release_20260916_authgate_item3">Təmiz Monolith Arxitekturası: Köhnə Bootstrap asılılıqları aradan qaldırıldı, qüsursuz i18n və CSRF inteqrasiyası qorundu.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry 3: Responsive Update -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-mobile-screen-button" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260916_resp_title">Monolith Mobil və Planşet Responsivliyi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260916_resp_badge">16.09.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260916_resp_desc">Ana səhifə bütün mobil (320px-ə qədər), planşet və böyük ekranlarda Monolith minimalist dizayn sisteminə tam uyğunlaşdırıldı.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20260916_resp_item1">Axıcı Tipoqrafiya və Kompozitor: Dar ekranlarda daşmayan başlıqlar, iOS avto-zoom qoruması və rahat toxunma hədəfləri.</li>
+              <li data-i18n="updates_release_20260916_resp_item2">Planşet &amp; Mobil Bento Qridi: İki sütunlu planşet balansı, təmiz 1 sütunlu mobil axın və adaptiv analitika/iş sahəsi vizualları.</li>
+              <li data-i18n="updates_release_20260916_resp_item3">Təkmil Mobil Naviqasiya &amp; Kursor İdarəsi: iOS safe-area dəstəyi və toxunma ekranlarında təbii sistem kursorunun qorunması.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry 4: QR Customizer -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-qrcode" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260916_qr_title">Monolith QR Kod Özəlləşdirilməsi &amp; Rəng Seçicisi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260916_qr_badge">16.09.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260916_qr_desc">Ana səhifədəki QR kod generatoru Monolith dizayn sisteminə tam uyğunlaşdırıldı: xüsusi tünd palitra, mövzu cütləri və dəqiq rəng nəzarəti əlavə edildi.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20260916_qr_item1">Xüsusi Rəng Seçicisi: Brauzerin standart göyqurşağı qutusu əvəzinə Monolith tünd palitrası və canlı hex giriş sahəsi.</li>
+              <li data-i18n="updates_release_20260916_qr_item2">Hazır Mövzu Cütləri: Classic (Qara/Ağ), Monolith Dark (Ağ/Dərin Qara) və Slate bir toxunuşla tətbiq edilir.</li>
+              <li data-i18n="updates_release_20260916_qr_item3">Pipet &amp; Hekskod Dəstəyi: Ekranda rəng seçmək üçün EyeDropper dəstəyi və cəld rəng çipləri.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry 5: Homepage Redesign -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="home_redesign_20260913_title">Ana Səhifə Yeniləndi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="home_redesign_20260913_badge">13.09.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="home_redesign_20260913_desc">Ana səhifə tamamilə sıfırdan yenidən quruldu.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="home_redesign_20260913_item1">Yeni Komposer.</li>
+              <li data-i18n="home_redesign_20260913_item2">Yeni Bölmə Strukturu.</li>
+              <li data-i18n="home_redesign_20260913_item3">Dizayn Sistemi.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry 6: PWA & Offline -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-wifi" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260908_pwa_title">PWA & Çevrimdışı Dayanıqlıq Təkmilləşdirməsi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260908_pwa_badge">08.09.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260908_pwa_desc">Offline rejimdə etibarlı xəta səhifəsi, Service Worker keş yeniləmələri və ani versiya sinxronizasiyası tətbiq edildi.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260908_pwa_item1">Offline Qoruması: Şəbəkə kəsildikdə və ya server əlçatmaz olduqda brauzer xətası yerinə etibarlı ehtiyat səhifəsi göstərilir.</li>
               <li data-i18n="updates_release_20260908_pwa_item2">Ani Keş İnvalidasiyası: Service Worker önbelleği versiyalandı və brauzer yeniləmələri dərhal tətbiq edilir.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-chart-line me-2 text-primary"></i><span data-i18n="updates_release_20260907_marketing_title">Sosial Link Önizləyicisi, AI Başlıq Optimizatoru və Böyümə Alətləri</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260907_marketing_badge">07.09.2026</span>
+        <!-- Entry 7: Marketing Tools -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-chart-line" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260907_marketing_title">Sosial Link Önizləyicisi, AI Başlıq Optimizatoru və Böyümə Alətləri</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260907_marketing_badge">07.09.2026</span>
             </div>
-            <p data-i18n="updates_release_20260907_marketing_desc">Linklərin Twitter, LinkedIn və Facebook üzərindəki görünüşünü simulyasiya edən və yapay zəka ilə viral başlıq variantları təklif edən pulsuz Sosial Link Önizləyici istifadəyə verildi.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260907_marketing_desc">Linklərin Twitter, LinkedIn və Facebook üzərindəki görünüşünü simulyasiya edən və yapay zəka ilə viral başlıq variantları təklif edən pulsuz Sosial Link Önizləyici istifadəyə verildi.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260907_marketing_item1">Platforma Simulyatoru: Linklərin Twitter/X, LinkedIn və Facebook kart görünüşünü anında test etmə imkanı.</li>
               <li data-i18n="updates_release_20260907_marketing_item2">3 Fərqli AI Başlıq Bucağı: Doğrudan Tıklama, Maraq Oyandıran və Dəyər Əsaslı başlıq variantları.</li>
               <li data-i18n="updates_release_20260907_marketing_item3">Tək Toxunuşla Qısaltma: Önizləyicidən birbaşa Ovlink anasəhifəsinə keçid və avtomatik link doldurma.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-shield-virus me-2 text-primary"></i><span data-i18n="updates_release_20260820_safety_title">Real-Time Asinxron Təhlükəsizlik Skaneri, Karantin və 7 Günlük Skan</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260820_safety_badge">20.08.2026</span>
+        <!-- Entry 8: Safety Scanner -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-shield-virus" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260820_safety_title">Real-Time Asinxron Təhlükəsizlik Skaneri, Karantin və 7 Günlük Skan</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260820_safety_badge">20.08.2026</span>
             </div>
-            <p data-i18n="updates_release_20260820_safety_desc">0ms istifadəçi gecikməsi ilə asinxron təhlükəsizlik analizi, zərərli linklərin karantinə alınması və həftəlik arxa plan təhlükəsizlik süpürməsi tətbiq edildi.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260820_safety_desc">0ms istifadəçi gecikməsi ilə asinxron təhlükəsizlik analizi, zərərli linklərin karantinə alınması və həftəlik arxa plan təhlükəsizlik süpürməsi tətbiq edildi.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260820_safety_item1">0ms Gecikmə: Link dərhal yaradılır, təhlükəsizlik və phishing analizi arxa planda asinxron işləyir.</li>
               <li data-i18n="updates_release_20260820_safety_item2">Edit Skanı: Qısa linkin hədəf ünvanı redaktə edildikdə yeni URL dərhal təhlükəsizlik süzgəcindən keçirilir.</li>
               <li data-i18n="updates_release_20260820_safety_item3">Karantin & Bildiriş: Zərərli linklər avtomatik karantinə alınır və istifadəçiyə daxili bildirişlə xəbərdarlıq göndərilir.</li>
               <li data-i18n="updates_release_20260820_safety_item4">7 Günlük Dövri Skan: Bütün aktiv linklər həftədə bir dəfə gecə saatlarında sistemə yük salmadan təkrar skan edilir.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-building-shield me-2 text-primary"></i><span data-i18n="updates_release_20260818_sso_title">Enterprise SSO Təhlükəsizlik Hardening və Domain Discovery</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260818_sso_badge">18.08.2026</span>
+        <!-- Entry 9: Enterprise SSO -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-building-shield" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260818_sso_title">Enterprise SSO Təhlükəsizlik Hardening və Domain Discovery</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260818_sso_badge">18.08.2026</span>
             </div>
-            <p data-i18n="updates_release_20260818_sso_desc">Enterprise SAML 2.0 SSO sistemi ən yüksək təhlükəsizlik standartları və rahat giriş interfeysi ilə yeniləndi.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260818_sso_desc">Enterprise SAML 2.0 SSO sistemi ən yüksək təhlükəsizlik standartları və rahat giriş interfeysi ilə yeniləndi.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260818_sso_item1">Giriş səhifəsində avtomatik korporativ domen aşkarlaması (Domain Discovery) və "SSO ilə Giriş" seçimi.</li>
               <li data-i18n="updates_release_20260818_sso_item2">Anti-Replay Attack qoruması (Assertion ID keşləmə) və HMAC-SHA256 imzalı RelayState təhlükəsizliyi.</li>
               <li data-i18n="updates_release_20260818_sso_item3">Kriptoqrafik SHA-256 məcburiyyəti, saat toleransı (±3 dəqiqə) və Session Fixation profilaktikası.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-bullhorn me-2 text-primary"></i><span data-i18n="updates_release_20260818_adv_title">Genişləndirilmiş UTM Şablonları, Çoxdilli Dəstək və A/B Test Təkmilləşdirmələri</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260818_adv_badge">18.08.2026</span>
+        <!-- Entry 10: UTM & Multi-lang -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-bullhorn" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260818_adv_title">Genişləndirilmiş UTM Şablonları, Çoxdilli Dəstək və A/B Test Təkmilləşdirmələri</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260818_adv_badge">18.08.2026</span>
             </div>
-            <p data-i18n="updates_release_20260818_adv_desc">Ətraflı link tənzimləmələri, UTM şablonları və PRO xüsusiyyətləri üçün böyük yenilənmə təqdim edildi.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260818_adv_desc">Ətraflı link tənzimləmələri, UTM şablonları və PRO xüsusiyyətləri üçün böyük yenilənmə təqdim edildi.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260818_adv_item1">Populyar UTM şablonları (Google Ads, Meta, TikTok, Email və s.) və xüsusi şablon yadda saxlama.</li>
               <li data-i18n="updates_release_20260818_adv_item2">Ətraflı tənzimləmələr tabları və bütün inputlar üçün tam 3 dilli (AZ, TR, EN) interfeys dəstəyi.</li>
               <li data-i18n="updates_release_20260818_adv_item3">A/B Test və Cihaz Hədəfləməsi üçün PRO yoxlaması və dəqiq yönləndirmə axını.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-users me-2 text-primary"></i><span data-i18n="updates_release_20260816_ws_title">Workspace və SAML SSO (Pro)</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260816_ws_badge">16.08.2026</span>
+        <!-- Entry 11: Workspaces & SAML -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-users" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260816_ws_title">Workspace və SAML SSO (Pro)</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260816_ws_badge">16.08.2026</span>
             </div>
-            <p data-i18n="updates_release_20260816_ws_desc">Pro abunələri üçün komanda workspace-ləri və korporativ SSO dəstəyi əlavə edildi.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260816_ws_desc">Pro abunələri üçün komanda workspace-ləri və korporativ SSO dəstəyi əlavə edildi.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260816_ws_item1">Pro istifadəçilər workspace yaradıb komanda yoldaşlarını dəvət edə bilər (üzv/admin rolları).</li>
               <li data-i18n="updates_release_20260816_ws_item2">Workspace üzvləri eyni hesab üzərindən birgə link yaradır; dashboard-da workspace seçici var.</li>
               <li data-i18n="updates_release_20260816_ws_item3">Okta və digər SAML 2.0 IdP-lər üçün SSO (metadata XML əsaslı) konfiqurasiyası.</li>
               <li data-i18n="updates_release_20260816_ws_item4">Pro abunəliyi bitərsə workspace oxuma rejiminə keçir; yönləndirmələr dayanmır.</li>
             </ul>
-          </article>
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-shield-halved me-2 text-primary"></i><span data-i18n="updates_release_20260816_sec_title">Təhlükəsizlik və Abunəlik İdarəetməsi</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260816_sec_badge">16.08.2026</span>
+          </div>
+        </article>
+
+        <!-- Entry 12: Security & 2FA -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-shield-halved" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260816_sec_title">Təhlükəsizlik və Abunəlik İdarəetməsi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260816_sec_badge">16.08.2026</span>
             </div>
-            <p data-i18n="updates_release_20260816_sec_desc">Hesab təhlükəsizliyi və abunəlik idarəetməsi üçün yeni imkanlar əlavə edildi.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260816_sec_desc">Hesab təhlükəsizliyi və abunəlik idarəetməsi üçün yeni imkanlar əlavə edildi.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260816_sec_item1">İki Faktorlu Autentifikasiya (2FA): Authenticator tətbiqi ilə hesabınızı ikinci qılınc ilə qoruyun (/account).</li>
               <li data-i18n="updates_release_20260816_sec_item2">E-poçt Dəyişdirmə: Artıq hesab e-poçtunuzu təsdiq kodu ilə dəyişə bilərsiniz.</li>
               <li data-i18n="updates_release_20260816_sec_item3">Abunəlik Kartı: Plan, bitmə tarixi və idarəetmə düyməsi profil səhifəsində.</li>
               <li data-i18n="updates_release_20260816_sec_item4">Ödəniş bildirişləri: Ləğv və ödəniş problemlərində dərhal bildiriş alırsınız.</li>
               <li data-i18n="updates_release_20260816_sec_item5">Abunəlik idarəetmə düyməsi yalnız Polar abunəliyi olan hesablarda göstərilir; admin tərəfindən verilən Pro-da aydın qeyd görünür.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-credit-card me-2 text-primary"></i><span data-i18n="updates_release_20260815_polar_title">Polar.sh ilə Avtomatlaşdırılmış Pro Ödəniş Sistemi</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260815_polar_badge">15.08.2026</span>
+        <!-- Entry 13: Polar Payments -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-credit-card" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260815_polar_title">Polar.sh ilə Avtomatlaşdırılmış Pro Ödəniş Sistemi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260815_polar_badge">15.08.2026</span>
             </div>
-            <p data-i18n="updates_release_20260815_polar_desc">Ovlink Pro üçün qlobal kredit kartı, Apple Pay və avtomatlaşdırılmış abunəlik sistemi aktivləşdirildi.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260815_polar_desc">Ovlink Pro üçün qlobal kredit kartı, Apple Pay və avtomatlaşdırılmış abunəlik sistemi aktivləşdirildi.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260815_polar_item1">Polar.sh inteqrasiyası: İstifadəçilər qlobal səviyyədə kartla birbaşa Pro plana keçə bilər.</li>
               <li data-i18n="updates_release_20260815_polar_item2">3 Günlük Pulsuz Sınaq: Yeni istifadəçilər Pro funksiyaları 3 gün sınaqdan keçirə bilər.</li>
               <li data-i18n="updates_release_20260815_polar_item3">Real-vaxt Webhook: Ödəniş tamamlandığı an istifadəçi hesabı saniyələr içində avtomatik Pro-ya yüksəldilir.</li>
               <li data-i18n="updates_release_20260815_polar_item4">Ödəniş Təsdiq Səhifəsi: Uğurlu ödənişdən sonra istifadəçi aydın /pro təsdiq səhifəsinə yönləndirilir.</li>
               <li data-i18n="updates_release_20260815_polar_item5">Abunəlik İdarəetməsi: /pro səhifəsindən bir kliklə abunəliyi ləğv et, yenilə və kart məlumatını idarə et.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-brands fa-telegram me-2 text-primary"></i><span data-i18n="updates_release_20260814_bot_pwa_title">Telegram Bot 2.0 & PWA Dəstəyi</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260814_bot_pwa_badge">14.08.2026</span>
+        <!-- Entry 14: Telegram Bot 2.0 -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-brands fa-telegram" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260814_bot_pwa_title">Telegram Bot 2.0 & PWA Dəstəyi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260814_bot_pwa_badge">14.08.2026</span>
             </div>
-            <p data-i18n="updates_release_20260814_bot_pwa_desc">Telegram botu və veb tətbiq üçün genişləndirilmiş yeni funksionallıqlar təqdim edildi.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260814_bot_pwa_desc">Telegram botu və veb tətbiq üçün genişləndirilmiş yeni funksionallıqlar təqdim edildi.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260814_bot_pwa_item1">QR Kod dəstəyi: Qısaldılan linklər üçün Telegram üzərindən birbaşa tək kliklə QR Kod generasiyası.</li>
               <li data-i18n="updates_release_20260814_bot_pwa_item2">Toplu Link Qısaltma: Eyni anda bir neçə linki mesaja göndərərək tək cavabda qısaltma imkanı.</li>
               <li data-i18n="updates_release_20260814_bot_pwa_item3">PWA & Təhlükəsizlik: Veb sayt mobil tətbiq (PWA) kimi quraşdırıla bilir və zərərli phishing linklərinə qarşı qorunur.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-clock me-2"></i><span data-i18n="updates_release_20260321_expiry_title">Link bitmə vaxtı düzəlişi</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260321_expiry_badge">21.03.2026</span>
+        <!-- Entry 15: Expiry Time Fix -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-clock" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260321_expiry_title">Link bitmə vaxtı düzəlişi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260321_expiry_badge">21.03.2026</span>
             </div>
-            <p data-i18n="updates_release_20260321_expiry_desc">Bitmə vaxtı həm tarix, həm saat səviyyəsində yenidən işlənib və timezone fərqlərinə qarşı sabitləndirilib.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260321_expiry_desc">Bitmə vaxtı həm tarix, həm saat səviyyəsində yenidən işlənib və timezone fərqlərinə qarşı sabitləndirilib.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260321_expiry_item1">`expires_at` yoxlaması serverdə daha sərt aparılır: keçmiş tarix/saat qəbul edilmir.</li>
               <li data-i18n="updates_release_20260321_expiry_item2">İstifadəçi formundan gələn tarix browser lokal vaxtından ISO formata çevrilir ki, vaxt sürüşməsi olmasın.</li>
               <li data-i18n="updates_release_20260321_expiry_item3">Yönləndirmə zamanı bitmiş linklər dərhal bloklanır və səhifə düzgün status göstərir.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-gauge-high me-2"></i><span data-i18n="updates_release_20260321_api_usage_title">Pro API rate-limit dashboard</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260321_api_usage_badge">21.03.2026</span>
+        <!-- Entry 16: API Rate Limit Dashboard -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-gauge-high" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260321_api_usage_title">Pro API rate-limit dashboard</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260321_api_usage_badge">21.03.2026</span>
             </div>
-            <p data-i18n="updates_release_20260321_api_usage_desc">Pro panelinə API istifadə paneli əlavə edildi.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260321_api_usage_desc">Pro panelinə API istifadə paneli əlavə edildi.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260321_api_usage_item1">Read/write limitləri, cari pəncərə istifadəsi və qalan kota göstərilir.</li>
               <li data-i18n="updates_release_20260321_api_usage_item2">Son 24 saat üzrə xəta tipləri və HTTP status bölgüsü ayrıca görünür.</li>
-            </ul>
-          </article>
-
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-chart-line me-2"></i><span data-i18n="updates_release_20260321_api_usage_fix_title">API limit göstəricisi düzəlişi</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260321_api_usage_fix_badge">21.03.2026</span>
+        <!-- Entry 17: API Usage Fix -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-chart-line" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260321_api_usage_fix_title">API limit göstəricisi düzəlişi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260321_api_usage_fix_badge">21.03.2026</span>
             </div>
-            <p data-i18n="updates_release_20260321_api_usage_fix_desc">API ilə link yaradıldıqdan sonra paneldə limit istifadəsi daha stabil yenilənir.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260321_api_usage_fix_desc">API ilə link yaradıldıqdan sonra paneldə limit istifadəsi daha stabil yenilənir.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260321_api_usage_fix_item1">API usage log cədvəli yoxdursa avtomatik yaradılır və istifadə yazısı düşür.</li>
               <li data-i18n="updates_release_20260321_api_usage_fix_item2">Pro panel `overview` cavabı cache-dən deyil, hər sorğuda canlı datadan götürülür.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-brands fa-telegram me-2"></i><span data-i18n="updates_release_20260321_telegram_title">Pro satın alma Telegram axını</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260321_telegram_badge">21.03.2026</span>
+        <!-- Entry 18: Telegram Flow -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-brands fa-telegram" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260321_telegram_title">Pro satın alma Telegram axını</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260321_telegram_badge">21.03.2026</span>
             </div>
-            <p data-i18n="updates_release_20260321_telegram_desc">`Satın al` düyməsi daha stabil Telegram keçidi ilə yenilənib.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260321_telegram_desc">`Satın al` düyməsi daha stabil Telegram keçidi ilə yenilənib.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260321_telegram_item1">`Satın al` düyməsi birbaşa Telegram profilinə yönləndirir.</li>
               <li data-i18n="updates_release_20260321_telegram_item2">Avtomatik mesaj və clipboard axını çıxarıldı.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-shield-halved me-2"></i><span data-i18n="updates_release_20260321_admin_logs_title">Admin log dəqiqliyi</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260321_admin_logs_badge">21.03.2026</span>
+        <!-- Entry 19: Admin Logs -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-shield-halved" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260321_admin_logs_title">Admin log dəqiqliyi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260321_admin_logs_badge">21.03.2026</span>
             </div>
-            <p data-i18n="updates_release_20260321_admin_logs_desc">Admin auth və audit loglarında IP/ölkə məlumatı daha düzgün göstərilir.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260321_admin_logs_desc">Admin auth və audit loglarında IP/ölkə məlumatı daha düzgün göstərilir.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260321_admin_logs_item1">Proxy və lokal şəbəkə halları üçün IP/ölkə çıxarımı sərtləşdirildi.</li>
               <li data-i18n="updates_release_20260321_admin_logs_item2">Auth log cədvəlinə ölkə sütunu əlavə edildi və audit görünüşündə ölkə fallback-i düzəldildi.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-sitemap me-2"></i><span data-i18n="updates_release_20260321_sitemap_title">Sitemap genişləndirildi</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260321_sitemap_badge">21.03.2026</span>
+        <!-- Entry 20: Sitemap Expansion -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-sitemap" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260321_sitemap_title">Sitemap genişləndirildi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260321_sitemap_badge">21.03.2026</span>
             </div>
-            <p data-i18n="updates_release_20260321_sitemap_desc">Sitemap və robots siyahısı public/indexlənə bilən səhifələrin hamısı ilə sinxronlaşdırıldı.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260321_sitemap_desc">Sitemap və robots siyahısı public/indexlənə bilən səhifələrin hamısı ilə sinxronlaşdırıldı.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260321_sitemap_item1">`/how-it-works` daxil olmaqla bütün əsas public səhifələr sitemap-ə əlavə edildi.</li>
               <li data-i18n="updates_release_20260321_sitemap_item2">`server.js` fallback sitemap generatoru və `public/sitemap.xml` eyni siyahı ilə işləyir.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-window-restore me-2"></i><span data-i18n="updates_release_20260321_layout_title">Header, footer və Pro banner uyğunluğu</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260321_layout_badge">21.03.2026</span>
+        <!-- Entry 21: Stats Visualization -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-chart-column" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260321_stats_title">Link statistika görünüşü sadələşdirildi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260321_stats_badge">21.03.2026</span>
             </div>
-            <p data-i18n="updates_release_20260321_layout_desc">Public səhifələrdə Pro keçidləri və footer elementləri vahid hala gətirildi.</p>
-            <ul>
-              <li data-i18n="updates_release_20260321_layout_item1">Headerdə Pro linki fərqli navbar quruluşlarında da stabil görünür.</li>
-              <li data-i18n="updates_release_20260321_layout_item2">Sağ-alt Pro banneri public səhifələrdə eyni qayda ilə göstərilir.</li>
-              <li data-i18n="updates_release_20260321_layout_item3">Footer linkləri yenilənib və səhifələr arası uyğunluq artırılıb.</li>
-            </ul>
-          </article>
-
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-chart-column me-2"></i><span data-i18n="updates_release_20260321_stats_title">Link statistika görünüşü sadələşdirildi</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260321_stats_badge">21.03.2026</span>
-            </div>
-            <p data-i18n="updates_release_20260321_stats_desc">`Zaman üzrə kliklər` qrafiki daha anlaşılır formata keçirildi.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260321_stats_desc">`Zaman üzrə kliklər` qrafiki daha anlaşılır formata keçirildi.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260321_stats_item1">Qrafik sıx məlumatda avtomatik günlük toplama rejiminə keçir.</li>
               <li data-i18n="updates_release_20260321_stats_item2">Oxunması çətin etiketlər azaldılıb, period və toplam klik çipləri əlavə edilib.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-tags me-2"></i><span data-i18n="updates_release_20260320_meta_title">Qovluq/teq idarəsi praktikləşdirildi</span></h3>
-              <span class="update-pill" data-i18n="updates_release_20260320_meta_badge">20.03.2026</span>
+        <!-- Entry 22: Folders & Tags -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-tags" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20260320_meta_title">Qovluq/teq idarəsi praktikləşdirildi</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20260320_meta_badge">20.03.2026</span>
             </div>
-            <p data-i18n="updates_release_20260320_meta_desc">Qovluq və teqlər üçün prompt əvəzinə daha rahat idarəetmə əlavə edildi.</p>
-            <ul>
+            <p class="m-timeline-desc" data-i18n="updates_release_20260320_meta_desc">Qovluq və teqlər üçün prompt əvəzinə daha rahat idarəetmə əlavə edildi.</p>
+            <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260320_meta_item1">Metadata düzəlişi popup form ilə edilir; nəticə dərhal cədvələ düşür.</li>
               <li data-i18n="updates_release_20260320_meta_item2">Qovluq/teq-ə klikləyərək birbaşa filtr etmək mümkündür.</li>
               <li data-i18n="updates_release_20260320_meta_item3">Dashboardda ayrıca qovluq və teq filtrləri əlavə edilib.</li>
             </ul>
-          </article>
+          </div>
+        </article>
 
-          <article class="policy-card update-card">
-            <div class="update-head">
-              <h3><i class="fa-solid fa-bullseye me-2"></i><span data-i18n="updates_scope_title">Bu səhifənin məqsədi</span></h3>
-            </div>
-            <p data-i18n="updates_scope_desc">Burada yalnız istifadəçiyə təsir edən yenilikləri paylaşırıq. Daxili texniki dəyişikliklər bu siyahıya əlavə edilmir.</p>
-          </article>
-        </div>
-
-        <div class="policy-back">
-          <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
-        </div>
       </div>
-    </section>
+
+      <!-- Action Navigation Footer -->
+      <div style="display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 12px;">
+        <a href="/" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <i class="fa-solid fa-arrow-left" style="font-size: 11px;" aria-hidden="true"></i>
+          <span data-i18n="nav_home">Home</span>
+        </a>
+        <a href="/why-ovlink" class="m-cta m-cta--white" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="why_ovlink_link">Why Ovlink?</span>
+          <i class="fa-solid fa-arrow-right" style="font-size: 11px;" aria-hidden="true"></i>
+        </a>
+      </div>
+
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      /* ─── Navbar interactive logic ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+      });
+
+      /* ─── Mobile Menu ─── */
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function(){
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button ripple effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+          span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function(){ span.remove(); }, 600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>

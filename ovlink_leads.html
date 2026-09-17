@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ovlink — Potansiyel Musteri Listesi (Top 100)</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293b}
+.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:40px 32px 32px}
+.header h1{font-size:2rem;font-weight:800;margin-bottom:8px}
+.header p{opacity:.85;margin-top:4px}
+.header .badge{background:rgba(255,255,255,.2);border-radius:999px;padding:4px 14px;font-size:.8rem;display:inline-block;margin-top:10px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;padding:24px 32px;background:white;border-bottom:1px solid #e2e8f0}
+.stat-card{background:#f8fafc;border-radius:12px;padding:16px 20px;border-left:4px solid}
+.stat-card.green{border-color:#22c55e}.stat-card.blue{border-color:#3b82f6}.stat-card.purple{border-color:#a855f7}.stat-card.orange{border-color:#f97316}.stat-card.indigo{border-color:#6366f1}
+.stat-label{font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em}
+.stat-value{font-size:1.8rem;font-weight:800;margin-top:4px}
+.stat-card.green .stat-value{color:#16a34a}.stat-card.blue .stat-value{color:#2563eb}.stat-card.purple .stat-value{color:#9333ea}.stat-card.orange .stat-value{color:#ea580c}.stat-card.indigo .stat-value{color:#4f46e5}
+.cost-section{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;margin:20px 32px;padding:20px 24px}
+.cost-section h3{color:#92400e;font-size:1rem;margin-bottom:10px}
+.cost-table{width:100%;border-collapse:collapse;font-size:.88rem}
+.cost-table td{padding:7px 12px;border-bottom:1px solid #fde68a}
+.cost-table tr:last-child td{border:none;font-weight:700;background:#fef3c7}
+.table-section{padding:0 32px 40px}
+.table-title{font-size:1.2rem;font-weight:700;padding:20px 0 12px;color:#334155}
+.controls{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-btn{padding:7px 16px;border-radius:999px;border:2px solid #e2e8f0;background:white;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .2s}
+.filter-btn:hover,.filter-btn.active{background:#667eea;color:white;border-color:#667eea}
+.search-input{padding:8px 16px;border-radius:999px;border:2px solid #e2e8f0;font-size:.88rem;min-width:240px;outline:none}
+.search-input:focus{border-color:#667eea}
+.count-badge{background:#e0e7ff;color:#4338ca;border-radius:999px;padding:4px 12px;font-size:.8rem;font-weight:700}
+table{width:100%;border-collapse:collapse;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);font-size:.84rem}
+thead{background:#1e293b;color:white}
+th{padding:13px 11px;text-align:left;font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+td{padding:11px 11px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+tr:hover td{background:#f8fafc}
+tr:last-child td{border:none}
+.rank{font-weight:800;color:#94a3b8;font-size:.88rem;white-space:nowrap}
+.company-name{max-width:180px}
+a{color:#667eea;text-decoration:none}
+a:hover{text-decoration:underline}
+.na{color:#cbd5e1}
+.score-badge{display:inline-block;padding:6px 10px;border-radius:8px;text-align:center;line-height:1.5;white-space:nowrap;font-size:.8rem}
+.footer{text-align:center;padding:24px;color:#94a3b8;font-size:.82rem;border-top:1px solid #e2e8f0}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔗 Ovlink — Potansiyel Musteri Listesi</h1>
+  <p>URL Shortener · QR Code Generator · Analytics Platform · ovlink.sbs</p>
+  <p>Hedef Bolge: Azerbaycan (Baku) &amp; Turkiye (Istanbul, Ankara)</p>
+  <span class="badge">📅 17.09.2026 · Apify Google Maps Scraper</span>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card green"><div class="stat-label">Toplam Sirket</div><div class="stat-value">100</div></div>
+  <div class="stat-card blue"><div class="stat-label">Web Sitesi Var</div><div class="stat-value">94</div></div>
+  <div class="stat-card purple"><div class="stat-label">E-mail Var</div><div class="stat-value">0</div></div>
+  <div class="stat-card orange"><div class="stat-label">Yuksek Oncelik (70+)</div><div class="stat-value">100</div></div>
+  <div class="stat-card indigo"><div class="stat-label">Ort. Skor</div><div class="stat-value">100.0</div></div>
+</div>
+
+<div class="cost-section">
+  <h3>💰 Apify Maliyet Analizi</h3>
+  <table class="cost-table">
+    <tr><td>2 x Actor Baslama ucreti</td><td>~$1.00</td></tr>
+    <tr><td>205 yer kaydi × $0.002/kayit</td><td>~$0.41</td></tr>
+    <tr><td>Toplam Tahmini (mevcut arama)</td><td><strong>~$1.00 – $2.00</strong></td></tr>
+    <tr><td><strong>Not:</strong> E-mail zenginlestirme (contact enrichment) acilarsa 100 sirket icin ek ~$1–5</td><td>Toplam: ~$2–7</td></tr>
+  </table>
+</div>
+
+<div class="table-section">
+  <div class="table-title">📋 Top 100 Potansiyel Musteri <span class="count-badge" id="visibleCount">100 gosteriliyor</span></div>
+  <div class="controls">
+    <input class="search-input" type="text" id="searchInput" placeholder="🔍 Ara: sirket adi, kategori, sehir..." oninput="applyFilters()">
+    <button class="filter-btn active" onclick="setFilter('all',this)">Tumu (100)</button>
+    <button class="filter-btn" onclick="setFilter('high',this)">🔥 Yuksek 70+ (100)</button>
+    <button class="filter-btn" onclick="setFilter('withWeb',this)">🌐 Web Siteli (94)</button>
+    <button class="filter-btn" onclick="setFilter('withEmail',this)">📧 E-mailsi (0)</button>
+  </div>
+  <table id="mainTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Sirket Adi</th>
+        <th>Kategori</th>
+        <th>Konum</th>
+        <th>Web Sitesi</th>
+        <th>E-mail</th>
+        <th>Telefon</th>
+        <th>Google Puan</th>
+        <th>Ovlink Skoru</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#1</td>
+      <td class="company-name"><strong>iSpace</strong></td>
+      <td>Electronics store</td>
+      <td>151 Neftchilar Ave, Baku 1025, Azerbaijan</td>
+      <td><a href="https://ispace.az/" target="_blank">ispace.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 12 464 04 34</td>
+      <td>4.8 ⭐ (22)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#2</td>
+      <td class="company-name"><strong>NC GROUP</strong></td>
+      <td>Advertising agency</td>
+      <td>94 Hasan bey Zardabi St, Baku 1012, Azerbaijan</td>
+      <td><a href="https://ncgroup.az/" target="_blank">ncgroup.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 51 230 26 16</td>
+      <td>5.0 ⭐ (26)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#3</td>
+      <td class="company-name"><strong>Make Agency — Saytlarin Hazirlanmasi, SMM Xidmeti, SEO Xidmeti</strong></td>
+      <td>Advertising agency</td>
+      <td>7 Badamdar Shosesi, Baku 1021, Azerbaijan</td>
+      <td><a href="https://make.az/" target="_blank">make.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 55 755 89 01</td>
+      <td>5.0 ⭐ (14)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#4</td>
+      <td class="company-name"><strong>Admedia Reklam Agentliyi</strong></td>
+      <td>Advertising agency</td>
+      <td>Əbdüləzəl Dəmirçizadə 2G, Bakı 1008, Azerbaijan</td>
+      <td><a href="http://admedia.az/" target="_blank">admedia.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 55 270 70 48</td>
+      <td>4.8 ⭐ (25)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#5</td>
+      <td class="company-name"><strong>Etna Group Advertising Agency</strong></td>
+      <td>Design agency</td>
+      <td>Park, Azure biznes mərkəzi, 8 November Ave, Baku, Azerbaijan</td>
+      <td><a href="http://etnagroup.az/" target="_blank">etnagroup.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 50 290 00 29</td>
+      <td>5.0 ⭐ (2)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#6</td>
+      <td class="company-name"><strong>Medium Creative Agency | saytların hazırlanması</strong></td>
+      <td>E commerce agency</td>
+      <td>1, 52A Əhməd Rəcəbli, Bakı 1075, Azerbaijan</td>
+      <td><a href="https://medium.az/" target="_blank">medium.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 70 815 11 77</td>
+      <td>5.0 ⭐ (19)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#7</td>
+      <td class="company-name"><strong>WebRain</strong></td>
+      <td>Marketing agency</td>
+      <td>35 Matbuat avenue, Baku 1141, Azerbaijan</td>
+      <td><a href="https://www.webrain.az/" target="_blank">www.webrain.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 70 900 80 99</td>
+      <td>5.0 ⭐ (25)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#8</td>
+      <td class="company-name"><strong>webline</strong></td>
+      <td>Website designer</td>
+      <td>5 Heydar Aliyev Ave, Baku 1033, Azerbaijan</td>
+      <td><a href="https://webline.az/" target="_blank">webline.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 55 728 48 48</td>
+      <td>5.0 ⭐ (25)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#9</td>
+      <td class="company-name"><strong>ONE studio - Creative Agency | Web development | SMM | Branding</strong></td>
+      <td>Marketing agency</td>
+      <td>101 Zərgərpalan, Bakı 1009, Azerbaijan</td>
+      <td><a href="https://one.az/" target="_blank">one.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 55 475 24 00</td>
+      <td>5.0 ⭐ (7)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#10</td>
+      <td class="company-name"><strong>Jake's Web Design &amp; Marketing</strong></td>
+      <td>Website designer</td>
+      <td>3176 W Willow Bnd, Lehi, UT 84043</td>
+      <td><a href="http://jakeswebandmarketing.com/" target="_blank">jakeswebandmarketing.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>(385) 331-6065</td>
+      <td>5.0 ⭐ (106)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#11</td>
+      <td class="company-name"><strong>Davis Designs</strong></td>
+      <td>Website designer</td>
+      <td>7984 S 1300 E, Sandy, UT 84094</td>
+      <td><a href="http://daviscreate.com/" target="_blank">daviscreate.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>(385) 474-9887</td>
+      <td>5.0 ⭐ (125)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#12</td>
+      <td class="company-name"><strong>Trustme Digital</strong></td>
+      <td>Marketing agency</td>
+      <td>11/31 Babək prosp, Bakı 1025, Azerbaijan</td>
+      <td><a href="https://trustmedigital.com/" target="_blank">trustmedigital.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 50 202 33 15</td>
+      <td>5.0 ⭐ (29)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#13</td>
+      <td class="company-name"><strong>Good Day Azerbaijan</strong></td>
+      <td>Internet marketing service</td>
+      <td>86 Nizami St, Baku 1001, Azerbaijan</td>
+      <td><a href="https://www.instagram.com/goodday.azerbaijan" target="_blank">www.instagram.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 55 953 23 48</td>
+      <td>5.0 ⭐ (6)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#14</td>
+      <td class="company-name"><strong>Utah Web Design Pros</strong></td>
+      <td>Website designer</td>
+      <td>8817 Redwood Rd Suite A10, West Jordan, UT 84088</td>
+      <td><a href="https://www.utahwebdesignpros.com/" target="_blank">www.utahwebdesignpros.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>(801) 871-5251</td>
+      <td>4.8 ⭐ (25)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#15</td>
+      <td class="company-name"><strong>Beyvin Digital</strong></td>
+      <td>Marketing agency</td>
+      <td>1/23 Ahmad Rajabli str, Baku 1075, Azerbaijan</td>
+      <td><a href="https://beyvin.com/" target="_blank">beyvin.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 70 277 66 01</td>
+      <td>5.0 ⭐ (12)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#16</td>
+      <td class="company-name"><strong>Jeykhun Imanov Studio (JIS) - Digital Transformation Agency</strong></td>
+      <td>Advertising agency</td>
+      <td>Caspian Plaza, 3rd Block, 3rd floor. J.Jabbarli str. 44, Baku, AZ1065, Baku 1065, Azerbaijan</td>
+      <td><a href="https://www.jis.az/" target="_blank">www.jis.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 77 404 99 00</td>
+      <td>5.0 ⭐ (7)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#17</td>
+      <td class="company-name"><strong>RegemsalElement - digital marketing agency</strong></td>
+      <td>Internet marketing service</td>
+      <td>92 Nizami St, Baku 1016, Azerbaijan</td>
+      <td><a href="https://regemsalelement.com/az/services/" target="_blank">regemsalelement.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 51 310 82 05</td>
+      <td>5.0 ⭐ (5)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="0" data-email="0">
+      <td class="rank">#18</td>
+      <td class="company-name"><strong>Hexa Studio Marketing Agency</strong></td>
+      <td>Marketing agency</td>
+      <td>89 Ataturk avenue, Baku 1069 89, 1069 Ataturk avenue, Baku 1069, Azerbaijan</td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td>+994 51 753 27 75</td>
+      <td>5.0 ⭐ (14)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#19</td>
+      <td class="company-name"><strong>Ondigital Agency</strong></td>
+      <td>Advertising agency</td>
+      <td>10th floor / № 1003, Old Town Plaza, 123 Bəşir Səfəroğlu Küçəsi, Baku 1009, Azerbaijan</td>
+      <td><a href="https://ondigital.az/?utm_source=google&amp;utm_medium=organic&amp;utm_campaign=gmb" target="_blank">ondigital.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 55 431 47 50</td>
+      <td>5.0 ⭐ (7)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#20</td>
+      <td class="company-name"><strong>Brandup</strong></td>
+      <td>Marketing agency</td>
+      <td>88A, 1010 Azadlıq Prospekti, Bakı, Azerbaijan</td>
+      <td><a href="http://www.brandup.az/" target="_blank">www.brandup.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 50 206 16 04</td>
+      <td>4.9 ⭐ (19)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#21</td>
+      <td class="company-name"><strong>Aventus Digital Marketinq</strong></td>
+      <td>Marketing agency</td>
+      <td>3 Tac&quot; Binaları, 78E Zerdabi Ave, Baku 1122, Azerbaijan</td>
+      <td><a href="https://aventusconsultancy.com/" target="_blank">aventusconsultancy.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 55 213 03 77</td>
+      <td>5.0 ⭐ (178)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#22</td>
+      <td class="company-name"><strong>MarLab</strong></td>
+      <td>Marketing agency</td>
+      <td>40 Jafar Jabbarli street, Baku, Azerbaijan</td>
+      <td><a href="https://marlab.az/" target="_blank">marlab.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 10 315 30 04</td>
+      <td>4.9 ⭐ (88)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#23</td>
+      <td class="company-name"><strong>Baku Creative Projects</strong></td>
+      <td>Marketing agency</td>
+      <td>Aşıq Molla Cümə, Bakı, Azerbaijan</td>
+      <td><a href="https://bcp.az/" target="_blank">bcp.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 55 500 50 15</td>
+      <td>4.9 ⭐ (50)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#24</td>
+      <td class="company-name"><strong>Aghabala Mammadov - SEO Xidməti, Veb saytların hazırlanması, Rəqəmsal Marketinq Xidmətləri</strong></td>
+      <td>Marketing consultant</td>
+      <td>Turan Biznes Mərkəzi, Ahmad Rajabli, Baku 1065, Azerbaijan</td>
+      <td><a href="https://aghabala.az/" target="_blank">aghabala.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 50 394 81 74</td>
+      <td>5.0 ⭐ (106)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#25</td>
+      <td class="company-name"><strong>Mediamark Digital Agency - Baku, AZ</strong></td>
+      <td>Marketing agency</td>
+      <td>Ağ Şəhər, 1 Yasil ada kucesi, Baku 1025, Azerbaijan</td>
+      <td><a href="https://mediamark.digital/" target="_blank">mediamark.digital</a></td>
+      <td><span class="na">—</span></td>
+      <td>—</td>
+      <td>5.0 ⭐ (2)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#26</td>
+      <td class="company-name"><strong>Beyinix • marketing agency</strong></td>
+      <td>Marketing agency</td>
+      <td>Knightsbridge Residence, 122 Mərkəzi bulvar küçəsi, Baku 1025, Azerbaijan</td>
+      <td><a href="http://www.beyinix.az/" target="_blank">www.beyinix.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 99 355 20 30</td>
+      <td>4.9 ⭐ (232)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#27</td>
+      <td class="company-name"><strong>BranDoc. Agency</strong></td>
+      <td>Marketing agency</td>
+      <td>2nd Yashil Ada str, Baku 1000, Azerbaijan</td>
+      <td><a href="https://brandoc.az/" target="_blank">brandoc.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 51 312 11 67</td>
+      <td>5.0 ⭐ (17)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#28</td>
+      <td class="company-name"><strong>Digital Marketing Baku</strong></td>
+      <td>Marketing agency</td>
+      <td>61 Ogtay Karimov, Baku, Azerbaijan</td>
+      <td><a href="http://dimktg.com/" target="_blank">dimktg.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 77 117 24 75</td>
+      <td>5.0 ⭐ (3)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#29</td>
+      <td class="company-name"><strong>JUGAAD Agency</strong></td>
+      <td>Marketing agency</td>
+      <td>4 Nizami Gəncəvi, Bakı 1000, Azerbaijan</td>
+      <td><a href="http://www.jugaad.az/" target="_blank">www.jugaad.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 50 962 00 15</td>
+      <td>5.0 ⭐ (28)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#30</td>
+      <td class="company-name"><strong>Sharaf Media</strong></td>
+      <td>Advertising agency</td>
+      <td>10th floor, Azure Business Center, Bakı 1025, Azerbaijan</td>
+      <td><a href="https://sharafmedia.az/" target="_blank">sharafmedia.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 70 491 07 07</td>
+      <td>5.0 ⭐ (44)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#31</td>
+      <td class="company-name"><strong>McCann Baku</strong></td>
+      <td>Advertising agency</td>
+      <td>Passage 1901, 12 Nigar Rafibayli Street Baku AZ, 1001 Nigar Rafibayli, Bakı, Azerbaijan</td>
+      <td><a href="https://www.mccann.az/" target="_blank">www.mccann.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 12 492 35 35</td>
+      <td>5.0 ⭐ (1)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#32</td>
+      <td class="company-name"><strong>Impler Digital Agency</strong></td>
+      <td>Advertising agency</td>
+      <td>55 Zarifa Aliyeva St, Baku 1000, Azerbaijan</td>
+      <td><a href="http://www.impler.com/" target="_blank">www.impler.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 55 228 51 53</td>
+      <td>5.0 ⭐ (3)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#33</td>
+      <td class="company-name"><strong>Havas Media Azerbaijan</strong></td>
+      <td>Advertising agency</td>
+      <td>609 Jafar Jabbarli street, Baku 1065, Azerbaijan</td>
+      <td><a href="https://havas.az/" target="_blank">havas.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 12 409 14 34</td>
+      <td>5.0 ⭐ (10)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#34</td>
+      <td class="company-name"><strong>DigiBoom Marketing Agency Baku</strong></td>
+      <td>Marketing agency</td>
+      <td>49b Ahmad Rajabli, Baku 1000, Azerbaijan</td>
+      <td><a href="http://digiboom.az/" target="_blank">digiboom.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 10 315 99 18</td>
+      <td>5.0 ⭐ (1)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#35</td>
+      <td class="company-name"><strong>PR!ME agency</strong></td>
+      <td>Marketing agency</td>
+      <td>3, Fatali Khan Khoyski str / Hasanoglu str Premier Residence, block B2, floor, Baku, Azerbaijan</td>
+      <td><a href="https://linktr.ee/primeagency.live" target="_blank">linktr.ee</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 12 464 51 15</td>
+      <td>5.0 ⭐ (5)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#36</td>
+      <td class="company-name"><strong>Dr Digital - Social Media &amp; Digital Marketing</strong></td>
+      <td>Internet marketing service</td>
+      <td>Anvar Huseynov 7, Baku 1009, Azerbaijan</td>
+      <td><a href="https://www.drdigital.az/" target="_blank">www.drdigital.az</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 50 974 44 33</td>
+      <td>4.8 ⭐ (4)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="0" data-email="0">
+      <td class="rank">#37</td>
+      <td class="company-name"><strong>SMM agency</strong></td>
+      <td>Advertising agency</td>
+      <td>Mirali Seyidov, Baku 2011, Azerbaijan</td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td>+994 50 577 32 12</td>
+      <td>4.3 ⭐ (13)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="0" data-email="0">
+      <td class="rank">#38</td>
+      <td class="company-name"><strong>Y Marketing Agency</strong></td>
+      <td>Marketing agency</td>
+      <td>148 Ziya Bünyadov, Baku 1108, Azerbaijan</td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td>+994 51 566 35 32</td>
+      <td>5.0 ⭐ (5)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#39</td>
+      <td class="company-name"><strong>Up And Social</strong></td>
+      <td>Marketing agency</td>
+      <td>360 Athens St, Boston, MA 02127</td>
+      <td><a href="https://www.upandsocial.com/?utm_source=google&amp;utm_medium=organic&amp;utm_campaign=gbp" target="_blank">www.upandsocial.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>(857) 226-3133</td>
+      <td>5.0 ⭐ (62)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#40</td>
+      <td class="company-name"><strong>İstanbul Web Design - İstanbul Web Tasarım Ajansı</strong></td>
+      <td>Website designer</td>
+      <td>Turgut Özal, Orkide Cd. No:66, 34515 Esenyurt/İstanbul, Türkiye</td>
+      <td><a href="https://www.istanbulwebdesign.com/" target="_blank">www.istanbulwebdesign.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+49 170 9003053</td>
+      <td>5.0 ⭐ (34)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#41</td>
+      <td class="company-name"><strong>Euromedy Web Design</strong></td>
+      <td>Website designer</td>
+      <td>Mecidiyeköy Mahallesi, Kervan Geçmez Sk. Keskin İş Merkezi No:4, 34381 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://www.euromedya.com/" target="_blank">www.euromedya.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 212 272 48 84</td>
+      <td>4.8 ⭐ (22)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#42</td>
+      <td class="company-name"><strong>Web Design Istanbul</strong></td>
+      <td>Website designer</td>
+      <td>Byconcept Sitesi, Hasanpaşa Mahallesi Gişeler Sokak No:3/2 A2 Blok D:38, 34920 Sultanbeyli/İstanbul, Türkiye</td>
+      <td><a href="https://www.xdizayn.net/" target="_blank">www.xdizayn.net</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 216 419 02 29</td>
+      <td>4.7 ⭐ (13)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#43</td>
+      <td class="company-name"><strong>Webbilir</strong></td>
+      <td>Website designer</td>
+      <td>Büyükdere Cad. No:257 Nurol Plaza 21/A Maslak, 34450 Sarıyer/İstanbul, Türkiye</td>
+      <td><a href="https://www.webbilir.com/" target="_blank">www.webbilir.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 552 209 90 96</td>
+      <td>4.9 ⭐ (41)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#44</td>
+      <td class="company-name"><strong>Vayes Kurumsal Web Tasarım - Sosyal Medya - Dijital Pazarlama Firması İstanbul</strong></td>
+      <td>Website designer</td>
+      <td>Cumhuriyet Mahallesi, E-5 Yanyolu &amp; 1992 Sok Vetro City Residence A Blok 8 Kat Ofis No :177, 34528 Beylikdüzü/İstanbul, Türkiye</td>
+      <td><a href="https://www.vayes.com.tr/" target="_blank">www.vayes.com.tr</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 212 855 94 04</td>
+      <td>4.9 ⭐ (26)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#45</td>
+      <td class="company-name"><strong>Mavi Bulut Digital</strong></td>
+      <td>Website designer</td>
+      <td>Gümüşsuyu, Tak-ı Zafer Cd., 34000 Beyoğlu/İstanbul, Türkiye</td>
+      <td><a href="https://mavibulutnet.com/" target="_blank">mavibulutnet.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 541 321 91 05</td>
+      <td>5.0 ⭐ (19)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#46</td>
+      <td class="company-name"><strong>Web Tasarım, Web Yazılım | İstanbul Web Ajans</strong></td>
+      <td>Website designer</td>
+      <td>Soğanlı Mh. Çavuşpaşa Cad, Sengül Sokağı No:9, 34180 Bahçelievler/İstanbul, Türkiye</td>
+      <td><a href="https://istanbulwebajans.com/" target="_blank">istanbulwebajans.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 212 993 15 01</td>
+      <td>4.8 ⭐ (16)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#47</td>
+      <td class="company-name"><strong>Web Tasarım Ajansı Web Studio Dijital Ajans</strong></td>
+      <td>Website designer</td>
+      <td>CANAN BUSINESS, Küçükbakkalköy, Selvili Sok. No:4 Daire:77, 34750 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://www.ws.com.tr/" target="_blank">www.ws.com.tr</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 216 469 20 11</td>
+      <td>4.8 ⭐ (71)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#48</td>
+      <td class="company-name"><strong>Web Ajans - Web Tasarım, SEO, Dijital Pazarlama ve Reklam Ajansı</strong></td>
+      <td>Website designer</td>
+      <td>Halaskargazi, Ayla Algan Sok. NO:30, 34371 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://www.webajans.com/" target="_blank">www.webajans.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 532 300 09 79</td>
+      <td>4.7 ⭐ (29)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#49</td>
+      <td class="company-name"><strong>Master Web Premium Yazılım Ajansı</strong></td>
+      <td>Website designer</td>
+      <td>19 Mayıs mah. Halaskargazi cad. Çiftkurt No: 226/24, 34360 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://mastertasarim.com/" target="_blank">mastertasarim.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 850 242 4393</td>
+      <td>4.3 ⭐ (45)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="0" data-email="0">
+      <td class="rank">#50</td>
+      <td class="company-name"><strong>Web design company in Istanbul | Florid Studio</strong></td>
+      <td>Website designer</td>
+      <td>15, Talatpaşa, Anka Sok., 34400 Kağıthane/İstanbul, Türkiye</td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td>+90 553 575 30 99</td>
+      <td>5.0 ⭐ (1)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#51</td>
+      <td class="company-name"><strong>Social Media Management</strong></td>
+      <td>Marketing agency</td>
+      <td>İskenderpaşa, Horhor Cd. No:36, 34080 Fatih/İstanbul, Türkiye</td>
+      <td><a href="https://www.fiverr.com/uffaqzahra" target="_blank">www.fiverr.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 506 793 00 78</td>
+      <td>5.0 ⭐ (3)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#52</td>
+      <td class="company-name"><strong>Social Month Digital Marketing Agency</strong></td>
+      <td>Marketing agency</td>
+      <td>Ataköy 7-8-9-10. Kısım Mahallasi, No:12, kat:9/A82, Nivo Atakoy, 34158 Bakırköy/İstanbul, Türkiye</td>
+      <td><a href="https://socialmonth.com/" target="_blank">socialmonth.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+971 50 178 2212</td>
+      <td>5.0 ⭐ (19)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#53</td>
+      <td class="company-name"><strong>Tykhe.co - Digital Marketing and Social Media Management Agency</strong></td>
+      <td>Marketing agency</td>
+      <td>Barbaros, Halk Cd. Palladium Residence A Blok No:8 A/3, 34746 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://www.tykhe.co/" target="_blank">www.tykhe.co</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 216 222 00 25</td>
+      <td>5.0 ⭐ (35)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#54</td>
+      <td class="company-name"><strong>Watsspace Digital Marketing Solutions</strong></td>
+      <td>Marketing agency</td>
+      <td>Allure Tower, Üniversite, Civan Sk. No: 1, 34513 Avcılar/İstanbul, Türkiye</td>
+      <td><a href="https://watsspace.com/" target="_blank">watsspace.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>—</td>
+      <td>5.0 ⭐ (25)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#55</td>
+      <td class="company-name"><strong>Survivor Dijital Medya Pazarlama Ajansı - Dijital Reklam- Performans Pazarlama</strong></td>
+      <td>Marketing agency</td>
+      <td>Quasar İstanbul, Mecidiyeköy Mahallesi, Büyükdere Cd. No:76 Kat:13 D.No:188, 34394 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://www.survivor.com.tr/" target="_blank">www.survivor.com.tr</a></td>
+      <td><span class="na">—</span></td>
+      <td>—</td>
+      <td>4.8 ⭐ (50)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#56</td>
+      <td class="company-name"><strong>Duo İstanbul Marketing</strong></td>
+      <td>Marketing agency</td>
+      <td>Atatürk Bulvarı, Ertuğrul Gazi Sk. Metropol İstanbul İç Kapı No 225, 34758 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://duoistanbul.com/" target="_blank">duoistanbul.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 532 053 27 68</td>
+      <td>5.0 ⭐ (47)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#57</td>
+      <td class="company-name"><strong>ROIPUBLIC Performans ve SEO Ajansı - İstanbul</strong></td>
+      <td>Internet marketing service</td>
+      <td>Nidakule Ataşehir Kuzey, Barbaros, Begonya Sk. No:3 K:2, D:73, 34746 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://www.roipublic.com/" target="_blank">www.roipublic.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 850 259 9400</td>
+      <td>4.9 ⭐ (73)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#58</td>
+      <td class="company-name"><strong>Scarlet Media</strong></td>
+      <td>Advertising agency</td>
+      <td>Feneryolu, Bağdat Cad. 81/9, 34724 Kadıköy/İstanbul, Türkiye</td>
+      <td><a href="https://www.scarletmedia.net/tr/" target="_blank">www.scarletmedia.net</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 216 550 68 69</td>
+      <td>4.9 ⭐ (63)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#59</td>
+      <td class="company-name"><strong>Frogs Agency</strong></td>
+      <td>Marketing agency</td>
+      <td>Medicana Hastanesi Yanı, Büyükşehir, E-5 Yanyolu Üzeri, 34520 Beylikdüzü/İstanbul, Türkiye</td>
+      <td><a href="https://www.frogmediaagency.com/" target="_blank">www.frogmediaagency.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 546 769 23 39</td>
+      <td>4.9 ⭐ (14)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#60</td>
+      <td class="company-name"><strong>Abays Medya Danışmanlık ve Reklam Ajansı - İstanbul</strong></td>
+      <td>Advertising agency</td>
+      <td>Suadiye, Bağdat Cad. No:348, 34740 Kadıköy/İstanbul, Türkiye</td>
+      <td><a href="http://abaysmedia.com/" target="_blank">abaysmedia.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 216 999 88 34</td>
+      <td>5.0 ⭐ (41)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#61</td>
+      <td class="company-name"><strong>Soneo Creative Works</strong></td>
+      <td>Advertising agency</td>
+      <td>Kemankeş Karamustafa Paşa, Mumhane Cd. No:57 Kat 3, 34425 Beyoğlu/İstanbul, Türkiye</td>
+      <td><a href="http://www.soneocreative.com/" target="_blank">www.soneocreative.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 534 811 22 32</td>
+      <td>5.0 ⭐ (66)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#62</td>
+      <td class="company-name"><strong>Sunrise Global Dijital Pazarlama Performans Ajansı I Sosyal Medya I Dijital Reklam I Fotoğraf &amp; Video Prodüksiyon</strong></td>
+      <td>Advertising agency</td>
+      <td>İçerenköy Mah Eski Üsküdar Yolu Cad Topçu İbrahim Sok No: 7 Kat: 5 D: 11, 34000 Ataşehir, Türkiye</td>
+      <td><a href="http://sunriseglobal.net/" target="_blank">sunriseglobal.net</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 531 733 55 17</td>
+      <td>5.0 ⭐ (58)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#63</td>
+      <td class="company-name"><strong>Garraje</strong></td>
+      <td>Marketing agency</td>
+      <td>Nisbetiye, Nisbetiye Cd No :30 Kat:4, No :25, 34340 Beşiktaş/İstanbul, Türkiye</td>
+      <td><a href="https://garraje.com/" target="_blank">garraje.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 534 717 82 27</td>
+      <td>4.7 ⭐ (46)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#64</td>
+      <td class="company-name"><strong>İ00 Digital Marketing Consultancy</strong></td>
+      <td>Marketing consultant</td>
+      <td>Saray Apt, Halaskargazi, Halaskargazi Cd. No:141 D:5 Kat:3, 34371 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://i00.co/" target="_blank">i00.co</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 537 419 70 62</td>
+      <td>4.9 ⭐ (37)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#65</td>
+      <td class="company-name"><strong>Level Advertising - Istanbul | Sosyal Medya | Web Tasarım &amp; Yazılım | Dijital Reklam Ajansı</strong></td>
+      <td>Advertising agency</td>
+      <td>Esentepe Mah. Büyükdere Cad. Plaza 195, NO:195, Kat: 5, Levent, 34394 Şişli/İstanbul, Türkiye</td>
+      <td><a href="http://www.levelistanbul.com/" target="_blank">www.levelistanbul.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 533 840 99 93</td>
+      <td>5.0 ⭐ (74)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#66</td>
+      <td class="company-name"><strong>ZEYMEDYA REKLAM AJANSI | İSTANBUL REKLAM VE SEO AJANSI, DİJİTAL PAZARLAMA AJANSI, SOSYAL MEDYA AJANSI, 360 REKLAM</strong></td>
+      <td>Advertising agency</td>
+      <td>Çağlayan, Latif Sk. No:3, 34403 Kağıthane/İstanbul, Türkiye</td>
+      <td><a href="https://zeymedya.com/" target="_blank">zeymedya.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 530 236 00 25</td>
+      <td>5.0 ⭐ (76)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="0" data-email="0">
+      <td class="rank">#67</td>
+      <td class="company-name"><strong>Boomerang İstanbul</strong></td>
+      <td>Advertising agency</td>
+      <td>Halaskargazi, Halaskargazi Cd. No:12/5, 34371 Şişli/İstanbul, Türkiye</td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td>+90 212 225 00 64</td>
+      <td>4.8 ⭐ (5)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#68</td>
+      <td class="company-name"><strong>Socialp Media - Sosyal Medya Ajansı</strong></td>
+      <td>Advertising agency</td>
+      <td>Zuhuratbaba, İncirli Cd. No:69, 34147 Bakırköy/İstanbul, Türkiye</td>
+      <td><a href="https://www.socialpmedia.com/" target="_blank">www.socialpmedia.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 540 034 69 69</td>
+      <td>5.0 ⭐ (22)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#69</td>
+      <td class="company-name"><strong>51 Digital: Dijital Pazarlama Ajansı - SEO Ajansı, Reklam Şirketi</strong></td>
+      <td>Advertising agency</td>
+      <td>İçerenköy, Çayır Cd No: 2, 34752 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://www.51.com.tr/" target="_blank">www.51.com.tr</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 546 110 51 51</td>
+      <td>5.0 ⭐ (15)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#70</td>
+      <td class="company-name"><strong>Amber Digital Agency | Dijital Pazarlama Ajansı</strong></td>
+      <td>Marketing agency</td>
+      <td>Yenişehir, Ankara Cd. No: 403-1/1, 34912 Pendik/İstanbul, Türkiye</td>
+      <td><a href="https://amberdijital.com/" target="_blank">amberdijital.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 543 128 88 46</td>
+      <td>5.0 ⭐ (87)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#71</td>
+      <td class="company-name"><strong>Digipeak Agency - Dijital Pazarlama Ajansı</strong></td>
+      <td>Advertising agency</td>
+      <td>Ömer avni mahallesi, Gümüşsuyu, Emektar Sk. No:14, 34427 Beyoğlu/İstanbul, Türkiye</td>
+      <td><a href="https://digipeak.org/tr/" target="_blank">digipeak.org</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 544 838 52 39</td>
+      <td>4.9 ⭐ (44)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#72</td>
+      <td class="company-name"><strong>İstanbul SEO Ajansı - Aora Digital | Web Tasarım ve Dijital Pazarlama</strong></td>
+      <td>Advertising agency</td>
+      <td>Atatürk, Turgut Özal Blv. No:10/1 K:2 İç Kapı No:9, 34758 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://www.aora.com.tr/" target="_blank">www.aora.com.tr</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 216 580 97 20</td>
+      <td>5.0 ⭐ (42)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#73</td>
+      <td class="company-name"><strong>Magna Dijital Pazarlama Ajansı</strong></td>
+      <td>Marketing agency</td>
+      <td>Balmumcu Mah. Gazi Umur Paşa Sok. Balmumcu Plaza 4 No: 36 D: 2, 34349 Beşiktaş/İstanbul, Türkiye</td>
+      <td><a href="https://www.magnadijital.com.tr/" target="_blank">www.magnadijital.com.tr</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 850 333 8091</td>
+      <td>4.8 ⭐ (27)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="0" data-email="0">
+      <td class="rank">#74</td>
+      <td class="company-name"><strong>DIRECT GROUP - Digital Marketing Company</strong></td>
+      <td>Internet marketing service</td>
+      <td>Akşemsettin, Sarı Nasuh Sk. AHENK APT BLOK NO: 17B, 34080 Fatih/İstanbul, Türkiye</td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td>+90 536 480 92 91</td>
+      <td>5.0 ⭐ (20)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#75</td>
+      <td class="company-name"><strong>Touch Digital I Dijital Pazarlama Ajansı</strong></td>
+      <td>Marketing agency</td>
+      <td>Barbaros, Lale Sok. My Office İş Merkezi No: 2/13, 34746 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://touchdi.com/" target="_blank">touchdi.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 534 460 19 96</td>
+      <td>5.0 ⭐ (11)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#76</td>
+      <td class="company-name"><strong>Sempeak | Performans Pazarlama ve SEO Ajansı</strong></td>
+      <td>Marketing agency</td>
+      <td>Altunizade, Sırma Perde Sk. No:25, 34662 Üsküdar/İstanbul, Türkiye</td>
+      <td><a href="https://www.sempeak.com/" target="_blank">www.sempeak.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 216 550 01 35</td>
+      <td>4.1 ⭐ (26)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#77</td>
+      <td class="company-name"><strong>Bossy Digital Dijital Pazarlama ve Performans Ajansı - İstanbul</strong></td>
+      <td>Advertising agency</td>
+      <td>Esentepe mh. Talatpaşa cd. No: 5 İç Kapı No: 1, 34394 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://bossydigital.com/" target="_blank">bossydigital.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 212 993 13 97</td>
+      <td>5.0 ⭐ (13)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#78</td>
+      <td class="company-name"><strong>Globa Dijital Reklam Ajansı</strong></td>
+      <td>Marketing agency</td>
+      <td>İzzet Paşa, Yeni Yol Cd. NUROL TOWER KAT: 31 OFİS NO: 3104, 34000 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://globadigital.com/" target="_blank">globadigital.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 535 269 57 32</td>
+      <td>5.0 ⭐ (20)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#79</td>
+      <td class="company-name"><strong>İstanbul Reklam Ajans &amp; İRA Dijital Pazarlama Ajansı</strong></td>
+      <td>Marketing agency</td>
+      <td>Küçükbakkalköy, Nergis Sk no18/24, 34768 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://www.istanbulreklamajans.com/" target="_blank">www.istanbulreklamajans.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 530 219 30 72</td>
+      <td>5.0 ⭐ (20)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#80</td>
+      <td class="company-name"><strong>Lead Magneters - Digital marketing agency in Istanbul, SEO company in Turkey</strong></td>
+      <td>Marketing agency</td>
+      <td>Bahçeşehir 1. Kısım, Fırat Cd., 34488 Başakşehir/İstanbul, Türkiye</td>
+      <td><a href="https://leadmagneters.com/" target="_blank">leadmagneters.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 530 307 22 74</td>
+      <td>5.0 ⭐ (3)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#81</td>
+      <td class="company-name"><strong>Nansa Marketing &amp; Ecommerce Agency</strong></td>
+      <td>Marketing agency</td>
+      <td>Huzur, Azerbaycan Cd., 34396 Sarıyer/İstanbul, Türkiye</td>
+      <td><a href="https://www.nansa.com.tr/" target="_blank">www.nansa.com.tr</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 501 338 13 38</td>
+      <td>5.0 ⭐ (4)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#82</td>
+      <td class="company-name"><strong>INDOLES Creative &amp; E-Commerce Agency</strong></td>
+      <td>Marketing agency</td>
+      <td>Esentepe Talatpaşa Caddesi No:5 Harman Sok. Girişi, 34394 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://www.indoles.com.tr/" target="_blank">www.indoles.com.tr</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 536 247 60 12</td>
+      <td>5.0 ⭐ (5)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#83</td>
+      <td class="company-name"><strong>Benji's Digital</strong></td>
+      <td>E commerce agency</td>
+      <td>Evliya Çelebi, Sadi Konuralp Cd. No: 5/2, 34430 Beyoğlu/İstanbul, Türkiye</td>
+      <td><a href="https://www.benjisdigital.com/" target="_blank">www.benjisdigital.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 532 154 11 20</td>
+      <td>5.0 ⭐ (3)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#84</td>
+      <td class="company-name"><strong>SN Marketing &amp; Ecommerce Agency</strong></td>
+      <td>Marketing agency</td>
+      <td>Huzur mah Azerbaycan cd skyland, 34475 Sarıyer/İstanbul, Türkiye</td>
+      <td><a href="https://snmarketinghub.com/" target="_blank">snmarketinghub.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 501 338 13 38</td>
+      <td>—</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#85</td>
+      <td class="company-name"><strong>DxGreat</strong></td>
+      <td>Marketing agency</td>
+      <td>Esentepe, Keskin Kalem Sok. No:41, 34394 Şişli/İstanbul, Türkiye</td>
+      <td><a href="http://www.dxgreat.com/" target="_blank">www.dxgreat.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>—</td>
+      <td>5.0 ⭐ (8)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#86</td>
+      <td class="company-name"><strong>clickzone - Growth Marketing Agency</strong></td>
+      <td>Internet marketing service</td>
+      <td>Konaklar, Selvili Sokağı Emlak Bankası Apartmanı, No:2 D:38, 34330 Beşiktaş/İstanbul, Türkiye</td>
+      <td><a href="https://clickzone.io/" target="_blank">clickzone.io</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 850 304 1191</td>
+      <td>5.0 ⭐ (15)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#87</td>
+      <td class="company-name"><strong>Kurumsal SEO Ajansı - Mobitek</strong></td>
+      <td>Advertising agency</td>
+      <td>BUSINESS ISTANBUL, Merdivenköy Mah. Yumurtacı Abdi Bey Cd, Merdivenköy, Dikyol Sk. No:10 B Blok / D:16, 34732 Kadıköy/İstanbul, Türkiye</td>
+      <td><a href="https://mobitek.com/" target="_blank">mobitek.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 216 418 08 84</td>
+      <td>4.4 ⭐ (28)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#88</td>
+      <td class="company-name"><strong>Wetasome – İstanbul Web Tasarım, E-Ticaret, SEO, Sosyal Medya, Reklam ve Dijital Danışmanlık Ajansı</strong></td>
+      <td>Website designer</td>
+      <td>Nine Hatun, İnönü Cd. Akman Ticaret Merkezi No : 11 K:4 D:52, 34200 Esenler/İstanbul, Türkiye</td>
+      <td><a href="https://www.wetasome.com/" target="_blank">www.wetasome.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 538 978 42 26</td>
+      <td>5.0 ⭐ (164)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#89</td>
+      <td class="company-name"><strong>Positive A Digital Approach</strong></td>
+      <td>E commerce agency</td>
+      <td>Şahkulu, Serdar-ı Ekrem Cd. No:15/A, 34421 Beyoğlu/İstanbul, Türkiye</td>
+      <td><a href="http://www.positive.com.tr/" target="_blank">www.positive.com.tr</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 212 403 54 34</td>
+      <td>4.5 ⭐ (8)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#90</td>
+      <td class="company-name"><strong>Piksel - Kurumsal Web Tasarım Ajansı - İstanbul Ataşehir</strong></td>
+      <td>Website designer</td>
+      <td>Nidakule Ataşehir Kuzey, Barbaros, Begonya Sk. No:3 İç Kapı No:73, 34746 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://piksel.agency/" target="_blank">piksel.agency</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 232 683 55 85</td>
+      <td>5.0 ⭐ (20)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#91</td>
+      <td class="company-name"><strong>RekClick 360° Dijital Pazarlama Ajansı &amp; Reklam Ajansı</strong></td>
+      <td>Advertising agency</td>
+      <td>Sultan Selim, Turan Sokağı No:6 LEVENT NO5 Plaza 4.Levent, 34415 Kağıthane/İstanbul, Türkiye</td>
+      <td><a href="https://www.rekclick.com/" target="_blank">www.rekclick.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 212 269 95 96</td>
+      <td>5.0 ⭐ (19)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#92</td>
+      <td class="company-name"><strong>Crabs Media | SEO | GEO | Web Tasarımı | Performans Pazarlama Ajansı</strong></td>
+      <td>Website designer</td>
+      <td>Mecidiyeköy Mahallesi, Şht. Ahmet Sok. Ada Residence N0: 6-10 İç Kapı No: 24, 34387 Şişli/İstanbul, Türkiye</td>
+      <td><a href="http://www.crabsmedia.com/" target="_blank">www.crabsmedia.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 553 089 26 59</td>
+      <td>4.9 ⭐ (32)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#93</td>
+      <td class="company-name"><strong>İstanbul SEO Ajansı - Work Medya Dijital Ajans</strong></td>
+      <td>Advertising agency</td>
+      <td>Gayrettepe, Yıldız Posta Cd. No:30/2, 34394 Beşiktaş/İstanbul, Türkiye</td>
+      <td><a href="https://www.workmedya.com/" target="_blank">www.workmedya.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 212 327 33 27</td>
+      <td>3.8 ⭐ (10)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#94</td>
+      <td class="company-name"><strong>شركة تسويق | Apollo Agency</strong></td>
+      <td>Marketing agency</td>
+      <td>Üniversite Mah. E-5 Yan Yol Üzeri, Çınar Sk. No:1 D:4, 34320 Avcılar/İstanbul, Türkiye</td>
+      <td><a href="https://apollo-agency.com/" target="_blank">apollo-agency.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 552 833 02 33</td>
+      <td>4.1 ⭐ (27)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#95</td>
+      <td class="company-name"><strong>Alvonso Marketing Agency</strong></td>
+      <td>Marketing agency</td>
+      <td>30-22 44th St #2L, Astoria, NY 11103</td>
+      <td><a href="https://alvonso.com/" target="_blank">alvonso.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>(347) 926-8669</td>
+      <td>5.0 ⭐ (43)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#96</td>
+      <td class="company-name"><strong>Dijital Ankara</strong></td>
+      <td>Marketing agency</td>
+      <td>Maltepe, Özveren Sk. No:2 D:19, 06570 Çankaya/Ankara, Türkiye</td>
+      <td><a href="https://dijitalankara.com/" target="_blank">dijitalankara.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 555 151 91 29</td>
+      <td>5.0 ⭐ (115)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#97</td>
+      <td class="company-name"><strong>AO Digital | Ankara Web Sitesi | Ankara Dijital Reklam Ajansı</strong></td>
+      <td>Internet marketing service</td>
+      <td>Büyükesat, Koza Sk. No:153/4, 06700 Çankaya/Ankara, Türkiye</td>
+      <td><a href="https://aodigital.com.tr/" target="_blank">aodigital.com.tr</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 534 922 11 68</td>
+      <td>5.0 ⭐ (40)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#98</td>
+      <td class="company-name"><strong>Adwoox Ankara Web Tasarım &amp; Ankara SEO Ajansı</strong></td>
+      <td>Marketing agency</td>
+      <td>Yeni Antares Konutları, Ayvalı, Gazze Cd. 21B Blok No:22 Kat 3, 06010 Keçiören/Ankara, Türkiye</td>
+      <td><a href="https://adwoox.com/" target="_blank">adwoox.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 545 790 07 09</td>
+      <td>5.0 ⭐ (23)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#99</td>
+      <td class="company-name"><strong>Bilgeweb Interactive Advertising Agency</strong></td>
+      <td>Internet marketing service</td>
+      <td>İlkyerleşim Mahallesi 1904.Cadde, Ata Sitesi, 2018 Sk., Batıkent, D:29, 06370 Yenimahalle/Ankara, Türkiye</td>
+      <td><a href="http://www.bilgeweb.com.tr/" target="_blank">www.bilgeweb.com.tr</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 312 232 23 50</td>
+      <td>5.0 ⭐ (444)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-web="1" data-email="0">
+      <td class="rank">#100</td>
+      <td class="company-name"><strong>ON YAZILIM | Ankara WEB Tasarım | SEO | Google Reklam | Sosyal Medya</strong></td>
+      <td>Internet marketing service</td>
+      <td>Ragıp Tüzün Mah. Akın Caddesi, Gürler Sk. No: 2/1, 06170 Yenimahalle/Ankara, Türkiye</td>
+      <td><a href="https://www.onyazilim.com/" target="_blank">www.onyazilim.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+90 505 034 91 25</td>
+      <td>4.8 ⭐ (30)</td>
+      <td>
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong>/100<br><small>🔥 Cok Yuksek</small>
+        </span>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="footer">
+  Ovlink (ovlink.sbs) · Potansiyel Musteri Arastirmasi · Apify Google Maps Scraper<br>
+  Bu rapor 17.09.2026 03:24:29 tarihinde olusturulmustur.
+</div>
+
+<script>
+let currentFilter='all';
+const tbody=document.getElementById('tableBody');
+const allRows=Array.from(tbody.querySelectorAll('tr'));
+
+function setFilter(f,btn){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters(){
+  const term=document.getElementById('searchInput').value.toLowerCase();
+  let visible=0;
+  allRows.forEach(row=>{
+    const text=row.textContent.toLowerCase();
+    const score=parseInt(row.dataset.score||0);
+    const hasWeb=row.dataset.web==='1';
+    const hasEmail=row.dataset.email==='1';
+    let show=true;
+    if(term&&!text.includes(term))show=false;
+    if(currentFilter==='high'&&score<70)show=false;
+    if(currentFilter==='withWeb'&&!hasWeb)show=false;
+    if(currentFilter==='withEmail'&&!hasEmail)show=false;
+    row.style.display=show?'':'none';
+    if(show)visible++;
+  });
+  document.getElementById('visibleCount').textContent=visible+' gosteriliyor';
+}
+</script>
+</body>
+</html>

@@ -152,3 +152,7 @@ hacker-news-cookie.json
 
 # Marketing Bot Runtime Data
 bot_data/
+
+# Embedded repositories and local shell config
+winners-bot/
+.bashrc

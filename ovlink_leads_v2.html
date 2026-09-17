@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ovlink — Potansiyel Müşteriler &amp; Genel Müdür / CEO Listesi</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f8fafc; color: #0f172a; line-height: 1.5; }
+  
+  .header {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
+    color: white;
+    padding: 48px 36px 36px;
+    box-shadow: 0 4px 20px rgba(79, 70, 229, 0.2);
+  }
+  .header h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+  .header p { opacity: 0.9; font-size: 1.05rem; max-width: 800px; }
+  .header-meta { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .badge-pill { background: rgba(255,255,255,0.2); backdrop-filter: blur(8px); border-radius: 999px; padding: 6px 16px; font-size: 0.82rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+    padding: 24px 36px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .stat-card {
+    background: #f8fafc;
+    border-radius: 14px;
+    padding: 18px 20px;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #6366f1;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+  .stat-card.green { border-left-color: #10b981; }
+  .stat-card.blue { border-left-color: #3b82f6; }
+  .stat-card.purple { border-left-color: #8b5cf6; }
+  .stat-card.pink { border-left-color: #ec4899; }
+  .stat-card.orange { border-left-color: #f59e0b; }
+  
+  .stat-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+  .stat-value { font-size: 2rem; font-weight: 800; margin-top: 4px; color: #0f172a; }
+  .stat-card.green .stat-value { color: #059669; }
+  .stat-card.blue .stat-value { color: #2563eb; }
+  .stat-card.purple .stat-value { color: #7c3aed; }
+  .stat-card.pink .stat-value { color: #db2777; }
+  .stat-card.orange .stat-value { color: #d97706; }
+
+  .cost-box {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 14px;
+    margin: 24px 36px;
+    padding: 22px 28px;
+  }
+  .cost-box h3 { color: #92400e; font-size: 1.05rem; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .cost-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .cost-table td { padding: 8px 12px; border-bottom: 1px solid #fef3c7; }
+  .cost-table tr:last-child td { border: none; font-weight: 800; background: #fef3c7; border-radius: 8px; font-size: 0.95rem; }
+
+  .table-container { padding: 0 36px 48px; }
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .table-title { font-size: 1.25rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 10px; }
+  .count-chip { background: #e0e7ff; color: #4338ca; border-radius: 999px; padding: 4px 14px; font-size: 0.8rem; font-weight: 700; }
+
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+  .search-box {
+    position: relative;
+    flex: 1;
+    min-width: 260px;
+    max-width: 380px;
+  }
+  .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+  .search-box input {
+    width: 100%;
+    padding: 10px 16px 10px 38px;
+    border-radius: 999px;
+    border: 2px solid #e2e8f0;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+    background: white;
+  }
+  .search-box input:focus { border-color: #6366f1; }
+
+  .filter-btn {
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 2px solid #e2e8f0;
+    background: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover, .filter-btn.active { background: #4f46e5; color: white; border-color: #4f46e5; }
+
+  .export-btn {
+    margin-left: auto;
+    background: #10b981;
+    color: white;
+    padding: 9px 20px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+  }
+  .export-btn:hover { background: #059669; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    font-size: 0.88rem;
+  }
+  thead { background: #0f172a; color: white; }
+  th { padding: 14px 14px; text-align: left; font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+  td { padding: 14px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  tr:hover td { background: #f8fafc; }
+  tr:last-child td { border: none; }
+
+  .rank-col { font-weight: 800; color: #94a3b8; width: 45px; }
+  .name-col { min-width: 190px; }
+  .category-sub { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+
+  .link-site { color: #4f46e5; font-weight: 600; text-decoration: none; display: inline-block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .link-site:hover { text-decoration: underline; }
+
+  .link-email { color: #0284c7; font-weight: 600; text-decoration: none; }
+  .link-email:hover { text-decoration: underline; }
+
+  .ceo-cell strong { color: #1e293b; font-size: 0.92rem; }
+  .link-ceo { color: #0f172a; text-decoration: none; }
+  .link-ceo:hover { color: #4f46e5; text-decoration: underline; }
+  .link-ceo i { font-size: 0.7rem; color: #6366f1; }
+  .ceo-badge { display: inline-block; font-size: 0.72rem; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; margin-top: 2px; }
+
+  .rating-pill { background: #fef3c7; color: #92400e; font-weight: 700; border-radius: 999px; padding: 4px 10px; font-size: 0.8rem; white-space: nowrap; }
+  .rating-pill small { color: #b45309; }
+
+  .score-badge { display: inline-block; padding: 6px 12px; border-radius: 10px; text-align: center; line-height: 1.3; white-space: nowrap; font-size: 0.85rem; }
+  
+  .na { color: #cbd5e1; font-weight: 500; font-style: italic; }
+
+  .footer {
+    text-align: center;
+    padding: 32px;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    border-top: 1px solid #e2e8f0;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><i class="fa-solid fa-link"></i> Ovlink — B2B Müşteri &amp; Karar Verici (CEO/Genel Müdür) Raporu</h1>
+  <p>URL Shortener, Dinamik QR Kod ve Tıklama Analitiği Platformu (ovlink.sbs) için hedeflenmiş potansiyel ajanslar ve karar vericiler.</p>
+  <div class="header-meta">
+    <span class="badge-pill"><i class="fa-solid fa-location-dot"></i> Azerbaycan (Bakü) &amp; Türkiye (İstanbul, Ankara)</span>
+    <span class="badge-pill"><i class="fa-solid fa-bullhorn"></i> Dijital Pazarlama, Web Tasarım, SEO, Reklam Ajansları</span>
+    <span class="badge-pill"><i class="fa-solid fa-robot"></i> Apify: Google Maps + Google Search AI + Web Scraper</span>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card green">
+    <div class="stat-label">Toplam Şirket</div>
+    <div class="stat-value">100</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-label">E-maili Hazır</div>
+    <div class="stat-value">93</div>
+  </div>
+  <div class="stat-card pink">
+    <div class="stat-label">Genel Müdür / CEO</div>
+    <div class="stat-value">55</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-label">Hem Email + CEO</div>
+    <div class="stat-value">50</div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-label">Ort. Ovlink Skoru</div>
+    <div class="stat-value">100.0/100</div>
+  </div>
+</div>
+
+<div class="cost-box">
+  <h3><i class="fa-solid fa-receipt"></i> Apify Harcama &amp; Maliyet Özeti</h3>
+  <table class="cost-table">
+    <tr><td>Google Maps Scraper (3 Run - 205 yer kaydı)</td><td>~$2.50</td></tr>
+    <tr><td>Google Search Scraper (2 Run - 100 CEO/GM sorgusu &amp; AI Overview)</td><td>~$1.80</td></tr>
+    <tr><td>Contact Info Scraper (Web site kontakt tarama)</td><td>~$0.80</td></tr>
+    <tr><td><strong>Tahmini Toplam Apify Harcaması</strong></td><td><strong>~$4.50 – $5.50 USD</strong></td></tr>
+  </table>
+</div>
+
+<div class="table-container">
+  <div class="table-header">
+    <div class="table-title">
+      <i class="fa-solid fa-users-viewfinder"></i> Top 100 Potansiyel Müşteri &amp; Karar Verici
+      <span class="count-chip" id="visibleCount">100 kayıt gösteriliyor</span>
+    </div>
+    <a href="ovlink_leads_v2.csv" download class="export-btn">
+      <i class="fa-solid fa-file-excel"></i> Excel (CSV) İndir
+    </a>
+  </div>
+
+  <div class="controls">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="searchInput" placeholder="Şirket, CEO, email veya kategori ara..." oninput="applyFilters()">
+    </div>
+    <button class="filter-btn active" onclick="setFilter('all', this)">Tümü (100)</button>
+    <button class="filter-btn" onclick="setFilter('both', this)">⭐ Email + CEO (50)</button>
+    <button class="filter-btn" onclick="setFilter('ceo', this)">👤 CEO / GM Bulunan (55)</button>
+    <button class="filter-btn" onclick="setFilter('email', this)">📧 E-mail Var (93)</button>
+  </div>
+
+  <table id="mainTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Şirket Adı &amp; Kategori</th>
+        <th>Adres / Şehir</th>
+        <th>Web Sitesi</th>
+        <th>E-mail</th>
+        <th>Telefon</th>
+        <th>Genel Müdür / CEO</th>
+        <th>Google Puan</th>
+        <th>Ovlink Skoru</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#1</td>
+      <td class="name-col">
+        <strong>iSpace</strong>
+        <div class="category-sub">Electronics store</div>
+      </td>
+      <td>151 Neftchilar Ave, Baku 1025, Azerbaijan</td>
+      <td><a href="https://ispace.az/" target="_blank" rel="noopener" class="link-site">🌐 ispace.az</a></td>
+      <td><a href="mailto:info@ispace.az" class="link-email">📧 info@ispace.az</a></td>
+      <td>+994 12 464 04 34</td>
+      <td><div class="ceo-cell"><a href="https://jp.linkedin.com/in/takeshi-hakamada-b096b14" target="_blank" rel="noopener" class="link-ceo"><strong>Takeshi Hakamada</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Founder &amp; CEO at ispace, inc.</span></div></td>
+      <td><span class="rating-pill">⭐ 4.8 <small>(22)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#2</td>
+      <td class="name-col">
+        <strong>NC GROUP</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>94 Hasan bey Zardabi St, Baku 1012, Azerbaijan</td>
+      <td><a href="https://ncgroup.az/" target="_blank" rel="noopener" class="link-site">🌐 ncgroup.az</a></td>
+      <td><a href="mailto:info@ncgroup.az" class="link-email">📧 info@ncgroup.az</a></td>
+      <td>+994 51 230 26 16</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(26)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#3</td>
+      <td class="name-col">
+        <strong>Make Agency — Saytlarin Hazirlanmasi, SMM Xidmeti, SEO Xidmeti</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>7 Badamdar Shosesi, Baku 1021, Azerbaijan</td>
+      <td><a href="https://make.az/" target="_blank" rel="noopener" class="link-site">🌐 make.az</a></td>
+      <td><a href="mailto:agency@make.az" class="link-email">📧 agency@make.az</a></td>
+      <td>+994 55 755 89 01</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(14)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#4</td>
+      <td class="name-col">
+        <strong>Admedia Reklam Agentliyi</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Əbdüləzəl Dəmirçizadə 2G, Bakı 1008, Azerbaijan</td>
+      <td><a href="http://admedia.az/" target="_blank" rel="noopener" class="link-site">🌐 admedia.az</a></td>
+      <td><a href="mailto:info@admedia.az" class="link-email">📧 info@admedia.az</a></td>
+      <td>+994 55 270 70 48</td>
+      <td><div class="ceo-cell"><a href="https://az.linkedin.com/company/admedia-reklam-pr" target="_blank" rel="noopener" class="link-ceo"><strong>Lamia Khudiyeva</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 4.8 <small>(25)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#5</td>
+      <td class="name-col">
+        <strong>Creative SHAMANS</strong>
+        <div class="category-sub">Design agency</div>
+      </td>
+      <td>55 Yeni, Yeni Həyat Plaza, Zarifa Aliyeva St, Baku, Azerbaijan</td>
+      <td><a href="https://shamans.az/" target="_blank" rel="noopener" class="link-site">🌐 shamans.az</a></td>
+      <td><a href="mailto:info@shamans.az" class="link-email">📧 info@shamans.az</a></td>
+      <td>+994 55 299 31 34</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(10)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#6</td>
+      <td class="name-col">
+        <strong>Etna Group Advertising Agency</strong>
+        <div class="category-sub">Design agency</div>
+      </td>
+      <td>Park, Azure biznes mərkəzi, 8 November Ave, Baku, Azerbaijan</td>
+      <td><a href="http://etnagroup.az/" target="_blank" rel="noopener" class="link-site">🌐 etnagroup.az</a></td>
+      <td><a href="mailto:info@etnagroup.az" class="link-email">📧 info@etnagroup.az</a></td>
+      <td>+994 50 290 00 29</td>
+      <td><div class="ceo-cell"><a href="https://tr.linkedin.com/company/etnagroup" target="_blank" rel="noopener" class="link-ceo"><strong>Nihad Babayev</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(2)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#7</td>
+      <td class="name-col">
+        <strong>SaytPro</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>Mənzil 25, Bakı şəhəri, ev 15 Üzeyir Hacıbəyov küç, Baku 1000, Azerbaijan</td>
+      <td><a href="https://saytpro.az/az" target="_blank" rel="noopener" class="link-site">🌐 saytpro.az</a></td>
+      <td><a href="mailto:salam@saytpro.az" class="link-email">📧 salam@saytpro.az</a></td>
+      <td>+994 70 737 07 17</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(95)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#8</td>
+      <td class="name-col">
+        <strong>Medium Creative Agency | saytların hazırlanması</strong>
+        <div class="category-sub">E commerce agency</div>
+      </td>
+      <td>1, 52A Əhməd Rəcəbli, Bakı 1075, Azerbaijan</td>
+      <td><a href="https://medium.az/" target="_blank" rel="noopener" class="link-site">🌐 medium.az</a></td>
+      <td><a href="mailto:info@medium.az" class="link-email">📧 info@medium.az</a></td>
+      <td>+994 70 815 11 77</td>
+      <td><div class="ceo-cell"><a href="https://www.instagram.com/p/C_k-UfQo68D/" target="_blank" rel="noopener" class="link-ceo"><strong>Merve Naz Atmaca</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Genel Müdür</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(19)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#9</td>
+      <td class="name-col">
+        <strong>ideas</strong>
+        <div class="category-sub">Design agency</div>
+      </td>
+      <td>37 Khojali Avenue, Baku 1000, Azerbaijan</td>
+      <td><a href="https://ideas.az/" target="_blank" rel="noopener" class="link-site">🌐 ideas.az</a></td>
+      <td><a href="mailto:info@ideas.az" class="link-email">📧 info@ideas.az</a></td>
+      <td>+994 77 427 05 05</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(6)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#10</td>
+      <td class="name-col">
+        <strong>WebRain</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>35 Matbuat avenue, Baku 1141, Azerbaijan</td>
+      <td><a href="https://www.webrain.az/" target="_blank" rel="noopener" class="link-site">🌐 webrain.az</a></td>
+      <td><a href="mailto:info@webrain.az" class="link-email">📧 info@webrain.az</a></td>
+      <td>+994 70 900 80 99</td>
+      <td><div class="ceo-cell"><a href="https://www.turkiyeinnovationweek.com/eng/program-konusmacilar.html" target="_blank" rel="noopener" class="link-ceo"><strong>Nejat Ünsal Co</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(25)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#11</td>
+      <td class="name-col">
+        <strong>webline</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>5 Heydar Aliyev Ave, Baku 1033, Azerbaijan</td>
+      <td><a href="https://webline.az/" target="_blank" rel="noopener" class="link-site">🌐 webline.az</a></td>
+      <td><a href="mailto:info@webline.az" class="link-email">📧 info@webline.az</a></td>
+      <td>+994 55 728 48 48</td>
+      <td><div class="ceo-cell"><a href="https://www.linkedin.com/company/weblineagency" target="_blank" rel="noopener" class="link-ceo"><strong>Amir Hossein Khateri</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(25)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#12</td>
+      <td class="name-col">
+        <strong>ONE studio - Creative Agency | Web development | SMM | Branding</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>101 Zərgərpalan, Bakı 1009, Azerbaijan</td>
+      <td><a href="https://one.az/" target="_blank" rel="noopener" class="link-site">🌐 one.az</a></td>
+      <td><a href="mailto:info@one.az" class="link-email">📧 info@one.az</a></td>
+      <td>+994 55 475 24 00</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(7)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#13</td>
+      <td class="name-col">
+        <strong>Jake's Web Design &amp; Marketing</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>3176 W Willow Bnd, Lehi, UT 84043</td>
+      <td><a href="http://jakeswebandmarketing.com/" target="_blank" rel="noopener" class="link-site">🌐 jakeswebandmarketing.com</a></td>
+      <td><a href="mailto:jakeswebandmarketing@gmail.com" class="link-email">📧 jakeswebandmarketing@gmail.com</a></td>
+      <td>(385) 331-6065</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(106)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#14</td>
+      <td class="name-col">
+        <strong>Davis Designs</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>7984 S 1300 E, Sandy, UT 84094</td>
+      <td><a href="http://daviscreate.com/" target="_blank" rel="noopener" class="link-site">🌐 daviscreate.com</a></td>
+      <td><a href="mailto:info@daviscreate.com" class="link-email">📧 info@daviscreate.com</a></td>
+      <td>(385) 474-9887</td>
+      <td><div class="ceo-cell"><strong>Mike Davis</strong><br><span class="ceo-badge">Kurucu / CEO</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(125)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#15</td>
+      <td class="name-col">
+        <strong>Trustme Digital</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>11/31 Babək prosp, Bakı 1025, Azerbaijan</td>
+      <td><a href="https://trustmedigital.com/" target="_blank" rel="noopener" class="link-site">🌐 trustmedigital.com</a></td>
+      <td><a href="mailto:info@trustmedigital.com" class="link-email">📧 info@trustmedigital.com</a></td>
+      <td>+994 50 202 33 15</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(29)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="0" data-ceo="1">
+      <td class="rank-col">#16</td>
+      <td class="name-col">
+        <strong>Good Day Azerbaijan</strong>
+        <div class="category-sub">Internet marketing service</div>
+      </td>
+      <td>86 Nizami St, Baku 1001, Azerbaijan</td>
+      <td><a href="https://www.instagram.com/goodday.azerbaijan" target="_blank" rel="noopener" class="link-site">🌐 instagram.com</a></td>
+      <td><span class="na">—</span></td>
+      <td>+994 55 953 23 48</td>
+      <td><div class="ceo-cell"><a href="https://tr.linkedin.com/in/adem-ayk%C4%B1n-21833488" target="_blank" rel="noopener" class="link-ceo"><strong>Adem Aykın</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Executive Advisor, Board Member, General ...</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(6)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#17</td>
+      <td class="name-col">
+        <strong>Utah Web Design Pros</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>8817 Redwood Rd Suite A10, West Jordan, UT 84088</td>
+      <td><a href="https://www.utahwebdesignpros.com/" target="_blank" rel="noopener" class="link-site">🌐 utahwebdesignpros.com</a></td>
+      <td><a href="mailto:info@utahwebdesignpros.com" class="link-email">📧 info@utahwebdesignpros.com</a></td>
+      <td>(801) 871-5251</td>
+      <td><div class="ceo-cell"><a href="https://www.linkedin.com/in/cody-lueck-b412b4118" target="_blank" rel="noopener" class="link-ceo"><strong>Cody Lueck</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Owner at Utah Web Design Pros</span></div></td>
+      <td><span class="rating-pill">⭐ 4.8 <small>(25)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#18</td>
+      <td class="name-col">
+        <strong>Beyvin Digital</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>1/23 Ahmad Rajabli str, Baku 1075, Azerbaijan</td>
+      <td><a href="https://beyvin.com/" target="_blank" rel="noopener" class="link-site">🌐 beyvin.com</a></td>
+      <td><a href="mailto:info@beyvin.com" class="link-email">📧 info@beyvin.com</a></td>
+      <td>+994 70 277 66 01</td>
+      <td><div class="ceo-cell"><a href="https://bh.linkedin.com/in/moalkhalifa" target="_blank" rel="noopener" class="link-ceo"><strong>Mohamed Al Khalifa</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(12)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#19</td>
+      <td class="name-col">
+        <strong>Jeykhun Imanov Studio (JIS) - Digital Transformation Agency</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Caspian Plaza, 3rd Block, 3rd floor. J.Jabbarli str. 44, Baku, AZ1065, Baku 1065, Azerbaijan</td>
+      <td><a href="https://www.jis.az/" target="_blank" rel="noopener" class="link-site">🌐 jis.az</a></td>
+      <td><a href="mailto:jane@jis.az" class="link-email">📧 jane@jis.az</a></td>
+      <td>+994 77 404 99 00</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(7)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#20</td>
+      <td class="name-col">
+        <strong>RegemsalElement - digital marketing agency</strong>
+        <div class="category-sub">Internet marketing service</div>
+      </td>
+      <td>92 Nizami St, Baku 1016, Azerbaijan</td>
+      <td><a href="https://regemsalelement.com/az/services/" target="_blank" rel="noopener" class="link-site">🌐 regemsalelement.com</a></td>
+      <td><a href="mailto:regemsalelement@gmail.com" class="link-email">📧 regemsalelement@gmail.com</a></td>
+      <td>+994 51 310 82 05</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(5)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="0" data-ceo="1">
+      <td class="rank-col">#21</td>
+      <td class="name-col">
+        <strong>Hexa Studio Marketing Agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>89 Ataturk avenue, Baku 1069 89, 1069 Ataturk avenue, Baku 1069, Azerbaijan</td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td>+994 51 753 27 75</td>
+      <td><div class="ceo-cell"><strong>Victor Ogunbode</strong><br><span class="ceo-badge">Kurucu / CEO</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(14)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#22</td>
+      <td class="name-col">
+        <strong>Ondigital Agency</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>10th floor / № 1003, Old Town Plaza, 123 Bəşir Səfəroğlu Küçəsi, Baku 1009, Azerbaijan</td>
+      <td><a href="https://ondigital.az/?utm_source=google&amp;utm_medium=organic&amp;utm_campaign=gmb" target="_blank" rel="noopener" class="link-site">🌐 ondigital.az</a></td>
+      <td><a href="mailto:office@ondigital.az" class="link-email">📧 office@ondigital.az</a></td>
+      <td>+994 55 431 47 50</td>
+      <td><div class="ceo-cell"><a href="https://www.linkedin.com/in/covereddigitalmarketingagency" target="_blank" rel="noopener" class="link-ceo"><strong>Erick Lopez</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO, Founder</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(7)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#23</td>
+      <td class="name-col">
+        <strong>Brandup</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>88A, 1010 Azadlıq Prospekti, Bakı, Azerbaijan</td>
+      <td><a href="http://www.brandup.az/" target="_blank" rel="noopener" class="link-site">🌐 brandup.az</a></td>
+      <td><a href="mailto:info@brandup.az" class="link-email">📧 info@brandup.az</a></td>
+      <td>+994 50 206 16 04</td>
+      <td><div class="ceo-cell"><strong>Danara Kizzy Kuhn</strong><br><span class="ceo-badge">Kurucu / CEO</span></div></td>
+      <td><span class="rating-pill">⭐ 4.9 <small>(19)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#24</td>
+      <td class="name-col">
+        <strong>Aventus Digital Marketinq</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>3 Tac&quot; Binaları, 78E Zerdabi Ave, Baku 1122, Azerbaijan</td>
+      <td><a href="https://aventusconsultancy.com/" target="_blank" rel="noopener" class="link-site">🌐 aventusconsultancy.com</a></td>
+      <td><a href="mailto:info@aventusconsultancy.com" class="link-email">📧 info@aventusconsultancy.com</a></td>
+      <td>+994 55 213 03 77</td>
+      <td><div class="ceo-cell"><strong>Zubayed Feroz</strong><br><span class="ceo-badge">Kurucu / CEO</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(178)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#25</td>
+      <td class="name-col">
+        <strong>MarLab</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>40 Jafar Jabbarli street, Baku, Azerbaijan</td>
+      <td><a href="https://marlab.az/" target="_blank" rel="noopener" class="link-site">🌐 marlab.az</a></td>
+      <td><a href="mailto:info@marlab.az" class="link-email">📧 info@marlab.az</a></td>
+      <td>+994 10 315 30 04</td>
+      <td><div class="ceo-cell"><a href="https://marlab.az/en" target="_blank" rel="noopener" class="link-ceo"><strong>Ali Badalov</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 4.9 <small>(88)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#26</td>
+      <td class="name-col">
+        <strong>Baku Creative Projects</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Aşıq Molla Cümə, Bakı, Azerbaijan</td>
+      <td><a href="https://bcp.az/" target="_blank" rel="noopener" class="link-site">🌐 bcp.az</a></td>
+      <td><a href="mailto:info@bcp.az" class="link-email">📧 info@bcp.az</a></td>
+      <td>+994 55 500 50 15</td>
+      <td><div class="ceo-cell"><a href="https://az.linkedin.com/in/farid-badalov-8a4281235" target="_blank" rel="noopener" class="link-ceo"><strong>Farid Badalov</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Основатель и Директор</span></div></td>
+      <td><span class="rating-pill">⭐ 4.9 <small>(50)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#27</td>
+      <td class="name-col">
+        <strong>Aghabala Mammadov - SEO Xidməti, Veb saytların hazırlanması, Rəqəmsal Marketinq Xidmətləri</strong>
+        <div class="category-sub">Marketing consultant</div>
+      </td>
+      <td>Turan Biznes Mərkəzi, Ahmad Rajabli, Baku 1065, Azerbaijan</td>
+      <td><a href="https://aghabala.az/" target="_blank" rel="noopener" class="link-site">🌐 aghabala.az</a></td>
+      <td><a href="mailto:aghabalamammadov@gmail.com" class="link-email">📧 aghabalamammadov@gmail.com</a></td>
+      <td>+994 50 394 81 74</td>
+      <td><div class="ceo-cell"><a href="https://az.linkedin.com/in/aghabalamammadov" target="_blank" rel="noopener" class="link-ceo"><strong>Aghabala Mammadov</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">🎯Full</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(106)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#28</td>
+      <td class="name-col">
+        <strong>Mediamark Digital Agency - Baku, AZ</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Ağ Şəhər, 1 Yasil ada kucesi, Baku 1025, Azerbaijan</td>
+      <td><a href="https://mediamark.digital/" target="_blank" rel="noopener" class="link-site">🌐 mediamark.digital</a></td>
+      <td><a href="mailto:info@mediamark.digital" class="link-email">📧 info@mediamark.digital</a></td>
+      <td>—</td>
+      <td><div class="ceo-cell"><a href="https://es.linkedin.com/in/farukkocabas" target="_blank" rel="noopener" class="link-ceo"><strong>Faruk Kocabaş</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">COO of MediaMarktSaturn and CEO ...</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(2)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#29</td>
+      <td class="name-col">
+        <strong>Beyinix • marketing agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Knightsbridge Residence, 122 Mərkəzi bulvar küçəsi, Baku 1025, Azerbaijan</td>
+      <td><a href="http://www.beyinix.az/" target="_blank" rel="noopener" class="link-site">🌐 beyinix.az</a></td>
+      <td><a href="mailto:info@beyinix.az" class="link-email">📧 info@beyinix.az</a></td>
+      <td>+994 99 355 20 30</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.9 <small>(232)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#30</td>
+      <td class="name-col">
+        <strong>BranDoc. Agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>2nd Yashil Ada str, Baku 1000, Azerbaijan</td>
+      <td><a href="https://brandoc.az/" target="_blank" rel="noopener" class="link-site">🌐 brandoc.az</a></td>
+      <td><a href="mailto:info@brandoc.az" class="link-email">📧 info@brandoc.az</a></td>
+      <td>+994 51 312 11 67</td>
+      <td><div class="ceo-cell"><a href="https://in.linkedin.com/in/freenaren" target="_blank" rel="noopener" class="link-ceo"><strong>Narendran Damodaran</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Founder</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(17)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#31</td>
+      <td class="name-col">
+        <strong>Digital Marketing Baku</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>61 Ogtay Karimov, Baku, Azerbaijan</td>
+      <td><a href="http://dimktg.com/" target="_blank" rel="noopener" class="link-site">🌐 dimktg.com</a></td>
+      <td><a href="mailto:info@dimktg.com" class="link-email">📧 info@dimktg.com</a></td>
+      <td>+994 77 117 24 75</td>
+      <td><div class="ceo-cell"><a href="https://az.linkedin.com/in/tabriz-heydarov-06391457" target="_blank" rel="noopener" class="link-ceo"><strong>Tabriz Heydarov</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Founder &amp; CEO</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(3)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#32</td>
+      <td class="name-col">
+        <strong>JUGAAD Agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>4 Nizami Gəncəvi, Bakı 1000, Azerbaijan</td>
+      <td><a href="http://www.jugaad.az/" target="_blank" rel="noopener" class="link-site">🌐 jugaad.az</a></td>
+      <td><a href="mailto:info@jugaad.az" class="link-email">📧 info@jugaad.az</a></td>
+      <td>+994 50 962 00 15</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(28)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#33</td>
+      <td class="name-col">
+        <strong>Sharaf Media</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>10th floor, Azure Business Center, Bakı 1025, Azerbaijan</td>
+      <td><a href="https://sharafmedia.az/" target="_blank" rel="noopener" class="link-site">🌐 sharafmedia.az</a></td>
+      <td><a href="mailto:info@sharafmedia.az" class="link-email">📧 info@sharafmedia.az</a></td>
+      <td>+994 70 491 07 07</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(44)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#34</td>
+      <td class="name-col">
+        <strong>McCann Baku</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Passage 1901, 12 Nigar Rafibayli Street Baku AZ, 1001 Nigar Rafibayli, Bakı, Azerbaijan</td>
+      <td><a href="https://www.mccann.az/" target="_blank" rel="noopener" class="link-site">🌐 mccann.az</a></td>
+      <td><a href="mailto:info@mccann.az" class="link-email">📧 info@mccann.az</a></td>
+      <td>+994 12 492 35 35</td>
+      <td><div class="ceo-cell"><a href="https://az.linkedin.com/company/mccann-baku" target="_blank" rel="noopener" class="link-ceo"><strong>Rovshane Aliyeva</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(1)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#35</td>
+      <td class="name-col">
+        <strong>Impler Digital Agency</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>55 Zarifa Aliyeva St, Baku 1000, Azerbaijan</td>
+      <td><a href="http://www.impler.com/" target="_blank" rel="noopener" class="link-site">🌐 impler.com</a></td>
+      <td><a href="mailto:info@impler.com" class="link-email">📧 info@impler.com</a></td>
+      <td>+994 55 228 51 53</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(3)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#36</td>
+      <td class="name-col">
+        <strong>Havas Media Azerbaijan</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>609 Jafar Jabbarli street, Baku 1065, Azerbaijan</td>
+      <td><a href="https://havas.az/" target="_blank" rel="noopener" class="link-site">🌐 havas.az</a></td>
+      <td><a href="mailto:info@havas.az" class="link-email">📧 info@havas.az</a></td>
+      <td>+994 12 409 14 34</td>
+      <td><div class="ceo-cell"><a href="https://tr.linkedin.com/in/cerencubukcu" target="_blank" rel="noopener" class="link-ceo"><strong>Ceren Çubukçu</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO at Havas Istanbul</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(10)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#37</td>
+      <td class="name-col">
+        <strong>DigiBoom Marketing Agency Baku</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>49b Ahmad Rajabli, Baku 1000, Azerbaijan</td>
+      <td><a href="http://digiboom.az/" target="_blank" rel="noopener" class="link-site">🌐 digiboom.az</a></td>
+      <td><a href="mailto:info@digiboom.az" class="link-email">📧 info@digiboom.az</a></td>
+      <td>+994 10 315 99 18</td>
+      <td><div class="ceo-cell"><a href="https://az.linkedin.com/company/digiboom-az" target="_blank" rel="noopener" class="link-ceo"><strong>Sanana Askerova</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(1)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#38</td>
+      <td class="name-col">
+        <strong>PR!ME agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>3, Fatali Khan Khoyski str / Hasanoglu str Premier Residence, block B2, floor, Baku, Azerbaijan</td>
+      <td><a href="https://linktr.ee/primeagency.live" target="_blank" rel="noopener" class="link-site">🌐 linktr.ee</a></td>
+      <td><a href="mailto:info@linktr.ee" class="link-email">📧 info@linktr.ee</a></td>
+      <td>+994 12 464 51 15</td>
+      <td><div class="ceo-cell"><a href="https://az.linkedin.com/in/phareed" target="_blank" rel="noopener" class="link-ceo"><strong>Farid Mammadov</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Chief Executive Officer at Baku ...</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(5)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#39</td>
+      <td class="name-col">
+        <strong>Dr Digital - Social Media &amp; Digital Marketing</strong>
+        <div class="category-sub">Internet marketing service</div>
+      </td>
+      <td>Anvar Huseynov 7, Baku 1009, Azerbaijan</td>
+      <td><a href="https://www.drdigital.az/" target="_blank" rel="noopener" class="link-site">🌐 drdigital.az</a></td>
+      <td><a href="mailto:info@drdigital.az" class="link-email">📧 info@drdigital.az</a></td>
+      <td>+994 50 974 44 33</td>
+      <td><div class="ceo-cell"><a href="https://uk.linkedin.com/in/kostasalekoglu" target="_blank" rel="noopener" class="link-ceo"><strong>Kostas Alekoglu</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Helping clinics gain more customers. ...</span></div></td>
+      <td><span class="rating-pill">⭐ 4.8 <small>(4)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="0" data-ceo="0">
+      <td class="rank-col">#40</td>
+      <td class="name-col">
+        <strong>SMM agency</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Mirali Seyidov, Baku 2011, Azerbaijan</td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td>+994 50 577 32 12</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.3 <small>(13)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="0" data-ceo="1">
+      <td class="rank-col">#41</td>
+      <td class="name-col">
+        <strong>Y Marketing Agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>148 Ziya Bünyadov, Baku 1108, Azerbaijan</td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td>+994 51 566 35 32</td>
+      <td><div class="ceo-cell"><a href="https://uk.linkedin.com/in/evrenkacar" target="_blank" rel="noopener" class="link-ceo"><strong>Evren Kacar</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Founder &amp; CEO at DAN Global</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(5)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#42</td>
+      <td class="name-col">
+        <strong>Up And Social</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>360 Athens St, Boston, MA 02127</td>
+      <td><a href="https://www.upandsocial.com/?utm_source=google&amp;utm_medium=organic&amp;utm_campaign=gbp" target="_blank" rel="noopener" class="link-site">🌐 upandsocial.com</a></td>
+      <td><a href="mailto:hello@upandsocial.com" class="link-email">📧 hello@upandsocial.com</a></td>
+      <td>(857) 226-3133</td>
+      <td><div class="ceo-cell"><a href="https://www.instagram.com/p/DGNG1OiSH4r/" target="_blank" rel="noopener" class="link-ceo"><strong>Tia Christofi</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(62)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#43</td>
+      <td class="name-col">
+        <strong>İstanbul Web Design - İstanbul Web Tasarım Ajansı</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>Turgut Özal, Orkide Cd. No:66, 34515 Esenyurt/İstanbul, Türkiye</td>
+      <td><a href="https://www.istanbulwebdesign.com/" target="_blank" rel="noopener" class="link-site">🌐 istanbulwebdesign.com</a></td>
+      <td><a href="mailto:info@istanbulwebdesign.com" class="link-email">📧 info@istanbulwebdesign.com</a></td>
+      <td>+49 170 9003053</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(34)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#44</td>
+      <td class="name-col">
+        <strong>Euromedy Web Design</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>Mecidiyeköy Mahallesi, Kervan Geçmez Sk. Keskin İş Merkezi No:4, 34381 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://www.euromedya.com/" target="_blank" rel="noopener" class="link-site">🌐 euromedya.com</a></td>
+      <td><a href="mailto:info@euromedya.com" class="link-email">📧 info@euromedya.com</a></td>
+      <td>+90 212 272 48 84</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.8 <small>(22)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#45</td>
+      <td class="name-col">
+        <strong>Web Design Istanbul</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>Byconcept Sitesi, Hasanpaşa Mahallesi Gişeler Sokak No:3/2 A2 Blok D:38, 34920 Sultanbeyli/İstanbul, Türkiye</td>
+      <td><a href="https://www.xdizayn.net/" target="_blank" rel="noopener" class="link-site">🌐 xdizayn.net</a></td>
+      <td><a href="mailto:info@xdizayn.net" class="link-email">📧 info@xdizayn.net</a></td>
+      <td>+90 216 419 02 29</td>
+      <td><div class="ceo-cell"><a href="https://tr.linkedin.com/in/ak%C4%B1n-nal%C3%A7a-872b5518" target="_blank" rel="noopener" class="link-ceo"><strong>Akın Nalça</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Terminal Design şirketinde Founder / Partner</span></div></td>
+      <td><span class="rating-pill">⭐ 4.7 <small>(13)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#46</td>
+      <td class="name-col">
+        <strong>Webbilir</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>Büyükdere Cad. No:257 Nurol Plaza 21/A Maslak, 34450 Sarıyer/İstanbul, Türkiye</td>
+      <td><a href="https://www.webbilir.com/" target="_blank" rel="noopener" class="link-site">🌐 webbilir.com</a></td>
+      <td><a href="mailto:info@webbilir.com" class="link-email">📧 info@webbilir.com</a></td>
+      <td>+90 552 209 90 96</td>
+      <td><div class="ceo-cell"><a href="https://ceoplatformu.com/uye-iliskileri-kurulu/" target="_blank" rel="noopener" class="link-ceo"><strong>Platformu Genel Sekreterliği</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Genel Müdür</span></div></td>
+      <td><span class="rating-pill">⭐ 4.9 <small>(41)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#47</td>
+      <td class="name-col">
+        <strong>Vayes Kurumsal Web Tasarım - Sosyal Medya - Dijital Pazarlama Firması İstanbul</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>Cumhuriyet Mahallesi, E-5 Yanyolu &amp; 1992 Sok Vetro City Residence A Blok 8 Kat Ofis No :177, 34528 Beylikdüzü/İstanbul, Türkiye</td>
+      <td><a href="https://www.vayes.com.tr/" target="_blank" rel="noopener" class="link-site">🌐 vayes.com.tr</a></td>
+      <td><a href="mailto:info@vayes.com.tr" class="link-email">📧 info@vayes.com.tr</a></td>
+      <td>+90 212 855 94 04</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.9 <small>(26)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#48</td>
+      <td class="name-col">
+        <strong>Mavi Bulut Digital</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>Gümüşsuyu, Tak-ı Zafer Cd., 34000 Beyoğlu/İstanbul, Türkiye</td>
+      <td><a href="https://mavibulutnet.com/" target="_blank" rel="noopener" class="link-site">🌐 mavibulutnet.com</a></td>
+      <td><a href="mailto:info@mavibulutnet.com" class="link-email">📧 info@mavibulutnet.com</a></td>
+      <td>+90 541 321 91 05</td>
+      <td><div class="ceo-cell"><a href="https://www.youtube.com/watch?v=koTPY7Cy-Ds" target="_blank" rel="noopener" class="link-ceo"><strong>Cüneyt Yavuz</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Genel Müdür</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(19)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#49</td>
+      <td class="name-col">
+        <strong>Web Tasarım, Web Yazılım | İstanbul Web Ajans</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>Soğanlı Mh. Çavuşpaşa Cad, Sengül Sokağı No:9, 34180 Bahçelievler/İstanbul, Türkiye</td>
+      <td><a href="https://istanbulwebajans.com/" target="_blank" rel="noopener" class="link-site">🌐 istanbulwebajans.com</a></td>
+      <td><a href="mailto:info@istanbulwebajans.com" class="link-email">📧 info@istanbulwebajans.com</a></td>
+      <td>+90 212 993 15 01</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.8 <small>(16)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#50</td>
+      <td class="name-col">
+        <strong>Web Tasarım Ajansı Web Studio Dijital Ajans</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>CANAN BUSINESS, Küçükbakkalköy, Selvili Sok. No:4 Daire:77, 34750 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://www.ws.com.tr/" target="_blank" rel="noopener" class="link-site">🌐 ws.com.tr</a></td>
+      <td><a href="mailto:info@ws.com.tr" class="link-email">📧 info@ws.com.tr</a></td>
+      <td>+90 216 469 20 11</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.8 <small>(71)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#51</td>
+      <td class="name-col">
+        <strong>Web Ajans - Web Tasarım, SEO, Dijital Pazarlama ve Reklam Ajansı</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>Halaskargazi, Ayla Algan Sok. NO:30, 34371 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://www.webajans.com/" target="_blank" rel="noopener" class="link-site">🌐 webajans.com</a></td>
+      <td><a href="mailto:info@webajans.com" class="link-email">📧 info@webajans.com</a></td>
+      <td>+90 532 300 09 79</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.7 <small>(29)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#52</td>
+      <td class="name-col">
+        <strong>Grimor Web Tasarım &amp; Yazılım Firması</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>Büyükdere Cd. Hayat Apt. No:28 K:1 D:2, Mecidiyeköy Mahallesi, 34394 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://www.grimor.com/" target="_blank" rel="noopener" class="link-site">🌐 grimor.com</a></td>
+      <td><a href="mailto:info@grimor.com" class="link-email">📧 info@grimor.com</a></td>
+      <td>+90 212 272 46 00</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.7 <small>(68)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#53</td>
+      <td class="name-col">
+        <strong>Master Web Premium Yazılım Ajansı</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>19 Mayıs mah. Halaskargazi cad. Çiftkurt No: 226/24, 34360 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://mastertasarim.com/" target="_blank" rel="noopener" class="link-site">🌐 mastertasarim.com</a></td>
+      <td><a href="mailto:info@mastertasarim.com" class="link-email">📧 info@mastertasarim.com</a></td>
+      <td>+90 850 242 4393</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.3 <small>(45)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="0" data-ceo="1">
+      <td class="rank-col">#54</td>
+      <td class="name-col">
+        <strong>Web design company in Istanbul | Florid Studio</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>15, Talatpaşa, Anka Sok., 34400 Kağıthane/İstanbul, Türkiye</td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td>+90 553 575 30 99</td>
+      <td><div class="ceo-cell"><strong>Girişimci Eğitmen Orhan</strong><br><span class="ceo-badge">Kurucu / CEO</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(1)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#55</td>
+      <td class="name-col">
+        <strong>Social Media Management</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>İskenderpaşa, Horhor Cd. No:36, 34080 Fatih/İstanbul, Türkiye</td>
+      <td><a href="https://www.fiverr.com/uffaqzahra" target="_blank" rel="noopener" class="link-site">🌐 fiverr.com</a></td>
+      <td><a href="mailto:info@fiverr.com" class="link-email">📧 info@fiverr.com</a></td>
+      <td>+90 506 793 00 78</td>
+      <td><div class="ceo-cell"><a href="https://uk.linkedin.com/in/kostasalekoglu" target="_blank" rel="noopener" class="link-ceo"><strong>Kostas Alekoglu</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Helping clinics gain more customers. ...</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(3)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#56</td>
+      <td class="name-col">
+        <strong>Social Month Digital Marketing Agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Ataköy 7-8-9-10. Kısım Mahallasi, No:12, kat:9/A82, Nivo Atakoy, 34158 Bakırköy/İstanbul, Türkiye</td>
+      <td><a href="https://socialmonth.com/" target="_blank" rel="noopener" class="link-site">🌐 socialmonth.com</a></td>
+      <td><a href="mailto:info@socialmonth.com" class="link-email">📧 info@socialmonth.com</a></td>
+      <td>+971 50 178 2212</td>
+      <td><div class="ceo-cell"><a href="https://www.linkedin.com/in/peter-markel" target="_blank" rel="noopener" class="link-ceo"><strong>Peter Markel</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Social media marketing agency owner &amp; ...</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(19)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#57</td>
+      <td class="name-col">
+        <strong>Tykhe.co - Digital Marketing and Social Media Management Agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Barbaros, Halk Cd. Palladium Residence A Blok No:8 A/3, 34746 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://www.tykhe.co/" target="_blank" rel="noopener" class="link-site">🌐 tykhe.co</a></td>
+      <td><a href="mailto:info@tykhe.co" class="link-email">📧 info@tykhe.co</a></td>
+      <td>+90 216 222 00 25</td>
+      <td><div class="ceo-cell"><a href="https://www.instagram.com/p/DGNG1OiSH4r/" target="_blank" rel="noopener" class="link-ceo"><strong>Tia Christofi</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(35)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#58</td>
+      <td class="name-col">
+        <strong>Watsspace Digital Marketing Solutions</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Allure Tower, Üniversite, Civan Sk. No: 1, 34513 Avcılar/İstanbul, Türkiye</td>
+      <td><a href="https://watsspace.com/" target="_blank" rel="noopener" class="link-site">🌐 watsspace.com</a></td>
+      <td><a href="mailto:info@watsspace.com" class="link-email">📧 info@watsspace.com</a></td>
+      <td>—</td>
+      <td><div class="ceo-cell"><a href="https://in.linkedin.com/in/yovan-dass-170218339" target="_blank" rel="noopener" class="link-ceo"><strong>Yovan Dass</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Founder &amp; CEO, TRYMYWEBSITES™</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(25)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#59</td>
+      <td class="name-col">
+        <strong>Survivor Dijital Medya Pazarlama Ajansı - Dijital Reklam- Performans Pazarlama</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Quasar İstanbul, Mecidiyeköy Mahallesi, Büyükdere Cd. No:76 Kat:13 D.No:188, 34394 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://www.survivor.com.tr/" target="_blank" rel="noopener" class="link-site">🌐 survivor.com.tr</a></td>
+      <td><a href="mailto:info@survivor.com.tr" class="link-email">📧 info@survivor.com.tr</a></td>
+      <td>—</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.8 <small>(50)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#60</td>
+      <td class="name-col">
+        <strong>Duo İstanbul Marketing</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Atatürk Bulvarı, Ertuğrul Gazi Sk. Metropol İstanbul İç Kapı No 225, 34758 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://duoistanbul.com/" target="_blank" rel="noopener" class="link-site">🌐 duoistanbul.com</a></td>
+      <td><a href="mailto:info@duoistanbul.com" class="link-email">📧 info@duoistanbul.com</a></td>
+      <td>+90 532 053 27 68</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(47)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#61</td>
+      <td class="name-col">
+        <strong>ROIPUBLIC Performans ve SEO Ajansı - İstanbul</strong>
+        <div class="category-sub">Internet marketing service</div>
+      </td>
+      <td>Nidakule Ataşehir Kuzey, Barbaros, Begonya Sk. No:3 K:2, D:73, 34746 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://www.roipublic.com/" target="_blank" rel="noopener" class="link-site">🌐 roipublic.com</a></td>
+      <td><a href="mailto:hello@roipublic.com" class="link-email">📧 hello@roipublic.com</a></td>
+      <td>+90 850 259 9400</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.9 <small>(73)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#62</td>
+      <td class="name-col">
+        <strong>Scarlet Media</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Feneryolu, Bağdat Cad. 81/9, 34724 Kadıköy/İstanbul, Türkiye</td>
+      <td><a href="https://www.scarletmedia.net/tr/" target="_blank" rel="noopener" class="link-site">🌐 scarletmedia.net</a></td>
+      <td><a href="mailto:mail@scarletmedia.net" class="link-email">📧 mail@scarletmedia.net</a></td>
+      <td>+90 216 550 68 69</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.9 <small>(63)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#63</td>
+      <td class="name-col">
+        <strong>Frogs Agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Medicana Hastanesi Yanı, Büyükşehir, E-5 Yanyolu Üzeri, 34520 Beylikdüzü/İstanbul, Türkiye</td>
+      <td><a href="https://www.frogmediaagency.com/" target="_blank" rel="noopener" class="link-site">🌐 frogmediaagency.com</a></td>
+      <td><a href="mailto:info@frogmediaagency.com" class="link-email">📧 info@frogmediaagency.com</a></td>
+      <td>+90 546 769 23 39</td>
+      <td><div class="ceo-cell"><a href="https://uk.linkedin.com/in/dansharpseo" target="_blank" rel="noopener" class="link-ceo"><strong>Dan Sharp</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Co</span></div></td>
+      <td><span class="rating-pill">⭐ 4.9 <small>(14)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#64</td>
+      <td class="name-col">
+        <strong>Abays Medya Danışmanlık ve Reklam Ajansı - İstanbul</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Suadiye, Bağdat Cad. No:348, 34740 Kadıköy/İstanbul, Türkiye</td>
+      <td><a href="http://abaysmedia.com/" target="_blank" rel="noopener" class="link-site">🌐 abaysmedia.com</a></td>
+      <td><a href="mailto:info@abaysmedia.com" class="link-email">📧 info@abaysmedia.com</a></td>
+      <td>+90 216 999 88 34</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(41)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#65</td>
+      <td class="name-col">
+        <strong>Soneo Creative Works</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Kemankeş Karamustafa Paşa, Mumhane Cd. No:57 Kat 3, 34425 Beyoğlu/İstanbul, Türkiye</td>
+      <td><a href="http://www.soneocreative.com/" target="_blank" rel="noopener" class="link-site">🌐 soneocreative.com</a></td>
+      <td><a href="mailto:info@soneocreative.com" class="link-email">📧 info@soneocreative.com</a></td>
+      <td>+90 534 811 22 32</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(66)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#66</td>
+      <td class="name-col">
+        <strong>Sunrise Global Dijital Pazarlama Performans Ajansı I Sosyal Medya I Dijital Reklam I Fotoğraf &amp; Video Prodüksiyon</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>İçerenköy Mah Eski Üsküdar Yolu Cad Topçu İbrahim Sok No: 7 Kat: 5 D: 11, 34000 Ataşehir, Türkiye</td>
+      <td><a href="http://sunriseglobal.net/" target="_blank" rel="noopener" class="link-site">🌐 sunriseglobal.net</a></td>
+      <td><a href="mailto:info@sunriseglobal.net" class="link-email">📧 info@sunriseglobal.net</a></td>
+      <td>+90 531 733 55 17</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(58)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#67</td>
+      <td class="name-col">
+        <strong>Garraje</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Nisbetiye, Nisbetiye Cd No :30 Kat:4, No :25, 34340 Beşiktaş/İstanbul, Türkiye</td>
+      <td><a href="https://garraje.com/" target="_blank" rel="noopener" class="link-site">🌐 garraje.com</a></td>
+      <td><a href="mailto:info@garraje.com" class="link-email">📧 info@garraje.com</a></td>
+      <td>+90 534 717 82 27</td>
+      <td><div class="ceo-cell"><strong>Ahmet Çoban</strong><br><span class="ceo-badge">Kurucu / CEO</span></div></td>
+      <td><span class="rating-pill">⭐ 4.7 <small>(46)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#68</td>
+      <td class="name-col">
+        <strong>İ00 Digital Marketing Consultancy</strong>
+        <div class="category-sub">Marketing consultant</div>
+      </td>
+      <td>Saray Apt, Halaskargazi, Halaskargazi Cd. No:141 D:5 Kat:3, 34371 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://i00.co/" target="_blank" rel="noopener" class="link-site">🌐 i00.co</a></td>
+      <td><a href="mailto:info@i00.co" class="link-email">📧 info@i00.co</a></td>
+      <td>+90 537 419 70 62</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.9 <small>(37)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#69</td>
+      <td class="name-col">
+        <strong>Level Advertising - Istanbul | Sosyal Medya | Web Tasarım &amp; Yazılım | Dijital Reklam Ajansı</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Esentepe Mah. Büyükdere Cad. Plaza 195, NO:195, Kat: 5, Levent, 34394 Şişli/İstanbul, Türkiye</td>
+      <td><a href="http://www.levelistanbul.com/" target="_blank" rel="noopener" class="link-site">🌐 levelistanbul.com</a></td>
+      <td><a href="mailto:info@levelistanbul.com" class="link-email">📧 info@levelistanbul.com</a></td>
+      <td>+90 533 840 99 93</td>
+      <td><div class="ceo-cell"><a href="https://tr.linkedin.com/in/ahmet-yaman-05791839/en" target="_blank" rel="noopener" class="link-ceo"><strong>Ahmet Yaman</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CMO</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(74)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#70</td>
+      <td class="name-col">
+        <strong>ZEYMEDYA REKLAM AJANSI | İSTANBUL REKLAM VE SEO AJANSI, DİJİTAL PAZARLAMA AJANSI, SOSYAL MEDYA AJANSI, 360 REKLAM</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Çağlayan, Latif Sk. No:3, 34403 Kağıthane/İstanbul, Türkiye</td>
+      <td><a href="https://zeymedya.com/" target="_blank" rel="noopener" class="link-site">🌐 zeymedya.com</a></td>
+      <td><a href="mailto:info@zeymedya.com" class="link-email">📧 info@zeymedya.com</a></td>
+      <td>+90 530 236 00 25</td>
+      <td><div class="ceo-cell"><strong>Muhammet Fatih Öztürk</strong><br><span class="ceo-badge">Kurucu / CEO</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(76)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="0" data-ceo="0">
+      <td class="rank-col">#71</td>
+      <td class="name-col">
+        <strong>Boomerang İstanbul</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Halaskargazi, Halaskargazi Cd. No:12/5, 34371 Şişli/İstanbul, Türkiye</td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td>+90 212 225 00 64</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.8 <small>(5)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#72</td>
+      <td class="name-col">
+        <strong>Socialp Media - Sosyal Medya Ajansı</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Zuhuratbaba, İncirli Cd. No:69, 34147 Bakırköy/İstanbul, Türkiye</td>
+      <td><a href="https://www.socialpmedia.com/" target="_blank" rel="noopener" class="link-site">🌐 socialpmedia.com</a></td>
+      <td><a href="mailto:hello@socialpmedia.com" class="link-email">📧 hello@socialpmedia.com</a></td>
+      <td>+90 540 034 69 69</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(22)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#73</td>
+      <td class="name-col">
+        <strong>51 Digital: Dijital Pazarlama Ajansı - SEO Ajansı, Reklam Şirketi</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>İçerenköy, Çayır Cd No: 2, 34752 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://www.51.com.tr/" target="_blank" rel="noopener" class="link-site">🌐 51.com.tr</a></td>
+      <td><a href="mailto:info@51.com.tr" class="link-email">📧 info@51.com.tr</a></td>
+      <td>+90 546 110 51 51</td>
+      <td><div class="ceo-cell"><a href="https://www.dpedijital.com/hakkimizda/" target="_blank" rel="noopener" class="link-ceo"><strong>Sercan Coşkunoğlu</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(15)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#74</td>
+      <td class="name-col">
+        <strong>Amber Digital Agency | Dijital Pazarlama Ajansı</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Yenişehir, Ankara Cd. No: 403-1/1, 34912 Pendik/İstanbul, Türkiye</td>
+      <td><a href="https://amberdijital.com/" target="_blank" rel="noopener" class="link-site">🌐 amberdijital.com</a></td>
+      <td><a href="mailto:info@amberdijital.com" class="link-email">📧 info@amberdijital.com</a></td>
+      <td>+90 543 128 88 46</td>
+      <td><div class="ceo-cell"><a href="https://uk.linkedin.com/in/amber-vodegel-0995556" target="_blank" rel="noopener" class="link-ceo"><strong>Amber Vodegel</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Founder &amp; CEO, 28X</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(87)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#75</td>
+      <td class="name-col">
+        <strong>Digipeak Agency - Dijital Pazarlama Ajansı</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Ömer avni mahallesi, Gümüşsuyu, Emektar Sk. No:14, 34427 Beyoğlu/İstanbul, Türkiye</td>
+      <td><a href="https://digipeak.org/tr/" target="_blank" rel="noopener" class="link-site">🌐 digipeak.org</a></td>
+      <td><a href="mailto:info@digipeak.org" class="link-email">📧 info@digipeak.org</a></td>
+      <td>+90 544 838 52 39</td>
+      <td><div class="ceo-cell"><strong>Ufuk Yalvaç</strong><br><span class="ceo-badge">Kurucu / CEO</span></div></td>
+      <td><span class="rating-pill">⭐ 4.9 <small>(44)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#76</td>
+      <td class="name-col">
+        <strong>İstanbul SEO Ajansı - Aora Digital | Web Tasarım ve Dijital Pazarlama</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Atatürk, Turgut Özal Blv. No:10/1 K:2 İç Kapı No:9, 34758 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://www.aora.com.tr/" target="_blank" rel="noopener" class="link-site">🌐 aora.com.tr</a></td>
+      <td><a href="mailto:ugurbasar@aora.com.tr" class="link-email">📧 ugurbasar@aora.com.tr</a></td>
+      <td>+90 216 580 97 20</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(42)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#77</td>
+      <td class="name-col">
+        <strong>Magna Dijital Pazarlama Ajansı</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Balmumcu Mah. Gazi Umur Paşa Sok. Balmumcu Plaza 4 No: 36 D: 2, 34349 Beşiktaş/İstanbul, Türkiye</td>
+      <td><a href="https://www.magnadijital.com.tr/" target="_blank" rel="noopener" class="link-site">🌐 magnadijital.com.tr</a></td>
+      <td><a href="mailto:info@magnadijital.com.tr" class="link-email">📧 info@magnadijital.com.tr</a></td>
+      <td>+90 850 333 8091</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.8 <small>(27)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="0" data-ceo="1">
+      <td class="rank-col">#78</td>
+      <td class="name-col">
+        <strong>DIRECT GROUP - Digital Marketing Company</strong>
+        <div class="category-sub">Internet marketing service</div>
+      </td>
+      <td>Akşemsettin, Sarı Nasuh Sk. AHENK APT BLOK NO: 17B, 34080 Fatih/İstanbul, Türkiye</td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td>+90 536 480 92 91</td>
+      <td><div class="ceo-cell"><a href="https://www.edirect.ae/the-team/" target="_blank" rel="noopener" class="link-ceo"><strong>Rudy Kazal</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(20)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#79</td>
+      <td class="name-col">
+        <strong>Touch Digital I Dijital Pazarlama Ajansı</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Barbaros, Lale Sok. My Office İş Merkezi No: 2/13, 34746 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://touchdi.com/" target="_blank" rel="noopener" class="link-site">🌐 touchdi.com</a></td>
+      <td><a href="mailto:hi@touchdi.com" class="link-email">📧 hi@touchdi.com</a></td>
+      <td>+90 534 460 19 96</td>
+      <td><div class="ceo-cell"><strong>Sumru Deniz Yeşil</strong><br><span class="ceo-badge">Kurucu / CEO</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(11)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#80</td>
+      <td class="name-col">
+        <strong>Sempeak | Performans Pazarlama ve SEO Ajansı</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Altunizade, Sırma Perde Sk. No:25, 34662 Üsküdar/İstanbul, Türkiye</td>
+      <td><a href="https://www.sempeak.com/" target="_blank" rel="noopener" class="link-site">🌐 sempeak.com</a></td>
+      <td><a href="mailto:info@sempeak.com" class="link-email">📧 info@sempeak.com</a></td>
+      <td>+90 216 550 01 35</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.1 <small>(26)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#81</td>
+      <td class="name-col">
+        <strong>Bossy Digital Dijital Pazarlama ve Performans Ajansı - İstanbul</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Esentepe mh. Talatpaşa cd. No: 5 İç Kapı No: 1, 34394 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://bossydigital.com/" target="_blank" rel="noopener" class="link-site">🌐 bossydigital.com</a></td>
+      <td><a href="mailto:info@bossydigital.com" class="link-email">📧 info@bossydigital.com</a></td>
+      <td>+90 212 993 13 97</td>
+      <td><div class="ceo-cell"><a href="https://www.linkedin.com/company/bossydigital/" target="_blank" rel="noopener" class="link-ceo"><strong>Faruk Kabadağ</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(13)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#82</td>
+      <td class="name-col">
+        <strong>Globa Dijital Reklam Ajansı</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>İzzet Paşa, Yeni Yol Cd. NUROL TOWER KAT: 31 OFİS NO: 3104, 34000 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://globadigital.com/" target="_blank" rel="noopener" class="link-site">🌐 globadigital.com</a></td>
+      <td><a href="mailto:info@globadijital.com" class="link-email">📧 info@globadijital.com</a></td>
+      <td>+90 535 269 57 32</td>
+      <td><div class="ceo-cell"><a href="https://tr.linkedin.com/in/recepkoca/en" target="_blank" rel="noopener" class="link-ceo"><strong>Recep Koca</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Founder &amp; CEO at Lojistik Evreni Digital ...</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(20)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#83</td>
+      <td class="name-col">
+        <strong>İstanbul Reklam Ajans &amp; İRA Dijital Pazarlama Ajansı</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Küçükbakkalköy, Nergis Sk no18/24, 34768 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://www.istanbulreklamajans.com/" target="_blank" rel="noopener" class="link-site">🌐 istanbulreklamajans.com</a></td>
+      <td><a href="mailto:info@istanbulreklamajans.com" class="link-email">📧 info@istanbulreklamajans.com</a></td>
+      <td>+90 530 219 30 72</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(20)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#84</td>
+      <td class="name-col">
+        <strong>Lead Magneters - Digital marketing agency in Istanbul, SEO company in Turkey</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Bahçeşehir 1. Kısım, Fırat Cd., 34488 Başakşehir/İstanbul, Türkiye</td>
+      <td><a href="https://leadmagneters.com/" target="_blank" rel="noopener" class="link-site">🌐 leadmagneters.com</a></td>
+      <td><a href="mailto:info@leadmagneters.com" class="link-email">📧 info@leadmagneters.com</a></td>
+      <td>+90 530 307 22 74</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(3)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#85</td>
+      <td class="name-col">
+        <strong>Nansa Marketing &amp; Ecommerce Agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Huzur, Azerbaycan Cd., 34396 Sarıyer/İstanbul, Türkiye</td>
+      <td><a href="https://www.nansa.com.tr/" target="_blank" rel="noopener" class="link-site">🌐 nansa.com.tr</a></td>
+      <td><a href="mailto:info@nansa.com.tr" class="link-email">📧 info@nansa.com.tr</a></td>
+      <td>+90 501 338 13 38</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(4)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#86</td>
+      <td class="name-col">
+        <strong>INDOLES Creative &amp; E-Commerce Agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Esentepe Talatpaşa Caddesi No:5 Harman Sok. Girişi, 34394 Şişli/İstanbul, Türkiye</td>
+      <td><a href="https://www.indoles.com.tr/" target="_blank" rel="noopener" class="link-site">🌐 indoles.com.tr</a></td>
+      <td><a href="mailto:digital@indoles.com.tr" class="link-email">📧 digital@indoles.com.tr</a></td>
+      <td>+90 536 247 60 12</td>
+      <td><div class="ceo-cell"><a href="https://www.ecommerceexpo-dmexco.asia/2025-speaker-list" target="_blank" rel="noopener" class="link-ceo"><strong>Charina Widjaja</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(5)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#87</td>
+      <td class="name-col">
+        <strong>Benji's Digital</strong>
+        <div class="category-sub">E commerce agency</div>
+      </td>
+      <td>Evliya Çelebi, Sadi Konuralp Cd. No: 5/2, 34430 Beyoğlu/İstanbul, Türkiye</td>
+      <td><a href="https://www.benjisdigital.com/" target="_blank" rel="noopener" class="link-site">🌐 benjisdigital.com</a></td>
+      <td><a href="mailto:hello@benjisdigital.com" class="link-email">📧 hello@benjisdigital.com</a></td>
+      <td>+90 532 154 11 20</td>
+      <td><div class="ceo-cell"><strong>Emir Bengiserp</strong><br><span class="ceo-badge">Kurucu / CEO</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(3)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#88</td>
+      <td class="name-col">
+        <strong>SN Marketing &amp; Ecommerce Agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Huzur mah Azerbaycan cd skyland, 34475 Sarıyer/İstanbul, Türkiye</td>
+      <td><a href="https://snmarketinghub.com/" target="_blank" rel="noopener" class="link-site">🌐 snmarketinghub.com</a></td>
+      <td><a href="mailto:info@snmarketinghub.com" class="link-email">📧 info@snmarketinghub.com</a></td>
+      <td>+90 501 338 13 38</td>
+      <td><div class="ceo-cell"><a href="https://www.revolutiondm.com/" target="_blank" rel="noopener" class="link-ceo"><strong>Yılmaz Bozan</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Genel Müdür</span></div></td>
+      <td><span class="na">—</span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#89</td>
+      <td class="name-col">
+        <strong>DxGreat</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Esentepe, Keskin Kalem Sok. No:41, 34394 Şişli/İstanbul, Türkiye</td>
+      <td><a href="http://www.dxgreat.com/" target="_blank" rel="noopener" class="link-site">🌐 dxgreat.com</a></td>
+      <td><a href="mailto:info@dxgreat.com" class="link-email">📧 info@dxgreat.com</a></td>
+      <td>—</td>
+      <td><div class="ceo-cell"><a href="https://www.youtube.com/watch?v=7mZBNsqLrs0" target="_blank" rel="noopener" class="link-ceo"><strong>Deniz Ozgur</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(8)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#90</td>
+      <td class="name-col">
+        <strong>clickzone - Growth Marketing Agency</strong>
+        <div class="category-sub">Internet marketing service</div>
+      </td>
+      <td>Konaklar, Selvili Sokağı Emlak Bankası Apartmanı, No:2 D:38, 34330 Beşiktaş/İstanbul, Türkiye</td>
+      <td><a href="https://clickzone.io/" target="_blank" rel="noopener" class="link-site">🌐 clickzone.io</a></td>
+      <td><a href="mailto:hello@clickzone.io" class="link-email">📧 hello@clickzone.io</a></td>
+      <td>+90 850 304 1191</td>
+      <td><div class="ceo-cell"><a href="https://tr.linkedin.com/in/alperboyer" target="_blank" rel="noopener" class="link-ceo"><strong>Alper Boyer</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">VP of Growth at clickzone</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(15)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#91</td>
+      <td class="name-col">
+        <strong>Kurumsal SEO Ajansı - Mobitek</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>BUSINESS ISTANBUL, Merdivenköy Mah. Yumurtacı Abdi Bey Cd, Merdivenköy, Dikyol Sk. No:10 B Blok / D:16, 34732 Kadıköy/İstanbul, Türkiye</td>
+      <td><a href="https://mobitek.com/" target="_blank" rel="noopener" class="link-site">🌐 mobitek.com</a></td>
+      <td><a href="mailto:iletisim@mobitek.com" class="link-email">📧 iletisim@mobitek.com</a></td>
+      <td>+90 216 418 08 84</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.4 <small>(28)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#92</td>
+      <td class="name-col">
+        <strong>Wetasome – İstanbul Web Tasarım, E-Ticaret, SEO, Sosyal Medya, Reklam ve Dijital Danışmanlık Ajansı</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>Nine Hatun, İnönü Cd. Akman Ticaret Merkezi No : 11 K:4 D:52, 34200 Esenler/İstanbul, Türkiye</td>
+      <td><a href="https://www.wetasome.com/" target="_blank" rel="noopener" class="link-site">🌐 wetasome.com</a></td>
+      <td><a href="mailto:info@wetasome.com" class="link-email">📧 info@wetasome.com</a></td>
+      <td>+90 538 978 42 26</td>
+      <td><div class="ceo-cell"><a href="https://www.butagrup.com.tr/team?lang=tr" target="_blank" rel="noopener" class="link-ceo"><strong>Alim Şentürk</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO / Kurucu</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(164)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#93</td>
+      <td class="name-col">
+        <strong>Positive A Digital Approach</strong>
+        <div class="category-sub">E commerce agency</div>
+      </td>
+      <td>Şahkulu, Serdar-ı Ekrem Cd. No:15/A, 34421 Beyoğlu/İstanbul, Türkiye</td>
+      <td><a href="http://www.positive.com.tr/" target="_blank" rel="noopener" class="link-site">🌐 positive.com.tr</a></td>
+      <td><a href="mailto:info@positive.com.tr" class="link-email">📧 info@positive.com.tr</a></td>
+      <td>+90 212 403 54 34</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.5 <small>(8)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#94</td>
+      <td class="name-col">
+        <strong>Piksel - Kurumsal Web Tasarım Ajansı - İstanbul Ataşehir</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>Nidakule Ataşehir Kuzey, Barbaros, Begonya Sk. No:3 İç Kapı No:73, 34746 Ataşehir/İstanbul, Türkiye</td>
+      <td><a href="https://piksel.agency/" target="_blank" rel="noopener" class="link-site">🌐 piksel.agency</a></td>
+      <td><a href="mailto:hello@piksel.agency" class="link-email">📧 hello@piksel.agency</a></td>
+      <td>+90 232 683 55 85</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(20)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#95</td>
+      <td class="name-col">
+        <strong>RekClick 360° Dijital Pazarlama Ajansı &amp; Reklam Ajansı</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Sultan Selim, Turan Sokağı No:6 LEVENT NO5 Plaza 4.Levent, 34415 Kağıthane/İstanbul, Türkiye</td>
+      <td><a href="https://www.rekclick.com/" target="_blank" rel="noopener" class="link-site">🌐 rekclick.com</a></td>
+      <td><a href="mailto:info@rekclick.com" class="link-email">📧 info@rekclick.com</a></td>
+      <td>+90 212 269 95 96</td>
+      <td><div class="ceo-cell"><a href="https://tr.linkedin.com/in/mustafacelik1" target="_blank" rel="noopener" class="link-ceo"><strong>Mustafa Çelik</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Head of Agency</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(19)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#96</td>
+      <td class="name-col">
+        <strong>Crabs Media | SEO | GEO | Web Tasarımı | Performans Pazarlama Ajansı</strong>
+        <div class="category-sub">Website designer</div>
+      </td>
+      <td>Mecidiyeköy Mahallesi, Şht. Ahmet Sok. Ada Residence N0: 6-10 İç Kapı No: 24, 34387 Şişli/İstanbul, Türkiye</td>
+      <td><a href="http://www.crabsmedia.com/" target="_blank" rel="noopener" class="link-site">🌐 crabsmedia.com</a></td>
+      <td><a href="mailto:info@crabsmedia.com" class="link-email">📧 info@crabsmedia.com</a></td>
+      <td>+90 553 089 26 59</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.9 <small>(32)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#97</td>
+      <td class="name-col">
+        <strong>İstanbul SEO Ajansı - Work Medya Dijital Ajans</strong>
+        <div class="category-sub">Advertising agency</div>
+      </td>
+      <td>Gayrettepe, Yıldız Posta Cd. No:30/2, 34394 Beşiktaş/İstanbul, Türkiye</td>
+      <td><a href="https://www.workmedya.com/" target="_blank" rel="noopener" class="link-site">🌐 workmedya.com</a></td>
+      <td><a href="mailto:info@workmedya.com" class="link-email">📧 info@workmedya.com</a></td>
+      <td>+90 212 327 33 27</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 3.8 <small>(10)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="0">
+      <td class="rank-col">#98</td>
+      <td class="name-col">
+        <strong>شركة تسويق | Apollo Agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Üniversite Mah. E-5 Yan Yol Üzeri, Çınar Sk. No:1 D:4, 34320 Avcılar/İstanbul, Türkiye</td>
+      <td><a href="https://apollo-agency.com/" target="_blank" rel="noopener" class="link-site">🌐 apollo-agency.com</a></td>
+      <td><a href="mailto:info@apollo-agency.com" class="link-email">📧 info@apollo-agency.com</a></td>
+      <td>+90 552 833 02 33</td>
+      <td><span class="na text-muted">Belirtilmedi</span></td>
+      <td><span class="rating-pill">⭐ 4.1 <small>(27)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#99</td>
+      <td class="name-col">
+        <strong>Alvonso Marketing Agency</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>30-22 44th St #2L, Astoria, NY 11103</td>
+      <td><a href="https://alvonso.com/" target="_blank" rel="noopener" class="link-site">🌐 alvonso.com</a></td>
+      <td><a href="mailto:support@alvonso.com" class="link-email">📧 support@alvonso.com</a></td>
+      <td>(347) 926-8669</td>
+      <td><div class="ceo-cell"><a href="https://www.linkedin.com/in/olven-naggara-732b3b284" target="_blank" rel="noopener" class="link-ceo"><strong>Olven Naggara</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">Founder of Alvonso Marketing Agency</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(43)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    <tr data-score="100" data-email="1" data-ceo="1">
+      <td class="rank-col">#100</td>
+      <td class="name-col">
+        <strong>Dijital Ankara</strong>
+        <div class="category-sub">Marketing agency</div>
+      </td>
+      <td>Maltepe, Özveren Sk. No:2 D:19, 06570 Çankaya/Ankara, Türkiye</td>
+      <td><a href="https://dijitalankara.com/" target="_blank" rel="noopener" class="link-site">🌐 dijitalankara.com</a></td>
+      <td><a href="mailto:info@dijitalankara.com" class="link-email">📧 info@dijitalankara.com</a></td>
+      <td>+90 555 151 91 29</td>
+      <td><div class="ceo-cell"><a href="https://tr.linkedin.com/in/imrangurakan" target="_blank" rel="noopener" class="link-ceo"><strong>İmran Gürakan</strong> <i class="fa-solid fa-arrow-up-right-from-square"></i></a><br><span class="ceo-badge">CEO &amp; Co</span></div></td>
+      <td><span class="rating-pill">⭐ 5.0 <small>(115)</small></span></td>
+      <td class="text-center">
+        <span class="score-badge" style="background:#f0fdf4;color:#22c55e;border:1.5px solid #22c55e40">
+          <strong>100</strong><br><small>🔥 Çok Yüksek</small>
+        </span>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="footer">
+  Ovlink (ovlink.sbs) B2B Satış &amp; Lead Generation Raporu<br>
+  Apify API &amp; Doğrudan Veri Zenginleştirme ile 17.09.2026 tarihinde oluşturulmuştur.
+</div>
+
+<script>
+let currentFilter = 'all';
+const tbody = document.getElementById('tableBody');
+const allRows = Array.from(tbody.querySelectorAll('tr'));
+
+function setFilter(filterType, btn) {
+  currentFilter = filterType;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const term = document.getElementById('searchInput').value.toLowerCase().trim();
+  let visible = 0;
+  
+  allRows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    const hasEmail = row.dataset.email === '1';
+    const hasCeo = row.dataset.ceo === '1';
+    
+    let matchFilter = true;
+    if (currentFilter === 'both' && (!hasEmail || !hasCeo)) matchFilter = false;
+    if (currentFilter === 'ceo' && !hasCeo) matchFilter = false;
+    if (currentFilter === 'email' && !hasEmail) matchFilter = false;
+
+    let matchSearch = true;
+    if (term && !text.includes(term)) matchSearch = false;
+
+    if (matchFilter && matchSearch) {
+      row.style.display = '';
+      visible++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+
+  document.getElementById('visibleCount').textContent = visible + ' kayıt gösteriliyor';
+}
+</script>
+</body>
+</html>

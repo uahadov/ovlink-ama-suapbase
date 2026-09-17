@@ -1,77 +1,167 @@
 <!doctype html>
-<html lang="<%= (seo && seo.lang) ? seo.lang : 'en' %>">
+<html lang="<%= (typeof seo !== 'undefined' && seo && seo.lang) ? seo.lang : 'en' %>">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+  <meta name="csrf-token" content="<%= (typeof csrfToken !== 'undefined' ? csrfToken : '') %>">
+  <title><%= (typeof seo !== 'undefined' && seo && seo.title) ? seo.title : 'Link Tapılmadı - Ovlink' %></title>
   <meta name="robots" content="noindex,nofollow" />
-  <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
-  <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
-  <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
-  <link rel="alternate" hreflang="en" href="<%= (seo && seo.hreflangEn) ? seo.hreflangEn : '' %>" />
-  <link rel="alternate" hreflang="az" href="<%= (seo && seo.hreflangAz) ? seo.hreflangAz : '' %>" />
-  <link rel="alternate" hreflang="tr" href="<%= (seo && seo.hreflangTr) ? seo.hreflangTr : '' %>" />
-  <link rel="alternate" hreflang="x-default" href="<%= (seo && seo.hreflangXDefault) ? seo.hreflangXDefault : '' %>" />
+  <% if (typeof seo !== 'undefined' && seo && seo.description) { %>
+    <meta name="description" content="<%= seo.description %>" />
+  <% } %>
+  <% if (typeof seo !== 'undefined' && seo && seo.canonical) { %>
+    <link rel="canonical" href="<%= seo.canonical %>" />
+  <% } %>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
-  <% if (seo && seo.jsonLd) { %>
-  <script nonce="<%= nonce %>" type="application/ld+json"><%- seo.jsonLd %></script>
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
+  <% if (typeof seo !== 'undefined' && seo && seo.jsonLd) { %>
+    <script nonce="<%= nonce %>" type="application/ld+json"><%- seo.jsonLd %></script>
   <% } %>
 </head>
 
-<body class="home-page policy-page notfound-page">
+<body class="ovx home-page notfound-page">
 
-  <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
+
+  <% if (typeof siteSettings !== 'undefined' && siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <%- include('partials/public-navbar') %>
+  <%- include('partials/home-navbar') %>
 
-  <main class="policy-main policy-main-compact">
-    <section class="container">
-      <div class="policy-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
-          </div>
-          <h1 class="policy-title" data-i18n="error_404_title">Link Tapılmadı</h1>
+  <main class="m-page-shell" id="mainContent">
+    <div class="shell">
+
+      <!-- High-Impact Monolith 404 Card -->
+      <div class="m-404-card m-reveal">
+
+        <!-- Eyebrow Pill -->
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 20px;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size:11px; color:var(--c-white);" aria-hidden="true"></i>
+          <span data-i18n="error_404_badge">404 · Tapılmadı</span>
         </div>
 
-        <div class="policy-list">
-          <article class="policy-card text-center notfound-card">
-            <div class="tool-card-icon tool-card-icon--rose mx-auto mb-3"><i class="fa-solid fa-link-slash"></i></div>
-            <p class="policy-meta mb-0" data-i18n="error_404_msg">Təəssüf ki, axtardığınız link mövcud deyil və ya silinib.</p>
-          </article>
+        <!-- High-Impact 404 Display -->
+        <div class="m-404-code" aria-hidden="true">404</div>
+
+        <!-- Main Title & Description -->
+        <h1 class="m-404-title" data-i18n="error_404_title">Link Tapılmadı</h1>
+        <p class="m-404-desc" data-i18n="error_404_msg">
+          Təəssüf ki, axtardığınız link mövcud deyil və ya silinib.
+        </p>
+        <p class="small" style="color: var(--c-faint); font-size: 13px; margin-top: -18px; margin-bottom: 36px;" data-i18n="error_404_hint">
+          Daxil etdiyiniz link köhnəlmiş ola bilər və ya ünvan yanlış yazılmışdır.
+        </p>
+
+        <!-- Quick Recovery Actions -->
+        <div class="m-actions-row">
+          <a href="/" class="m-cta m-cta--white">
+            <i class="fa-solid fa-house" aria-hidden="true"></i>
+            <span data-i18n="nav_home">Ana Səhifə</span>
+          </a>
+          <a href="/dashboard" class="m-cta m-cta--outline">
+            <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+            <span data-i18n="dashboard_title">Dashboard</span>
+          </a>
+          <a href="/faq" class="m-cta m-cta--outline">
+            <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+            <span data-i18n="navx_faq">FAQ</span>
+          </a>
         </div>
 
-        <div class="policy-back">
-          <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana səhifəyə qayıt</a>
-        </div>
       </div>
-    </section>
+
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      /* ─── Dropdowns & Navbar Logic ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function (p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function () {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function (p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+      });
+
+      /* ─── Mobile Menu ─── */
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function () {
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button Ripple Effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left = (e.clientX - r.left - size / 2) + 'px';
+          span.style.top = (e.clientY - r.top - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function () { span.remove(); }, 600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>
-
-
-

@@ -5,15 +5,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — Abuse & Safety' %></title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
   <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
   <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
@@ -33,98 +36,410 @@
   <% } %>
 </head>
 
-<body class="home-page policy-page animated-gradient-bg">
+<body class="ovx home-page legal-page safety-page">
+
+  <!-- Top reading progress bar -->
+  <div id="readingProgress" class="m-reading-progress" aria-hidden="true"></div>
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell" style="max-width: 1080px; width: 100%;">
 
-  <main class="policy-main">
-    <section class="container">
-      <div class="policy-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+      <!-- Header / Hero Section -->
+      <section class="m-content-hero" aria-labelledby="safetyPageHeading">
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 18px;">
+          <span class="m-live-dot" style="background:#ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);" aria-hidden="true"></span>
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+        </div>
+        <h1 id="safetyPageHeading" data-i18n="abuse_page_title">Abuse &amp; Safety</h1>
+        <p>
+          Zero-tolerance security framework. Multi-layer automated defenses, continuous intelligence synchronization, and swift threat mitigation.
+        </p>
+      </section>
+
+      <!-- Bespoke UX: Live Defense & Threat Telemetry Banner -->
+      <section class="m-threat-banner" aria-label="Security Telemetry">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="m-radar-scanner" aria-hidden="true">
+              <div class="m-radar-sweep-blade"></div>
+              <i class="fa-solid fa-shield-virus" style="color: #ef4444; font-size: 18px; z-index: 2;"></i>
+            </div>
+            <div>
+              <div style="font-size: 15px; font-weight: 700; color: var(--c-white); margin-bottom: 3px;">
+                Canlı Təhlükəsizlik Şəbəkəsi (Active Defense Telemetry)
+              </div>
+              <div style="font-size: 12.5px; color: var(--c-muted);">
+                Zərərli fəaliyyətə qarşı avtomatlaşdırılmış 24/7 monitorinq və qorunma axını
+              </div>
+            </div>
           </div>
-          <h1 class="policy-title" data-i18n="abuse_page_title">Abuse &amp; Safety</h1>
+          <a href="/contact" class="m-cta m-cta--outline" style="padding: 8px 16px; font-size: 12.5px;">
+            <i class="fa-solid fa-flag" style="color: #ef4444;" aria-hidden="true"></i>
+            <span>Şübhəli Linki Şikayət Et</span>
+          </a>
         </div>
 
-        <div class="policy-list">
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-shield-halved me-2"></i><span data-i18n="abuse_position_title">Təhlükəsizlik mövqeyimiz</span></h3>
-            <p data-i18n="abuse_position_text">Ovlink legitim link paylaşımı üçündür. Sui-istifadəyə icazə verilmir.</p>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-ban me-2"></i><span data-i18n="abuse_prohibited_title">Qadağan istifadələr</span></h3>
-            <ul>
-              <li data-i18n="abuse_prohibited_item1">Phishing və hesab ələ keçirmə cəhdləri</li>
-              <li data-i18n="abuse_prohibited_item2">Zərərli proqram/ransomware yayımı</li>
-              <li data-i18n="abuse_prohibited_item3">Fırıldaqçılıq kampaniyaları</li>
-              <li data-i18n="abuse_prohibited_item4">Saxta şəxsiyyət və aldadıcı yönləndirmə</li>
-              <li data-i18n="abuse_prohibited_item5">Qanunsuz məzmun yayımı</li>
-              <li data-i18n="abuse_prohibited_item6">Spam və zərərli avtomatlaşdırma</li>
-            </ul>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-flag me-2"></i><span data-i18n="abuse_report_title">Şikayət necə göndərilir</span></h3>
-            <p data-i18n="abuse_report_text">Qısa link və səbəbi report axınında göndərin. Əlavə kontekst yoxlamanı sürətləndirir. Dəstək üçün /contact səhifəsindən də yaza bilərsiniz.</p>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-scale-balanced me-2"></i><span data-i18n="abuse_actions_title">Mümkün icra tədbirləri</span></h3>
-            <ul>
-              <li data-i18n="abuse_actions_item1">Müvəqqəti və ya daimi link deaktivasiyası</li>
-              <li data-i18n="abuse_actions_item2">Hesab məhdudlaşdırılması/suspend</li>
-              <li data-i18n="abuse_actions_item3">Zərurət olduqda domen səviyyəsində bloklama</li>
-            </ul>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-robot me-2"></i><span data-i18n="abuse_system_title">Avtomatik Təhlükəsizlik Sistemləri</span></h3>
-            <p data-i18n="abuse_system_text">Platformamız sui-istifadəni avtomatik aşkar etmək və qarşısını almaq üçün nəzərdə tutulmuşdur. Bir link 4 və ya daha çox şikayət (report) alarsa, sistem onu avtomatik olaraq 'təhlükəli' kimi işarələyir və zövq alıcılarını xəbərdarlıq səhifəsi ilə məlumatlandırır. Həmçinin qadağan olunmuş zərərli domenlərin linklərə əlavə edilməsi verilənlər bazası tərəfindən birbaşa bloklanır. Xidməti qorumaq üçün API və sistem üzrə sərt sorğu limitləri (rate limits) tətbiq olunur.</p>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-landmark me-2"></i><span data-i18n="abuse_lawful_title">Qanuni sorğular</span></h3>
-            <p data-i18n="abuse_lawful_text">Qanuni əsaslı sorğulara cavab verilə bilər və yalnız qanunun tələb etdiyi minimum məlumat təqdim edilir.</p>
-          </article>
-
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-user-shield me-2"></i><span data-i18n="abuse_tips_title">İstifadəçi təhlükəsizlik tövsiyələri</span></h3>
-            <ul>
-              <li data-i18n="abuse_tips_item1">Paylaşmadan əvvəl hədəfi yoxlayın.</li>
-              <li data-i18n="abuse_tips_item2">Naməlum mənbələrə ehtiyatla yanaşın.</li>
-              <li data-i18n="abuse_tips_item3">Şübhəli fəaliyyəti dərhal şikayət edin.</li>
-            </ul>
-          </article>
+        <!-- Telemetry Stats Grid -->
+        <div class="m-threat-grid">
+          <div class="m-threat-stat-card">
+            <span class="m-threat-stat-label">URLhaus Tezis İnteqrasiyası</span>
+            <div class="m-threat-stat-value">
+              <i class="fa-solid fa-circle-check" style="font-size: 14px; color: #4ade80;" aria-hidden="true"></i>
+              14,000+ İmza
+            </div>
+          </div>
+          <div class="m-threat-stat-card">
+            <span class="m-threat-stat-label">Karantin Həddi</span>
+            <div class="m-threat-stat-value">
+              <i class="fa-solid fa-triangle-exclamation" style="font-size: 14px; color: #f59e0b;" aria-hidden="true"></i>
+              &ge; 4 Şikayət
+            </div>
+          </div>
+          <div class="m-threat-stat-card">
+            <span class="m-threat-stat-label">Cavablandırma Müddəti</span>
+            <div class="m-threat-stat-value">
+              <i class="fa-solid fa-bolt" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+              &lt; 2 Saat SLA
+            </div>
+          </div>
+          <div class="m-threat-stat-card">
+            <span class="m-threat-stat-label">Domen Filtrləməsi</span>
+            <div class="m-threat-stat-value">
+              <i class="fa-solid fa-ban" style="font-size: 14px; color: #ef4444;" aria-hidden="true"></i>
+              DB Səviyyəsində
+            </div>
+          </div>
         </div>
 
-        <div class="policy-back">
-          <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
+        <!-- Quick Link Check / Report Dispatcher Input -->
+        <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--c-border); display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 240px; position: relative;">
+            <input type="text" id="suspiciousLinkInput" placeholder="Şübhəli qısa link və ya kodu daxil edin (məs: abc123)..." style="width: 100%; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 8px; padding: 10px 14px; color: var(--c-white); font-size: 13px; outline: none; font-family: inherit;">
+          </div>
+          <button type="button" id="dispatchAbuseBtn" class="m-cta m-cta--white" style="padding: 10px 18px; font-size: 13px;">
+            <span>Şikayət Formuna Keç</span>
+            <i class="fa-solid fa-arrow-right" style="font-size: 11px;" aria-hidden="true"></i>
+          </button>
         </div>
+      </section>
+
+      <!-- 2-Column Legal Shell: Sticky TOC + Content -->
+      <div class="m-legal-layout">
+
+        <!-- Left Sticky TOC -->
+        <nav class="m-legal-toc" aria-label="Table of Contents">
+          <div class="m-legal-toc-title">Mündəricat</div>
+          <a href="#sec-position" class="m-legal-toc-link active" data-i18n="abuse_position_title">Təhlükəsizlik mövqeyimiz</a>
+          <a href="#sec-prohibited" class="m-legal-toc-link" data-i18n="abuse_prohibited_title">Qadağan istifadələr</a>
+          <a href="#sec-system" class="m-legal-toc-link" data-i18n="abuse_system_title">Avtomatik Təhlükəsizlik Sistemləri</a>
+          <a href="#sec-report" class="m-legal-toc-link" data-i18n="abuse_report_title">Şikayət necə göndərilir</a>
+          <a href="#sec-actions" class="m-legal-toc-link" data-i18n="abuse_actions_title">Mümkün icra tədbirləri</a>
+          <a href="#sec-lawful" class="m-legal-toc-link" data-i18n="abuse_lawful_title">Qanuni sorğular</a>
+          <a href="#sec-tips" class="m-legal-toc-link" data-i18n="abuse_tips_title">İstifadəçi təhlükəsizlik tövsiyələri</a>
+        </nav>
+
+        <!-- Right Content Articles -->
+        <div class="m-legal-content">
+
+          <!-- Section 1: Our Safety Position -->
+          <article class="m-legal-section" id="sec-position">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="abuse_position_title">Təhlükəsizlik mövqeyimiz</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="abuse_position_text">
+              Ovlink legitim link paylaşımı üçündür. Sui-istifadəyə icazə verilmir.
+            </p>
+            <p class="m-legal-section-text" style="margin-top: 12px;">
+              İstifadəçilərimizin, hədəf auditoriyanın və qlobal internet ekosisteminin etibarını qorumaq üçün hər bir qısa linki və yönləndirmə axınını sərt təhlükəsizlik nəzarəti altında saxlayırıq.
+            </p>
+          </article>
+
+          <!-- Section 2: Prohibited Uses -->
+          <article class="m-legal-section" id="sec-prohibited">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-ban" style="color: #ef4444;" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="abuse_prohibited_title">Qadağan istifadələr</h2>
+            </div>
+            <p class="m-legal-section-text">
+              Aşağıda qeyd olunan istiqamətlərdə qısa linklərin yaradılması və yayılması qəti qadağandır və dərhal bloklanma ilə nəticələnir:
+            </p>
+
+            <div class="m-prohibited-grid">
+              <div class="m-prohibited-card">
+                <i class="fa-solid fa-user-ninja m-prohibited-icon" aria-hidden="true"></i>
+                <div class="m-prohibited-text" data-i18n="abuse_prohibited_item1">Phishing və hesab ələ keçirmə cəhdləri</div>
+              </div>
+              <div class="m-prohibited-card">
+                <i class="fa-solid fa-bug m-prohibited-icon" aria-hidden="true"></i>
+                <div class="m-prohibited-text" data-i18n="abuse_prohibited_item2">Zərərli proqram/ransomware yayımı</div>
+              </div>
+              <div class="m-prohibited-card">
+                <i class="fa-solid fa-money-bill-transfer m-prohibited-icon" aria-hidden="true"></i>
+                <div class="m-prohibited-text" data-i18n="abuse_prohibited_item3">Fırıldaqçılıq kampaniyaları</div>
+              </div>
+              <div class="m-prohibited-card">
+                <i class="fa-solid fa-masks-theater m-prohibited-icon" aria-hidden="true"></i>
+                <div class="m-prohibited-text" data-i18n="abuse_prohibited_item4">Saxta şəxsiyyət və aldadıcı yönləndirmə</div>
+              </div>
+              <div class="m-prohibited-card">
+                <i class="fa-solid fa-triangle-exclamation m-prohibited-icon" aria-hidden="true"></i>
+                <div class="m-prohibited-text" data-i18n="abuse_prohibited_item5">Qanunsuz məzmun yayımı</div>
+              </div>
+              <div class="m-prohibited-card">
+                <i class="fa-solid fa-envelope-circle-check m-prohibited-icon" aria-hidden="true"></i>
+                <div class="m-prohibited-text" data-i18n="abuse_prohibited_item6">Spam və zərərli avtomatlaşdırma</div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Section 3: Automated Security Systems -->
+          <article class="m-legal-section" id="sec-system">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-robot" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="abuse_system_title">Avtomatik Təhlükəsizlik Sistemləri</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="abuse_system_text">
+              Platformamız sui-istifadəni avtomatik aşkar etmək və qarşısını almaq üçün nəzərdə tutulmuşdur. Bir link 4 və ya daha çox şikayət (report) alarsa, sistem onu avtomatik olaraq 'təhlükəli' kimi işarələyir və klikləyənləri xəbərdarlıq səhifəsi ilə məlumatlandırır. Həmçinin qadağan olunmuş zərərli domenlərin linklərə əlavə edilməsi verilənlər bazası tərəfindən birbaşa bloklanır. Xidməti qorumaq üçün API və sistem üzrə sərt sorğu limitləri (rate limits) tətbiq olunur.
+            </p>
+          </article>
+
+          <!-- Section 4: How to Report -->
+          <article class="m-legal-section" id="sec-report">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-flag" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="abuse_report_title">Şikayət necə göndərilir</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="abuse_report_text">
+              Qısa link və səbəbi report axınında göndərin. Əlavə kontekst yoxlamanı sürətləndirir. Dəstək üçün /contact səhifəsindən də yaza bilərsiniz.
+            </p>
+            <div style="margin-top: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <a href="/contact" class="m-cta m-cta--white" style="padding: 10px 20px; font-size: 13px;">
+                <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                <span>Təhlükəsizlik Komandasına Yazın</span>
+              </a>
+              <span style="font-size: 12.5px; color: var(--c-muted);">Birbaşa email: <strong>abuse@ovlink.sbs</strong> və ya <strong>support@ovlink.sbs</strong></span>
+            </div>
+          </article>
+
+          <!-- Section 5: Enforcement Actions -->
+          <article class="m-legal-section" id="sec-actions">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="abuse_actions_title">Mümkün icra tədbirləri</h2>
+            </div>
+            <p class="m-legal-section-text">
+              Təhlükə dərəcəsindən asılı olaraq sistem inzibatçıları və avtomatik mühafizə filtrləri aşağıdakı icra tədbirlərini tətbiq edir:
+            </p>
+
+            <div class="m-action-timeline">
+              <div class="m-action-item">
+                <span class="m-action-badge">MƏRHƏLƏ 1</span>
+                <span style="font-size: 13.5px; color: var(--c-white); font-weight: 500;" data-i18n="abuse_actions_item1">Müvəqqəti və ya daimi link deaktivasiyası</span>
+              </div>
+              <div class="m-action-item">
+                <span class="m-action-badge">MƏRHƏLƏ 2</span>
+                <span style="font-size: 13.5px; color: var(--c-white); font-weight: 500;" data-i18n="abuse_actions_item2">Hesab məhdudlaşdırılması/suspend</span>
+              </div>
+              <div class="m-action-item">
+                <span class="m-action-badge">MƏRHƏLƏ 3</span>
+                <span style="font-size: 13.5px; color: var(--c-white); font-weight: 500;" data-i18n="abuse_actions_item3">Zərurət olduqda domen səviyyəsində bloklama</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Section 6: Lawful Inquiries -->
+          <article class="m-legal-section" id="sec-lawful">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-landmark" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="abuse_lawful_title">Qanuni sorğular</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="abuse_lawful_text">
+              Qanuni əsaslı sorğulara cavab verilə bilər və yalnız qanunun tələb etdiyi minimum məlumat təqdim edilir.
+            </p>
+          </article>
+
+          <!-- Section 7: User Security Recommendations -->
+          <article class="m-legal-section" id="sec-tips">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="abuse_tips_title">İstifadəçi təhlükəsizlik tövsiyələri</h2>
+            </div>
+            <div class="m-action-timeline">
+              <div class="m-action-item">
+                <i class="fa-solid fa-magnifying-glass-arrow-right" style="color: var(--c-white); font-size: 14px;" aria-hidden="true"></i>
+                <span style="font-size: 13.5px; color: var(--c-white); font-weight: 500;" data-i18n="abuse_tips_item1">Paylaşmadan əvvəl hədəfi yoxlayın.</span>
+              </div>
+              <div class="m-action-item">
+                <i class="fa-solid fa-shield-cat" style="color: var(--c-white); font-size: 14px;" aria-hidden="true"></i>
+                <span style="font-size: 13.5px; color: var(--c-white); font-weight: 500;" data-i18n="abuse_tips_item2">Naməlum mənbələrə ehtiyatla yanaşın.</span>
+              </div>
+              <div class="m-action-item">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444; font-size: 14px;" aria-hidden="true"></i>
+                <span style="font-size: 13.5px; color: var(--c-white); font-weight: 500;" data-i18n="abuse_tips_item3">Şübhəli fəaliyyəti dərhal şikayət edin.</span>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
       </div>
-    </section>
+
+      <!-- Action Navigation Footer -->
+      <div style="display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 48px;">
+        <a href="/" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <i class="fa-solid fa-arrow-left" style="font-size: 11px;" aria-hidden="true"></i>
+          <span data-i18n="nav_home">Home</span>
+        </a>
+        <a href="/terms" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="terms_title">İstifadə Şərtləri</span>
+        </a>
+        <a href="/contact" class="m-cta m-cta--white" style="padding: 10px 22px; font-size: 13.5px;">
+          <span>Əlaqə &amp; Dəstək</span>
+          <i class="fa-solid fa-arrow-right" style="font-size: 11px;" aria-hidden="true"></i>
+        </a>
+      </div>
+
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      /* ─── Reading Progress Bar ─── */
+      var progressBar = document.getElementById('readingProgress');
+      function updateProgress() {
+        if (!progressBar) return;
+        var totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+        if (totalHeight <= 0) return;
+        var progress = (window.scrollY / totalHeight) * 100;
+        progressBar.style.width = Math.min(100, Math.max(0, progress)) + '%';
+      }
+      window.addEventListener('scroll', updateProgress, { passive: true });
+
+      /* ─── ScrollSpy for TOC ─── */
+      var tocLinks = document.querySelectorAll('.m-legal-toc-link');
+      var sections = document.querySelectorAll('.m-legal-section');
+      if (sections.length && tocLinks.length && 'IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+              var id = entry.target.getAttribute('id');
+              tocLinks.forEach(function(link) {
+                if (link.getAttribute('href') === '#' + id) {
+                  link.classList.add('active');
+                } else {
+                  link.classList.remove('active');
+                }
+              });
+            }
+          });
+        }, { rootMargin: '-20% 0px -70% 0px' });
+        sections.forEach(function(sec) { observer.observe(sec); });
+      }
+
+      /* ─── Quick Abuse Dispatcher UX ─── */
+      var dispatchBtn = document.getElementById('dispatchAbuseBtn');
+      var linkInput = document.getElementById('suspiciousLinkInput');
+      if (dispatchBtn && linkInput) {
+        dispatchBtn.addEventListener('click', function() {
+          var val = (linkInput.value || '').trim();
+          if (!val) {
+            linkInput.focus();
+            return;
+          }
+          window.location.href = '/contact?subject=abuse&ref=' + encodeURIComponent(val);
+        });
+        linkInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            dispatchBtn.click();
+          }
+        });
+      }
+
+      /* ─── Navbar interactive logic ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+      });
+
+      /* ─── Mobile Menu ─── */
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function(){
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button ripple effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+          span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function(){ span.remove(); }, 600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>
-
-
-

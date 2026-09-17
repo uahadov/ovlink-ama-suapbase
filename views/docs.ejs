@@ -5,15 +5,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — Documentation' %></title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
   <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
   <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
@@ -33,89 +36,425 @@
   <% } %>
 </head>
 
-<body class="home-page policy-page animated-gradient-bg">
+<body class="ovx home-page resources-page docs-page">
+
+  <!-- Top reading progress bar -->
+  <div id="readingProgress" class="m-reading-progress" aria-hidden="true"></div>
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell" style="max-width: 1080px; width: 100%;">
 
-  <main class="policy-main">
-    <section class="container">
-      <div class="policy-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
-          </div>
-          <h1 class="policy-title" data-i18n="docs_page_title">Documentation</h1>
+      <!-- Header / Hero Section -->
+      <section class="m-content-hero" aria-labelledby="docsPageHeading">
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 18px;">
+          <span class="m-live-dot" aria-hidden="true"></span>
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
         </div>
+        <h1 id="docsPageHeading" data-i18n="docs_page_title">Documentation</h1>
+        <p data-i18n="docs_page_intro">
+          Ovlink-in necə işlədiyini və mövcud imkanlarını qısa, texniki şəkildə izah edən sənədlər.
+        </p>
+      </section>
 
-        <div class="policy-list">
-          <article class="policy-card">
-            <p data-i18n="docs_page_intro">Ovlink-in necə işlədiyini və mövcud imkanlarını qısa, texniki şəkildə izah edən sənədlər.</p>
-          </article>
+      <!-- 2-Column Documentation Shell: Sticky TOC + Content -->
+      <div class="m-legal-layout">
 
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-code-branch me-2"></i><span data-i18n="docs_redirect_title">Yönləndirmə modeli</span></h3>
-            <ul>
-              <li data-i18n="docs_redirect_item1">Qısa kod hədəf URL-ə uyğunlaşdırılır.</li>
-              <li data-i18n="docs_redirect_item2">Link açıldıqda əvvəlcə siyasət və təhlükəsizlik yoxlamaları aparılır.</li>
-              <li data-i18n="docs_redirect_item3">Şərtlər ödənərsə istifadəçi hədəf ünvana yönləndirilir.</li>
+        <!-- Left Sticky TOC -->
+        <nav class="m-legal-toc" aria-label="Table of Contents">
+          <div class="m-legal-toc-title">Mündəricat</div>
+          <a href="#sec-model" class="m-legal-toc-link active" data-i18n="docs_redirect_title">Yönləndirmə modeli</a>
+          <a href="#sec-pipeline" class="m-legal-toc-link">Həyat Dövrü Sxemi</a>
+          <a href="#sec-features" class="m-legal-toc-link" data-i18n="docs_features_title">Mövcud funksiyalar</a>
+          <a href="#sec-moderation" class="m-legal-toc-link" data-i18n="docs_moderation_title">Moderasiya və əlçatanlıq</a>
+          <a href="#sec-fair-use" class="m-legal-toc-link" data-i18n="docs_fair_use_title">Fair-use qeydi</a>
+          <a href="#sec-responsible" class="m-legal-toc-link" data-i18n="docs_responsible_title">Məsuliyyətli istifadə</a>
+          <a href="#sec-api" class="m-legal-toc-link">Developer API</a>
+        </nav>
+
+        <!-- Right Content Articles -->
+        <div class="m-legal-content">
+
+          <!-- Section 1: Redirection Model -->
+          <article class="m-legal-section" id="sec-model">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-code-branch" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="docs_redirect_title">Yönləndirmə modeli</h2>
+            </div>
+            <p class="m-legal-section-text">
+              Ovlink qısa link sistemi paylanmış yüksək performanslı yönləndirmə mühərriki üzərində qurulmuşdur. Hər bir sorğu mikrosaniyələr ərzində analiz edilir:
+            </p>
+
+            <ul class="m-help-steps-list" style="margin-top: 14px;">
+              <li class="m-help-step-item">
+                <span class="m-help-step-num">01</span>
+                <span data-i18n="docs_redirect_item1">Qısa kod hədəf URL-ə uyğunlaşdırılır.</span>
+              </li>
+              <li class="m-help-step-item">
+                <span class="m-help-step-num">02</span>
+                <span data-i18n="docs_redirect_item2">Link açıldıqda əvvəlcə siyasət və təhlükəsizlik yoxlamaları aparılır.</span>
+              </li>
+              <li class="m-help-step-item">
+                <span class="m-help-step-num">03</span>
+                <span data-i18n="docs_redirect_item3">Şərtlər ödənərsə istifadəçi hədəf ünvana yönləndirilir.</span>
+              </li>
             </ul>
           </article>
 
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-layer-group me-2"></i><span data-i18n="docs_features_title">Mövcud funksiyalar</span></h3>
-            <ul>
-              <li data-i18n="docs_feature1">Xüsusi alias</li>
-              <li data-i18n="docs_feature2">Şifrəli link</li>
-              <li data-i18n="docs_feature3">Bitmə tarixi</li>
-              <li data-i18n="docs_feature4">Maksimum klik limiti</li>
-              <li data-i18n="docs_feature5">Əsas klik statistikası</li>
-              <li data-i18n="docs_feature6">QR kod yaratma</li>
-              <li data-i18n="docs_feature7">Xüsusi domen seçimi (uyğun istifadəçilər üçün)</li>
-            </ul>
+          <!-- Section 2: Bespoke UX Pipeline Diagram -->
+          <article class="m-legal-section" id="sec-pipeline">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title">Yönləndirmə Həyat Dövrü (Pipeline)</h2>
+            </div>
+            <p class="m-legal-section-text">
+              Sorğunun daxil olmasından hədəf ünvana çatdırılmasına qədər olan təhlükəsizlik və icra addımları:
+            </p>
+
+            <!-- Animated SVG Flow Container -->
+            <div class="m-pipeline-box">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--c-muted); text-transform: uppercase; letter-spacing: 0.05em;">
+                  Sorğu Arxitekturası
+                </span>
+                <span class="m-verified-badge" style="gap: 5px; font-size: 11px;">
+                  <span class="m-live-dot" aria-hidden="true"></span>
+                  Canlı İcra
+                </span>
+              </div>
+
+              <div class="m-pipeline-flow">
+                <!-- Step 1 -->
+                <div class="m-pipeline-step">
+                  <span class="m-pipeline-step-badge">
+                    <i class="fa-solid fa-arrow-right-to-bracket" style="color: var(--c-white);" aria-hidden="true"></i>
+                    FAZA 1
+                  </span>
+                  <div class="m-pipeline-step-title">Sorğunun Qəbulu</div>
+                  <div class="m-pipeline-step-desc">
+                    İstifadəçi qısa linkə daxil olur (<span class="m-cookie-name">/r/:code</span>). Domen və alias doğrulanır.
+                  </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="m-pipeline-step">
+                  <span class="m-pipeline-step-badge">
+                    <i class="fa-solid fa-shield-virus" style="color: #ef4444;" aria-hidden="true"></i>
+                    FAZA 2
+                  </span>
+                  <div class="m-pipeline-step-title">Təhlükəsizlik Süzgəci</div>
+                  <div class="m-pipeline-step-desc">
+                    URLhaus reputasiyası, domen qara siyahısı və sui-istifadə şikayətləri avtomatik yoxlanılır.
+                  </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="m-pipeline-step">
+                  <span class="m-pipeline-step-badge">
+                    <i class="fa-solid fa-sliders" style="color: #fbbf24;" aria-hidden="true"></i>
+                    FAZA 3
+                  </span>
+                  <div class="m-pipeline-step-title">Şərtlərin İcrası</div>
+                  <div class="m-pipeline-step-desc">
+                    Şifrə, bitmə vaxtı və maksimum klik limiti süzgəcdən keçirilir.
+                  </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="m-pipeline-step">
+                  <span class="m-pipeline-step-badge">
+                    <i class="fa-solid fa-chart-simple" style="color: #4ade80;" aria-hidden="true"></i>
+                    FAZA 4
+                  </span>
+                  <div class="m-pipeline-step-title">Telemetriya &amp; 302</div>
+                  <div class="m-pipeline-step-desc">
+                    Klik statistikası qeydə alınır və istifadəçi hədəf ünvana təhlükəsiz yönləndirilir.
+                  </div>
+                </div>
+              </div>
+            </div>
           </article>
 
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-gavel me-2"></i><span data-i18n="docs_moderation_title">Moderasiya və əlçatanlıq</span></h3>
-            <p data-i18n="docs_moderation_text">Şikayət olunan və ya şübhəli linklər məhdudlaşdırıla və ya deaktiv edilə bilər. Əlçatanlıq hədəf saytın vəziyyətindən və link qaydalarından asılı ola bilər.</p>
+          <!-- Section 3: Existing Features Bento Grid -->
+          <article class="m-legal-section" id="sec-features">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="docs_features_title">Mövcud funksiyalar</h2>
+            </div>
+            <p class="m-legal-section-text">
+              Ovlink istifadəçilərinə təqdim olunan qabaqcıl link idarəetmə və fərdiləşdirmə imkanları:
+            </p>
+
+            <div class="m-docs-features-grid">
+              <!-- Feature 1 -->
+              <div class="m-docs-feature-card">
+                <div class="m-docs-feature-icon">
+                  <i class="fa-solid fa-signature" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <h3 class="m-docs-feature-title" data-i18n="docs_feature1">Xüsusi alias</h3>
+                  <p class="m-docs-feature-desc">Linkiniz üçün yaddaqalan və fərdi qısa sonluq seçin (məs: ovlink.sbs/r/kampaniya).</p>
+                </div>
+              </div>
+
+              <!-- Feature 2 -->
+              <div class="m-docs-feature-card">
+                <div class="m-docs-feature-icon">
+                  <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <h3 class="m-docs-feature-title" data-i18n="docs_feature2">Şifrəli link</h3>
+                  <p class="m-docs-feature-desc">Gizli linklərinizi şifrə ilə qoruyun; ziyarətçi şifrəni daxil etmədən yönləndirilmir.</p>
+                </div>
+              </div>
+
+              <!-- Feature 3 -->
+              <div class="m-docs-feature-card">
+                <div class="m-docs-feature-icon">
+                  <i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <h3 class="m-docs-feature-title" data-i18n="docs_feature3">Bitmə tarixi</h3>
+                  <p class="m-docs-feature-desc">Müəyyən tarix və saatdan sonra avtomatik deaktiv olan müvəqqəti linklər qurun.</p>
+                </div>
+              </div>
+
+              <!-- Feature 4 -->
+              <div class="m-docs-feature-card">
+                <div class="m-docs-feature-icon">
+                  <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <h3 class="m-docs-feature-title" data-i18n="docs_feature4">Maksimum klik limiti</h3>
+                  <p class="m-docs-feature-desc">Linkin neçə dəfə açıla biləcəyini məhdudlaşdırın; limit dolduqda keçid bağlanır.</p>
+                </div>
+              </div>
+
+              <!-- Feature 5 -->
+              <div class="m-docs-feature-card">
+                <div class="m-docs-feature-icon">
+                  <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <h3 class="m-docs-feature-title" data-i18n="docs_feature5">Əsas klik statistikası</h3>
+                  <p class="m-docs-feature-desc">Ölkə, cihaz növü, əməliyyat sistemi və referrer məlumatlarını vizual qrafiklərlə izləyin.</p>
+                </div>
+              </div>
+
+              <!-- Feature 6 -->
+              <div class="m-docs-feature-card">
+                <div class="m-docs-feature-icon">
+                  <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <h3 class="m-docs-feature-title" data-i18n="docs_feature6">QR kod yaratma</h3>
+                  <p class="m-docs-feature-desc">Hər bir qısa link üçün dərhal skan edilə bilən yüksək dəqiqlikli QR kod generasiya edin.</p>
+                </div>
+              </div>
+
+              <!-- Feature 7 -->
+              <div class="m-docs-feature-card">
+                <div class="m-docs-feature-icon">
+                  <i class="fa-solid fa-globe" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <h3 class="m-docs-feature-title" data-i18n="docs_feature7">Xüsusi domen seçimi</h3>
+                  <p class="m-docs-feature-desc">Şəxsi brend domenlərinizi DNS TXT/CNAME qeydləri vasitəsilə asanlıqla qoşun.</p>
+                </div>
+              </div>
+            </div>
           </article>
 
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-gauge-high me-2"></i><span data-i18n="docs_fair_use_title">Fair-use qeydi</span></h3>
-            <p data-i18n="docs_fair_use_text">Xidmətin sabitliyini qorumaq üçün fair-use və anti-abuse tədbirləri tətbiq oluna bilər.</p>
+          <!-- Section 4: Moderation & Availability -->
+          <article class="m-legal-section" id="sec-moderation">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-gavel" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="docs_moderation_title">Moderasiya və əlçatanlıq</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="docs_moderation_text">
+              Şikayət olunan və ya şübhəli linklər məhdudlaşdırıla və ya deaktiv edilə bilər. Əlçatanlıq hədəf saytın vəziyyətindən və link qaydalarından asılı ola bilər.
+            </p>
           </article>
 
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-compass me-2"></i><span data-i18n="docs_responsible_title">Məsuliyyətli istifadə</span></h3>
-            <p data-i18n="docs_responsible_text">Geniş paylaşım etməzdən əvvəl Terms və Abuse &amp; Safety səhifələrini nəzərdən keçirin.</p>
+          <!-- Section 5: Fair-Use -->
+          <article class="m-legal-section" id="sec-fair-use">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="docs_fair_use_title">Fair-use qeydi</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="docs_fair_use_text">
+              Xidmətin sabitliyini qorumaq üçün fair-use və anti-abuse tədbirləri tətbiq oluna bilər.
+            </p>
           </article>
+
+          <!-- Section 6: Responsible Use -->
+          <article class="m-legal-section" id="sec-responsible">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-compass" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="docs_responsible_title">Məsuliyyətli istifadə</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="docs_responsible_text">
+              Geniş paylaşım etməzdən əvvəl Terms və Abuse &amp; Safety səhifələrini nəzərdən keçirin.
+            </p>
+          </article>
+
+          <!-- Section 7: Developer API Hub Callout -->
+          <article class="m-legal-section" id="sec-api">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-terminal" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title">Developer REST API &amp; Webhooks</h2>
+            </div>
+            <p class="m-legal-section-text">
+              Pro plan istifadəçiləri üçün tam avtomatlaşdırılmış RESTful API və Webhook hadisələri mövcuddur. İdempotent sorğular, dəqiq API scope icazələri və JSON cavab formatı dəstəklənir.
+            </p>
+            <div style="margin-top: 18px;">
+              <a href="/api-guide" class="m-cta m-cta--white" style="padding: 10px 20px; font-size: 13.5px;">
+                <i class="fa-solid fa-book-bookmark" aria-hidden="true"></i>
+                <span>Tam API Bələdçisinə Baxın</span>
+                <i class="fa-solid fa-arrow-right" style="font-size: 11px;" aria-hidden="true"></i>
+              </a>
+            </div>
+          </article>
+
         </div>
 
-        <div class="policy-back">
-          <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
-        </div>
       </div>
-    </section>
+
+      <!-- Action Navigation Footer -->
+      <div style="display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 48px;">
+        <a href="/" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <i class="fa-solid fa-arrow-left" style="font-size: 11px;" aria-hidden="true"></i>
+          <span data-i18n="nav_home">Home</span>
+        </a>
+        <a href="/help" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="help_page_title">Yardım Mərkəzi</span>
+        </a>
+        <a href="/api-guide" class="m-cta m-cta--white" style="padding: 10px 22px; font-size: 13.5px;">
+          <span>API Guide</span>
+          <i class="fa-solid fa-arrow-right" style="font-size: 11px;" aria-hidden="true"></i>
+        </a>
+      </div>
+
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      /* ─── Reading Progress Bar ─── */
+      var progressBar = document.getElementById('readingProgress');
+      function updateProgress() {
+        if (!progressBar) return;
+        var totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+        if (totalHeight <= 0) return;
+        var progress = (window.scrollY / totalHeight) * 100;
+        progressBar.style.width = Math.min(100, Math.max(0, progress)) + '%';
+      }
+      window.addEventListener('scroll', updateProgress, { passive: true });
+
+      /* ─── ScrollSpy for TOC ─── */
+      var tocLinks = document.querySelectorAll('.m-legal-toc-link');
+      var sections = document.querySelectorAll('.m-legal-section');
+      if (sections.length && tocLinks.length && 'IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+              var id = entry.target.getAttribute('id');
+              tocLinks.forEach(function(link) {
+                if (link.getAttribute('href') === '#' + id) {
+                  link.classList.add('active');
+                } else {
+                  link.classList.remove('active');
+                }
+              });
+            }
+          });
+        }, { rootMargin: '-20% 0px -70% 0px' });
+        sections.forEach(function(sec) { observer.observe(sec); });
+      }
+
+      /* ─── Navbar interactive logic ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+      });
+
+      /* ─── Mobile Menu ─── */
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function(){
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button ripple effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+          span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function(){ span.remove(); }, 600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>
-
-
-

@@ -5,7 +5,7 @@ const { createClient } = require('redis');
 const { isEnabledEnv, isProdRuntime } = require('./index');
 const { pool } = require('../db/pool');
 const isTestEnv = process.env.NODE_ENV === 'test';
-const redisUrl = (isTestEnv && !isEnabledEnv('ENABLE_REDIS_IN_TEST', false))
+const redisUrl = ((isTestEnv && !isEnabledEnv('ENABLE_REDIS_IN_TEST', false)) || isEnabledEnv('DISABLE_REDIS', false))
   ? ''
   : (process.env.REDIS_URL || '').toString().trim();
 const requireRedisInProd = isEnabledEnv('REQUIRE_REDIS_IN_PROD', true);
@@ -52,7 +52,7 @@ const sessionStore = redisClient
     client: redisClient,
     prefix: 'ovlink:sess:',
   })
-  : (process.env.NODE_ENV === 'test' && (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1'))
+  : (process.env.NODE_ENV === 'test' && !process.env.DATABASE_URL
     ? new session.MemoryStore()
     : new pgSession({
       pool: pool,
@@ -63,7 +63,17 @@ function createRateLimitStore(scope) {
   if (!redisClient) return undefined;
   const safeScope = (scope || 'default').toString().trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32) || 'default';
   return new RateLimitRedisStore({
-    sendCommand: (...args) => redisClient.sendCommand(args),
+    sendCommand: async (...args) => {
+      if (!redisClient.isOpen) {
+        if (!isProdRuntime) {
+          const cmd = (args[0] && typeof args[0] === 'string') ? args[0].toUpperCase() : (args[0] && args[0][0] ? String(args[0][0]).toUpperCase() : '');
+          if (cmd === 'SCRIPT') return 'mock_sha';
+          return [1, 60000]; // Fallback [totalHits, timeToExpire] in dev if Redis connection is not open
+        }
+        throw new Error('Redis is closed');
+      }
+      return redisClient.sendCommand(args);
+    },
     prefix: `ovlink:rl:${safeScope}:`,
   });
 }

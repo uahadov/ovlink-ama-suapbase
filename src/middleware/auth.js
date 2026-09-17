@@ -75,17 +75,33 @@ function authContextMiddleware(req, res, next) {
   next();
 }
 
-function authLocalsMiddleware(req, res, next) {
-  res.locals.user = req.session && req.session.userId ? {
-    id: req.session.userId,
-    email: req.session.username || '',
-    isAdmin: !!req.session.adminUserId
-  } : null;
+async function authLocalsMiddleware(req, res, next) {
+  res.locals.user = null;
   res.locals.unreadNotifCount = 0;
 
   if (!req.session || !req.session.userId) {
     return next();
   }
+
+  let isPro = false;
+  let planTier = 'free';
+  try {
+    const plan = await getEffectivePlanForUser(req.session.userId).catch(() => null);
+    if (plan && plan.is_active && plan.tier === PLAN_TIERS.PRO && plan.status === PLAN_STATUS.ACTIVE) {
+      isPro = true;
+      planTier = 'pro';
+    }
+  } catch {
+    // ignore
+  }
+
+  res.locals.user = {
+    id: req.session.userId,
+    email: req.session.username || '',
+    isAdmin: !!req.session.adminUserId,
+    isPro: isPro,
+    planTier: planTier
+  };
 
   db.get(
     'SELECT COUNT(*) AS cnt FROM notifications WHERE user_id = ? AND read_at IS NULL',
@@ -102,7 +118,7 @@ function authLocalsMiddleware(req, res, next) {
 
 function requireApiScope(requiredScope) {
   return (req, res, next) => {
-    const scopes = req.apiScopes;
+    const scopes = req.apiScopes || (req.apiAuth && req.apiAuth.scopes ? (req.apiAuth.scopes instanceof Set ? req.apiAuth.scopes : new Set(req.apiAuth.scopes)) : null);
     if (!scopes || !scopes.has(requiredScope)) {
       return res.status(403).json({ error: 'Missing required API scope: ' + requiredScope });
     }
@@ -190,10 +206,12 @@ async function authenticateProApiKey(req, res, next) {
       await dbRunAsync('UPDATE api_keys SET key_hash = ?, hash_version = 2 WHERE id = ? AND key_hash = ?', [keyHashV2, row.key_id, keyHashLegacy]).catch(() => {});
     }
     await dbRunAsync('UPDATE api_keys SET last_used_at = ? WHERE id = ?', [now, row.key_id]).catch(() => {});
+    const normalizedScopes = normalizeApiKeyScopes(row.scopes || '', DEFAULT_API_KEY_SCOPES);
+    req.apiScopes = new Set(normalizedScopes);
     req.apiAuth = {
       userId: row.user_id,
       apiKeyId: row.key_id,
-      scopes: normalizeApiKeyScopes(row.scopes || '', DEFAULT_API_KEY_SCOPES),
+      scopes: normalizedScopes,
       plan: effectivePlan,
     };
     logSecurityEvent(req, 'api.key.auth', 'success', { user_id: row.user_id, api_key_id: row.key_id });

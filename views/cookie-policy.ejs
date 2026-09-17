@@ -5,15 +5,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — Cookie Policy' %></title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
   <link rel="icon" href="/logo.ico" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
   <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
   <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
@@ -33,63 +36,434 @@
   <% } %>
 </head>
 
-<body class="home-page policy-page animated-gradient-bg">
+<body class="ovx home-page legal-page cookie-page">
+
+  <!-- Top reading progress bar -->
+  <div id="readingProgress" class="m-reading-progress" aria-hidden="true"></div>
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
-      <div class="container">
+      <div class="shell">
         <i class="fa-solid fa-bullhorn"></i>
         <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
       </div>
     </div>
   <% } %>
 
-  <div id="particlesContainer" class="particles-container"></div>
+  <%- include('partials/home-navbar') %>
 
-  <%- include('partials/public-navbar') %>
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell" style="max-width: 1080px; width: 100%;">
 
-  <main class="policy-main">
-    <section class="container">
-      <div class="policy-shell">
-        <div class="policy-head">
-          <div class="badge hero-chip rounded-pill px-3 py-2 mb-3 shadow-sm fw-semibold">
-            <i class="fa-solid fa-link me-1"></i><span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+      <!-- Header / Hero Section -->
+      <section class="m-content-hero" aria-labelledby="cookiePageHeading">
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 18px;">
+          <span class="m-live-dot" aria-hidden="true"></span>
+          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
+        </div>
+        <h1 id="cookiePageHeading" data-i18n="cookie_title">Cookie Siyasəti</h1>
+        <p>
+          Transparent information on how Ovlink utilizes cookies, local tokens, and client-side preferences to safeguard your navigation.
+        </p>
+      </section>
+
+      <!-- Bespoke UX: Live Storage Inspector Box -->
+      <section class="m-cookie-inspector-box" aria-label="Device Storage Status">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div class="m-cookie-orbit-icon" aria-hidden="true">
+            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
+              <circle cx="22" cy="22" r="20" stroke="rgba(255,255,255,0.1)" stroke-width="1.5" stroke-dasharray="4 3" />
+              <circle cx="22" cy="22" r="13" stroke="rgba(255,255,255,0.18)" stroke-width="1" />
+              <circle cx="22" cy="4" r="3" fill="#4ade80" />
+              <circle cx="38" cy="28" r="2.5" fill="#ffffff" />
+              <circle cx="7" cy="26" r="2" fill="rgba(255,255,255,0.4)" />
+              <path d="M19 16C19 14.3431 20.3431 13 22 13C23.6569 13 25 14.3431 25 16V18H19V16Z" stroke="#4ade80" stroke-width="1.5"/>
+              <rect x="17" y="18" width="10" height="9" rx="2" stroke="#4ade80" stroke-width="1.5" fill="rgba(74,222,128,0.1)"/>
+            </svg>
           </div>
-          <h1 class="policy-title" data-i18n="cookie_title">Cookie Policy</h1>
+          <div>
+            <div style="font-size: 13.5px; font-weight: 600; color: var(--c-white); margin-bottom: 2px;">
+              Cihazınızın Yaddaş Vəziyyəti (Storage Status)
+            </div>
+            <div style="font-size: 12.5px; color: var(--c-muted);" id="storageStatusDescription">
+              Yalnız zəruri sessiya və dil seçimləri saxlanılır. İzləmə skriptləri bloklanıb.
+            </div>
+          </div>
         </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <button type="button" id="refreshStorageBtn" class="m-copy-btn" title="Cihaz vəziyyətini yoxla">
+            <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+            <span>Yenilə</span>
+          </button>
+          <button type="button" id="clearStorageBtn" class="m-copy-btn" title="Seçimləri sıfırla">
+            <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+            <span>Seçimləri sıfırla</span>
+          </button>
+        </div>
+      </section>
 
-        <div class="policy-list">
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-cookie-bite me-2"></i><span data-i18n="cookie_what_title">What are cookies?</span></h3>
-            <p data-i18n="cookie_what_text">Cookies are small text files that help websites remember your preferences and session.</p>
+      <!-- 2-Column Legal Shell: Sticky TOC + Content -->
+      <div class="m-legal-layout">
+
+        <!-- Left Sticky TOC -->
+        <nav class="m-legal-toc" aria-label="Table of Contents">
+          <div class="m-legal-toc-title">Mündəricat</div>
+          <a href="#sec-what" class="m-legal-toc-link active" data-i18n="cookie_what_title">Kuki nədir?</a>
+          <a href="#sec-categories" class="m-legal-toc-link">Kuki kateqoriyaları</a>
+          <a href="#sec-use" class="m-legal-toc-link" data-i18n="cookie_use_title">Kukilərdən necə istifadə edirik</a>
+          <a href="#sec-control" class="m-legal-toc-link" data-i18n="cookie_control_title">Nəzarət sizdədir</a>
+          <a href="#sec-third-party" class="m-legal-toc-link">Üçüncü tərəf xidmətləri</a>
+          <a href="#sec-contact" class="m-legal-toc-link">Əlaqə</a>
+        </nav>
+
+        <!-- Right Content Articles -->
+        <div class="m-legal-content">
+
+          <!-- Section 1: What Are Cookies? -->
+          <article class="m-legal-section" id="sec-what">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-cookie-bite" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="cookie_what_title">Kuki nədir?</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="cookie_what_text">
+              Kukilər vebsaytların seçiminizi və sessiyanızı yadda saxlamağa kömək edən kiçik mətn fayllarıdır.
+            </p>
+            <p class="m-legal-section-text" style="margin-top: 12px;">
+              Kukilər və müasir brauzer yaddaşı (<span class="m-cookie-name">localStorage</span>, <span class="m-cookie-name">sessionStorage</span>) veb tətbiqin sizin brauzerinizlə etibarlı şəkildə əlaqə saxlamasını təmin edir, hər səhifə yenilənməsində təkrar daxil olma zərurətini aradan qaldırır.
+            </p>
           </article>
 
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-gear me-2"></i><span data-i18n="cookie_use_title">How we use cookies</span></h3>
-            <p data-i18n="cookie_use_text">Cookie istifadəsi kateqoriyalara bölünür: (1) Essential — connect.sid, redirect razılığı və təhlükəsizlik/CSRF axınları üçün; (2) Functional — dil, tema və cookie banner seçimi üçün; (3) Advertising/Measurement — reklam aktivdirsə vendor ölçümü və çatdırılma texnologiyaları üçün.</p>
+          <!-- Section 2: Cookie Categories Grid -->
+          <article class="m-legal-section" id="sec-categories">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title">Kuki və Yaddaş Kateqoriyaları</h2>
+            </div>
+            <p class="m-legal-section-text">
+              Platformamızda istifadə olunan məlumat saxlayıcıları üç əsas qrupa bölünür:
+            </p>
+
+            <div class="m-cookie-grid">
+              <!-- Essential -->
+              <div class="m-cookie-card">
+                <div class="m-cookie-card-header">
+                  <h3 class="m-cookie-card-title">
+                    <i class="fa-solid fa-lock" style="font-size: 13px; color: #4ade80;" aria-hidden="true"></i>
+                    Zəruri (Essential)
+                  </h3>
+                  <span class="m-cookie-tag m-cookie-tag--essential">Həmişə Aktiv</span>
+                </div>
+                <p style="font-size: 13px; color: var(--c-muted); line-height: 1.6; margin: 0;">
+                  Sistem təhlükəsizliyi, autentifikasiya və saxtakarlığın (CSRF) qarşısının alınması üçün zəruridir.
+                </p>
+                <ul class="m-cookie-item-list">
+                  <li>
+                    <span class="m-cookie-name">connect.sid</span>
+                    <span>Sessiya identifikasiyası</span>
+                  </li>
+                  <li>
+                    <span class="m-cookie-name">ovlink_redirect_consent</span>
+                    <span>Yönləndirmə təsdiqi</span>
+                  </li>
+                  <li>
+                    <span class="m-cookie-name">_csrf</span>
+                    <span>Sorğu təhlükəsizliyi</span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Functional -->
+              <div class="m-cookie-card">
+                <div class="m-cookie-card-header">
+                  <h3 class="m-cookie-card-title">
+                    <i class="fa-solid fa-sliders" style="font-size: 13px; color: var(--c-white);" aria-hidden="true"></i>
+                    Funksional (Functional)
+                  </h3>
+                  <span class="m-cookie-tag m-cookie-tag--functional">Lokal Seçimlər</span>
+                </div>
+                <p style="font-size: 13px; color: var(--c-muted); line-height: 1.6; margin: 0;">
+                  İstifadəçi təcrübəsini fərdiləşdirir və seçilmiş parametrləri brauzerinizin yerli yaddaşında saxlayır.
+                </p>
+                <ul class="m-cookie-item-list">
+                  <li>
+                    <span class="m-cookie-name">ovlink_lang</span>
+                    <span>Dil seçimi (AZ / TR / EN)</span>
+                  </li>
+                  <li>
+                    <span class="m-cookie-name">ovlink_theme</span>
+                    <span>Monolith qaranlıq interfeys</span>
+                  </li>
+                  <li>
+                    <span class="m-cookie-name">ovlink_active_workspace</span>
+                    <span>Aktiv iş sahəsi ID-si</span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Advertising / Analytics -->
+              <div class="m-cookie-card">
+                <div class="m-cookie-card-header">
+                  <h3 class="m-cookie-card-title">
+                    <i class="fa-solid fa-chart-simple" style="font-size: 13px; color: #fbbf24;" aria-hidden="true"></i>
+                    Reklam və Analitika
+                  </h3>
+                  <span class="m-cookie-tag m-cookie-tag--optional">Şərti</span>
+                </div>
+                <p style="font-size: 13px; color: var(--c-muted); line-height: 1.6; margin: 0;">
+                  Yalnız admin panelində ictimai reklamlar aktivləşdirildikdə reklam partnyorları tərəfindən istifadə edilə bilər.
+                </p>
+                <ul class="m-cookie-item-list">
+                  <li>
+                    <span class="m-cookie-name">Adsterra / Vendor</span>
+                    <span>Təhlükəsiz reklam axını</span>
+                  </li>
+                  <li>
+                    <span class="m-cookie-name">Pro API Tokens</span>
+                    <span style="color: #4ade80;">0% Kuki (Yalnız Header)</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </article>
 
-          <article class="policy-card">
-            <h3 class="fw-bold"><i class="fa-solid fa-sliders me-2"></i><span data-i18n="cookie_control_title">Your control</span></h3>
-            <p data-i18n="cookie_control_text">You can block, delete, or restrict cookies in browser settings. Disabling essential cookies may break sign-in, security checks, and core features.</p>
+          <!-- Section 3: How We Use Cookies -->
+          <article class="m-legal-section" id="sec-use">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-gear" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="cookie_use_title">Kukilərdən necə istifadə edirik</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="cookie_use_text">
+              Cookie istifadəsi kateqoriyalara bölünür: (1) Essential — connect.sid, redirect razılığı və təhlükəsizlik/CSRF axınları üçün; (2) Functional — dil, tema və cookie banner seçimi üçün; (3) Advertising/Measurement — reklam aktivdirsə vendor ölçümü və çatdırılma texnologiyaları üçün. Pro API açarı identifikasiyası cookie-dən asılı deyil; API açarı yalnız sorğu başlıqları üzərindən doğrulanır.
+            </p>
           </article>
+
+          <!-- Section 4: Your Control -->
+          <article class="m-legal-section" id="sec-control">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="cookie_control_title">Nəzarət sizdədir</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="cookie_control_text">
+              Cookie-ləri brauzer ayarlarından bloklamaq, silmək və məhdudlaşdırmaq mümkündür. Essential cookie-lər söndürülərsə giriş, təhlükəsizlik yoxlamaları və bəzi əsas funksiyalar düzgün işləməyə bilər.
+            </p>
+            <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--c-border); border-radius: 12px; padding: 16px 20px; margin-top: 16px;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--c-white); margin-bottom: 8px;">
+                Brauzerinizdə kuki parametrlərini idarə etmək:
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 12.5px; color: var(--c-muted);">
+                <span class="m-cookie-name">Google Chrome: Ayarlar &gt; Məxfilik və Təhlükəsizlik &gt; Kukilər</span>
+                <span class="m-cookie-name">Mozilla Firefox: Seçimlər &gt; Məxfilik və Təhlükəsizlik</span>
+                <span class="m-cookie-name">Apple Safari: Tənzimləmələr &gt; Məxfilik &gt; Kukiləri Blokla</span>
+                <span class="m-cookie-name">Microsoft Edge: Parametrlər &gt; Sayt İcazələri</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Section 5: Third Party Services & API Isolation -->
+          <article class="m-legal-section" id="sec-third-party">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-network-wired" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title">Üçüncü tərəf xidmətləri və API izolyasiyası</h2>
+            </div>
+            <p class="m-legal-section-text">
+              Ovlink xidmətində təhlükəsizlik və arxitektura baxımından API çağırışları heç bir vəchlə veb kuki və ya sessiya məlumatlarından istifadə etmir. Pro plan çərçivəsində təqdim olunan REST API və webhook sorğuları yalnız <span class="m-cookie-name">Authorization: Bearer &lt;API_KEY&gt;</span> başlıqları üzərindən icra olunur.
+            </p>
+            <p class="m-legal-section-text" style="margin-top: 12px;">
+              Sayt daxilində reklam partnyorlarının (məs. Adsterra) inteqrasiyası yalnız sayt inzibatçısı tərəfindən aktiv edildikdə işə düşür və üçüncü tərəf skriptləri heç bir istifadəçi şifrəsi və ya şəxsi hesab məlumatını əldə edə bilməz.
+            </p>
+          </article>
+
+          <!-- Section 6: Contact -->
+          <article class="m-legal-section" id="sec-contact">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title">Əlaqə və sorğular</h2>
+            </div>
+            <p class="m-legal-section-text">
+              Kuki siyasəti və ya şəxsi məlumatların təhlükəsizliyi ilə bağlı suallarınız olduqda dəstək komandamızla əlaqə saxlaya bilərsiniz:
+            </p>
+            <div style="margin-top: 12px;">
+              <a href="mailto:support@ovlink.sbs" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--c-white); text-decoration: underline;">
+                <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                support@ovlink.sbs
+              </a>
+            </div>
+          </article>
+
         </div>
 
-        <div class="policy-back">
-          <a href="/" class="btn home-outline-btn rounded-pill" data-i18n="nav_home">Ana Səhifə</a>
-        </div>
       </div>
-    </section>
+
+      <!-- Action Navigation Footer -->
+      <div style="display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 48px;">
+        <a href="/" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <i class="fa-solid fa-arrow-left" style="font-size: 11px;" aria-hidden="true"></i>
+          <span data-i18n="nav_home">Home</span>
+        </a>
+        <a href="/privacy" class="m-cta m-cta--outline" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="privacy_title">Məxfilik Siyasəti</span>
+        </a>
+        <a href="/terms" class="m-cta m-cta--white" style="padding: 10px 22px; font-size: 13.5px;">
+          <span data-i18n="terms_title">İstifadə Şərtləri</span>
+          <i class="fa-solid fa-arrow-right" style="font-size: 11px;" aria-hidden="true"></i>
+        </a>
+      </div>
+
+    </div>
   </main>
 
-  <%- include('partials/public-footer', { footerClass: 'site-footer' }) %>
+  <%- include('partials/home-footer') %>
 
-  <script nonce="<%= nonce %>" defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      /* ─── Reading Progress Bar ─── */
+      var progressBar = document.getElementById('readingProgress');
+      function updateProgress() {
+        if (!progressBar) return;
+        var totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+        if (totalHeight <= 0) return;
+        var progress = (window.scrollY / totalHeight) * 100;
+        progressBar.style.width = Math.min(100, Math.max(0, progress)) + '%';
+      }
+      window.addEventListener('scroll', updateProgress, { passive: true });
+
+      /* ─── ScrollSpy for TOC ─── */
+      var tocLinks = document.querySelectorAll('.m-legal-toc-link');
+      var sections = document.querySelectorAll('.m-legal-section');
+      if (sections.length && tocLinks.length && 'IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+              var id = entry.target.getAttribute('id');
+              tocLinks.forEach(function(link) {
+                if (link.getAttribute('href') === '#' + id) {
+                  link.classList.add('active');
+                } else {
+                  link.classList.remove('active');
+                }
+              });
+            }
+          });
+        }, { rootMargin: '-20% 0px -70% 0px' });
+        sections.forEach(function(sec) { observer.observe(sec); });
+      }
+
+      /* ─── Live Storage Status Inspector UX ─── */
+      function inspectStorage() {
+        var desc = document.getElementById('storageStatusDescription');
+        if (!desc) return;
+        try {
+          var lang = localStorage.getItem('ovlink_lang') || 'az';
+          var theme = localStorage.getItem('ovlink_theme') || 'dark';
+          var cookieCount = document.cookie ? document.cookie.split(';').length : 0;
+          desc.textContent = 'Aktiv kukilər: ' + cookieCount + ' ədəd | Saxlanılan dil: ' + lang.toUpperCase() + ' | İnterfeys: ' + theme;
+        } catch(e) {
+          desc.textContent = 'Lokal yaddaş əlçatan deyil (Məxfilik rejimi aktiv ola bilər).';
+        }
+      }
+      inspectStorage();
+
+      var refreshBtn = document.getElementById('refreshStorageBtn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+          inspectStorage();
+          var span = refreshBtn.querySelector('span');
+          if (span) {
+            var old = span.textContent;
+            span.textContent = 'Yoxlanıldı!';
+            setTimeout(function() { span.textContent = old; }, 1200);
+          }
+        });
+      }
+
+      var clearBtn = document.getElementById('clearStorageBtn');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+          try {
+            localStorage.removeItem('ovlink_cookie_consent');
+            localStorage.removeItem('ovlink_active_workspace');
+            inspectStorage();
+            var span = clearBtn.querySelector('span');
+            if (span) {
+              var old = span.textContent;
+              span.textContent = 'Sıfırlandı!';
+              setTimeout(function() { span.textContent = old; }, 1200);
+            }
+          } catch(e) {}
+        });
+      }
+
+      /* ─── Navbar interactive logic ─── */
+      function setupDropdown(btnId, panelId) {
+        var btn = document.getElementById(btnId);
+        var panel = document.getElementById(panelId);
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var isExpanded = panel.classList.contains('open');
+          document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+          document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+          if (!isExpanded) {
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+      setupDropdown('langToggleBtn', 'ovxLangPanel');
+      setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
+      setupDropdown('navUserMenuBtn', 'ovxUserPanel');
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.m-lang-panel, .m-user-panel').forEach(function(p) { p.classList.remove('open'); });
+        document.querySelectorAll('.m-lang-btn, .m-user-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+      });
+
+      /* ─── Mobile Menu ─── */
+      var burger = document.getElementById('mBurger');
+      var mobileMenu = document.getElementById('mMobileMenu');
+      var mClose = document.getElementById('mMobileClose');
+      function closeMobileMenu() {
+        if (mobileMenu && mobileMenu.classList.contains('open')) {
+          mobileMenu.classList.remove('open');
+          document.body.style.overflow = '';
+          if (burger) burger.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (burger && mobileMenu) {
+        burger.addEventListener('click', function(){
+          mobileMenu.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          burger.setAttribute('aria-expanded', 'true');
+        });
+      }
+      if (mClose) mClose.addEventListener('click', closeMobileMenu);
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') closeMobileMenu();
+      });
+
+      /* ─── Button ripple effect ─── */
+      document.querySelectorAll('.m-cta, .m-btn-solid').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var r = btn.getBoundingClientRect();
+          var size = Math.max(r.width, r.height);
+          var span = document.createElement('span');
+          span.className = 'm-ripple';
+          span.style.width = span.style.height = size + 'px';
+          span.style.left  = (e.clientX - r.left  - size / 2) + 'px';
+          span.style.top   = (e.clientY - r.top   - size / 2) + 'px';
+          btn.appendChild(span);
+          setTimeout(function(){ span.remove(); }, 600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>
-
-
-
