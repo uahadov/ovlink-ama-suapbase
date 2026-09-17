@@ -12,7 +12,6 @@
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= assetVersion %>" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= assetVersion %>" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
@@ -23,7 +22,7 @@
   <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <!-- Monolith Stats Scoped Styles -->
-  <style>
+  <style nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
     /* ================================================================
        OVLINK LINK STATS — MONOLITH THEME
        ================================================================ */

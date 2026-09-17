@@ -6196,6 +6196,319 @@ body.modal-open {
   box-sizing: border-box;
 }
 
+/* ================================================================
+   OVLINK DETAILED ANALYTICS & STATS — MONOLITH THEME
+   ================================================================ */
+.ovx.stats-detail-page,
+.ovx.stats-page {
+  min-height: 100vh;
+  background: var(--c-bg, #0a0a0a);
+  color: var(--c-text, #f0f0f0);
+  display: flex;
+  flex-direction: column;
+}
+
+.ovx .m-analytics-main,
+.ovx .m-stats-main {
+  flex: 1;
+  padding: calc(var(--nav-h, 60px) + 36px) 0 80px;
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+}
+
+.ovx .m-analytics-shell {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+.ovx .m-stats-shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+/* Page Header */
+.ovx .m-page-header {
+  margin-bottom: 36px;
+  animation: fadeUp 0.6s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+.ovx .m-page-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-faint, #737373);
+  border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+  padding: 5px 12px;
+  border-radius: 100px;
+  margin-bottom: 16px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ovx .m-page-chip i { font-size: 10px; color: var(--c-muted, #888888); }
+
+.ovx .m-page-title {
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--c-white, #ffffff);
+  margin-bottom: 8px;
+}
+
+.ovx .m-code-badge {
+  color: var(--c-white, #ffffff);
+  background: var(--c-surface-2, #1a1a1a);
+  border: 1px solid var(--c-border-hi, rgba(255, 255, 255, 0.14));
+  padding: 2px 10px;
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+}
+
+.ovx .m-page-sub {
+  font-size: 15px;
+  color: var(--c-muted, #888888);
+  line-height: 1.6;
+}
+
+/* Summary Bar */
+.ovx .m-summary-bar {
+  background: var(--c-surface, #111111);
+  border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  animation: fadeUp 0.6s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+  box-sizing: border-box;
+}
+
+.ovx .m-summary-clicks {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.ovx .m-summary-lbl {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--c-faint, #737373);
+}
+
+.ovx .m-summary-num {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--c-white, #ffffff);
+  line-height: 1;
+}
+
+.ovx .m-summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Analytics Bento Grid (2x2) */
+.ovx .m-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.ovx .m-chart-card {
+  background: var(--c-surface, #111111);
+  border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 28px;
+  transition: border-color 0.25s var(--ease, cubic-bezier(0.16, 1, 0.3, 1));
+  display: flex;
+  flex-direction: column;
+  animation: fadeUp 0.6s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+  box-sizing: border-box;
+}
+
+.ovx .m-chart-card:hover {
+  border-color: var(--c-border-hi, rgba(255, 255, 255, 0.14));
+}
+
+.ovx .m-chart-card-h2 {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--c-white, #ffffff);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ovx .m-chart-card-h2 i {
+  color: var(--c-muted, #888888);
+  font-size: 14px;
+}
+
+.ovx .m-chart-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.ovx .m-chart-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--c-faint, #737373);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  pointer-events: none;
+}
+
+.ovx .m-chart-empty i {
+  font-size: 26px;
+  opacity: 0.6;
+}
+
+/* Time Meta Chips */
+.ovx .stats-time-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.ovx .stats-time-chip {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--c-muted, #888888);
+  background: var(--c-surface-2, #1a1a1a);
+  border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+  padding: 4px 10px;
+  border-radius: 100px;
+}
+
+.ovx .stats-time-note {
+  font-size: 12px;
+  color: var(--c-faint, #737373);
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+/* Stats Page Card Stack & Meta Grid (for /stats) */
+.ovx .m-card-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ovx .m-card {
+  background: var(--c-surface, #111111);
+  border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 28px;
+  transition: border-color 0.25s var(--ease, cubic-bezier(0.16, 1, 0.3, 1));
+  animation: fadeUp 0.6s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+  box-sizing: border-box;
+}
+
+.ovx .m-card:hover {
+  border-color: var(--c-border-hi, rgba(255, 255, 255, 0.14));
+}
+
+.ovx .m-card-h2 {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--c-white, #ffffff);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ovx .m-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.ovx .m-meta-box {
+  background: var(--c-surface-2, #1a1a1a);
+  border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.ovx .m-meta-lbl {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--c-faint, #737373);
+  margin-bottom: 6px;
+}
+
+.ovx .m-meta-val {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--c-white, #ffffff);
+  word-break: break-all;
+}
+
+.ovx .m-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ovx .m-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: var(--c-surface-2, #1a1a1a);
+  border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+}
+
+@media (max-width: 860px) {
+  .ovx .m-analytics-main,
+  .ovx .m-stats-main { padding: calc(var(--nav-h, 60px) + 24px) 0 60px; }
+  .ovx .m-charts-grid { grid-template-columns: 1fr; gap: 16px; }
+  .ovx .m-chart-card { padding: 20px 16px; }
+  .ovx .m-summary-bar { flex-direction: column; align-items: flex-start; }
+  .ovx .m-meta-grid { grid-template-columns: 1fr; }
+}
+
 
 
 
