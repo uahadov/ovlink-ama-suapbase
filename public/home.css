@@ -1833,8 +1833,19 @@ body:not(.home-page) .ovx .m-nav {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    position: relative;
   }
-  .ovx .m-composer-submit span { display: none; }
+  .ovx .m-composer-submit span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
   .ovx .m-composer-submit i { font-size: 14px; margin: 0; }
 
   /* Composer Meta */
