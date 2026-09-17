@@ -10,6 +10,8 @@ const { blindIndex, encryptAES256GCM, decryptAES256GCM } = require('../../../uti
 const { getPublicBaseUrl } = require('../../lib/security');
 const { sendOpsAlert } = require('../../lib/alerts');
 
+const POLAR_API_VERSION = (process.env.POLAR_API_VERSION || '2026-04').trim();
+
 router.post('/api/polar/create-checkout', async (req, res) => {
   if (!req.session || !req.session.userId) {
     return res.status(401).json({ error: 'unauthorized', code: 'not_logged_in' });
@@ -73,6 +75,7 @@ router.post('/api/polar/create-checkout', async (req, res) => {
       signal: AbortSignal.timeout(10000),
       headers: {
         'Authorization': `Bearer ${accessToken}`,
+        'Polar-Version': POLAR_API_VERSION,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
@@ -133,6 +136,7 @@ router.post('/api/polar/portal-session', async (req, res) => {
       signal: AbortSignal.timeout(10000),
       headers: {
         'Authorization': `Bearer ${process.env.POLAR_ACCESS_TOKEN}`,
+        'Polar-Version': POLAR_API_VERSION,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
