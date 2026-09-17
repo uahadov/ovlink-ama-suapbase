@@ -748,57 +748,7 @@
       });
     }
 
-    /* ─── 8.5. Dropdowns (Lang & User & Workspace) ─── */
-    function setupDropdown(btnId, panelId) {
-      var btn = document.getElementById(btnId);
-      var panel = document.getElementById(panelId);
-      if(!btn || !panel) return;
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        var isExpanded = btn.getAttribute('aria-expanded') === 'true';
-        document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel').forEach(function(p) { p.classList.remove('open', 'is-open'); });
-        document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
-        if(!isExpanded) {
-          panel.classList.add('open');
-          btn.setAttribute('aria-expanded', 'true');
-        }
-      });
-    }
-    setupDropdown('langToggleBtn', 'ovxLangPanel');
-    setupDropdown('langToggleBtnMobile', 'ovxLangPanelMobile');
-    setupDropdown('navUserMenuBtn', 'ovxUserPanel');
-    document.addEventListener('click', function() {
-      document.querySelectorAll('.m-lang-panel, .m-user-panel, .m-ws-panel').forEach(function(p) { p.classList.remove('open', 'is-open'); });
-      document.querySelectorAll('.m-lang-btn, .m-user-btn, .m-ws-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
-    });
-
-    /* ─── 9. Mobile Menu ─── */
-    var burger = document.getElementById('mBurger');
-    var mobileMenu = document.getElementById('mMobileMenu');
-    var mClose = document.getElementById('mMobileClose');
-    function closeMobileMenu() {
-      if (mobileMenu && mobileMenu.classList.contains('open')) {
-        mobileMenu.classList.remove('open');
-        document.body.style.overflow = '';
-        if (burger) burger.setAttribute('aria-expanded', 'false');
-      }
-    }
-    if (burger && mobileMenu) {
-      burger.addEventListener('click', function(){
-        mobileMenu.classList.add('open');
-        document.body.style.overflow = 'hidden';
-        burger.setAttribute('aria-expanded', 'true');
-      });
-    }
-    if (mClose) mClose.addEventListener('click', closeMobileMenu);
-    document.addEventListener('keydown', function(e){
-      if (e.key === 'Escape') closeMobileMenu();
-    });
-    if (mobileMenu) {
-      mobileMenu.querySelectorAll('a').forEach(function(link){
-        link.addEventListener('click', closeMobileMenu);
-      });
-    }
+    /* ─── Navbar dropdowns & mobile menu are managed by partials/home-navbar ─── */
 
     /* ─── 10. Ripple Effect ─── */
     function addRipple(btn) {
