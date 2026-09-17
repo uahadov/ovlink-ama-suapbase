@@ -288,6 +288,78 @@
         align-items: center;
         gap: 8px;
       }
+
+      /* Clean Monolith Dashboard Shell — No flexbox vertical centering overflow */
+      .ovx .m-dash-main,
+      .ovx main.m-dash-main {
+        min-height: calc(100vh - var(--nav-h, 60px)) !important;
+        padding-top: calc(var(--nav-h, 60px) + 36px) !important;
+        padding-bottom: 80px !important;
+        display: block !important;
+        position: relative !important;
+        z-index: 1 !important;
+        box-sizing: border-box !important;
+      }
+      .ovx .m-dash-container {
+        max-width: 1200px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 0 24px;
+        box-sizing: border-box;
+      }
+      .ovx .m-dash-hero {
+        margin-bottom: 28px;
+        text-align: left;
+      }
+      .ovx .m-dash-bento {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 16px !important;
+        margin-bottom: 28px !important;
+      }
+      @media (max-width: 860px) {
+        .ovx .m-dash-bento {
+          grid-template-columns: 1fr !important;
+          gap: 12px !important;
+        }
+      }
+      .ovx .m-dash-bento .m-bento-card {
+        background: var(--c-surface, #111111) !important;
+        border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08)) !important;
+        border-radius: 14px !important;
+        padding: 20px 22px !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 16px !important;
+        transition: border-color 0.2s, transform 0.2s !important;
+        box-sizing: border-box !important;
+        text-align: left !important;
+      }
+      .ovx .m-dash-bento .m-bento-card > div:first-child {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        text-align: left !important;
+      }
+      .ovx .m-bento-label {
+        font-size: 11.5px !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.06em !important;
+        color: var(--c-faint, #737373) !important;
+        margin-bottom: 6px !important;
+        text-align: left !important;
+      }
+      .ovx .m-bento-val {
+        font-size: 28px !important;
+        font-weight: 800 !important;
+        color: #ffffff !important;
+        letter-spacing: -0.02em !important;
+        line-height: 1 !important;
+        text-align: left !important;
+      }
     </style>
   </head>
   <body class="ovx">
@@ -301,17 +373,17 @@
     <!-- Universal Navigation -->
     <%- include('partials/home-navbar') %>
 
-    <main class="m-page-shell" style="padding-top: 48px; padding-bottom: 80px;">
-      <div class="m-page-container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+    <main class="m-page-shell m-dash-main" id="mainContent">
+      <div class="m-dash-container">
 
         <!-- 1. Header & Hero Title -->
         <div class="m-dash-hero">
-          <div class="m-page-badge" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 12px; font-weight: 600; color: #a3a3a3; margin-bottom: 16px;">
+          <div class="m-page-badge" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 12px; font-weight: 600; color: #a3a3a3; margin-bottom: 14px;">
             <i class="fa-solid fa-chart-line" style="color: #60a5fa;"></i>
             <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
           </div>
-          <h1 style="font-size: clamp(28px, 4vw, 36px); font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin: 0 0 8px 0;" data-i18n="dashboard_title">Dashboard</h1>
-          <p style="font-size: 15px; color: var(--c-muted, #a3a3a3); margin: 0;" data-i18n="dashboard_subtitle">Bütün linklərinizi, analitikanızı və iş sahələrinizi idarə edin.</p>
+          <h1 style="font-size: clamp(28px, 4vw, 36px); font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin: 0 0 8px 0; line-height: 1.2;" data-i18n="dashboard_title">Dashboard</h1>
+          <p style="font-size: 15px; color: var(--c-muted, #a3a3a3); margin: 0; line-height: 1.5;" data-i18n="dashboard_subtitle">Bütün linklərinizi, analitikanızı və iş sahələrinizi idarə edin.</p>
         </div>
 
         <!-- 2. Bento Statistics Grid -->
@@ -343,7 +415,13 @@
             <div>
               <div class="m-bento-label" data-i18n="dashboard_account_status">Hesab Vəziyyəti</div>
               <div class="m-bento-val" style="color: #10b981; font-size: 20px; text-transform: capitalize;">
-                <%= activeWorkspace ? activeWorkspace.name : (isPro ? 'Pro' : 'Aktiv') %>
+                <% if (activeWorkspace) { %>
+                  <%= activeWorkspace.name %>
+                <% } else if (isPro) { %>
+                  Pro
+                <% } else { %>
+                  <span data-i18n="dashboard_active"><%= (typeof uiLang !== 'undefined' && uiLang === 'en') ? 'Active' : ((typeof uiLang !== 'undefined' && uiLang === 'tr') ? 'Aktif' : 'Aktiv') %></span>
+                <% } %>
               </div>
             </div>
             <div class="m-bento-icon" style="color: #10b981; border-color: rgba(16, 185, 129, 0.25);">
@@ -364,7 +442,7 @@
               <input id="dashboardQuickAlias" class="m-adv-input" type="text" maxlength="50" placeholder="kampaniya-2026" data-i18n-placeholder="ws_quick_alias_placeholder" />
             </div>
             <div style="min-width: 120px;">
-              <button type="submit" class="m-cta m-cta--white m-cta--sm" style="width: 100%; height: 40px; justify-content: center;">
+              <button type="submit" class="m-cta m-cta--white m-cta--sm" style="width: 100%; height: 38px; justify-content: center;">
                 <i class="fa-solid fa-bolt"></i>
                 <span data-i18n="ws_quick_create_btn">Qısalt</span>
               </button>

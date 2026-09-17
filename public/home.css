@@ -5799,10 +5799,20 @@ body.modal-open {
   border-radius: 14px;
   padding: 20px 22px;
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   transition: border-color 0.2s, transform 0.2s;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.ovx .m-dash-bento .m-bento-card > div:first-child {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .ovx .m-dash-bento .m-bento-card:hover {
@@ -5810,12 +5820,13 @@ body.modal-open {
 }
 
 .ovx .m-bento-label {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--c-faint, #737373);
   margin-bottom: 6px;
+  text-align: left;
 }
 
 .ovx .m-bento-val {
@@ -5824,6 +5835,7 @@ body.modal-open {
   color: #ffffff;
   letter-spacing: -0.02em;
   line-height: 1;
+  text-align: left;
 }
 
 .ovx .m-bento-icon {
@@ -6164,6 +6176,26 @@ body.modal-open {
   color: #ffffff;
   transform: translateY(-1px);
 }
+
+/* Dashboard Shell & Container */
+.ovx .m-dash-main,
+.ovx main.m-dash-main {
+  min-height: calc(100vh - var(--nav-h, 60px)) !important;
+  padding-top: calc(var(--nav-h, 60px) + 36px) !important;
+  padding-bottom: 80px !important;
+  display: block !important;
+  position: relative !important;
+  z-index: 1 !important;
+  box-sizing: border-box !important;
+}
+.ovx .m-dash-container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
 
 
 
