@@ -113,6 +113,7 @@ cd /var/www/ovlink && git fetch origin && git reset --hard origin/main && chmod 
 | **Navbar SSR / Client Auth Desync** | Navbar rendered guest buttons on dynamic hydration when client session didn't match SSR. | Refactored `getClientSession()` to inspect DOM SSR state, `window.__userId`, and session token. |
 | **Dashboard Action Buttons Inactivity** | Modals were dynamically injected on click and failed if Bootstrap instance failed; translation replaced icon HTML. | Modals embedded in SSR; dual-layer `openModalById`; translation moved to inner spans. |
 | **Dark Mode Not Working on Subpages** | Theme toggle was bound via `querySelectorAll` on script load; no global delegation; subpages load `script.js`. | Unified `syncThemeUi()`, `applyTheme()`, `toggleTheme()`, and added document-level click delegation. |
+| **Multi-Agent Full Security Audit (Phase 5)** | IDOR in CSV export, Auth token bypass, Guest IP spoofing, Admin privilege persistence, path traversal in ops doc blocking. | Converted export to use workspace ownership SQL, enforced token checks, bound limits to IPs, DB-backed admin role re-check, and regex path normalization. |
 
 ---
 
