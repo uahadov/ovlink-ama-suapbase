@@ -497,6 +497,10 @@
               <label class="m-adv-label" for="dashboardQuickAlias" data-i18n="ws_quick_alias_label">Xüsusi alias (istəyə bağlı)</label>
               <input id="dashboardQuickAlias" class="m-adv-input" type="text" maxlength="50" placeholder="kampaniya-2026" data-i18n-placeholder="ws_quick_alias_placeholder" />
             </div>
+            <div style="flex: 1; min-width: 170px;">
+              <label class="m-adv-label" for="dashboardQuickTags" data-i18n="dashboard_meta_tags_label">Teqlər</label>
+              <input id="dashboardQuickTags" class="m-adv-input" type="text" maxlength="120" placeholder="reklam, instagram" data-i18n-placeholder="dashboard_meta_tags_placeholder" />
+            </div>
             <div style="min-width: 120px;">
               <button type="submit" class="m-cta m-cta--white m-cta--sm" style="width: 100%; height: 38px; justify-content: center;">
                 <i class="fa-solid fa-bolt"></i>
@@ -671,7 +675,7 @@
                       <td style="text-align: right; padding-right: 24px;">
                         <div class="m-table-actions">
                           <!-- Edit -->
-                          <button type="button" class="m-btn-icon" data-edit-short="<%= shortCode %>" data-edit-original="<%= safeOriginalEncoded %>" aria-label="Edit" title="Düzəliş">
+                          <button type="button" class="m-btn-icon" data-edit-short="<%= shortCode %>" data-edit-original="<%= safeOriginalEncoded %>" data-edit-folder="<%= folderName %>" data-edit-tags="<%= JSON.stringify(tags) %>" aria-label="Edit" title="Düzəliş">
                             <i class="fa-solid fa-pen"></i>
                           </button>
                           <!-- Metadata (folder/tags) -->
@@ -773,6 +777,14 @@
             <div style="margin-bottom: 16px;">
               <label class="m-adv-label" for="dashboardEditOriginalInput" data-i18n="dashboard_edit_url_label">Yeni Hədəf URL</label>
               <input id="dashboardEditOriginalInput" class="m-adv-input" type="url" placeholder="https://example.com/yeni-link" data-i18n-placeholder="dashboard_edit_url_placeholder" required />
+            </div>
+            <div style="margin-bottom: 16px;">
+              <label class="m-adv-label" for="dashboardEditFolderInput" data-i18n="dashboard_meta_folder_label">Qovluq</label>
+              <input id="dashboardEditFolderInput" class="m-adv-input" placeholder="Məs: kampaniyalar" data-i18n-placeholder="dashboard_meta_folder_placeholder" />
+            </div>
+            <div style="margin-bottom: 16px;">
+              <label class="m-adv-label" for="dashboardEditTagsInput" data-i18n="dashboard_meta_tags_label">Teqlər</label>
+              <input id="dashboardEditTagsInput" class="m-adv-input" placeholder="Məs: reklam, instagram, yaz" data-i18n-placeholder="dashboard_meta_tags_placeholder" />
             </div>
             <div id="dashboardEditMsg" class="small"></div>
           </div>

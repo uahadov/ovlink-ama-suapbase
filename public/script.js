@@ -2296,20 +2296,39 @@ if (document.readyState === "loading") {
 
   const normalizeMetaToken = (value) => (value || "").toString().trim().toLocaleLowerCase("en-US");
 
-  const parseMetaTagsFromRow = (row) => {
-    const raw = row && row.getAttribute ? row.getAttribute("data-tags-json") : "[]";
+  const parseMetaTagsFromRow = (rowOrBtn) => {
+    if (!rowOrBtn || !rowOrBtn.getAttribute) return [];
+    let raw = rowOrBtn.getAttribute("data-tags-json") || rowOrBtn.getAttribute("data-meta-tags") || rowOrBtn.getAttribute("data-edit-tags") || "";
+    if (!raw && rowOrBtn.closest) {
+      const row = rowOrBtn.closest("tr[data-short]");
+      if (row) {
+        raw = row.getAttribute("data-tags-json") || row.getAttribute("data-meta-tags") || "";
+      }
+    }
+    if (!raw) return [];
     try {
-      const parsed = JSON.parse(raw || "[]");
+      const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed.map((v) => (v || "").toString().trim()).filter(Boolean);
+        return parsed.map((v) => (v || "").toString().trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+      }
+      if (typeof parsed === "string") {
+        return parsed.split(/[,;\n]+/).map((v) => v.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
       }
     } catch {}
+    if (typeof raw === "string") {
+      return raw.split(/[,;\n]+/).map((v) => v.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+    }
     return [];
   };
 
   const updateDashboardRowMetaAttributes = (row, folderName, tags) => {
     const safeFolder = (folderName || "").toString().trim();
-    const safeTags = Array.isArray(tags) ? tags.map((v) => (v || "").toString().trim()).filter(Boolean) : [];
+    let safeTags = [];
+    if (Array.isArray(tags)) {
+      safeTags = tags.map((v) => (v || "").toString().trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+    } else if (typeof tags === "string") {
+      safeTags = buildMetaTagsInput(tags);
+    }
     row.setAttribute("data-folder-raw", safeFolder);
     row.setAttribute("data-folder", normalizeMetaToken(safeFolder));
     row.setAttribute("data-tags-json", JSON.stringify(safeTags));
@@ -2650,6 +2669,14 @@ if (document.readyState === "loading") {
                   <label class="form-label fw-semibold" for="dashboardEditOriginalInput" data-i18n="dashboard_edit_url_label">Yeni Hədəf URL</label>
                   <input id="dashboardEditOriginalInput" class="form-control" type="url" placeholder="https://example.com/yeni-link" data-i18n="dashboard_edit_url_placeholder" required>
                 </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold" for="dashboardEditFolderInput" data-i18n="dashboard_meta_folder_label">Qovluq</label>
+                  <input id="dashboardEditFolderInput" class="form-control" placeholder="Məs: kampaniyalar" data-i18n-placeholder="dashboard_meta_folder_placeholder">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold" for="dashboardEditTagsInput" data-i18n="dashboard_meta_tags_label">Teqlər</label>
+                  <input id="dashboardEditTagsInput" class="form-control" placeholder="Məs: reklam, instagram, yaz" data-i18n-placeholder="dashboard_meta_tags_placeholder">
+                </div>
                 <div id="dashboardEditMsg" class="small"></div>
               </div>
               <div class="modal-footer">
@@ -2667,6 +2694,8 @@ if (document.readyState === "loading") {
 
     const saveBtn = document.getElementById("dashboardEditSaveBtn");
     const originalInput = document.getElementById("dashboardEditOriginalInput");
+    const folderInput = document.getElementById("dashboardEditFolderInput");
+    const tagsInput = document.getElementById("dashboardEditTagsInput");
     const msgEl = document.getElementById("dashboardEditMsg");
 
     if (saveBtn && !saveBtn.dataset.bound) {
@@ -2682,6 +2711,9 @@ if (document.readyState === "loading") {
           return;
         }
 
+        const editFolder = (folderInput?.value || "").trim();
+        const editTags = buildMetaTagsInput(tagsInput?.value || "");
+
         saveBtn.disabled = true;
         if (msgEl) {
           msgEl.className = "small text-muted";
@@ -2692,6 +2724,8 @@ if (document.readyState === "loading") {
           const res = await postJsonWithCsrf("/api/user/link/update", {
             short: dashboardEditModalState.short,
             original: newUrl,
+            folder_name: editFolder,
+            tags: editTags,
             lang: currentLang,
             _csrf: getCsrfToken()
           });
@@ -2704,16 +2738,31 @@ if (document.readyState === "loading") {
             return;
           }
 
+          const resolvedTags = Array.isArray(data.tags) ? data.tags : editTags;
           if (dashboardEditModalState.row) {
             const originalCell = dashboardEditModalState.row.querySelector("td:nth-child(3)");
             if (originalCell) {
               originalCell.textContent = newUrl;
+              originalCell.title = newUrl;
             }
             dashboardEditModalState.row.setAttribute("data-original", newUrl.toLowerCase());
+            updateDashboardRowMetaAttributes(dashboardEditModalState.row, editFolder, resolvedTags);
+            renderDashboardRowMetaCells(dashboardEditModalState.row);
+
+            const metaBtn = dashboardEditModalState.row.querySelector("[data-meta-short]");
+            if (metaBtn) {
+              metaBtn.setAttribute("data-meta-folder", editFolder);
+              metaBtn.setAttribute("data-meta-tags", JSON.stringify(resolvedTags));
+            }
           }
           if (dashboardEditModalState.button) {
             dashboardEditModalState.button.setAttribute("data-edit-original", encodeURIComponent(newUrl));
+            dashboardEditModalState.button.setAttribute("data-edit-folder", editFolder);
+            dashboardEditModalState.button.setAttribute("data-edit-tags", JSON.stringify(resolvedTags));
           }
+
+          rebuildDashboardMetaFilterOptions();
+          applyDashboardFilters();
 
           if (msgEl) {
             msgEl.className = "small text-success";
@@ -2810,13 +2859,19 @@ if (document.readyState === "loading") {
             return;
           }
 
+          const resolvedTags = Array.isArray(data.tags) ? data.tags : tags;
           if (dashboardMetaModalState.row) {
-            updateDashboardRowMetaAttributes(dashboardMetaModalState.row, folderName, tags);
+            updateDashboardRowMetaAttributes(dashboardMetaModalState.row, folderName, resolvedTags);
             renderDashboardRowMetaCells(dashboardMetaModalState.row);
+            const editBtn = dashboardMetaModalState.row.querySelector("[data-edit-short]");
+            if (editBtn) {
+              editBtn.setAttribute("data-edit-folder", folderName);
+              editBtn.setAttribute("data-edit-tags", JSON.stringify(resolvedTags));
+            }
           }
           if (dashboardMetaModalState.button) {
             dashboardMetaModalState.button.setAttribute("data-meta-folder", folderName);
-            dashboardMetaModalState.button.setAttribute("data-meta-tags", JSON.stringify(tags));
+            dashboardMetaModalState.button.setAttribute("data-meta-tags", JSON.stringify(resolvedTags));
           }
           rebuildDashboardMetaFilterOptions();
           applyDashboardFilters();
@@ -3678,6 +3733,12 @@ if (customDomainList) {
 
       if (shortDisplay) shortDisplay.value = short;
       if (originalInput) originalInput.value = currentOriginal;
+      const editFolderInput = document.getElementById("dashboardEditFolderInput");
+      const editTagsInput = document.getElementById("dashboardEditTagsInput");
+      const folderCurrent = (editBtn.getAttribute("data-edit-folder") || (row && row.getAttribute("data-folder-raw")) || "").trim();
+      const tagsCurrent = parseMetaTagsFromRow(row || editBtn);
+      if (editFolderInput) editFolderInput.value = folderCurrent;
+      if (editTagsInput) editTagsInput.value = tagsCurrent.join(", ");
       if (msgEl) {
         msgEl.className = "small";
         msgEl.textContent = "";
@@ -4943,6 +5004,9 @@ if (document.readyState === "loading") {
         if (workspaceId > 0) body.workspaceId = workspaceId;
         const alias = (aliasInput.value || "").trim();
         if (alias) body.customLink = alias;
+        const tagsInput = document.getElementById("dashboardQuickTags");
+        const tagsVal = tagsInput ? (tagsInput.value || "").trim() : "";
+        if (tagsVal) body.tags = tagsVal;
         setMsg(msgEl, pickLang("Yaradılır...", "Oluşturuluyor...", "Creating..."));
         try {
           const res = await postJsonWithCsrf("/api/shorten", body);

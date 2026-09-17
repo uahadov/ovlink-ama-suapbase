@@ -56,10 +56,22 @@ function normalizeFolderName(folder) {
 }
 
 function parseTagsJson(jsonStr) {
+  if (!jsonStr) return [];
+  if (Array.isArray(jsonStr)) {
+    return jsonStr.map(t => (t || '').toString().trim()).filter(Boolean);
+  }
   try {
     const arr = JSON.parse(jsonStr);
-    if (Array.isArray(arr)) return arr;
+    if (Array.isArray(arr)) {
+      return arr.map(t => (t || '').toString().trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+    }
+    if (typeof arr === 'string') {
+      return arr.split(/[,;\n]+/).map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+    }
   } catch {}
+  if (typeof jsonStr === 'string') {
+    return jsonStr.split(/[,;\n]+/).map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+  }
   return [];
 }
 

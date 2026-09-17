@@ -229,10 +229,22 @@ function normalizeFolderName(raw) {
 }
 
 function parseTagsJson(jsonStr) {
+  if (!jsonStr) return [];
+  if (Array.isArray(jsonStr)) {
+    return jsonStr.map(t => (t || '').toString().trim()).filter(Boolean);
+  }
   try {
     const arr = JSON.parse(jsonStr);
-    if (Array.isArray(arr)) return arr;
+    if (Array.isArray(arr)) {
+      return arr.map(t => (t || '').toString().trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+    }
+    if (typeof arr === 'string') {
+      return arr.split(/[,;\n]+/).map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+    }
   } catch {}
+  if (typeof jsonStr === 'string') {
+    return jsonStr.split(/[,;\n]+/).map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+  }
   return [];
 }
 
@@ -255,16 +267,17 @@ function normalizeTagsInput(raw) {
       try {
         const parsed = JSON.parse(text);
         if (Array.isArray(parsed)) items = parsed;
-        else items = text.split(',');
+        else if (typeof parsed === 'string') items = parsed.split(/[,;\n]+/);
+        else items = text.split(/[,;\n]+/);
       } catch {
-        items = text.split(',');
+        items = text.split(/[,;\n]+/);
       }
     }
   }
   const clean = [];
   const seen = new Set();
   for (const item of items) {
-    const tag = (item || '').toString().replace(/\s+/g, ' ').trim();
+    const tag = (item || '').toString().replace(/\s+/g, ' ').trim().replace(/^["']|["']$/g, '');
     if (!tag) continue;
     const safeTag = tag.slice(0, 32);
     const lower = safeTag.toLowerCase();
@@ -273,7 +286,7 @@ function normalizeTagsInput(raw) {
     clean.push(safeTag);
     if (clean.length >= 8) break;
   }
-  return clean.join(',');
+  return clean;
 }
 
 function parseCsvLine(line) {
@@ -860,10 +873,13 @@ router.post('/api/shorten',
             const originalBAbs = original_b ? ensureAbsoluteUrl(original_b) : null;
             const iosUrlAbs = ios_url ? ensureAbsoluteUrl(ios_url) : null;
             const androidUrlAbs = android_url ? ensureAbsoluteUrl(android_url) : null;
+            const initialFolder = normalizeFolderName(req.body && req.body.folder_name);
+            const initialTags = normalizeTagsInput(req.body && req.body.tags);
+            const initialTagsJson = initialTags.length ? JSON.stringify(initialTags) : null;
 
             db.run(
-              'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host, original_b, ab_split_percent, ios_url, android_url, workspace_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-              [originalAbs, currentShort, createdAt, ownerId, storedLinkPassword, expiresAtValue, maxClicksValue, selectedDomainHost || null, originalBAbs, splitPercentValue, iosUrlAbs, androidUrlAbs, workspaceLinkScopeId],
+              'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host, original_b, ab_split_percent, ios_url, android_url, workspace_id, folder_name, tags_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [originalAbs, currentShort, createdAt, ownerId, storedLinkPassword, expiresAtValue, maxClicksValue, selectedDomainHost || null, originalBAbs, splitPercentValue, iosUrlAbs, androidUrlAbs, workspaceLinkScopeId, initialFolder || null, initialTagsJson],
               function (err) {
                 if (err) {
                   const errMsg = (err.message || '').toLowerCase();
@@ -1235,10 +1251,29 @@ router.post('/api/user/link/update', (req, res) => {
     let hostname = '';
     try { hostname = new URL(originalAbs).hostname.toLowerCase(); } catch { hostname = ''; }
 
+    const hasFolder = req.body && req.body.folder_name !== undefined;
+    const hasTags = req.body && req.body.tags !== undefined;
+    const folderName = hasFolder ? normalizeFolderName(req.body.folder_name) : null;
+    const tags = hasTags ? normalizeTagsInput(req.body.tags) : null;
+    const tagsJson = tags && tags.length ? JSON.stringify(tags) : (hasTags ? null : undefined);
+
     const updateRow = () => {
+      let updateSql = 'UPDATE urls SET original = ?';
+      const updateParams = [originalAbs];
+      if (hasFolder) {
+        updateSql += ', folder_name = ?';
+        updateParams.push(folderName || null);
+      }
+      if (hasTags) {
+        updateSql += ', tags_json = ?';
+        updateParams.push(tagsJson);
+      }
+      updateSql += ` WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`;
+      updateParams.push(short, req.session.userId, req.session.userId);
+
       db.run(
-        `UPDATE urls SET original = ? WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`,
-        [originalAbs, short, req.session.userId, req.session.userId],
+        updateSql,
+        updateParams,
         function (err) {
           if (err) {
             return res.status(500).json({ error: pickLang(uiLang, 'Link yenilənə bilmədi.', 'Link güncellenemedi.', 'Link could not be updated.') });
@@ -1254,12 +1289,17 @@ router.post('/api/user/link/update', (req, res) => {
             original_url: originalAbs,
             previous_original_url: currentRow.original || '',
             domain: normalizeHostName(currentRow.domain_host || '') || null,
+            folder_name: hasFolder ? (folderName || null) : undefined,
+            tags: hasTags ? tags : undefined,
             updated_at: new Date().toISOString(),
           });
 
           scanUrlAsync(short, originalAbs, req.session.userId);
 
-          return res.json({ message: pickLang(uiLang, 'Link hədəfi yeniləndi.', 'Link hedefi güncellendi.', 'Link destination updated.') });
+          const responseData = { message: pickLang(uiLang, 'Link hədəfi yeniləndi.', 'Link hedefi güncellendi.', 'Link destination updated.') };
+          if (hasFolder) responseData.folder_name = folderName;
+          if (hasTags) responseData.tags = tags;
+          return res.json(responseData);
         }
       );
     };
@@ -1577,11 +1617,13 @@ router.post('/api/user/import',
 
 router.escapeCsvCell = escapeCsvCell;
 router.parseTagsJson = parseTagsJson;
+router.normalizeTagsInput = normalizeTagsInput;
 router.normalizeIdempotencyKey = normalizeIdempotencyKey;
 router.buildShortenIdempotencyRequestHash = buildShortenIdempotencyRequestHash;
 
 module.exports = router;
 module.exports.escapeCsvCell = escapeCsvCell;
 module.exports.parseTagsJson = parseTagsJson;
+module.exports.normalizeTagsInput = normalizeTagsInput;
 module.exports.normalizeIdempotencyKey = normalizeIdempotencyKey;
 module.exports.buildShortenIdempotencyRequestHash = buildShortenIdempotencyRequestHash;

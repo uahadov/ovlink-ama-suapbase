@@ -11,6 +11,7 @@ process.env.PORT = '0';
 
 const { app, helpers } = require('../server');
 const { blindIndex, encryptAES256GCM } = require('../utils/crypto');
+const { parseTagsJson, normalizeTagsInput } = require('../src/routes/api/links');
 
 const createdUserIds = [];
 const createdShorts = [];
@@ -197,5 +198,116 @@ test('Dashboard Redesign & 100% Bootstrap-Free Modal Verification', async (t) =>
     assert.ok(html.includes('tag1'), 'Must render tag');
     assert.ok(html.includes('m-nav'), 'Must render universal navbar');
     assert.ok(html.includes('m-footer'), 'Must render universal footer');
+  });
+
+  // 5. Unit test parseTagsJson and normalizeTagsInput
+  await t.test('5. parseTagsJson and normalizeTagsInput handle various input formats reliably', () => {
+    // normalizeTagsInput returns array of unique, clean, trimmed tags
+    assert.deepEqual(normalizeTagsInput(['tech', 'news']), ['tech', 'news']);
+    assert.deepEqual(normalizeTagsInput('tech, news, tech'), ['tech', 'news']);
+    assert.deepEqual(normalizeTagsInput('["tech", "news"]'), ['tech', 'news']);
+    assert.deepEqual(normalizeTagsInput(''), []);
+    assert.deepEqual(normalizeTagsInput(null), []);
+
+    // parseTagsJson handles JSON array, JSON string, comma string, and array
+    assert.deepEqual(parseTagsJson('["alpha", "beta"]'), ['alpha', 'beta']);
+    assert.deepEqual(parseTagsJson('["alpha", "beta"]'), ['alpha', 'beta']);
+    assert.deepEqual(parseTagsJson('"alpha, beta"'), ['alpha', 'beta']);
+    assert.deepEqual(parseTagsJson('alpha, beta'), ['alpha', 'beta']);
+    assert.deepEqual(parseTagsJson(['alpha', 'beta']), ['alpha', 'beta']);
+    assert.deepEqual(parseTagsJson(''), []);
+    assert.deepEqual(parseTagsJson(null), []);
+  });
+
+  // 6. Test POST /api/user/link/meta updates folder and tags, saves JSON array to DB
+  await t.test('6. POST /api/user/link/meta updates folder and tags, saves JSON array to DB', async (st) => {
+    if (!hasPostgres) { st.skip('PostgreSQL database not reachable in test environment'); return; }
+
+    const user = await seedUser({ plan: 'pro' });
+    const session = await loginSession(user.email);
+
+    const short = `meta_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    createdShorts.push(short);
+    await helpers.dbRunAsync(
+      'INSERT INTO urls (short, original, user_id, created_at, reports) VALUES (?, ?, ?, ?, 0)',
+      [short, 'https://example.com/test-meta-url', user.id, new Date().toISOString()]
+    );
+
+    const res = await fetch(`${baseUrl}/api/user/link/meta`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': session.cookie,
+        'x-csrf-token': session.csrfToken,
+      },
+      body: JSON.stringify({
+        short,
+        folder_name: 'Qrup-1',
+        tags: 'kampaniya, reklam, 2026',
+        lang: 'az',
+      }),
+    });
+
+    assert.equal(res.status, 200, 'POST /api/user/link/meta must return 200');
+    const data = await res.json();
+    assert.equal(data.folder_name, 'Qrup-1');
+    assert.ok(Array.isArray(data.tags), 'Returned tags must be an Array');
+    assert.deepEqual(data.tags, ['kampaniya', 'reklam', '2026']);
+
+    // Check DB row
+    const row = await helpers.dbGetAsync('SELECT folder_name, tags_json FROM urls WHERE short = ?', [short]);
+    assert.equal(row.folder_name, 'Qrup-1');
+    assert.equal(row.tags_json, JSON.stringify(['kampaniya', 'reklam', '2026']), 'tags_json in DB must be valid JSON array');
+
+    // Check SSR /dashboard contains these tags
+    const dashRes = await fetch(`${baseUrl}/dashboard`, {
+      headers: { 'Cookie': session.cookie },
+    });
+    const html = await dashRes.text();
+    assert.ok(html.includes('kampaniya'), 'Dashboard must render kampaniya tag pill');
+    assert.ok(html.includes('reklam'), 'Dashboard must render reklam tag pill');
+    assert.ok(html.includes('2026'), 'Dashboard must render 2026 tag pill');
+  });
+
+  // 7. Test POST /api/user/link/update updates URL, folder and tags simultaneously
+  await t.test('7. POST /api/user/link/update updates URL, folder and tags simultaneously', async (st) => {
+    if (!hasPostgres) { st.skip('PostgreSQL database not reachable in test environment'); return; }
+
+    const user = await seedUser({ plan: 'pro' });
+    const session = await loginSession(user.email);
+
+    const short = `edit_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    createdShorts.push(short);
+    await helpers.dbRunAsync(
+      'INSERT INTO urls (short, original, user_id, created_at, reports) VALUES (?, ?, ?, ?, 0)',
+      [short, 'https://example.com/initial-url', user.id, new Date().toISOString()]
+    );
+
+    const res = await fetch(`${baseUrl}/api/user/link/update`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': session.cookie,
+        'x-csrf-token': session.csrfToken,
+      },
+      body: JSON.stringify({
+        short,
+        original: 'https://example.com/updated-destination',
+        folder_name: 'YeniQovluq',
+        tags: ['muhum', 'yeni'],
+        lang: 'az',
+      }),
+    });
+
+    assert.equal(res.status, 200, 'POST /api/user/link/update must return 200');
+    const data = await res.json();
+    assert.equal(data.folder_name, 'YeniQovluq');
+    assert.deepEqual(data.tags, ['muhum', 'yeni']);
+
+    // Check DB row
+    const row = await helpers.dbGetAsync('SELECT original, folder_name, tags_json FROM urls WHERE short = ?', [short]);
+    assert.equal(row.original, 'https://example.com/updated-destination');
+    assert.equal(row.folder_name, 'YeniQovluq');
+    assert.equal(row.tags_json, JSON.stringify(['muhum', 'yeni']));
   });
 });
