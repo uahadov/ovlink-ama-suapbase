@@ -96,7 +96,8 @@ function handleStatsApiRequest(req, res, rawShort) {
           time: c.click_time,
           browser: c.browser === REDIRECT_CONSENT_MARKER ? REDIRECT_CONSENT_MARKER : getEssentialAnalyticsValue(c.browser),
           os: c.os === REDIRECT_CONSENT_MARKER ? REDIRECT_CONSENT_MARKER : getEssentialAnalyticsValue(c.os),
-          country: c.country === REDIRECT_CONSENT_MARKER ? REDIRECT_CONSENT_MARKER : getEssentialAnalyticsValue(c.country)
+          country: c.country === REDIRECT_CONSENT_MARKER ? REDIRECT_CONSENT_MARKER : getEssentialAnalyticsValue(c.country),
+          city: c.city === REDIRECT_CONSENT_MARKER ? '' : (c.city || '')
         }))
       });
     });

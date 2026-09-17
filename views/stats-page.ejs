@@ -185,11 +185,11 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
-    /* Executive KPI Grid (3 Spacious Cards) */
+    /* Executive KPI Grid (4 High-Density Bento Cards) */
     .ovx .m-kpi-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
       margin-bottom: 24px;
     }
 
@@ -197,11 +197,13 @@
       background: #111114;
       border: 1px solid var(--c-border, rgba(255, 255, 255, 0.07));
       border-radius: 16px;
-      padding: 26px 28px;
+      padding: 22px 24px;
       transition: border-color 0.25s var(--ease, ease), transform 0.2s ease;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      position: relative;
+      overflow: hidden;
     }
 
     .ovx .m-kpi-card:hover {
@@ -212,7 +214,7 @@
     .ovx .m-kpi-label {
       font-size: 11.5px;
       font-weight: 600;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--c-faint, #737373);
       margin-bottom: 12px;
@@ -226,21 +228,51 @@
       color: var(--c-muted, #888888);
     }
 
+    .ovx .m-kpi-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      color: #a1a1aa;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      margin-left: auto;
+    }
+
+    .ovx .m-kpi-badge.live {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.25);
+      color: #4ade80;
+    }
+
     .ovx .m-kpi-value {
-      font-size: clamp(30px, 3.2vw, 38px);
+      font-size: clamp(24px, 2.2vw, 32px);
       font-weight: 700;
       letter-spacing: -0.035em;
       color: #ffffff;
-      line-height: 1.1;
+      line-height: 1.15;
       margin-bottom: 8px;
       font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .ovx .m-kpi-sub {
-      font-size: 12.5px;
+      font-size: 12px;
       color: var(--c-muted, #888888);
       line-height: 1.4;
       margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* Main Chart Section (Clicks Over Time) */
@@ -248,7 +280,7 @@
       background: #111114;
       border: 1px solid var(--c-border, rgba(255, 255, 255, 0.07));
       border-radius: 16px;
-      padding: 28px 32px;
+      padding: 26px 28px;
       margin-bottom: 24px;
       transition: border-color 0.25s var(--ease, ease);
     }
@@ -262,8 +294,8 @@
       align-items: flex-start;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 24px;
+      gap: 14px;
+      margin-bottom: 18px;
     }
 
     .ovx .m-chart-title {
@@ -288,6 +320,80 @@
       margin: 0;
     }
 
+    .ovx .m-chart-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .ovx .m-pill-group {
+      display: inline-flex;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+      border-radius: 100px;
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .ovx .m-pill-btn {
+      background: transparent;
+      border: none;
+      color: var(--c-muted, #888888);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .ovx .m-pill-btn:hover {
+      color: #ffffff;
+    }
+
+    .ovx .m-pill-btn.active {
+      background: rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+    }
+
+    .ovx .m-chart-stat-strip {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 8px 14px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .ovx .m-stat-item {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-size: 12px;
+    }
+
+    .ovx .m-stat-k {
+      color: var(--c-faint, #737373);
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+
+    .ovx .m-stat-v {
+      color: #ffffff;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 13px;
+    }
+
     .ovx .m-chart-meta-chips {
       display: flex;
       align-items: center;
@@ -296,19 +402,19 @@
     }
 
     .ovx .m-meta-chip {
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 500;
       color: var(--c-muted, #888888);
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
-      padding: 4px 10px;
+      padding: 3px 9px;
       border-radius: 100px;
     }
 
     .ovx .m-chart-canvas-wrap {
       position: relative;
       width: 100%;
-      height: 280px;
+      height: 290px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -521,11 +627,118 @@
       opacity: 0.5;
     }
 
+    /* Live Activity Stream Section */
+    .ovx .m-activity-section {
+      background: #111114;
+      border: 1px solid var(--c-border, rgba(255, 255, 255, 0.07));
+      border-radius: 16px;
+      padding: 26px 28px;
+      margin-top: 24px;
+      transition: border-color 0.25s var(--ease, ease);
+    }
+
+    .ovx .m-activity-section:hover {
+      border-color: var(--c-border-hi, rgba(255, 255, 255, 0.16));
+    }
+
+    .ovx .m-table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .ovx .m-activity-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .ovx .m-activity-table th {
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--c-faint, #737373);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .ovx .m-activity-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      color: #d4d4d8;
+      vertical-align: middle;
+    }
+
+    .ovx .m-activity-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+      color: #ffffff;
+    }
+
+    .ovx .m-activity-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .ovx .m-td-num {
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      color: var(--c-faint, #737373);
+      font-size: 11px;
+      width: 32px;
+    }
+
+    .ovx .m-td-time {
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 12px;
+      color: #a1a1aa;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .ovx .m-td-subtime {
+      color: var(--c-faint, #737373);
+      font-size: 11px;
+    }
+
+    .ovx .m-td-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+    }
+
+    .ovx .m-flag-emoji {
+      font-size: 16px;
+      line-height: 1;
+      vertical-align: middle;
+    }
+
+    .ovx .m-table-empty {
+      text-align: center;
+      padding: 36px 0 !important;
+      color: var(--c-faint, #737373);
+    }
+
+    .ovx .m-table-empty i {
+      font-size: 22px;
+      opacity: 0.5;
+      display: block;
+      margin-bottom: 8px;
+    }
+
     /* Responsive Queries */
-    @media (max-width: 900px) {
+    @media (max-width: 1080px) {
+      .ovx .m-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+      }
+    }
+
+    @media (max-width: 768px) {
       .ovx .m-kpi-grid {
         grid-template-columns: 1fr;
-        gap: 14px;
+        gap: 12px;
       }
       .ovx .m-split-grid {
         grid-template-columns: 1fr;
@@ -533,12 +746,16 @@
       }
       .ovx .m-chart-section,
       .ovx .m-breakdown-panel,
+      .ovx .m-activity-section,
       .ovx .m-kpi-card {
-        padding: 20px 18px;
+        padding: 20px 16px;
       }
       .ovx .m-exec-topbar {
         flex-direction: column;
         align-items: flex-start;
+      }
+      .ovx .m-chart-stat-strip {
+        gap: 12px;
       }
     }
   </style>
@@ -605,6 +822,7 @@
         <div class="m-exec-right">
           <!-- Time Range Switcher -->
           <div class="m-range-switcher" role="group" aria-label="Date range filter">
+            <button type="button" class="m-range-btn" data-range="24h" data-i18n="stats_filter_24h">24 Saat</button>
             <button type="button" class="m-range-btn" data-range="7d" data-i18n="stats_filter_7d">7 Gün</button>
             <button type="button" class="m-range-btn" data-range="30d" data-i18n="stats_filter_30d">30 Gün</button>
             <button type="button" class="m-range-btn active" data-range="all" data-i18n="stats_filter_all">Bütün Vaxt</button>
@@ -628,16 +846,19 @@
         </div>
       </header>
 
-      <!-- 2. Executive 3 KPI Metric Cards -->
+      <!-- 2. Executive 4 KPI Bento Metric Cards -->
       <section class="m-kpi-grid" aria-label="Key Performance Indicators">
         <!-- Card 1: Total Clicks -->
         <div class="m-kpi-card">
           <div class="m-kpi-label">
             <i class="fa-solid fa-arrow-pointer"></i>
             <span data-i18n="stats_total_clicks">Ümumi Klik Sayı</span>
+            <span class="m-kpi-badge live">
+              <span class="m-status-dot" style="width: 5px; height: 5px;"></span> Live
+            </span>
           </div>
           <div class="m-kpi-value" id="totalClicksDisplay">0</div>
-          <p class="m-kpi-sub" data-i18n="stats_clicks_chart_sub">Zaman üzrə aktivlik</p>
+          <p class="m-kpi-sub" id="totalClicksSub" data-i18n="stats_clicks_chart_sub">Zaman üzrə aktivlik</p>
         </div>
 
         <!-- Card 2: Unique Visitors -->
@@ -645,9 +866,10 @@
           <div class="m-kpi-label">
             <i class="fa-solid fa-user-group"></i>
             <span data-i18n="stats_unique_visitors">Unikal Ziyarətçilər</span>
+            <span class="m-kpi-badge" id="uniqueVisitorsRate">—</span>
           </div>
           <div class="m-kpi-value" id="uniqueVisitorsDisplay">0</div>
-          <p class="m-kpi-sub">Fərqli şəbəkə seansları</p>
+          <p class="m-kpi-sub" id="uniqueVisitorsSub">Fərqli şəbəkə seansları</p>
         </div>
 
         <!-- Card 3: Top Location -->
@@ -656,22 +878,72 @@
             <i class="fa-solid fa-earth-americas"></i>
             <span data-i18n="stats_top_location">Əsas Məkan</span>
           </div>
-          <div class="m-kpi-value" id="topLocationDisplay">—</div>
+          <div class="m-kpi-value" id="topLocationDisplay">
+            <span id="topLocationFlag" class="m-flag-emoji" style="font-size: 24px;">🌐</span>
+            <span id="topLocationText">—</span>
+          </div>
           <p class="m-kpi-sub" id="topLocationSub">Coğrafi paylanma</p>
+        </div>
+
+        <!-- Card 4: Top Platform / Device -->
+        <div class="m-kpi-card">
+          <div class="m-kpi-label">
+            <i class="fa-solid fa-laptop"></i>
+            <span data-i18n="stats_top_platform">Əsas Cihaz və Sistem</span>
+          </div>
+          <div class="m-kpi-value" id="topPlatformDisplay">
+            <i id="topPlatformIcon" class="fa-solid fa-laptop-code" style="font-size: 22px; color: var(--c-muted, #888888);"></i>
+            <span id="topPlatformText">—</span>
+          </div>
+          <p class="m-kpi-sub" id="topPlatformSub">Sistem və brauzer profili</p>
         </div>
       </section>
 
-      <!-- 3. Primary Wide Chart: Clicks Over Time (Smooth Spline Area) -->
+      <!-- 3. Primary Wide Chart: Clicks Over Time (Continuous Zero-Filled Baseline) -->
       <section class="m-chart-section" aria-label="Clicks Timeline Chart">
         <div class="m-chart-header">
           <div>
             <h2 class="m-chart-title">
-              <i class="fa-solid fa-chart-line"></i>
+              <i class="fa-solid fa-chart-area"></i>
               <span data-i18n="stats_clicks_over_time">Zaman üzrə kliklər</span>
             </h2>
             <p class="m-chart-sub" id="chartRangeSub" data-i18n="stats_time_note">Saatlıq qrafik brauzerinizin yerli vaxtına əsaslanır.</p>
           </div>
-          <div id="timeChartMeta" class="m-chart-meta-chips"></div>
+          <div class="m-chart-controls">
+            <!-- Granularity Toggle -->
+            <div class="m-pill-group" role="group" aria-label="Granularity">
+              <button type="button" class="m-pill-btn" id="btnGranHourly" data-granularity="hourly" data-i18n="stats_granularity_hourly">Saatlıq</button>
+              <button type="button" class="m-pill-btn active" id="btnGranDaily" data-granularity="daily" data-i18n="stats_granularity_daily">Günlük</button>
+            </div>
+            <!-- Visual Type Toggle -->
+            <div class="m-pill-group" role="group" aria-label="Chart Type">
+              <button type="button" class="m-pill-btn active" id="btnTypeArea" title="Area Chart">
+                <i class="fa-solid fa-chart-area"></i>
+                <span data-i18n="stats_chart_type_area">Sahə</span>
+              </button>
+              <button type="button" class="m-pill-btn" id="btnTypeBar" title="Bar Chart">
+                <i class="fa-solid fa-chart-column"></i>
+                <span data-i18n="stats_chart_type_bar">Sütun</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- In-Chart Stat Strip -->
+        <div class="m-chart-stat-strip">
+          <div class="m-stat-item">
+            <span class="m-stat-k" data-i18n="stats_metric_peak">Pik</span>
+            <span class="m-stat-v" id="chartStatPeak">0</span>
+          </div>
+          <div class="m-stat-item">
+            <span class="m-stat-k" data-i18n="stats_metric_avg">Orta</span>
+            <span class="m-stat-v" id="chartStatAvg">0</span>
+          </div>
+          <div class="m-stat-item">
+            <span class="m-stat-k" data-i18n="stats_metric_total">Toplam</span>
+            <span class="m-stat-v" id="chartStatTotal">0</span>
+          </div>
+          <div id="timeChartMeta" class="m-chart-meta-chips" style="margin-left: auto;"></div>
         </div>
 
         <div class="m-chart-canvas-wrap">
@@ -716,6 +988,33 @@
 
       </div>
 
+      <!-- 5. Live Activity Stream Section (Enterprise Audit Stream) -->
+      <section class="m-activity-section" aria-label="Live Activity Stream">
+        <div class="m-panel-head">
+          <h2 class="m-panel-heading">
+            <i class="fa-solid fa-bolt-lightning"></i>
+            <span data-i18n="stats_recent_activity">Canlı Klik Jurnalı</span>
+          </h2>
+          <span class="m-meta-chip" id="activityCountTag">0 klik</span>
+        </div>
+        <div class="m-table-responsive">
+          <table class="m-activity-table">
+            <thead>
+              <tr>
+                <th style="width: 36px;">#</th>
+                <th data-i18n="th_timestamp">Zaman</th>
+                <th data-i18n="th_location">Məkan</th>
+                <th data-i18n="th_device">Cihaz / OS</th>
+                <th data-i18n="th_browser">Brauzer</th>
+              </tr>
+            </thead>
+            <tbody id="activityTableBody">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -732,8 +1031,10 @@
     const essentialMarker = <%- JSON.stringify(consentMarker) %>;
 
     let analyticsRawData = null;
-    let currentRangeFilter = 'all'; // '7d' | '30d' | 'all'
-    let currentTechTab = 'os';      // 'os' | 'browsers'
+    let currentRangeFilter = 'all'; // '24h' | '7d' | '30d' | 'all'
+    let currentGranularity = 'daily'; // 'hourly' | 'daily'
+    let currentChartType = 'line';   // 'line' | 'bar'
+    let currentTechTab = 'os';        // 'os' | 'browsers'
     let timeChartInstance = null;
 
     function t(key) {
@@ -748,34 +1049,29 @@
       return value === essentialMarker ? t('stats_private_bucket') || 'Essential' : (value || 'Unknown');
     }
 
-    function formatTimeLabel(isoValue, isDaily = false) {
-      const d = new Date(isoValue);
-      if (!Number.isFinite(d.getTime())) return isoValue;
-      const lang = document.documentElement.lang || 'en';
-      if (isDaily) {
-        return new Intl.DateTimeFormat(lang, { month: 'short', day: 'numeric' }).format(d);
-      }
-      return new Intl.DateTimeFormat(lang, {
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      }).format(d);
-    }
-
     // Country name resolution helper
     const ISO_COUNTRIES = {
       'AZ': 'Azerbaijan', 'TR': 'Türkiye', 'US': 'United States', 'GB': 'United Kingdom',
       'DE': 'Germany', 'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'RU': 'Russia',
       'CA': 'Canada', 'AU': 'Australia', 'BR': 'Brazil', 'NL': 'Netherlands', 'PL': 'Poland',
-      'UA': 'Ukraine', 'IN': 'India', 'JP': 'Japan', 'KR': 'South Korea', 'CN': 'China'
+      'UA': 'Ukraine', 'IN': 'India', 'JP': 'Japan', 'KR': 'South Korea', 'CN': 'China',
+      'GE': 'Georgia', 'KZ': 'Kazakhstan', 'UZ': 'Uzbekistan', 'IR': 'Iran', 'IQ': 'Iraq'
     };
 
     function resolveCountryName(code) {
       if (!code || code === essentialMarker) return mapBucketLabel(code);
       const upper = code.toUpperCase();
       return ISO_COUNTRIES[upper] || upper;
+    }
+
+    // High-res Unicode Flag Emoji Generator from ISO 3166-1 alpha-2 code
+    function getCountryFlag(code) {
+      if (!code || typeof code !== 'string' || code.length !== 2 || code === essentialMarker) return '🌐';
+      const upper = code.toUpperCase();
+      const c0 = upper.charCodeAt(0);
+      const c1 = upper.charCodeAt(1);
+      if (c0 < 65 || c0 > 90 || c1 < 65 || c1 > 90) return '🌐';
+      return String.fromCodePoint(127397 + c0, 127397 + c1);
     }
 
     // Technology Icon Resolver
@@ -793,7 +1089,7 @@
       return 'fa-solid fa-laptop-code';
     }
 
-    // Slices clicks by selected range
+    // Filters clicks by selected range
     function getFilteredClicks() {
       if (!analyticsRawData || !Array.isArray(analyticsRawData.raw_clicks)) {
         return [];
@@ -802,14 +1098,53 @@
       if (currentRangeFilter === 'all') return all;
 
       const now = Date.now();
-      const cutoffMs = currentRangeFilter === '7d'
-        ? now - (7 * 24 * 3600 * 1000)
-        : now - (30 * 24 * 3600 * 1000);
+      let cutoffMs = 0;
+      if (currentRangeFilter === '24h') {
+        cutoffMs = now - (24 * 3600 * 1000);
+      } else if (currentRangeFilter === '7d') {
+        cutoffMs = now - (7 * 24 * 3600 * 1000);
+      } else if (currentRangeFilter === '30d') {
+        cutoffMs = now - (30 * 24 * 3600 * 1000);
+      }
 
       return all.filter(c => {
         const t = new Date(c.time).getTime();
         return Number.isFinite(t) && t >= cutoffMs;
       });
+    }
+
+    // Date formatting helpers
+    function getLocalDateKey(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function getLocalHourKey(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      const h = String(date.getHours()).padStart(2, '0');
+      return `${y}-${m}-${d}-${h}`;
+    }
+
+    function formatRelativeTime(iso) {
+      const d = new Date(iso);
+      const now = Date.now();
+      const diffMs = now - d.getTime();
+      if (diffMs < 0) return t('stats_today') || 'Today';
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHour = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHour / 24);
+
+      const lang = typeof currentLang === 'string' ? currentLang : 'az';
+      if (diffSec < 60) return lang === 'az' ? 'Az əvvəl' : (lang === 'tr' ? 'Az önce' : 'Just now');
+      if (diffMin < 60) return `${diffMin} ${lang === 'az' ? 'dəq əvvəl' : (lang === 'tr' ? 'dk önce' : 'min ago')}`;
+      if (diffHour < 24) return `${diffHour} ${lang === 'az' ? 'saat əvvəl' : (lang === 'tr' ? 'saat önce' : 'hours ago')}`;
+      if (diffDay < 7) return `${diffDay} ${lang === 'az' ? 'gün əvvəl' : (lang === 'tr' ? 'gün önce' : 'days ago')}`;
+      return d.toLocaleDateString(lang === 'az' ? 'az' : (lang === 'tr' ? 'tr' : 'en'), { month: 'short', day: 'numeric' });
     }
 
     // Builds aggregated stats object from filtered clicks
@@ -818,8 +1153,7 @@
         total_clicks: clicks.length,
         browsers: {},
         os: {},
-        countries: {},
-        clicks_over_time: {}
+        countries: {}
       };
 
       clicks.forEach(click => {
@@ -830,12 +1164,6 @@
         stats.browsers[browser] = (stats.browsers[browser] || 0) + 1;
         stats.os[os] = (stats.os[os] || 0) + 1;
         stats.countries[country] = (stats.countries[country] || 0) + 1;
-
-        const d = new Date(click.time);
-        if (Number.isFinite(d.getTime())) {
-          const hourBucket = new Date(Math.floor(d.getTime() / 3600000) * 3600000).toISOString();
-          stats.clicks_over_time[hourBucket] = (stats.clicks_over_time[hourBucket] || 0) + 1;
-        }
       });
 
       // Top country calculation
@@ -860,123 +1188,246 @@
       };
     }
 
-    // Render KPI numbers
-    function renderKpis(stats) {
-      const totalDisplay = document.getElementById('totalClicksDisplay');
-      const uniqueDisplay = document.getElementById('uniqueVisitorsDisplay');
-      const topLocDisplay = document.getElementById('topLocationDisplay');
-      const topLocSub = document.getElementById('topLocationSub');
+    // Continuous Zero-Filled Timeline Engine
+    function buildZeroFilledTimeline(clicks, range, granularity) {
+      const now = new Date();
+      const slots = [];
+      const lang = typeof currentLang === 'string' ? currentLang : 'az';
+      const locale = lang === 'az' ? 'az' : (lang === 'tr' ? 'tr' : 'en');
 
+      const isHourly = granularity === 'hourly' || range === '24h';
+
+      if (isHourly) {
+        // 24 continuous hourly slots ending at current hour
+        const endHour = new Date(now);
+        endHour.setMinutes(0, 0, 0, 0);
+        for (let i = 23; i >= 0; i--) {
+          const slotTime = new Date(endHour.getTime() - (i * 3600 * 1000));
+          const key = getLocalHourKey(slotTime);
+          const label = slotTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+          slots.push({ key, label, count: 0 });
+        }
+
+        // Aggregate clicks into hourly slots
+        clicks.forEach(c => {
+          const d = new Date(c.time);
+          if (Number.isFinite(d.getTime())) {
+            const key = getLocalHourKey(d);
+            const slot = slots.find(s => s.key === key);
+            if (slot) slot.count += 1;
+          }
+        });
+      } else {
+        // Continuous Daily Slots
+        let dayCount = 7;
+        if (range === '30d') {
+          dayCount = 30;
+        } else if (range === 'all') {
+          if (clicks.length > 0) {
+            const minTime = Math.min(...clicks.map(c => new Date(c.time).getTime()).filter(Number.isFinite));
+            const diffDays = Math.round((now.getTime() - minTime) / 86400000) + 1;
+            dayCount = Math.min(60, Math.max(7, diffDays));
+          } else {
+            dayCount = 7;
+          }
+        }
+
+        for (let i = dayCount - 1; i >= 0; i--) {
+          const slotDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+          const key = getLocalDateKey(slotDate);
+          const isToday = i === 0;
+          const label = isToday ? (t('stats_today') || 'Today') : slotDate.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+          slots.push({ key, label, count: 0 });
+        }
+
+        // Aggregate clicks into daily slots
+        clicks.forEach(c => {
+          const d = new Date(c.time);
+          if (Number.isFinite(d.getTime())) {
+            const key = getLocalDateKey(d);
+            const slot = slots.find(s => s.key === key);
+            if (slot) slot.count += 1;
+          }
+        });
+      }
+
+      const labels = slots.map(s => s.label);
+      const values = slots.map(s => s.count);
+      const total = clicks.length;
+      const peak = values.length ? Math.max(...values) : 0;
+      const avg = values.length ? (total / values.length).toFixed(1) : '0';
+      const rangeLabel = labels.length ? `${labels[0]} — ${labels[labels.length - 1]}` : '';
+
+      return { labels, values, peak, avg, total, rangeLabel };
+    }
+
+    // Render KPI numbers and badges (4 High-Density Bento Cards)
+    function renderKpis(stats, clicks) {
+      const totalDisplay = document.getElementById('totalClicksDisplay');
+      const totalSub = document.getElementById('totalClicksSub');
+      const uniqueDisplay = document.getElementById('uniqueVisitorsDisplay');
+      const uniqueRate = document.getElementById('uniqueVisitorsRate');
+      const uniqueSub = document.getElementById('uniqueVisitorsSub');
+      const topLocFlag = document.getElementById('topLocationFlag');
+      const topLocText = document.getElementById('topLocationText');
+      const topLocSub = document.getElementById('topLocationSub');
+      const topPlatformIcon = document.getElementById('topPlatformIcon');
+      const topPlatformText = document.getElementById('topPlatformText');
+      const topPlatformSub = document.getElementById('topPlatformSub');
+
+      // Card 1: Total Clicks
       if (totalDisplay) totalDisplay.textContent = Number(stats.total_clicks || 0).toLocaleString();
-      
+      if (totalSub) {
+        let rangeText = t('stats_filter_all');
+        if (currentRangeFilter === '24h') rangeText = t('stats_filter_24h');
+        else if (currentRangeFilter === '7d') rangeText = t('stats_filter_7d');
+        else if (currentRangeFilter === '30d') rangeText = t('stats_filter_30d');
+        totalSub.textContent = rangeText;
+      }
+
+      // Card 2: Unique Visitors
       const uniqueCount = (currentRangeFilter === 'all' && analyticsRawData && analyticsRawData.unique_visitors)
         ? analyticsRawData.unique_visitors
         : (stats.unique_visitors || stats.total_clicks || 0);
 
       if (uniqueDisplay) uniqueDisplay.textContent = Number(uniqueCount).toLocaleString();
+      if (uniqueRate) {
+        const rate = stats.total_clicks > 0 ? Math.min(100, Math.round((uniqueCount / stats.total_clicks) * 100)) : 100;
+        uniqueRate.textContent = `${rate}% unikal`;
+      }
+      if (uniqueSub) {
+        uniqueSub.textContent = stats.total_clicks > 0 ? `${uniqueCount} fərqli şəbəkə seansı` : t('stats_no_data');
+      }
 
-      if (topLocDisplay) {
+      // Card 3: Top Location
+      if (topLocText) {
         if (!stats.total_clicks || stats.top_country === '—') {
-          topLocDisplay.textContent = '—';
+          if (topLocFlag) topLocFlag.textContent = '🌐';
+          topLocText.textContent = '—';
           if (topLocSub) topLocSub.textContent = t('stats_no_data');
         } else {
+          const flag = getCountryFlag(stats.top_country);
           const cName = resolveCountryName(stats.top_country);
-          topLocDisplay.textContent = `${cName} ${stats.top_country_percent}%`;
+          if (topLocFlag) topLocFlag.textContent = flag;
+          topLocText.textContent = `${cName} (${stats.top_country_percent}%)`;
           if (topLocSub) topLocSub.textContent = `${stats.top_country_count} klik (${stats.top_country_percent}%)`;
+        }
+      }
+
+      // Card 4: Top Platform / Device
+      let topOs = '—';
+      let topOsCount = 0;
+      Object.entries(stats.os || {}).forEach(([os, count]) => {
+        if (count > topOsCount) {
+          topOs = os;
+          topOsCount = count;
+        }
+      });
+
+      let topBrowser = '—';
+      let topBrowserCount = 0;
+      Object.entries(stats.browsers || {}).forEach(([b, count]) => {
+        if (count > topBrowserCount) {
+          topBrowser = b;
+          topBrowserCount = count;
+        }
+      });
+
+      const topOsPercent = stats.total_clicks > 0 ? Math.round((topOsCount / stats.total_clicks) * 100) : 0;
+
+      if (topPlatformText) {
+        if (!stats.total_clicks || topOs === '—') {
+          if (topPlatformIcon) topPlatformIcon.className = 'fa-solid fa-laptop-code';
+          topPlatformText.textContent = '—';
+          if (topPlatformSub) topPlatformSub.textContent = t('stats_no_data');
+        } else {
+          const osName = mapBucketLabel(topOs);
+          const browserName = mapBucketLabel(topBrowser);
+          if (topPlatformIcon) topPlatformIcon.className = `${getTechIcon(osName)} m-tech-icon`;
+          topPlatformText.textContent = osName;
+          if (topPlatformSub) topPlatformSub.textContent = `${browserName} • ${topOsPercent}% pay`;
         }
       }
     }
 
-    // Render Clicks Over Time Area Chart
-    function renderTimeChart(clicksOverTime, totalClicks) {
+    // Render Clicks Over Time (Continuous Baseline + Spline Area or Bar)
+    function renderTimeChart(timelineData) {
       const canvas = document.getElementById('timeChart');
       if (!canvas) return;
       const wrap = canvas.parentElement;
 
-      // Clean old empty state
-      const oldEmpty = wrap.querySelector('.m-chart-empty');
-      if (oldEmpty) oldEmpty.remove();
+      // Update stat strip
+      const peakEl = document.getElementById('chartStatPeak');
+      const avgEl = document.getElementById('chartStatAvg');
+      const totalEl = document.getElementById('chartStatTotal');
+      const metaContainer = document.getElementById('timeChartMeta');
+
+      const isHourly = currentGranularity === 'hourly' || currentRangeFilter === '24h';
+      const perUnitLabel = isHourly
+        ? (currentLang === 'az' ? 'saat' : (currentLang === 'tr' ? 'saat' : 'hr'))
+        : (currentLang === 'az' ? 'gün' : (currentLang === 'tr' ? 'gün' : 'day'));
+
+      if (peakEl) peakEl.textContent = `${timelineData.peak} ${t('th_clicks') || 'klik'}`;
+      if (avgEl) avgEl.textContent = `${timelineData.avg} / ${perUnitLabel}`;
+      if (totalEl) totalEl.textContent = `${timelineData.total} ${t('th_clicks') || 'klik'}`;
+
+      if (metaContainer) {
+        metaContainer.innerHTML = '';
+        if (timelineData.rangeLabel) {
+          const rangeChip = document.createElement('span');
+          rangeChip.className = 'm-meta-chip';
+          rangeChip.textContent = timelineData.rangeLabel;
+          metaContainer.appendChild(rangeChip);
+        }
+      }
 
       if (timeChartInstance) {
         timeChartInstance.destroy();
         timeChartInstance = null;
       }
 
-      const entries = Object.entries(clicksOverTime || {})
-        .map(([iso, count]) => ({ iso, time: new Date(iso).getTime(), count }))
-        .filter(e => Number.isFinite(e.time))
-        .sort((a, b) => a.time - b.time);
-
-      const metaContainer = document.getElementById('timeChartMeta');
-      if (metaContainer) metaContainer.innerHTML = '';
-
-      if (!entries.length || totalClicks === 0) {
-        canvas.style.display = 'none';
-        const empty = document.createElement('div');
-        empty.className = 'm-chart-empty';
-        empty.innerHTML = `<i class="fa-solid fa-chart-line"></i><span>${t('stats_no_data')}</span>`;
-        wrap.appendChild(empty);
-        return;
-      }
-
-      canvas.style.display = 'block';
-
-      const isDaily = entries.length > 36 || currentRangeFilter === '30d';
-      let labels = [];
-      let values = [];
-
-      if (isDaily) {
-        const dayMap = new Map();
-        entries.forEach(e => {
-          const dayKey = e.iso.slice(0, 10);
-          dayMap.set(dayKey, (dayMap.get(dayKey) || 0) + e.count);
-        });
-        labels = Array.from(dayMap.keys()).map(k => formatTimeLabel(k, true));
-        values = Array.from(dayMap.values());
-      } else {
-        labels = entries.map(e => formatTimeLabel(e.iso, false));
-        values = entries.map(e => e.count);
-      }
-
-      // Meta chips
-      if (metaContainer) {
-        const first = formatTimeLabel(entries[0].iso, isDaily);
-        const last = formatTimeLabel(entries[entries.length - 1].iso, isDaily);
-        const rangeChip = document.createElement('span');
-        rangeChip.className = 'm-meta-chip';
-        rangeChip.textContent = `${first} — ${last}`;
-        metaContainer.appendChild(rangeChip);
-
-        const totalChip = document.createElement('span');
-        totalChip.className = 'm-meta-chip';
-        totalChip.textContent = `${totalClicks} ${t('th_clicks') || 'klik'}`;
-        metaContainer.appendChild(totalChip);
-      }
-
       const ctx = canvas.getContext('2d');
-      const gradient = ctx.createLinearGradient(0, 0, 0, 260);
-      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.14)');
-      gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.02)');
-      gradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+      const isBar = currentChartType === 'bar';
+
+      let dataset = {};
+      if (isBar) {
+        dataset = {
+          label: t('th_clicks') || 'Clicks',
+          data: timelineData.values,
+          backgroundColor: 'rgba(255, 255, 255, 0.82)',
+          hoverBackgroundColor: '#ffffff',
+          borderRadius: 4,
+          borderSkipped: false,
+          maxBarThickness: 28
+        };
+      } else {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 270);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
+        gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.03)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+
+        dataset = {
+          label: t('th_clicks') || 'Clicks',
+          data: timelineData.values,
+          borderColor: '#ffffff',
+          borderWidth: 2,
+          backgroundColor: gradient,
+          fill: true,
+          tension: 0.35,
+          pointRadius: timelineData.values.length <= 14 ? 3.5 : 0,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#ffffff',
+          pointHoverBackgroundColor: '#ffffff',
+          pointHoverBorderColor: '#09090b',
+          pointHoverBorderWidth: 2
+        };
+      }
 
       timeChartInstance = new Chart(ctx, {
-        type: 'line',
+        type: isBar ? 'bar' : 'line',
         data: {
-          labels,
-          datasets: [{
-            label: t('th_clicks') || 'Clicks',
-            data: values,
-            borderColor: '#ffffff',
-            borderWidth: 1.8,
-            backgroundColor: gradient,
-            fill: true,
-            tension: 0.38,
-            pointRadius: values.length === 1 ? 4 : 0,
-            pointHoverRadius: 6,
-            pointHoverBackgroundColor: '#ffffff',
-            pointHoverBorderColor: '#09090b',
-            pointHoverBorderWidth: 2
-          }]
+          labels: timelineData.labels,
+          datasets: [dataset]
         },
         options: {
           responsive: true,
@@ -1006,6 +1457,7 @@
           scales: {
             y: {
               beginAtZero: true,
+              suggestedMax: Math.max(2, timelineData.peak + 1),
               ticks: {
                 precision: 0,
                 color: '#666666',
@@ -1021,7 +1473,7 @@
               ticks: {
                 maxRotation: 0,
                 autoSkip: true,
-                maxTicksLimit: 8,
+                maxTicksLimit: 10,
                 color: '#666666',
                 font: { family: 'Inter', size: 11.5 }
               },
@@ -1056,6 +1508,7 @@
       container.innerHTML = entries.slice(0, 6).map(([code, count], idx) => {
         const pct = totalClicks > 0 ? Math.round((count / totalClicks) * 100) : 0;
         const name = resolveCountryName(code);
+        const flag = getCountryFlag(code);
         const upperCode = (code || '—').toUpperCase();
 
         return `
@@ -1063,6 +1516,7 @@
             <div class="m-data-row-main">
               <div class="m-data-left">
                 <span class="m-rank-index">${idx + 1}</span>
+                <span class="m-flag-emoji" style="font-size: 15px;">${flag}</span>
                 <span class="m-geo-tag">${upperCode.slice(0, 3)}</span>
                 <span>${name}</span>
               </div>
@@ -1125,17 +1579,87 @@
       }).join('');
     }
 
+    // Render Live Activity Stream Table (Canlı Klik Jurnalı)
+    function renderActivityTable(clicks) {
+      const tbody = document.getElementById('activityTableBody');
+      const countTag = document.getElementById('activityCountTag');
+      if (!tbody) return;
+
+      if (countTag) countTag.textContent = `${clicks.length} klik`;
+
+      if (!clicks.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="m-table-empty">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+              <span>${t('stats_no_data')}</span>
+            </td>
+          </tr>`;
+        return;
+      }
+
+      // Display up to 50 clicks, newest first
+      const recentClicks = clicks.slice().reverse().slice(0, 50);
+
+      tbody.innerHTML = recentClicks.map((c, idx) => {
+        const d = new Date(c.time);
+        const timeValid = Number.isFinite(d.getTime());
+        const exactTime = timeValid ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+        const relTime = timeValid ? formatRelativeTime(c.time) : (c.time || '—');
+        const flag = getCountryFlag(c.country);
+        const countryName = resolveCountryName(c.country);
+        const cityStr = c.city ? `${c.city}, ` : '';
+        const locFull = `${cityStr}${countryName}`;
+        const osName = mapBucketLabel(c.os);
+        const browserName = mapBucketLabel(c.browser);
+        const osIcon = getTechIcon(osName);
+        const browserIcon = getTechIcon(browserName);
+
+        return `
+          <tr>
+            <td class="m-td-num">${idx + 1}</td>
+            <td>
+              <span class="m-td-time" title="${c.time || ''}">
+                <span>${relTime}</span>
+                ${exactTime ? `<span class="m-td-subtime">(${exactTime})</span>` : ''}
+              </span>
+            </td>
+            <td>
+              <div class="m-td-badge">
+                <span class="m-flag-emoji">${flag}</span>
+                <span>${locFull}</span>
+              </div>
+            </td>
+            <td>
+              <div class="m-td-badge">
+                <i class="${osIcon}"></i>
+                <span>${osName}</span>
+              </div>
+            </td>
+            <td>
+              <div class="m-td-badge">
+                <i class="${browserIcon}"></i>
+                <span>${browserName}</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
     // Primary refresh function
     function applyAnalyticsView() {
       if (!analyticsRawData) return;
 
       const filteredClicks = getFilteredClicks();
       const stats = computeStatsFromClicks(filteredClicks);
+      const timelineData = buildZeroFilledTimeline(filteredClicks, currentRangeFilter, currentGranularity);
 
-      renderKpis(stats);
-      renderTimeChart(stats.clicks_over_time, stats.total_clicks);
+      renderKpis(stats, filteredClicks);
+      renderTimeChart(timelineData);
       renderCountriesList(stats.countries, stats.total_clicks);
       renderTechList(stats);
+      renderActivityTable(filteredClicks);
     }
 
     // Copy link handler
@@ -1161,9 +1685,79 @@
         document.querySelectorAll('.m-range-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentRangeFilter = btn.getAttribute('data-range') || 'all';
+
+        // Auto sync granularity when picking 24h vs multi-day
+        if (currentRangeFilter === '24h') {
+          currentGranularity = 'hourly';
+          const granH = document.getElementById('btnGranHourly');
+          const granD = document.getElementById('btnGranDaily');
+          if (granH) granH.classList.add('active');
+          if (granD) granD.classList.remove('active');
+        } else if (currentRangeFilter === '7d' || currentRangeFilter === '30d') {
+          currentGranularity = 'daily';
+          const granH = document.getElementById('btnGranHourly');
+          const granD = document.getElementById('btnGranDaily');
+          if (granD) granD.classList.add('active');
+          if (granH) granH.classList.remove('active');
+        }
+
         applyAnalyticsView();
       });
     });
+
+    // Granularity Toggle Buttons (Hourly vs Daily)
+    const btnGranHourly = document.getElementById('btnGranHourly');
+    const btnGranDaily = document.getElementById('btnGranDaily');
+    if (btnGranHourly && btnGranDaily) {
+      btnGranHourly.addEventListener('click', () => {
+        btnGranHourly.classList.add('active');
+        btnGranDaily.classList.remove('active');
+        currentGranularity = 'hourly';
+        if (analyticsRawData) {
+          const filteredClicks = getFilteredClicks();
+          const timelineData = buildZeroFilledTimeline(filteredClicks, currentRangeFilter, currentGranularity);
+          renderTimeChart(timelineData);
+        }
+      });
+
+      btnGranDaily.addEventListener('click', () => {
+        btnGranDaily.classList.add('active');
+        btnGranHourly.classList.remove('active');
+        currentGranularity = 'daily';
+        if (analyticsRawData) {
+          const filteredClicks = getFilteredClicks();
+          const timelineData = buildZeroFilledTimeline(filteredClicks, currentRangeFilter, currentGranularity);
+          renderTimeChart(timelineData);
+        }
+      });
+    }
+
+    // Chart Type Toggle Buttons (Area vs Bar)
+    const btnTypeArea = document.getElementById('btnTypeArea');
+    const btnTypeBar = document.getElementById('btnTypeBar');
+    if (btnTypeArea && btnTypeBar) {
+      btnTypeArea.addEventListener('click', () => {
+        btnTypeArea.classList.add('active');
+        btnTypeBar.classList.remove('active');
+        currentChartType = 'line';
+        if (analyticsRawData) {
+          const filteredClicks = getFilteredClicks();
+          const timelineData = buildZeroFilledTimeline(filteredClicks, currentRangeFilter, currentGranularity);
+          renderTimeChart(timelineData);
+        }
+      });
+
+      btnTypeBar.addEventListener('click', () => {
+        btnTypeBar.classList.add('active');
+        btnTypeArea.classList.remove('active');
+        currentChartType = 'bar';
+        if (analyticsRawData) {
+          const filteredClicks = getFilteredClicks();
+          const timelineData = buildZeroFilledTimeline(filteredClicks, currentRangeFilter, currentGranularity);
+          renderTimeChart(timelineData);
+        }
+      });
+    }
 
     // Tech Tab Buttons (OS vs Browsers)
     const tabOsBtn = document.getElementById('tabOsBtn');
@@ -1200,9 +1794,9 @@
       exportCsvBtn.addEventListener('click', () => {
         if (!analyticsRawData) return;
         const clicks = getFilteredClicks();
-        let csvContent = "data:text/csv;charset=utf-8,Timestamp,Country,Operating_System,Browser\n";
+        let csvContent = "data:text/csv;charset=utf-8,Timestamp,Country,City,Operating_System,Browser\n";
         clicks.forEach(c => {
-          csvContent += `"${c.time}","${(c.country || '').replace(/"/g, '""')}","${(c.os || '').replace(/"/g, '""')}","${(c.browser || '').replace(/"/g, '""')}"\n`;
+          csvContent += `"${c.time}","${(c.country || '').replace(/"/g, '""')}","${(c.city || '').replace(/"/g, '""')}","${(c.os || '').replace(/"/g, '""')}","${(c.browser || '').replace(/"/g, '""')}"\n`;
         });
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
