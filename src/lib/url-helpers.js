@@ -11,7 +11,7 @@ const RESERVED_SHORT_ALIASES = new Set([
   'updates', 'verify', 'why-ovlink', 'api-guide', 'workspaces',
   // System and route namespaces
   'admin', 'api', 'auth', 'consent', 'proceed', 'qrcode', 'verify-email', 'logout',
-  'ads', 'tools', 'bot', 'bots', 'health',
+  'ads', 'tools', 'bot', 'bots', 'health', 'sso',
   // Reserved root-like names
   'robots', 'robots.txt', 'sitemap', 'sitemap.xml', 'bingsiteauth', 'yandex',
   'yandex_71461f9fd9f723bc', 'favicon.ico'

@@ -162,6 +162,7 @@ test('DEF-13: RESERVED_SHORT_ALIASES contains newly reserved system routes', () 
   assert.equal(isShortAliasReserved('bot'), true, 'bot must be reserved');
   assert.equal(isShortAliasReserved('bots'), true, 'bots must be reserved');
   assert.equal(isShortAliasReserved('health'), true, 'health must be reserved');
+  assert.equal(isShortAliasReserved('sso'), true, 'sso must be reserved');
   assert.equal(isShortAliasReserved('favicon.ico'), true, 'favicon.ico must be reserved');
 });
 
@@ -171,3 +172,18 @@ test('DEF-14: Billing notifications do not contain corrupted mojibake characters
   assert.ok(!billingCode.includes('­şææ'), 'Corrupted mojibake string must not exist in billing.js');
   assert.ok(billingCode.includes('Ovlink Pro Aktiv Edildi! 🎉'), 'Clean notification title must exist');
 });
+
+test('DEF-15: Workspace Admin Self-Resignation allows admin to remove themselves (!isSelf check)', () => {
+  const fs = require('fs');
+  const code = fs.readFileSync(require.resolve('../src/routes/api/workspaces'), 'utf8');
+  assert.ok(code.includes('!isSelf && target.role === WORKSPACE_ROLES.ADMIN'), 'Self-resignation guard must include !isSelf');
+});
+
+test('DEF-16: Fail-closed isIsoTimeExpired enforces secure expiration logic', () => {
+  const { isIsoTimeExpired } = require('../src/lib/plans');
+  assert.equal(isIsoTimeExpired('malformed-date'), true);
+  assert.equal(isIsoTimeExpired(''), false);
+  assert.equal(isIsoTimeExpired(new Date(Date.now() - 1000).toISOString()), true);
+  assert.equal(isIsoTimeExpired(new Date(Date.now() + 100000).toISOString()), false);
+});
+

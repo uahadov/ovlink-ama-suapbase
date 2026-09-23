@@ -364,7 +364,7 @@ router.delete('/api/workspaces/:id/members/:userId', requireSignedIn, async (req
   if (target.role === WORKSPACE_ROLES.OWNER) {
     return res.status(403).json({ error: 'The workspace owner cannot be removed.' });
   }
-  if (target.role === WORKSPACE_ROLES.ADMIN && ctx.role !== WORKSPACE_ROLES.OWNER) {
+  if (!isSelf && target.role === WORKSPACE_ROLES.ADMIN && ctx.role !== WORKSPACE_ROLES.OWNER) {
     return res.status(403).json({ error: 'Only the owner can remove admins.' });
   }
   await dbRunAsync('DELETE FROM workspace_members WHERE workspace_id = ? AND user_id = ?', [ctx.workspace.id, targetUserId]);

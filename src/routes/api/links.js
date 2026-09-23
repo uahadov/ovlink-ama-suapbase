@@ -516,6 +516,21 @@ router.post('/api/pro/v1/shorten', authenticateProApiKey, trackProApiUsage, proW
     const iosUrlAbs = iosUrlInput ? ensureAbsoluteUrl(iosUrlInput) : null;
     const androidUrlAbs = androidUrlInput ? ensureAbsoluteUrl(androidUrlInput) : null;
 
+    for (const altUrl of [originalBAbs, iosUrlAbs, androidUrlAbs]) {
+      if (altUrl) {
+        const altHost = normalizeHostName(altUrl);
+        if (altHost) {
+          const blockedAlt = await dbGetAsync(
+            "SELECT domain FROM blocked_domains WHERE ? = domain OR ? LIKE '%.' || domain LIMIT 1",
+            [altHost, altHost]
+          );
+          if (blockedAlt && blockedAlt.domain) {
+            return res.status(403).json({ error: 'Destination domain is blocked.' });
+          }
+        }
+      }
+    }
+
     const createdAt = new Date().toISOString();
     const shortUrl = buildShortUrl(req, short, selectedDomainHost);
     const requestHash = buildShortenIdempotencyRequestHash({
@@ -778,10 +793,33 @@ router.post('/api/shorten',
           });
         }),
         new Promise((resolve) => {
-          if (!hostname) return resolve(null);
-          db.get("SELECT domain FROM blocked_domains WHERE ? = domain OR ? LIKE '%.' || domain LIMIT 1", [hostname, hostname], (err, row) => {
-            resolve(err ? null : (row ? row.domain : null));
-          });
+          const candidates = [];
+          for (const raw of [original, original_b, ios_url, android_url]) {
+            if (raw) {
+              const abs = ensureAbsoluteUrl(raw);
+              if (abs) {
+                try {
+                  const h = new URL(abs).hostname.toLowerCase();
+                  if (h && !candidates.includes(h)) candidates.push(h);
+                } catch {}
+              }
+            }
+          }
+          if (candidates.length === 0) return resolve(null);
+
+          let pending = candidates.length;
+          let blockedDomain = null;
+          for (const cand of candidates) {
+            db.get("SELECT domain FROM blocked_domains WHERE ? = domain OR ? LIKE '%.' || domain LIMIT 1", [cand, cand], (err, row) => {
+              if (!blockedDomain && row && row.domain) {
+                blockedDomain = row.domain;
+              }
+              pending -= 1;
+              if (pending === 0) {
+                resolve(blockedDomain);
+              }
+            });
+          }
         })
       ]).then(([banResult, blockedResult]) => {
         if (banResult && banResult.banError) {

@@ -7,7 +7,7 @@ const { buildSeoMeta: buildSeo } = require('../lib/seo');
 const { normalizeLang, pickLang } = require('../lib/i18n');
 const { decryptAES256GCM } = require('../../utils/crypto');
 const { requireSignedIn } = require('../middleware/auth');
-const { getEffectivePlanForUser, isProAccessActive } = require('../lib/plans');
+const { getEffectivePlanForUser, isProAccessActive, isIsoTimeExpired } = require('../lib/plans');
 const { sensitiveActionLimiter } = require('../middleware/rate-limiter');
 const { logSecurityEvent } = require('../lib/security');
 const { createBotShared } = require('../../bots/shared');
@@ -34,13 +34,6 @@ async function isWorkspaceProActive(workspace) {
   if (!workspace || !workspace.owner_user_id) return false;
   const ownerPlanRow = await loadUserPlanRow(workspace.owner_user_id);
   return isProAccessActive(ownerPlanRow);
-}
-
-function isIsoTimeExpired(isoString) {
-  if (!isoString) return false;
-  const ms = Date.parse(isoString);
-  if (Number.isNaN(ms)) return false;
-  return ms < Date.now();
 }
 
 // Sayfa Rotaları
