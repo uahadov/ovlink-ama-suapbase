@@ -44,11 +44,21 @@ function normalizeCountryCode(raw) {
   return code;
 }
 
+// Edge/CDN country headers are only trustworthy when the request actually came
+// through that edge. Operators that expose the app directly can set
+// TRUST_EDGE_COUNTRY_HEADER=0 to ignore them (country feeds click analytics).
+function shouldTrustEdgeCountryHeader() {
+  const raw = (process.env.TRUST_EDGE_COUNTRY_HEADER || '').toString().trim().toLowerCase();
+  return !['0', 'false', 'no', 'off'].includes(raw);
+}
+
 function getRequestGeoMeta(req) {
   const ip = getRequestIp(req);
 
   // Cloudflare passes real country in CF-IPCountry; prefer it when valid.
-  const cfCountry = normalizeCountryCode(req.get('cf-ipcountry') || req.get('x-vercel-ip-country'));
+  const cfCountry = shouldTrustEdgeCountryHeader()
+    ? normalizeCountryCode(req.get('cf-ipcountry') || req.get('x-vercel-ip-country'))
+    : '';
 
   let country = 'Unknown';
   let city = 'Unknown';
@@ -108,6 +118,7 @@ function buildNetworkFingerprintForDisplay(rawIp) {
 module.exports = {
   getRequestGeoMeta,
   getRequestIp,
+  shouldTrustEdgeCountryHeader,
   maskIpForDisplay,
   buildNetworkFingerprintForDisplay,
   parseAcceptLang,

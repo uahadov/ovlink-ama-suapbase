@@ -1,5 +1,37 @@
 // Ovlink PWA Service Worker
-const CACHE_NAME = 'ovlink-pwa-v8';
+// v9: never cache private/authenticated surfaces (v8 kept them in Cache Storage
+// after logout on shared devices).
+const CACHE_NAME = 'ovlink-pwa-v9';
+
+// Prefixes that must never be written to Cache Storage: authenticated HTML,
+// flow pages that contain state, and anything the server marks no-store.
+const NEVER_CACHE_PREFIXES = [
+  '/api/',
+  '/admin',
+  '/bot/',
+  '/dashboard',
+  '/account',
+  '/notifications',
+  '/workspaces',
+  '/stats-page/',
+  '/proceed/',
+  '/consent/',
+  '/sso/',
+  '/verify/'
+];
+
+const NEVER_CACHE_PATHS = [
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password'
+];
+
+function isPrivateRequestPath(pathname) {
+  if (!pathname) return false;
+  if (NEVER_CACHE_PATHS.includes(pathname)) return true;
+  return NEVER_CACHE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -42,12 +74,7 @@ self.addEventListener('fetch', (event) => {
   if (
     url.pathname === '/sw.js' ||
     url.pathname.endsWith('/sw.js') ||
-    url.pathname.startsWith('/api/') ||
-    url.pathname.startsWith('/admin') ||
-    url.pathname.startsWith('/bot/') ||
-    url.pathname.startsWith('/dashboard') ||
-    url.pathname.startsWith('/account') ||
-    url.pathname.startsWith('/notifications')
+    isPrivateRequestPath(url.pathname)
   ) {
     return;
   }
@@ -57,12 +84,16 @@ self.addEventListener('fetch', (event) => {
     fetch(event.request)
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-          const resClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            try {
-              cache.put(event.request, resClone);
-            } catch {}
-          }).catch(() => {});
+          const cacheControl = (networkResponse.headers.get('cache-control') || '').toLowerCase();
+          const forbidsCaching = cacheControl.includes('no-store') || cacheControl.includes('private');
+          if (!forbidsCaching) {
+            const resClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              try {
+                cache.put(event.request, resClone);
+              } catch {}
+            }).catch(() => {});
+          }
         }
         return networkResponse;
       })

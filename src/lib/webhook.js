@@ -14,6 +14,10 @@ const webhookTimerMap = new Map();
 const webhookInFlightSet = new Set();
 const WEBHOOK_MAX_ATTEMPTS = 5;
 const WEBHOOK_RETRY_BASE_MS = 30000;
+// Outbound responses are only ever used for status codes / short excerpts. The
+// old code buffered the whole body with no cap, which let any reachable host
+// exhaust process memory (reachable unauthenticated via /api/tools/*).
+const WEBHOOK_MAX_RESPONSE_BYTES = 512 * 1024;
 
 function decodeWebhookSignatureV2Key(rawValue) {
   const value = (rawValue || '').toString().trim();
@@ -28,7 +32,7 @@ function decodeWebhookSignatureV2Key(rawValue) {
   }
 }
 
-function requestWebhookWithPinnedIp(targetUrl, pinnedIp, { method = 'POST', headers = {}, body = '', timeoutMs = 10000 } = {}) {
+function requestWebhookWithPinnedIp(targetUrl, pinnedIp, { method = 'POST', headers = {}, body = '', timeoutMs = 10000, maxResponseBytes = WEBHOOK_MAX_RESPONSE_BYTES } = {}) {
   return new Promise((resolve, reject) => {
     let parsed;
     try {
@@ -71,14 +75,37 @@ function requestWebhookWithPinnedIp(targetUrl, pinnedIp, { method = 'POST', head
     }, (res) => {
       clearTimeout(timer);
       const chunks = [];
-      res.on('data', (chunk) => chunks.push(chunk));
+      let receivedBytes = 0;
+      let settled = false;
+
+      res.on('data', (chunk) => {
+        if (settled) return;
+        receivedBytes += chunk.length;
+        if (receivedBytes > maxResponseBytes) {
+          settled = true;
+          chunks.length = 0;
+          res.destroy();
+          reject(new Error('Outbound response exceeded the size limit'));
+          return;
+        }
+        chunks.push(chunk);
+      });
+
       res.on('end', () => {
+        if (settled) return;
+        settled = true;
         resolve({
           status: res.statusCode || 0,
           ok: (res.statusCode >= 200 && res.statusCode < 300),
           headers: res.headers,
           body: Buffer.concat(chunks).toString('utf-8'),
         });
+      });
+
+      res.on('error', (err) => {
+        if (settled) return;
+        settled = true;
+        reject(err);
       });
     });
 
@@ -528,5 +555,7 @@ module.exports = {
   webhookTimerMap,
   webhookInFlightSet,
   scheduleWebhookProcessing,
-  buildDiscordWebhookPayload
+  buildDiscordWebhookPayload,
+  requestWebhookWithPinnedIp,
+  WEBHOOK_MAX_RESPONSE_BYTES
 };

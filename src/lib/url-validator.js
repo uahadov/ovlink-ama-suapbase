@@ -31,6 +31,28 @@ const WEBHOOK_BLOCKED_HOSTS = new Set([
   'metadata.aws.internal',
 ]);
 const WEBHOOK_BLOCKED_HOST_SUFFIXES = ['.localhost', '.local', '.internal', '.home.arpa'];
+
+// Ports that are never legitimate webhook/preview destinations and are commonly
+// exposed by internal services (databases, caches, mail, RDP, admin planes).
+// Blocking them stops the pinned-IP fetcher from being used as a service
+// reachability probe (`/api/tools/fetch-metadata` is unauthenticated).
+const WEBHOOK_BLOCKED_PORTS = new Set([
+  22, 23, 25, 110, 143, 389, 445, 465, 587, 636, 873, 993, 995,
+  1433, 1521, 2049, 2375, 2376, 3306, 3389, 5432, 5900, 6379, 7001,
+  9042, 9200, 9300, 11211, 27017, 27018,
+]);
+
+function getEffectivePort(parsed) {
+  const explicit = Number.parseInt(parsed && parsed.port ? parsed.port : '', 10);
+  if (Number.isInteger(explicit) && explicit > 0) return explicit;
+  return (parsed && parsed.protocol === 'https:') ? 443 : 80;
+}
+
+function isBlockedWebhookPort(port) {
+  const value = Number.parseInt(port, 10);
+  if (!Number.isInteger(value) || value <= 0) return true;
+  return WEBHOOK_BLOCKED_PORTS.has(value);
+}
 const WEBHOOK_IP_BLOCKLIST = new net.BlockList();
 
 function addWebhookBlockedSubnet(address, prefix, family) {
@@ -118,6 +140,10 @@ async function validateOutboundWebhookUrl(rawUrl) {
     return { ok: false, normalizedUrl: '', pinnedIp: '', reason: 'invalid_host' };
   }
 
+  if (isBlockedWebhookPort(getEffectivePort(parsed))) {
+    return { ok: false, normalizedUrl: '', pinnedIp: '', reason: 'blocked_port' };
+  }
+
   const directIpVersion = net.isIP(hostnameRaw);
   if (directIpVersion) {
     if (isBlockedWebhookIp(hostnameRaw)) {
@@ -149,5 +175,8 @@ async function validateOutboundWebhookUrl(rawUrl) {
 module.exports = {
   validateOutboundWebhookUrl,
   isBlockedWebhookIp,
-  isBlockedWebhookHostname
+  isBlockedWebhookHostname,
+  isBlockedWebhookPort,
+  getEffectivePort,
+  WEBHOOK_BLOCKED_PORTS
 };

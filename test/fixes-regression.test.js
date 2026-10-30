@@ -282,8 +282,20 @@ test('Regression tests for 5 verified fixes', async (t) => {
     const warnHtml = await warnRes.text();
     assert.ok(warnHtml.includes('m-gateway-card--warning'), 'Must render warning card for dangerous link');
 
-    // When confirm=true is passed, it should proceed to destination
-    const confirmRes = await fetch(`${baseUrl}/${shortDangerous}?confirm=true`, {
+    // A bare ?confirm=true must NOT bypass the warning any more...
+    const unsignedRes = await fetch(`${baseUrl}/${shortDangerous}?confirm=true`, {
+      headers: { 'Cookie': consentCookie },
+      redirect: 'manual',
+    });
+    assert.equal(unsignedRes.status, 200, 'Unsigned confirm must keep rendering the warning');
+
+    // ...only a token signed by the server may.
+    const confirmToken = helpers.buildRedirectConfirmToken(shortDangerous);
+    assert.ok(confirmToken, 'Server must be able to produce a signed confirm token');
+    assert.equal(helpers.isRedirectConfirmTokenValid(shortDangerous, confirmToken), true);
+    assert.equal(helpers.isRedirectConfirmTokenValid('other-short', confirmToken), false, 'Token must be bound to the short code');
+
+    const confirmRes = await fetch(`${baseUrl}/${shortDangerous}?confirm=${encodeURIComponent(confirmToken)}`, {
       headers: { 'Cookie': consentCookie },
       redirect: 'manual',
     });

@@ -49,7 +49,7 @@ router.post('/api/pro/webhooks/create', requireSignedIn, proWriteLimiter, requir
     const validation = await validateOutboundWebhookUrl(req.body && req.body.url);
     if (!validation || !validation.ok) {
       const rawUrl = ((req.body && req.body.url) || '').toString().trim().toLowerCase();
-      const isBlockedTarget = validation && (validation.reason === 'blocked_ip' || validation.reason === 'blocked_host');
+      const isBlockedTarget = validation && (validation.reason === 'blocked_ip' || validation.reason === 'blocked_host' || validation.reason === 'blocked_port');
       const isHttpOnlyUrl = validation && validation.reason === 'invalid_url' && rawUrl.startsWith('http://');
       const reason = isBlockedTarget
         ? pickLang(uiLang, 'Webhook URL daxili/rezerv şəbəkəyə yönəlir və bloklanıb.', 'Webhook URL dahili/rezerve ağa gidiyor ve engellendi.', 'Webhook URL targets an internal/reserved network and is blocked.')
@@ -134,7 +134,7 @@ router.post('/api/pro/webhooks/update', requireSignedIn, proWriteLimiter, requir
       const validation = await validateOutboundWebhookUrl(bodyObj.url);
       if (!validation || !validation.ok) {
         const rawUrl = (bodyObj.url || '').toString().trim().toLowerCase();
-        const isBlockedTarget = validation && (validation.reason === 'blocked_ip' || validation.reason === 'blocked_host');
+        const isBlockedTarget = validation && (validation.reason === 'blocked_ip' || validation.reason === 'blocked_host' || validation.reason === 'blocked_port');
         const isHttpOnlyUrl = validation && validation.reason === 'invalid_url' && rawUrl.startsWith('http://');
         const reason = isBlockedTarget
           ? pickLang(uiLang, 'Webhook URL daxili/rezerv şəbəkəyə yönəlir və bloklanıb.', 'Webhook URL dahili/rezerve ağa gidiyor ve engellendi.', 'Webhook URL targets an internal/reserved network and is blocked.')

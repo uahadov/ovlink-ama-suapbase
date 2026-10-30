@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 
 const { db } = require('../../db/index');
-const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../../db/helpers');
+const { dbGetAsync, dbRunAsync, dbAllAsync, withTransaction } = require('../../db/helpers');
 const {
   normalizeShortCode,
   isReservedShortAlias,
@@ -83,6 +83,21 @@ const WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL = '(user_id = ? OR workspace_id IN (SE
 const WORKSPACE_LINK_MUTATION_SQL = `(user_id = ? OR (workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = ? AND role IN ('${WORKSPACE_ROLES.OWNER}', '${WORKSPACE_ROLES.ADMIN}'))))`;
 
 const API_IDEMPOTENCY_RETENTION_HOURS = 24;
+
+// normalizeHostName() is a host:port normalizer, not a URL parser: handing it an
+// absolute URL returns the scheme ("https"), which silently disabled every
+// domain check that used it. Always extract the hostname from a parsed URL.
+function getUrlHostname(rawUrl) {
+  const value = (rawUrl || '').toString().trim();
+  if (!value) return '';
+  try {
+    const absolute = ensureAbsoluteUrl(value);
+    if (!absolute) return '';
+    return normalizeHostName(new URL(absolute).hostname || '');
+  } catch {
+    return '';
+  }
+}
 
 function normalizeIdempotencyKey(rawValue) {
   const value = (rawValue || '').toString().trim();
@@ -518,7 +533,7 @@ router.post('/api/pro/v1/shorten', authenticateProApiKey, trackProApiUsage, proW
 
     for (const altUrl of [originalBAbs, iosUrlAbs, androidUrlAbs]) {
       if (altUrl) {
-        const altHost = normalizeHostName(altUrl);
+        const altHost = getUrlHostname(altUrl);
         if (altHost) {
           const blockedAlt = await dbGetAsync(
             "SELECT domain FROM blocked_domains WHERE ? = domain OR ? LIKE '%.' || domain LIMIT 1",
@@ -1123,44 +1138,48 @@ function handleStatsApiRequest(req, res, rawShort) {
 }
 
 
-router.post('/api/user/delete', (req, res) => {
+router.post('/api/user/delete', async (req, res) => {
   if (!req.session.userId) return res.status(401).send('Giriş yapmalısınız.');
   const safeShort = normalizeShortCode(req.body && req.body.short);
   if (!safeShort) return res.status(400).send('Geçersiz kısa kod.');
-  db.get(`SELECT id, short, original, domain_host FROM urls WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`, [safeShort, req.session.userId, req.session.userId], (findErr, foundRow) => {
-    if (findErr) return res.status(500).send('Link silinemedi.');
+
+  try {
+    const foundRow = await dbGetAsync(
+      `SELECT id, short, original, domain_host FROM urls WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`,
+      [safeShort, req.session.userId, req.session.userId]
+    );
     if (!foundRow) return res.status(404).send('Link tapılmadı və ya səlahiyyətiniz yoxdur.');
 
-    const proceedUrlDelete = () => {
-      db.run(`DELETE FROM urls WHERE short = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`, [safeShort, req.session.userId, req.session.userId], function (err) {
-        if (err) return res.status(500).send('Link silinemedi.');
-        if (this.changes === 0) return res.status(404).send('Link tapılmadı və ya səlahiyyətiniz yoxdur.');
+    await withTransaction(async (tx) => {
+      if (foundRow.id) {
+        await tx.run('DELETE FROM clicks WHERE url_id = ?', [foundRow.id]);
+      }
+      await tx.run('DELETE FROM reports WHERE short = ?', [foundRow.short || safeShort]);
+      const delResult = await tx.run(
+        `DELETE FROM urls WHERE id = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`,
+        [foundRow.id, req.session.userId, req.session.userId]
+      );
+      if (delResult && delResult.changes === 0) {
+        throw new Error('NOT_FOUND_OR_UNAUTHORIZED');
+      }
+    });
 
-        const shortUrl = buildShortUrl(req, foundRow.short || safeShort, foundRow.domain_host || '');
-        void enqueueWebhookEventForUser(req.session.userId, 'link.deleted', {
-          short: foundRow.short || safeShort,
-          short_url: shortUrl,
-          original_url: foundRow.original || '',
-          domain: normalizeHostName(foundRow.domain_host || '') || null,
-          deleted_at: new Date().toISOString(),
-        });
-        res.redirect('/dashboard');
-      });
-    };
-
-    // Clean up dependent child records before deleting the URL so foreign key constraints are not violated
-    if (foundRow.id) {
-      db.run('DELETE FROM clicks WHERE url_id = ?', [foundRow.id], () => {
-        db.run('DELETE FROM reports WHERE short = ?', [foundRow.short || safeShort], () => {
-          proceedUrlDelete();
-        });
-      });
-    } else {
-      db.run('DELETE FROM reports WHERE short = ?', [foundRow.short || safeShort], () => {
-        proceedUrlDelete();
-      });
+    const shortUrl = buildShortUrl(req, foundRow.short || safeShort, foundRow.domain_host || '');
+    void enqueueWebhookEventForUser(req.session.userId, 'link.deleted', {
+      short: foundRow.short || safeShort,
+      short_url: shortUrl,
+      original_url: foundRow.original || '',
+      domain: normalizeHostName(foundRow.domain_host || '') || null,
+      deleted_at: new Date().toISOString(),
+    });
+    return res.redirect('/dashboard');
+  } catch (err) {
+    if (err && err.message === 'NOT_FOUND_OR_UNAUTHORIZED') {
+      return res.status(404).send('Link tapılmadı və ya səlahiyyətiniz yoxdur.');
     }
-  });
+    console.error('[links] delete error:', err);
+    return res.status(500).send('Link silinemedi.');
+  }
 });
 
 // KULLANICI TOPLU LINK SİLME (POST /api/user/delete-bulk)
@@ -1197,7 +1216,7 @@ router.post('/api/user/delete-bulk',
   db.all(
     `SELECT id, short, original, domain_host FROM urls WHERE ${WORKSPACE_LINK_MUTATION_SQL} AND short IN (${placeholders})`,
     [req.session.userId, req.session.userId, ...valid],
-    (findErr, foundRows) => {
+    async (findErr, foundRows) => {
       if (findErr) return res.status(500).json({ error: 'Server error.' });
 
       const targetRows = Array.isArray(foundRows) ? foundRows : [];
@@ -1210,54 +1229,45 @@ router.post('/api/user/delete-bulk',
       const targetIds = targetRows.map(r => r.id).filter(Boolean);
       const targetShorts = targetRows.map(r => r.short).filter(Boolean);
 
-      const performBulkDelete = () => {
-        db.run(
-          `DELETE FROM urls WHERE ${WORKSPACE_LINK_MUTATION_SQL} AND short IN (${placeholders})`,
-          [req.session.userId, req.session.userId, ...valid],
-          function (err) {
-            if (err) return res.status(500).json({ error: 'Server error.' });
-
-            targetRows.forEach((row) => {
-              const shortCode = (row && row.short) ? row.short : '';
-              if (!shortCode) return;
-              const shortUrl = buildShortUrl(req, shortCode, row.domain_host || '');
-              void enqueueWebhookEventForUser(req.session.userId, 'link.deleted', {
-                short: shortCode,
-                short_url: shortUrl,
-                original_url: row.original || '',
-                domain: normalizeHostName(row.domain_host || '') || null,
-                deleted_at: new Date().toISOString(),
-              });
-            });
-
-            return res.json({
-              success: true,
-              deleted: this.changes || targetRows.length,
-              message: pickLang(uiLang, 'Linklər uğurla silindi.', 'Linkler başarıyla silindi.', 'Links successfully deleted.')
-            });
+      try {
+        let deletedCount = 0;
+        await withTransaction(async (tx) => {
+          if (targetIds.length > 0) {
+            const idPlaceholders = targetIds.map(() => '?').join(',');
+            await tx.run(`DELETE FROM clicks WHERE url_id IN (${idPlaceholders})`, targetIds);
           }
-        );
-      };
-
-      const cleanupReportsAndProceed = () => {
-        if (targetShorts.length > 0) {
-          const shortPlaceholders = targetShorts.map(() => '?').join(',');
-          db.run(`DELETE FROM reports WHERE short IN (${shortPlaceholders})`, targetShorts, () => {
-            performBulkDelete();
-          });
-        } else {
-          performBulkDelete();
-        }
-      };
-
-      // Clean up dependent child records before deleting URLs
-      if (targetIds.length > 0) {
-        const idPlaceholders = targetIds.map(() => '?').join(',');
-        db.run(`DELETE FROM clicks WHERE url_id IN (${idPlaceholders})`, targetIds, () => {
-          cleanupReportsAndProceed();
+          if (targetShorts.length > 0) {
+            const shortPlaceholders = targetShorts.map(() => '?').join(',');
+            await tx.run(`DELETE FROM reports WHERE short IN (${shortPlaceholders})`, targetShorts);
+          }
+          const delRes = await tx.run(
+            `DELETE FROM urls WHERE ${WORKSPACE_LINK_MUTATION_SQL} AND short IN (${placeholders})`,
+            [req.session.userId, req.session.userId, ...valid]
+          );
+          deletedCount = (delRes && delRes.changes) || targetRows.length;
         });
-      } else {
-        cleanupReportsAndProceed();
+
+        targetRows.forEach((row) => {
+          const shortCode = (row && row.short) ? row.short : '';
+          if (!shortCode) return;
+          const shortUrl = buildShortUrl(req, shortCode, row.domain_host || '');
+          void enqueueWebhookEventForUser(req.session.userId, 'link.deleted', {
+            short: shortCode,
+            short_url: shortUrl,
+            original_url: row.original || '',
+            domain: normalizeHostName(row.domain_host || '') || null,
+            deleted_at: new Date().toISOString(),
+          });
+        });
+
+        return res.json({
+          success: true,
+          deleted: deletedCount,
+          message: pickLang(uiLang, 'Linklər uğurla silindi.', 'Linkler başarıyla silindi.', 'Links successfully deleted.')
+        });
+      } catch (err) {
+        console.error('[links] bulk delete error:', err);
+        return res.status(500).json({ error: 'Server error.' });
       }
     }
   );
@@ -1590,6 +1600,9 @@ router.post('/api/user/import',
                 shortUrl: buildShortUrl(req, short, ''),
                 original: originalAbs,
               });
+              // Imported links must go through the same threat scan as links
+              // created one by one, otherwise bulk import is a scanner bypass.
+              scanUrlAsync(short, originalAbs, req.session.userId);
               return done();
             }
             const msg = (err && err.message || '').toLowerCase();
@@ -1620,8 +1633,7 @@ router.post('/api/user/import',
         }
 
         const originalAbs = urls[index];
-        let hostname = '';
-        try { hostname = new URL(originalAbs).hostname.toLowerCase(); } catch { hostname = ''; }
+        const hostname = getUrlHostname(originalAbs);
 
         if (!hostname) {
           skipped += 1;
@@ -1629,8 +1641,8 @@ router.post('/api/user/import',
         }
 
         db.get(
-          'SELECT 1 FROM blocked_domains WHERE domain = ? OR domain = ?',
-          [hostname, `.${hostname}`],
+          "SELECT 1 FROM blocked_domains WHERE ? = domain OR ? LIKE '%.' || domain LIMIT 1",
+          [hostname, hostname],
           (bErr, bRow) => {
             if (bRow) {
               blocked += 1;
@@ -1658,6 +1670,7 @@ router.parseTagsJson = parseTagsJson;
 router.normalizeTagsInput = normalizeTagsInput;
 router.normalizeIdempotencyKey = normalizeIdempotencyKey;
 router.buildShortenIdempotencyRequestHash = buildShortenIdempotencyRequestHash;
+router.getUrlHostname = getUrlHostname;
 
 module.exports = router;
 module.exports.escapeCsvCell = escapeCsvCell;
@@ -1665,3 +1678,4 @@ module.exports.parseTagsJson = parseTagsJson;
 module.exports.normalizeTagsInput = normalizeTagsInput;
 module.exports.normalizeIdempotencyKey = normalizeIdempotencyKey;
 module.exports.buildShortenIdempotencyRequestHash = buildShortenIdempotencyRequestHash;
+module.exports.getUrlHostname = getUrlHostname;

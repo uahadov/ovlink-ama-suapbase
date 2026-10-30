@@ -88,8 +88,16 @@
         </div>
 
         <!-- Dual Action Row: Continue vs Go Back -->
+        <%
+          // The browser must only be able to bypass this warning with a token
+          // this server signed after rendering it (see src/lib/consent.js).
+          const warningShort = (typeof short !== 'undefined' && short) ? short.toString() : '';
+          const warningConfirmHref = (typeof confirmUrl !== 'undefined' && confirmUrl)
+            ? confirmUrl
+            : ('/' + encodeURIComponent(warningShort) + ((typeof confirmToken !== 'undefined' && confirmToken) ? ('?confirm=' + encodeURIComponent(confirmToken)) : ''));
+        %>
         <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-          <a href="/<%= (typeof short !== 'undefined' && short) ? encodeURIComponent(short) : '' %>?confirm=true" class="m-btn m-btn-solid" style="display:inline-flex; align-items:center; gap:8px; padding: 12px 24px; border-radius: 999px; background: #f59e0b; color: #0a0a0a; border-color: #f59e0b; text-decoration:none;">
+          <a href="<%= warningConfirmHref %>" class="m-btn m-btn-solid" style="display:inline-flex; align-items:center; gap:8px; padding: 12px 24px; border-radius: 999px; background: #f59e0b; color: #0a0a0a; border-color: #f59e0b; text-decoration:none;">
             <i class="fa-solid fa-arrow-right"></i>
             <span data-i18n="danger_continue">Davam et</span>
           </a>

@@ -18,9 +18,9 @@ const { ensureAbsoluteUrl, normalizeShortCode, isReservedShortAlias, normalizeCu
 const { checkLiveThreat, checkUrlhausThreat, checkGoogleSafeBrowsingThreat, checkVirusTotalThreat, quarantineUrlByShort, scanUrlAsync, runWeeklySafetyScan } = require('./src/lib/safety');
 const { getRequestIp, maskIpForDisplay, buildNetworkFingerprintForDisplay } = require('./src/lib/geo');
 const { getPublicBaseUrl, buildAbsoluteUrl, hasApiKeyAuthHeader, hashApiKeyValueLegacy, hashApiKeyValue, hashWebhookSecretValueV2, buildWebhookSignatureV2Key } = require('./src/lib/security');
-const { normalizeConsentMode, normalizeConsentNext, buildRedirectConsentSignature, isRedirectConsentSignatureValid } = require('./src/lib/consent');
+const { normalizeConsentMode, normalizeConsentNext, buildRedirectConsentSignature, isRedirectConsentSignatureValid, buildRedirectConfirmToken, isRedirectConfirmTokenValid } = require('./src/lib/consent');
 const { normalizeFutureExpiryInput, isIsoTimeExpired } = require('./src/lib/plans');
-const { isBlockedWebhookIp, isBlockedWebhookHostname, validateOutboundWebhookUrl } = require('./src/lib/url-validator');
+const { isBlockedWebhookIp, isBlockedWebhookHostname, isBlockedWebhookPort, getEffectivePort, validateOutboundWebhookUrl } = require('./src/lib/url-validator');
 const { resolveFinalRedirectUrl } = require('./src/routes/redirect');
 const { dbRunAsync, dbGetAsync, dbAllAsync, withTransaction } = require('./src/db/helpers');
 const { pool } = require('./src/db/pool');
@@ -120,6 +120,8 @@ module.exports = {
     isIsoTimeExpired,
     buildRedirectConsentSignature,
     isRedirectConsentSignatureValid,
+    buildRedirectConfirmToken,
+    isRedirectConfirmTokenValid,
     hasApiKeyAuthHeader,
     hashApiKeyValueLegacy,
     hashApiKeyValue,
@@ -127,6 +129,8 @@ module.exports = {
     buildWebhookSignatureV2Key,
     isBlockedWebhookIp,
     isBlockedWebhookHostname,
+    isBlockedWebhookPort,
+    getEffectivePort,
     validateOutboundWebhookUrl,
     resolveFinalRedirectUrl,
     dbRunAsync,

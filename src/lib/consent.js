@@ -53,6 +53,59 @@ function isRedirectConsentSignatureValid(short, nextAction, readyAt, signature) 
   return tsscmp(expected, received);
 }
 
+// ---------------------------------------------------------------------------
+// Signed "I know the risk" token for the dangerous-link interstitial.
+// A bare ?confirm=1 asked the visitor nothing: anyone (including the abuser)
+// could append it and suppress the warning entirely. The token is an HMAC over
+// the short code + expiry, so it can only be produced by this server after the
+// warning page was actually rendered.
+// ---------------------------------------------------------------------------
+const REDIRECT_CONFIRM_TTL_MS = 30 * 60 * 1000;
+
+function signRedirectConfirmPayload(payload) {
+  try {
+    const secret = (process.env.SESSION_SECRET || '').toString();
+    if (!secret) return '';
+    return crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+  } catch {
+    return '';
+  }
+}
+
+function buildRedirectConfirmSignature(short, expiresAt) {
+  const safeShort = (short || '').toString();
+  const safeExpires = Number.parseInt(expiresAt, 10);
+  if (!safeShort || !Number.isFinite(safeExpires)) return '';
+  return signRedirectConfirmPayload(`ovlink:redirect-confirm:v1|${safeShort}|${safeExpires}`);
+}
+
+function buildRedirectConfirmToken(short, nowMs = Date.now()) {
+  const safeShort = (short || '').toString();
+  if (!safeShort) return '';
+  const expiresAt = Number.parseInt(nowMs, 10) + REDIRECT_CONFIRM_TTL_MS;
+  const signature = buildRedirectConfirmSignature(safeShort, expiresAt);
+  if (!signature) return '';
+  return `${expiresAt}.${signature}`;
+}
+
+function isRedirectConfirmTokenValid(short, rawToken, nowMs = Date.now()) {
+  const safeShort = (short || '').toString();
+  const value = (rawToken || '').toString().trim();
+  if (!safeShort || !value) return false;
+  const separator = value.indexOf('.');
+  if (separator <= 0 || separator === value.length - 1) return false;
+  const expiresAt = Number.parseInt(value.slice(0, separator), 10);
+  const received = value.slice(separator + 1);
+  if (!Number.isFinite(expiresAt) || expiresAt <= Number.parseInt(nowMs, 10)) return false;
+  const expected = buildRedirectConfirmSignature(safeShort, expiresAt);
+  if (!expected) return false;
+  try {
+    return tsscmp(expected, received);
+  } catch {
+    return false;
+  }
+}
+
 function getRedirectConsentModeForRequest(req, short, nextAction) {
   const cookieMode = getRedirectConsentMode(req);
   if (cookieMode) return { mode: cookieMode, source: 'cookie' };
@@ -122,6 +175,10 @@ function clearRedirectConsentMode(res) {
 module.exports = {
   buildRedirectConsentSignature,
   isRedirectConsentSignatureValid,
+  buildRedirectConfirmSignature,
+  buildRedirectConfirmToken,
+  isRedirectConfirmTokenValid,
+  REDIRECT_CONFIRM_TTL_MS,
   normalizeConsentMode,
   normalizeConsentNext,
   getRedirectConsentMode,

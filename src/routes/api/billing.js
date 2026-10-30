@@ -503,6 +503,12 @@ router.post('/api/polar/webhook', async (req, res) => {
   } catch (handlerErr) {
     console.error('[polar-webhook] Processing error:', handlerErr);
     sendOpsAlert('polar_processing', 'Polar webhook processing error', (handlerErr && handlerErr.message) || String(handlerErr));
+    // The dedupe marker was written before processing started. If we leave it in
+    // place, Polar's retry is swallowed as a duplicate and a paid customer never
+    // gets access. Release it so the retry is processed for real.
+    if (polarWebhookId) {
+      await dbRunAsync('DELETE FROM polar_processed_webhooks WHERE webhook_id = ?', [polarWebhookId]).catch(() => {});
+    }
     return res.status(500).json({ error: 'internal error' });
   }
 });

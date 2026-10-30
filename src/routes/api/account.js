@@ -8,7 +8,7 @@ const { body, validationResult } = require('express-validator');
 
 const { db } = require('../../db/index');
 const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../../db/helpers');
-const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('../../../utils/crypto');
+const { encryptAES256GCM, decryptAES256GCM, safeDecrypt, blindIndex } = require('../../../utils/crypto');
 const { pickLang, normalizeLang, getCookieValue } = require('../../lib/i18n');
 const { isProdRuntime } = require('../../config/index');
 const tsscmp = require('tsscmp');
@@ -28,7 +28,9 @@ const { isProAccessActive, getEffectivePlanForUser, buildPlanPayload, isProExpir
 const tempEmailDomains = ['mailinator.com', 'tempmail.com', '10minutemail.com', 'guerrillamail.com', 'sharklasers.com', 'trashmail.com', 'yopmail.com'];
 
 function generateVerificationCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  // Math.random() is not a CSPRNG: its state is recoverable from a handful of
+  // outputs, which would make 6-digit e-mail codes predictable.
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 function normalizeSessionToken(raw) {
@@ -113,33 +115,44 @@ router.post('/api/register',
             })
             .catch((error) => {
               console.error("Mail gönderim hatası:", error);
-              // Only delete if we just created the row (new user). If it's an existing unverified user, we don't delete them.
-              if (!existingUser && userId) {
-                db.run('DELETE FROM users WHERE id = ?', [userId], () => {});
+              // The row was just created for this request; drop it so a later
+              // attempt starts clean.
+              if (userId) {
+                db.run('DELETE FROM users WHERE id = ? AND COALESCE(email_verified, 0) <> 1', [userId], () => {});
               }
               res.status(500).json({ error: pickLang(uiLang, 'Təsdiqləmə e-poçtu göndərilə bilmədi. Zəhmət olmasa bir az sonra yenidən cəhd edin.', 'Doğrulama e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin.', 'Verification email could not be sent. Please try again later.') });
             });
         };
 
-        if (existingUser) {
-          // Update existing unverified user
-          db.run('UPDATE users SET password = ?, verification_code = ?, verification_expires_at = ?, ui_lang = ? WHERE id = ?', 
-            [hashed, verificationCode, verificationExpiresAt, initialLang, existingUser.id], 
-            function (updateErr) {
-              if (updateErr) return res.status(500).json({ error: accountCreateFailedMsg });
-              proceedToSendEmail(existingUser.id);
-            }
-          );
-        } else {
-          // Insert new user
-          db.run('INSERT INTO users (email, email_hash, password, verification_code, verification_expires_at, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)', 
-            [encryptAES256GCM(email), blindIndex(email), hashed, verificationCode, verificationExpiresAt, 'local', new Date().toISOString(), initialLang, 'light'], 
+        const insertNewUser = () => {
+          db.run('INSERT INTO users (email, email_hash, password, verification_code, verification_expires_at, auth_provider, created_at, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)',
+            [encryptAES256GCM(email), blindIndex(email), hashed, verificationCode, verificationExpiresAt, 'local', new Date().toISOString(), initialLang, 'light'],
             function (insertErr) {
               if (insertErr) return res.status(400).json({ error: emailInUseMsg });
               proceedToSendEmail(this.lastID);
             }
           );
+        };
+
+        if (existingUser) {
+          // An unverified row for this address is untrusted: it may have been
+          // created by somebody else (pre-account-takeover). Never mutate it —
+          // purge it and start from a clean row so no attacker-chosen password
+          // can survive verification.
+          db.run('DELETE FROM password_resets WHERE user_id = ?', [existingUser.id], () => {
+            db.run('DELETE FROM user_sessions WHERE user_id = ?', [existingUser.id], () => {
+              db.run('DELETE FROM bot_users WHERE user_id = ?', [existingUser.id], () => {
+                db.run('DELETE FROM users WHERE id = ? AND COALESCE(email_verified, 0) <> 1', [existingUser.id], (deleteErr) => {
+                  if (deleteErr) return res.status(500).json({ error: accountCreateFailedMsg });
+                  return insertNewUser();
+                });
+              });
+            });
+          });
+          return;
         }
+
+        return insertNewUser();
       });
     });
   });
@@ -169,7 +182,7 @@ router.post('/api/verify-email',
     db.get('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(email)], (err, user) => {
       if (err || !user) return res.status(404).json({ error: pickLang(uiLang, 'İstifadəçi tapılmadı.', 'Kullanıcı bulunamadı.', 'User not found.') });
 
-      const storedCode = decryptAES256GCM((user.verification_code || '').toString());
+      const storedCode = safeDecrypt((user.verification_code || '').toString(), (user.verification_code || '').toString());
       const verificationExpiresMs = Date.parse((user.verification_expires_at || '').toString());
       if (!Number.isFinite(verificationExpiresMs) || verificationExpiresMs <= Date.now()) {
         return res.status(400).json({
@@ -195,7 +208,7 @@ router.post('/api/verify-email',
         return req.session.regenerate((regenErr) => {
           if (regenErr) return res.status(500).json({ error: pickLang(uiLang, 'Oturum açıla bilmədi.', 'Oturum açılamadı.', 'Session could not be created.') });
           req.session.userId = user.id;
-          req.session.username = decryptAES256GCM(user.email);
+          req.session.username = safeDecrypt(user.email, user.email || '');
           return upsertUserSessionRecord(req, user.id, { loginMethod: 'verify_email' }, () => {
             return req.session.save((saveErr) => {
               if (saveErr) return res.status(500).json({ error: pickLang(uiLang, 'Oturum açıla bilmədi.', 'Oturum açılamadı.', 'Session could not be created.') });
@@ -223,14 +236,18 @@ router.post('/api/resend-verification',
     }
 
     const email = (req.body.email || '').toString().trim().toLowerCase();
+    // Uniform answer for every outcome: unknown address, already verified or
+    // newly sent. Anything else turns this endpoint into an account oracle.
+    const genericMsg = pickLang(
+      uiLang,
+      'Əgər bu e-poçt ünvanı üçün təsdiq tələb olunursa, yeni kod göndərildi.',
+      'Bu e-posta adresi için doğrulama gerekiyorsa yeni kod gönderildi.',
+      'If this address needs verification, a new code has been sent.'
+    );
 
     db.get('SELECT * FROM users WHERE email_hash = ? ORDER BY id DESC', [blindIndex(email)], (err, user) => {
-      if (err || !user) {
-        return res.status(404).json({ error: pickLang(uiLang, 'İstifadəçi tapılmadı.', 'Kullanıcı bulunamadı.', 'User not found.') });
-      }
-
-      if (user.email_verified == 1) {
-        return res.status(400).json({ error: pickLang(uiLang, 'Bu e-poçt artıq təsdiqlənib.', 'Bu e-posta zaten doğrulanmış.', 'This email is already verified.') });
+      if (err || !user || user.email_verified == 1) {
+        return res.json({ message: genericMsg });
       }
 
       // Generate new verification code
@@ -242,21 +259,16 @@ router.post('/api/resend-verification',
         [verificationCode, verificationExpiresAt, user.id], (updateErr) => {
         if (updateErr) {
           console.error('Failed to update verification code:', updateErr);
-          return res.status(500).json({ error: pickLang(uiLang, 'Təsdiqləmə kodu yeniləmə xətası.', 'Doğrulama kodu güncellenemedi.', 'Failed to update verification code.') });
+          return res.json({ message: genericMsg });
         }
 
         sendVerificationEmail(decryptAES256GCM(user.email), rawVerificationCode, uiLang)
           .then(() => {
-            res.json({ message: pickLang(uiLang, 'Yeni təsdiqləmə kodu göndərildi.', 'Yeni doğrulama kodu gönderildi.', 'New verification code sent.') });
+            res.json({ message: genericMsg });
           })
           .catch((error) => {
-            console.error("Resend verification email error:", error);
-            console.error("Email resend error details:", {
-              message: error.message || 'Unknown error',
-              statusCode: error.statusCode || 'N/A',
-              name: error.name || 'Error'
-            });
-            res.status(500).json({ error: pickLang(uiLang, 'Təsdiqləmə e-poçtu göndərilə bilmədi.', 'Doğrulama e-postası gönderilemedi.', 'Verification email could not be sent.') });
+            console.error("Resend verification email error:", error && (error.message || error));
+            res.json({ message: genericMsg });
           });
       });
     });
@@ -305,10 +317,41 @@ router.post('/api/login',
         logSecurityEvent(req, 'auth.login', 'blocked', { reason: 'google_only_account', user_id: user.id });
         return res.status(403).json({ error: pickLang(uiLang, 'Bu hesab Google ilə giriş üçündür.', 'Bu hesap Google ile giriş içindir.', 'This account uses Google sign-in.') });
       }
+
+      const lockUntil = user.lock_until ? Date.parse(user.lock_until) : 0;
+      if (lockUntil && lockUntil > Date.now()) {
+        const remainingMins = Math.max(1, Math.ceil((lockUntil - Date.now()) / (60 * 1000)));
+        logSecurityEvent(req, 'auth.login', 'blocked', { reason: 'account_locked', user_id: user.id });
+        return res.status(429).json({
+          error: pickLang(
+            uiLang,
+            `Hesab çoxsaylı səhv cəhdlərə görə kilidlənib. Zəhmət olmasa ${remainingMins} dəqiqə sonra yenidən cəhd edin.`,
+            `Hesap çok sayıda hatalı deneme nedeniyle kilitlendi. Lütfen ${remainingMins} dakika sonra tekrar deneyin.`,
+            `Account locked due to multiple failed login attempts. Please try again in ${remainingMins} minutes.`
+          )
+        });
+      }
+
       return bcrypt.compare(password, user.password, (cmpErr, passwordOk) => {
         if (cmpErr || !passwordOk) {
-          logSecurityEvent(req, 'auth.login', 'failure', { reason: 'invalid_password', user_id: user.id });
+          const currentFailed = Number(user.failed_login_count) || 0;
+          const newFailed = currentFailed + 1;
+          const nowIso = new Date().toISOString();
+          let lockUntilIso = null;
+          if (newFailed >= 5) {
+            lockUntilIso = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+          }
+          db.run(
+            'UPDATE users SET failed_login_count = ?, lock_until = ?, last_failed_at = ? WHERE id = ?',
+            [newFailed >= 5 ? 0 : newFailed, lockUntilIso, nowIso, user.id],
+            () => {}
+          );
+          logSecurityEvent(req, 'auth.login', 'failure', { reason: 'invalid_password', user_id: user.id, failed_count: newFailed });
           return res.status(401).json({ error: wrongMsg });
+        }
+
+        if (user.failed_login_count || user.lock_until) {
+          db.run('UPDATE users SET failed_login_count = 0, lock_until = NULL WHERE id = ?', [user.id], () => {});
         }
         if (user.email_verified != 1) {
           logSecurityEvent(req, 'auth.login', 'blocked', { reason: 'email_unverified', user_id: user.id });
@@ -403,7 +446,7 @@ router.post('/api/verify-2fa', authLimiter, (req, res) => {
       return res.status(401).json({ error: pickLang(uiLang, 'Kod yoxlanıla bilmədi.', 'Kod doğrulanamadı.', 'Code could not be verified.') });
     }
     const ok = speakeasy.totp.verify({
-      secret: decryptAES256GCM(user.totp_secret),
+      secret: safeDecrypt(user.totp_secret, ''),
       encoding: 'base32',
       token: code,
       window: 1
@@ -413,7 +456,7 @@ router.post('/api/verify-2fa', authLimiter, (req, res) => {
       return res.status(401).json({ error: pickLang(uiLang, 'Kod yanlışdır.', 'Kod hatalı.', 'Invalid code.') });
     }
 
-    const emailPlain = decryptAES256GCM(user.email);
+    const emailPlain = safeDecrypt(user.email, user.email || '');
     delete req.session.pending2faUserId;
     delete req.session.pending2faStartedAt;
     delete req.session.pending2faUsername;
@@ -606,7 +649,7 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
             return res.redirect('/login?error=google_failed&reason=session_regenerate_failed:' + (regenErr ? regenErr.message : 'unknown'));
           }
           req.session.userId = user.id;
-          req.session.username = decryptAES256GCM(user.email);
+          req.session.username = safeDecrypt(user.email, user.email || '');
           db.run('UPDATE users SET last_login_at = ? WHERE id = ?', [new Date().toISOString(), user.id], () => {});
           return upsertUserSessionRecord(req, user.id, { loginMethod: 'google' }, () => {
             return req.session.save((saveErr) => {
@@ -666,7 +709,7 @@ router.get('/auth/google/callback', authLimiter, async (req, res) => {
                   return res.redirect('/login?error=google_failed&reason=session_regenerate_failed:' + (regenErr ? regenErr.message : 'unknown'));
                 }
                 req.session.userId = existing.id;
-                req.session.username = decryptAES256GCM(existing.email);
+                req.session.username = safeDecrypt(existing.email, existing.email || '');
                 db.run('UPDATE users SET last_login_at = ? WHERE id = ?', [new Date().toISOString(), existing.id], () => {});
                 return upsertUserSessionRecord(req, existing.id, { loginMethod: 'google' }, () => {
                   return req.session.save((saveErr) => {
@@ -1031,7 +1074,7 @@ router.post('/api/user/2fa/enable', requireSignedIn, sensitiveActionLimiter, (re
     if (err || !row || !row.totp_pending_secret) {
       return res.status(400).json({ error: pickLang(uiLang, 'Əvvəlcə quraşdırmanı başladın.', 'Önce kurulumu başlatın.', 'Start the setup first.') });
     }
-    const ok = speakeasy.totp.verify({ secret: decryptAES256GCM(row.totp_pending_secret), encoding: 'base32', token: code, window: 1 });
+    const ok = speakeasy.totp.verify({ secret: safeDecrypt(row.totp_pending_secret, ''), encoding: 'base32', token: code, window: 1 });
     if (!ok) {
       return res.status(400).json({ error: pickLang(uiLang, 'Kod yanlışdır.', 'Kod hatalı.', 'Invalid code.') });
     }
@@ -1055,7 +1098,7 @@ router.post('/api/user/2fa/disable', requireSignedIn, sensitiveActionLimiter, (r
     const isPasswordless = ['google', 'sso'].includes(row.auth_provider) || !row.password;
 
     const finalizeDisable = () => {
-      const ok = speakeasy.totp.verify({ secret: decryptAES256GCM(row.totp_secret), encoding: 'base32', token: code, window: 1 });
+      const ok = speakeasy.totp.verify({ secret: safeDecrypt(row.totp_secret, ''), encoding: 'base32', token: code, window: 1 });
       if (!ok) {
         return res.status(400).json({ error: pickLang(uiLang, 'Kod yanlışdır.', 'Kod hatalı.', 'Invalid code.') });
       }
@@ -1103,7 +1146,7 @@ router.post('/api/user/email/change',
 
     db.get('SELECT id, email, password FROM users WHERE id = ?', [req.session.userId], (err, row) => {
       if (err || !row) return res.status(500).json({ error: 'Server error.' });
-      const currentEmail = decryptAES256GCM(row.email).trim().toLowerCase();
+      const currentEmail = safeDecrypt(row.email, row.email || '').trim().toLowerCase();
       if (newEmail === currentEmail) {
         return res.status(400).json({ error: pickLang(uiLang, 'Yeni e-poçt cari e-poçtla eynidir.', 'Yeni e-posta mevcut e-postayla aynı.', 'The new email is the same as the current one.') });
       }
@@ -1151,12 +1194,12 @@ router.post('/api/user/email/confirm', authLimiter, (req, res) => {
       db.run('UPDATE users SET pending_email = NULL, pending_email_code = NULL, pending_email_expires_at = NULL WHERE id = ?', [req.session.userId], () => {});
       return res.status(400).json({ error: pickLang(uiLang, 'Kodun vaxtı bitib.', 'Kodun süresi doldu.', 'The code has expired.') });
     }
-    const storedCode = decryptAES256GCM(row.pending_email_code);
+    const storedCode = safeDecrypt(row.pending_email_code, '');
     if (storedCode.length !== code.length || !tsscmp(storedCode, code)) {
       return res.status(400).json({ error: pickLang(uiLang, 'Kod yanlışdır.', 'Kod hatalı.', 'Invalid code.') });
     }
 
-    const newEmailPlain = decryptAES256GCM(row.pending_email).trim().toLowerCase();
+    const newEmailPlain = safeDecrypt(row.pending_email, '').trim().toLowerCase();
     db.run(
       'UPDATE users SET email = ?, email_hash = ?, pending_email = NULL, pending_email_code = NULL, pending_email_expires_at = NULL WHERE id = ?',
       [encryptAES256GCM(newEmailPlain), blindIndex(newEmailPlain), req.session.userId],

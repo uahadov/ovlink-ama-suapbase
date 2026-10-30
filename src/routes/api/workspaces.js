@@ -7,7 +7,7 @@ const { requireSignedIn, requireProAccess } = require('../../middleware/auth');
 const { pickLang, normalizeLang, getCookieValue } = require('../../lib/i18n');
 const { isProAccessActive, isIsoTimeExpired, getEffectivePlanForUser } = require('../../lib/plans');
 const { db } = require('../../db/index');
-const { sensitiveActionLimiter, mutationLimiter, authLimiter } = require('../../middleware/rate-limiter');
+const { sensitiveActionLimiter, mutationLimiter, authLimiter, generalLimiter } = require('../../middleware/rate-limiter');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('../../../utils/crypto');
 const {
   isPublicConsumerEmailDomain,
@@ -465,7 +465,7 @@ async function loadActiveWorkspaceSso(workspaceId) {
   return { workspace, sso: ssoRow };
 }
 
-router.get('/sso/:workspaceId/metadata', async (req, res) => {
+router.get('/sso/:workspaceId/metadata', generalLimiter, async (req, res) => {
   const loaded = await loadActiveWorkspaceSso(req.params.workspaceId).catch(() => null);
   if (!loaded) return res.status(404).send('SSO is not configured for this workspace.');
   try {
@@ -564,7 +564,7 @@ router.post('/api/auth/realm-lookup', authLimiter, async (req, res) => {
   }
 });
 
-router.get('/sso/:workspaceId/login', async (req, res) => {
+router.get('/sso/:workspaceId/login', generalLimiter, async (req, res) => {
   const loaded = await loadActiveWorkspaceSso(req.params.workspaceId).catch(() => null);
   if (!loaded) return res.redirect('/login?sso=error');
   try {
@@ -601,7 +601,7 @@ router.get('/sso/:workspaceId/login', async (req, res) => {
   }
 });
 
-router.post('/sso/:workspaceId/acs', async (req, res) => {
+router.post('/sso/:workspaceId/acs', generalLimiter, async (req, res) => {
   const redirectError = (reason = 'error') => res.redirect(`/login?sso=${encodeURIComponent(reason)}`);
   const loaded = await loadActiveWorkspaceSso(req.params.workspaceId).catch(() => null);
   if (!loaded) return redirectError('error');
@@ -620,16 +620,20 @@ router.post('/sso/:workspaceId/acs', async (req, res) => {
     return redirectError('error');
   }
 
-  // Browser-bound RelayState validation (F-03)
+  // Browser-bound RelayState validation (F-03). Fail closed: if the cookie is
+  // missing the IdP response was produced in a different browser / session and
+  // is being pushed into this one, which is a login-CSRF / session swap.
   const cookieRelayState = getCookieValue(req, `sso_relay_${loaded.workspace.id}`);
   res.clearCookie(`sso_relay_${loaded.workspace.id}`, { path: `/sso/${loaded.workspace.id}/acs` });
-  if (cookieRelayState && rawRelayState) {
-    const bufA = Buffer.from(cookieRelayState);
-    const bufB = Buffer.from(rawRelayState);
-    if (bufA.length !== bufB.length || !crypto.timingSafeEqual(bufA, bufB)) {
-      logSecurityEvent(req, 'sso.acs', 'blocked', { reason: 'relay_state_browser_mismatch', workspace_id: loaded.workspace.id });
-      return redirectError('error');
-    }
+  if (!cookieRelayState || !rawRelayState) {
+    logSecurityEvent(req, 'sso.acs', 'blocked', { reason: 'relay_state_browser_missing', workspace_id: loaded.workspace.id });
+    return redirectError('error');
+  }
+  const bufA = Buffer.from(cookieRelayState);
+  const bufB = Buffer.from(rawRelayState);
+  if (bufA.length !== bufB.length || !crypto.timingSafeEqual(bufA, bufB)) {
+    logSecurityEvent(req, 'sso.acs', 'blocked', { reason: 'relay_state_browser_mismatch', workspace_id: loaded.workspace.id });
+    return redirectError('error');
   }
 
   let profile;

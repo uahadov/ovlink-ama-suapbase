@@ -69,11 +69,13 @@ test('Monolith Email Templates & PWA Service Worker Offline HUD', async (t) => {
     assert.equal(emailSrc.includes('INVITATION LINK:'), true, 'Must include fallback invitation link box');
   });
 
-  await t.test('6. public/sw.js contains ovlink-pwa-v8, Monolith offline HUD, and auto-reconnect engine', () => {
+  await t.test('6. public/sw.js contains ovlink-pwa-v9, Monolith offline HUD, and auto-reconnect engine', () => {
     const swPath = path.join(__dirname, '../public/sw.js');
     const swContent = fs.readFileSync(swPath, 'utf8');
 
-    assert.equal(swContent.includes("CACHE_NAME = 'ovlink-pwa-v8'"), true, 'Cache version must be bumped to ovlink-pwa-v8');
+    assert.equal(swContent.includes("CACHE_NAME = 'ovlink-pwa-v9'"), true, 'Cache version must be bumped to ovlink-pwa-v9 (purges private pages cached by v8)');
+    assert.equal(swContent.includes('isPrivateRequestPath'), true, 'Must skip private/authenticated surfaces');
+    assert.equal(swContent.includes("cacheControl.includes('no-store')"), true, 'Must respect server Cache-Control: no-store');
     assert.equal(swContent.includes('Offline · Ovlink'), true, 'Must include Offline · Ovlink title');
     assert.equal(swContent.includes('--bg: #0a0a0a'), true, 'Must define #0a0a0a canvas');
     assert.equal(swContent.includes('--panel: #111111'), true, 'Must define #111111 panel');

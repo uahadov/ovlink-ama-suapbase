@@ -66,13 +66,17 @@ function authContextMiddleware(req, res, next) {
   const isPrivateUiRoute = req.path.startsWith('/dashboard')
     || req.path.startsWith('/account')
     || req.path.startsWith('/notifications')
+    || req.path.startsWith('/workspaces')
+    || req.path.startsWith('/stats-page')
+    || req.path.startsWith('/proceed/')
     || req.path.startsWith('/admin');
 
+  // Only private surfaces are marked non-cacheable; public marketing pages keep
+  // their normal cacheability.
   if (hasUserSession || isPrivateUiRoute) {
-    res.set('Cache-Control', 'no-store');
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');
-  } else {
-    res.set('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+    res.set('Expires', '0');
   }
 
   next();

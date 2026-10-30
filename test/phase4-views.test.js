@@ -125,12 +125,17 @@ test('Phase 4 Final Views Redesign: Zero Bootstrap, Monolith compliance, and i18
     assert.equal(html.includes('support@ovlink.sbs'), true, 'must include support contact email');
   });
 
-  await t.test('6. error-warning view adheres to Monolith dark theme, 0 Bootstrap, warning wave SVG, and confirm query', async () => {
+  await t.test('6. error-warning view adheres to Monolith dark theme, 0 Bootstrap, warning wave SVG, and signed confirm link', async () => {
     const testApp = express();
     testApp.set('view engine', 'ejs');
     testApp.set('views', path.join(__dirname, '..', 'views'));
     const html = await new Promise((resolve, reject) => {
-      testApp.render('error-warning', { csrfToken: 'test-token', short: 'warn123', siteSettings: {} }, (err, str) => {
+      testApp.render('error-warning', {
+        csrfToken: 'test-token',
+        short: 'warn123',
+        confirmUrl: '/warn123?confirm=1700000000000.signed-token',
+        siteSettings: {},
+      }, (err, str) => {
         if (err) return reject(err);
         resolve(str);
       });
@@ -140,7 +145,8 @@ test('Phase 4 Final Views Redesign: Zero Bootstrap, Monolith compliance, and i18
     assert.equal(html.includes('id="cursorGlow"'), true, 'must include cursor glow');
     assert.equal(html.includes('m-gateway-card--warning'), true, 'must include warning gateway card');
     assert.equal(html.includes('m-anim-warn-wave'), true, 'must include warning wave animation');
-    assert.equal(html.includes('/warn123?confirm=true'), true, 'must include confirm query param');
+    assert.equal(html.includes('/warn123?confirm=1700000000000.signed-token'), true, 'must link to the server-signed confirm URL');
+    assert.equal(html.includes('?confirm=true'), false, 'must not fall back to an unsigned confirm flag');
     assert.equal(html.includes('data-i18n="danger_title"'), true, 'must include danger_title');
   });
 

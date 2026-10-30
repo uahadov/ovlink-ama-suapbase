@@ -22,7 +22,9 @@ const {
   getConsentResumePath,
   clearRedirectConsentMode,
   setRedirectConsentSession,
-  setRedirectConsentMode
+  setRedirectConsentMode,
+  buildRedirectConfirmToken,
+  isRedirectConfirmTokenValid
 } = require('../lib/consent');
 const { getRequestGeoMeta } = require('../lib/geo');
 const { createUserNotification } = require('../lib/notifications');
@@ -168,8 +170,99 @@ function resolveFinalRedirectUrl(req, row) {
   return ensureAbsoluteUrl(finalTargetUrl);
 }
 
+// ---------------------------------------------------------------------------
+// Delivery gates
+// Every public entry point that can hand a visitor to the destination
+// (/:short, /proceed/:short) must run the exact same checks. Keeping them in
+// one place is what prevents per-route bypasses of admin takedowns, expiry,
+// click limits and the domain blocklist.
+// ---------------------------------------------------------------------------
+function getDestinationHostname(rawUrl) {
+  const absolute = ensureAbsoluteUrl(rawUrl);
+  if (!absolute) return '';
+  try {
+    return new URL(absolute).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
+async function isBlockedDestinationHost(hostname) {
+  const host = (hostname || '').toString().trim().toLowerCase();
+  if (!host) return false;
+  const row = await dbGetAsync(
+    "SELECT domain FROM blocked_domains WHERE ? = domain OR ? LIKE '%.' || domain LIMIT 1",
+    [host, host]
+  ).catch(() => null);
+  return !!(row && row.domain);
+}
+
+function buildDangerConfirmUrl(short, pathPrefix = '/') {
+  const base = `${pathPrefix}${encodeURIComponent((short || '').toString())}`;
+  const token = buildRedirectConfirmToken(short);
+  return token ? `${base}?confirm=${encodeURIComponent(token)}` : base;
+}
+
+/**
+ * Applies every delivery gate for a short link.
+ * Returns true when the request has already been answered (blocked or warning
+ * page rendered) and false when the link may be delivered.
+ */
+async function applyDeliveryGates(req, res, row, targetUrl, options = {}) {
+  if (row.disabled == 1) {
+    res.status(410).render('error-disabled', { csrfToken: res.locals._csrf, reason: row.disabled_reason || '' });
+    return true;
+  }
+
+  if (isIsoTimeExpired(row.expires_at)) {
+    res.status(410).render('error-expired', { csrfToken: res.locals._csrf });
+    return true;
+  }
+
+  const destinationHost = getDestinationHostname(targetUrl);
+  if (destinationHost && await isBlockedDestinationHost(destinationHost)) {
+    res.status(451).render('error-blocked', { csrfToken: res.locals._csrf });
+    return true;
+  }
+
+  if (row.max_clicks && Number(row.max_clicks) > 0) {
+    const counted = await dbGetAsync('SELECT COUNT(*) AS count FROM clicks WHERE url_id = ?', [row.id]).catch(() => null);
+    if (counted && Number(counted.count) >= Number(row.max_clicks)) {
+      if (options.notifyOnLimit && row.user_id) {
+        createUserNotification(db, row.user_id, 'limit', {
+          titleAz: 'Klik limiti doldu',
+          titleTr: 'Tıklama limiti doldu',
+          titleEn: 'Click limit reached',
+          bodyAz: `Qısa link: ${row.short}. Maksimum klik limiti bitdi.`,
+          bodyTr: `Kısa link: ${row.short}. Maksimum tıklama limiti doldu.`,
+          bodyEn: `Short link: ${row.short}. Maximum click limit reached.`,
+          linkShort: row.short,
+          eventKey: `limit_${row.short}`,
+        });
+      }
+      res.status(410).render('error-max-clicks', { csrfToken: res.locals._csrf });
+      return true;
+    }
+  }
+
+  const isDangerous = row.dangerous == 1 || (row.reports && Number(row.reports) >= 4);
+  if (isDangerous && !options.skipDangerWarning) {
+    const providedToken = req && req.query ? req.query.confirm : '';
+    if (!isRedirectConfirmTokenValid(row.short, providedToken)) {
+      res.status(200).render('error-warning', {
+        csrfToken: res.locals._csrf,
+        short: row.short,
+        confirmUrl: buildDangerConfirmUrl(row.short, options.confirmPathPrefix || '/'),
+      });
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // Mərkəzləşdirilmiş Yönləndirmə Məntiqi
-function handleRedirection(req, res, row, passwordVerified = false) {
+async function handleRedirection(req, res, row, passwordVerified = false) {
   const short = row.short;
   const consentState = getRedirectConsentModeForRequest(req, short, 'redirect');
   const consentMode = consentState.mode;
@@ -178,53 +271,28 @@ function handleRedirection(req, res, row, passwordVerified = false) {
     return res.redirect(302, `/consent/redirect/${encodeURIComponent(short)}`);
   }
 
-  // 1. Bitmə Tarixi Kontrolü
-  if (isIsoTimeExpired(row.expires_at)) {
-    return res.status(410).render('error-expired', { csrfToken: res.locals._csrf });
-  }
+  try {
+    const targetUrl = resolveFinalRedirectUrl(req, row);
 
-  const proceedRedirect = () => {
-    // 3. Şifrə Kontrolü
+    // 1. Şifrə tələb olunan linklər: əvvəlcə bütün geytlər, sonra şifrə formu.
     if (row.link_password && !passwordVerified) {
+      if (!targetUrl) return send404(res);
+      if (await applyDeliveryGates(req, res, row, targetUrl, { skipDangerWarning: true, notifyOnLimit: true })) return undefined;
       return res.redirect(`/proceed/${encodeURIComponent(short)}`);
     }
 
-    // 4. Abuse / Təhlükə Xəbərdarlığı Kontrolü (dangerous = 1 və ya şikayət sayı >= 4)
-    if ((row.dangerous == 1 || (row.reports && row.reports >= 4)) && !req.query.confirm) {
-      return res.render('error-warning', { csrfToken: res.locals._csrf, short });
-    }
-
-    // 5. Tracking (Klik qeydiyyatı)
-    recordClickEvent(req, row, consentMode);
-
-    // 6. Final Yönləndirmə (Cihaz Hədəfləmə və A/B Testi)
-    const targetUrl = resolveFinalRedirectUrl(req, row);
     if (!targetUrl) return send404(res);
-    return res.redirect(targetUrl);
-  };
 
-  // 2. Maksimum Klik Kontrolü (yalnız limit qoyulubsa DB sorğusu atılır)
-  if (row.max_clicks && Number(row.max_clicks) > 0) {
-    db.get('SELECT COUNT(*) as count FROM clicks WHERE url_id = ?', [row.id], (err, result) => {
-      if (result && result.count >= Number(row.max_clicks)) {
-        if (row.user_id) {
-          createUserNotification(db, row.user_id, 'limit', {
-            titleAz: 'Klik limiti doldu',
-            titleTr: 'Tıklama limiti doldu',
-            titleEn: 'Click limit reached',
-            bodyAz: `Qısa link: ${row.short}. Maksimum klik limiti bitdi.`,
-            bodyTr: `Kısa link: ${row.short}. Maksimum tıklama limiti doldu.`,
-            bodyEn: `Short link: ${row.short}. Maximum click limit reached.`,
-            linkShort: row.short,
-            eventKey: `limit_${row.short}`,
-          });
-        }
-        return res.status(410).render('error-max-clicks', { csrfToken: res.locals._csrf });
-      }
-      return proceedRedirect();
-    });
-  } else {
-    return proceedRedirect();
+    // 2. Moderation / expiry / blocklist / limit / danger warning
+    if (await applyDeliveryGates(req, res, row, targetUrl, { notifyOnLimit: true })) return undefined;
+
+    // 3. Tracking (yalnız yönləndirmə həqiqətən baş verəndə qeyd olunur)
+    recordClickEvent(req, row, consentMode);
+    return res.redirect(targetUrl);
+  } catch (err) {
+    console.error('[redirect] delivery failed:', err && (err.message || err));
+    if (!res.headersSent) return res.status(500).send('Server error.');
+    return undefined;
   }
 }
 
@@ -350,7 +418,7 @@ router.get(/^\/AGENTS(\.md)?$/i, (_req, res) => {
 });
 
 // Yönlendirme (GET /:short)
-router.get('/:short', (req, res, next) => {
+router.get('/:short', async (req, res, next) => {
   const rawShort = (req.params.short || '').toString();
   // These app pages live below this resolver in route order; pass them through.
   if (rawShort === 'dashboard' || rawShort === 'workspaces')
@@ -359,91 +427,95 @@ router.get('/:short', (req, res, next) => {
   const short = normalizeShortCode(rawShort);
   if (!short) return send404(res);
 
-  db.get('SELECT * FROM urls WHERE short = ?', [short], (err, row) => {
-    if (err) return res.status(500).send('Server error.');
-    if (!row) return send404(res);
+  let row;
+  try {
+    row = await dbGetAsync('SELECT * FROM urls WHERE short = ?', [short]);
+  } catch {
+    return res.status(500).send('Server error.');
+  }
+  if (!row) return send404(res);
 
-    const reqHost = getRequestHostName(req);
-    const hostAccess = getShortHostAccess(row, reqHost);
-    if (!hostAccess.allowed) {
-      if (hostAccess.redirectHost) {
-        const redirectUrl = buildAbsoluteUrlForHost(req, hostAccess.redirectHost, '/' + encodeURIComponent(short));
-        return res.redirect(302, redirectUrl);
-      }
-      return send404(res);
+  const reqHost = getRequestHostName(req);
+  const hostAccess = getShortHostAccess(row, reqHost);
+  if (!hostAccess.allowed) {
+    if (hostAccess.redirectHost) {
+      const redirectUrl = buildAbsoluteUrlForHost(req, hostAccess.redirectHost, '/' + encodeURIComponent(short));
+      return res.redirect(302, redirectUrl);
     }
+    return send404(res);
+  }
 
-    // Admin moderation controls: disabled links + blocked destination domains
-    if (row.disabled == 1) {
-      return res.status(410).render('error-disabled', { csrfToken: res.locals._csrf, reason: row.disabled_reason || '' });
-    }
-
-    const originalAbs = ensureAbsoluteUrl(row.original);
-    if (!originalAbs) return send404(res);
-    let hostname = '';
-    try { hostname = new URL(originalAbs).hostname.toLowerCase(); } catch { hostname = ''; }
-
-    if (!hostname) return handleRedirection(req, res, row);
-
-    db.get("SELECT domain FROM blocked_domains WHERE ? = domain OR ? LIKE '%.' || domain LIMIT 1", [hostname, hostname], (blockErr, blockedRow) => {
-      if (blockedRow) {
-        return res.status(451).render('error-blocked', { csrfToken: res.locals._csrf });
-      }
-      return handleRedirection(req, res, row);
-    });
-  });
+  // All moderation/expiry/blocklist/limit checks happen inside handleRedirection
+  // so that no entry point can skip them.
+  return handleRedirection(req, res, row);
 });
 
 // Şifre korumalı linkler için (GET /proceed/:short)
-router.get('/proceed/:short', (req, res) => {
+router.get('/proceed/:short', async (req, res) => {
   const short = normalizeShortCode(req.params.short);
   if (!short) return send404(res);
-  db.get('SELECT * FROM urls WHERE short = ?', [short], (err, row) => {
-    if (!row) return send404(res);
 
-    const reqHost = getRequestHostName(req);
-    const hostAccess = getShortHostAccess(row, reqHost);
-    if (!hostAccess.allowed) {
-      if (hostAccess.redirectHost) {
-        const redirectUrl = buildAbsoluteUrlForHost(req, hostAccess.redirectHost, '/proceed/' + encodeURIComponent(short));
-        return res.redirect(302, redirectUrl);
-      }
-      return send404(res);
-    }
+  let row;
+  try {
+    row = await dbGetAsync('SELECT * FROM urls WHERE short = ?', [short]);
+  } catch {
+    return res.status(500).send('Server error.');
+  }
+  if (!row) return send404(res);
 
-    const consentState = getRedirectConsentModeForRequest(req, short, 'proceed');
-    const consentMode = consentState.mode;
-    if (!consentMode) {
-      const q = new URLSearchParams({ next: 'proceed' }).toString();
-      return res.redirect(303, `/consent/redirect/${encodeURIComponent(short)}?${q}`);
+  const reqHost = getRequestHostName(req);
+  const hostAccess = getShortHostAccess(row, reqHost);
+  if (!hostAccess.allowed) {
+    if (hostAccess.redirectHost) {
+      const redirectUrl = buildAbsoluteUrlForHost(req, hostAccess.redirectHost, '/proceed/' + encodeURIComponent(short));
+      return res.redirect(302, redirectUrl);
     }
+    return send404(res);
+  }
 
-    if (row.link_password) {
-      const seo = buildSeo(req, {
-        path: `/proceed/${encodeURIComponent(short)}`,
-        titleAz: 'Şifrə tələb olunur - Ovlink',
-        titleTr: 'Şifre gerekli - Ovlink',
-        titleEn: 'Password required - Ovlink',
-        descAz: 'Bu qısa link şifrə ilə qorunur. Davam etmək üçün şifrəni daxil edin.',
-        descTr: 'Bu kısa link şifre ile korunuyor. Devam etmek için şifre girin.',
-        descEn: 'This short link is password-protected. Enter the password to continue.'
-      });
-      seo.jsonLd = '';
-      return res.render('proceed', {
-        csrfToken: res.locals._csrf,
-        shortPath: encodeURIComponent((short || '').toString()),
-        seo,
-      });
-    } else {
-      recordClickEvent(req, row, consentMode);
-      if (consentState.source === 'session') {
-        clearRedirectConsentSession(req);
-      }
-      const targetUrl = resolveFinalRedirectUrl(req, row);
-      if (!targetUrl) return send404(res);
-      res.redirect(targetUrl);
-    }
-  });
+  const consentState = getRedirectConsentModeForRequest(req, short, 'proceed');
+  const consentMode = consentState.mode;
+  if (!consentMode) {
+    const q = new URLSearchParams({ next: 'proceed' }).toString();
+    return res.redirect(303, `/consent/redirect/${encodeURIComponent(short)}?${q}`);
+  }
+
+  const requiresPassword = !!row.link_password;
+  const targetUrl = resolveFinalRedirectUrl(req, row);
+  if (!targetUrl) return send404(res);
+
+  // Same gates as GET /:short — disabled, expiry, blocked destination, click
+  // limit and the dangerous-link interstitial can no longer be skipped by
+  // calling /proceed directly.
+  if (await applyDeliveryGates(req, res, row, targetUrl, {
+    skipDangerWarning: requiresPassword,
+    confirmPathPrefix: '/proceed/',
+    notifyOnLimit: true,
+  })) return undefined;
+
+  if (requiresPassword) {
+    const seo = buildSeo(req, {
+      path: `/proceed/${encodeURIComponent(short)}`,
+      titleAz: 'Şifrə tələb olunur - Ovlink',
+      titleTr: 'Şifre gerekli - Ovlink',
+      titleEn: 'Password required - Ovlink',
+      descAz: 'Bu qısa link şifrə ilə qorunur. Davam etmək üçün şifrəni daxil edin.',
+      descTr: 'Bu kısa link şifre ile korunuyor. Devam etmek için şifre girin.',
+      descEn: 'This short link is password-protected. Enter the password to continue.'
+    });
+    seo.jsonLd = '';
+    return res.render('proceed', {
+      csrfToken: res.locals._csrf,
+      shortPath: encodeURIComponent((short || '').toString()),
+      seo,
+    });
+  }
+
+  recordClickEvent(req, row, consentMode);
+  if (consentState.source === 'session') {
+    clearRedirectConsentSession(req);
+  }
+  return res.redirect(targetUrl);
 });
 
 // Şifre doğrulama (POST /verify/:short)
@@ -534,9 +606,17 @@ router.resolveFinalRedirectUrl = resolveFinalRedirectUrl;
 router.hashLinkPassword = hashLinkPassword;
 router.verifyLinkPassword = verifyLinkPassword;
 router.getEssentialAnalyticsValue = getEssentialAnalyticsValue;
+router.applyDeliveryGates = applyDeliveryGates;
+router.isBlockedDestinationHost = isBlockedDestinationHost;
+router.getDestinationHostname = getDestinationHostname;
+router.buildDangerConfirmUrl = buildDangerConfirmUrl;
 
 module.exports = router;
 module.exports.resolveFinalRedirectUrl = resolveFinalRedirectUrl;
 module.exports.hashLinkPassword = hashLinkPassword;
 module.exports.verifyLinkPassword = verifyLinkPassword;
 module.exports.getEssentialAnalyticsValue = getEssentialAnalyticsValue;
+module.exports.applyDeliveryGates = applyDeliveryGates;
+module.exports.isBlockedDestinationHost = isBlockedDestinationHost;
+module.exports.getDestinationHostname = getDestinationHostname;
+module.exports.buildDangerConfirmUrl = buildDangerConfirmUrl;

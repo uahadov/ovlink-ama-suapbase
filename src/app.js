@@ -8,7 +8,7 @@ const expressSession = require('express-session');
 const { isProdRuntime } = require('./config/index');
 const { getRequestGeoMeta, parseAcceptLang } = require('./lib/geo');
 const { sendOpsAlert } = require('./lib/alerts');
-const { getPublicBaseUrl, hasApiKeyAuthHeader } = require('./lib/security');
+const { getPublicBaseUrl } = require('./lib/security');
 const { isLocalOrPrivateHost } = require('./lib/url-helpers');
 
 // Middleware imports
@@ -24,7 +24,7 @@ const { jsonParser, urlencodedParser } = require('./middleware/body-parser');
 const { maintenanceMiddleware, attachSiteSettingsMiddleware } = require('./middleware/maintenance');
 const { adsGuardMiddleware, adSandboxMiddleware } = require('./middleware/ads-guard');
 const { noindexMiddleware } = require('./middleware/noindex');
-const { authLocalsMiddleware } = require('./middleware/auth');
+const { authLocalsMiddleware, authContextMiddleware } = require('./middleware/auth');
 const { mountRoutes } = require('./routes/index');
 
 const app = express();
@@ -32,9 +32,14 @@ const app = express();
 app.set('query parser', 'simple');
 
 let trustProxyHops = Number.parseInt((process.env.TRUST_PROXY_HOPS || '').toString(), 10);
-if (isProdRuntime && (!Number.isInteger(trustProxyHops) || trustProxyHops <= 0)) {
-  console.warn('[startup] TRUST_PROXY_HOPS not set; defaulting to 1 for production.');
-  trustProxyHops = 1;
+if (!Number.isInteger(trustProxyHops) || trustProxyHops < 0 || trustProxyHops > 16) {
+  if (isProdRuntime) {
+    console.warn('[startup] TRUST_PROXY_HOPS is not a valid hop count (0-16); defaulting to 1 in production. Set it to the exact number of proxies in front of the app.');
+  }
+  trustProxyHops = isProdRuntime ? 1 : 0;
+}
+if (isProdRuntime && trustProxyHops <= 0) {
+  console.warn('[startup] TRUST_PROXY_HOPS=0 in production: X-Forwarded-For is ignored and every request appears to come from the proxy IP (rate limiting and IP blocklists will not work as expected).');
 }
 const useTrustProxy = Number.isInteger(trustProxyHops) && trustProxyHops > 0;
 app.set('trust proxy', useTrustProxy ? trustProxyHops : false);
@@ -175,6 +180,10 @@ app.use((req, res, next) => {
 });
 
 // Populate user and notification locals for SSR
+// authContextMiddleware marks private HTML as non-cacheable — it was previously
+// defined but never mounted, so dashboard/account responses shipped with no
+// Cache-Control at all.
+app.use(authContextMiddleware);
 app.use(authLocalsMiddleware);
 
 function requiresInlineCsrfRoute(pathname) {
@@ -219,9 +228,14 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/consent/redirect/')) return next();
   if (req.method === 'POST' && isServerWebhookRoute(req.path)) return next();
   if (req.method === 'POST' && isSamlAcsRoute(req.path)) return next();
+  // Unauthenticated helper endpoints: they never read or write session state.
   if (req.path.startsWith('/api/tools/')) return next();
-  const hasApiKeyHeader = hasApiKeyAuthHeader(req);
-  if (req.path.startsWith('/api/') && hasApiKeyHeader) return next();
+  // The Pro API authenticates every request with an API key (the route calls
+  // authenticateProApiKey), so a CSRF token can never apply there. Exemption is
+  // scoped to that namespace only: previously ANY /api/* request that merely
+  // carried an API-key-shaped header skipped CSRF, which silently relied on the
+  // absence of CORS for the session-authenticated endpoints underneath.
+  if (req.path.startsWith('/api/pro/v1/')) return next();
   return csrfMiddleware(req, res, next);
 });
 

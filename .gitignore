@@ -153,6 +153,13 @@ hacker-news-cookie.json
 # Marketing Bot Runtime Data
 bot_data/
 
+# Prospect / outreach exports (contain personal data — never commit)
+ovlink_leads*.csv
+ovlink_leads*.html
+ovlink_ceo_direct_leads*
+*_leads.csv
+*_leads.html
+
 # Embedded repositories and local shell config
 winners-bot/
 .bashrc
