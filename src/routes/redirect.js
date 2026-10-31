@@ -13,10 +13,8 @@ const {
 const {
   getRedirectConsentModeForRequest,
   clearRedirectConsentSession,
-  normalizeConsentMode,
   buildRedirectConsentSignature,
   REDIRECT_CONSENT_MODES,
-  REDIRECT_CONSENT_MARKER,
   normalizeConsentNext,
   getRedirectConsentMode,
   getConsentResumePath,
@@ -26,7 +24,7 @@ const {
   buildRedirectConfirmToken,
   isRedirectConfirmTokenValid
 } = require('../lib/consent');
-const { getRequestGeoMeta } = require('../lib/geo');
+const { recordClickSafe } = require('../lib/analytics');
 const { createUserNotification } = require('../lib/notifications');
 const { sensitiveActionLimiter } = require('../middleware/rate-limiter');
 const { getRequestHostName, getShortHostAccess } = require('../lib/custom-domain');
@@ -75,27 +73,6 @@ function getEssentialAnalyticsValue(raw) {
   return v;
 }
 
-function parseUserAgentInfo(userAgentRaw) {
-  const ua = (userAgentRaw || '').toString().slice(0, 512);
-
-  let browser = 'Unknown';
-  if (/edg\//i.test(ua)) browser = 'Edge';
-  else if (/opr\//i.test(ua)) browser = 'Opera';
-  else if (/chrome\//i.test(ua) && !/edg\//i.test(ua)) browser = 'Chrome';
-  else if (/safari\//i.test(ua) && !/chrome\//i.test(ua)) browser = 'Safari';
-  else if (/firefox\//i.test(ua)) browser = 'Firefox';
-  else if (/msie|trident/i.test(ua)) browser = 'Internet Explorer';
-
-  let os = 'Unknown';
-  if (/windows nt/i.test(ua)) os = 'Windows';
-  else if (/android/i.test(ua)) os = 'Android';
-  else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
-  else if (/mac os x/i.test(ua)) os = 'macOS';
-  else if (/linux/i.test(ua)) os = 'Linux';
-
-  return { browser, os };
-}
-
 function send404(res) {
   const req = (res && res.req) ? res.req : null;
   const pathValue = req ? ((req.originalUrl || req.path || '/404').toString()) : '/404';
@@ -126,31 +103,21 @@ function send404(res) {
   return res.status(404).render('404', { csrfToken: res.locals._csrf, seo });
 }
 
-function recordClickEvent(req, row, consentMode) {
-  const clickTime = new Date().toISOString();
-  const mode = normalizeConsentMode(consentMode);
-
-  if (mode === REDIRECT_CONSENT_MODES.ESSENTIAL) {
-    db.run(
-      'INSERT INTO clicks (url_id, click_time, browser, os, country) VALUES (?, ?, ?, ?, ?)',
-      [row.id, clickTime, REDIRECT_CONSENT_MARKER, REDIRECT_CONSENT_MARKER, REDIRECT_CONSENT_MARKER]
-    );
-    return;
-  }
-
-  const geoMeta = getRequestGeoMeta(req);
-  const agent = parseUserAgentInfo(req.headers['user-agent']);
-  const osDisplay = agent.os;
-
-  db.run(
-    'INSERT INTO clicks (url_id, click_time, browser, os, country) VALUES (?, ?, ?, ?, ?)',
-    [row.id, clickTime, getEssentialAnalyticsValue(agent.browser), getEssentialAnalyticsValue(osDisplay), getEssentialAnalyticsValue(geoMeta.country)]
-  );
+// Kept as a thin, side-effect-free recorder for call sites/tests that only need
+// "a click happened": all attribution lives in src/lib/analytics.js.
+function recordClickEvent(req, row, consentMode, resolvedTarget) {
+  void recordClickSafe({ row, req, consentMode, context: resolvedTarget });
 }
 
-function resolveFinalRedirectUrl(req, row) {
+/**
+ * Resolves the destination AND tells us which branch served it, so the click can
+ * be attributed to the A/B variant. `resolveFinalRedirectUrl` stays as the
+ * URL-only wrapper for compatibility.
+ */
+function resolveFinalRedirectTarget(req, row) {
   if (!row) return null;
   let finalTargetUrl = row.original;
+  let variant = null;
   const userAgent = ((req && req.headers && req.headers['user-agent']) || '').toLowerCase();
 
   // Cihaz Hədəfləmə Öncəliyi
@@ -165,9 +132,18 @@ function resolveFinalRedirectUrl(req, row) {
     const rand = Math.random() * 100;
     if (rand >= splitPercent) {
       finalTargetUrl = row.original_b;
+      variant = 'b';
+    } else {
+      variant = 'a';
     }
   }
-  return ensureAbsoluteUrl(finalTargetUrl);
+
+  return { url: ensureAbsoluteUrl(finalTargetUrl), variant };
+}
+
+function resolveFinalRedirectUrl(req, row) {
+  const resolved = resolveFinalRedirectTarget(req, row);
+  return resolved ? resolved.url : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -272,7 +248,8 @@ async function handleRedirection(req, res, row, passwordVerified = false) {
   }
 
   try {
-    const targetUrl = resolveFinalRedirectUrl(req, row);
+    const resolvedTarget = resolveFinalRedirectTarget(req, row);
+    const targetUrl = resolvedTarget ? resolvedTarget.url : '';
 
     // 1. Şifrə tələb olunan linklər: əvvəlcə bütün geytlər, sonra şifrə formu.
     if (row.link_password && !passwordVerified) {
@@ -287,7 +264,7 @@ async function handleRedirection(req, res, row, passwordVerified = false) {
     if (await applyDeliveryGates(req, res, row, targetUrl, { notifyOnLimit: true })) return undefined;
 
     // 3. Tracking (yalnız yönləndirmə həqiqətən baş verəndə qeyd olunur)
-    recordClickEvent(req, row, consentMode);
+    recordClickEvent(req, row, consentMode, resolvedTarget);
     return res.redirect(targetUrl);
   } catch (err) {
     console.error('[redirect] delivery failed:', err && (err.message || err));
@@ -481,7 +458,8 @@ router.get('/proceed/:short', async (req, res) => {
   }
 
   const requiresPassword = !!row.link_password;
-  const targetUrl = resolveFinalRedirectUrl(req, row);
+  const resolvedTarget = resolveFinalRedirectTarget(req, row);
+  const targetUrl = resolvedTarget ? resolvedTarget.url : '';
   if (!targetUrl) return send404(res);
 
   // Same gates as GET /:short — disabled, expiry, blocked destination, click
@@ -511,7 +489,7 @@ router.get('/proceed/:short', async (req, res) => {
     });
   }
 
-  recordClickEvent(req, row, consentMode);
+  recordClickEvent(req, row, consentMode, resolvedTarget);
   if (consentState.source === 'session') {
     clearRedirectConsentSession(req);
   }
@@ -543,7 +521,8 @@ router.post('/verify/:short', sensitiveActionLimiter, (req, res) => {
       return res.status(410).json({ error: pickLang(uiLang, 'Link deaktiv edilib.', 'Link devre dışı.', 'Link disabled.') });
     }
 
-    const targetUrl = resolveFinalRedirectUrl(req, row);
+    const resolvedTarget = resolveFinalRedirectTarget(req, row);
+    const targetUrl = resolvedTarget ? resolvedTarget.url : '';
     if (!targetUrl) {
       return res.status(400).json({ error: pickLang(uiLang, 'Yanlış link.', 'Geçersiz link.', 'Invalid link.') });
     }
@@ -591,7 +570,7 @@ router.post('/verify/:short', sensitiveActionLimiter, (req, res) => {
           }
           // Tıklama kaydı ekle
           const consentState = getRedirectConsentModeForRequest(req, short, 'verify');
-          recordClickEvent(req, row, consentState.mode || 'essential');
+          recordClickEvent(req, row, consentState.mode || 'essential', resolvedTarget);
 
           return res.json({ success: true, redirect: targetUrl });
         }
@@ -603,6 +582,8 @@ router.post('/verify/:short', sensitiveActionLimiter, (req, res) => {
 });
 
 router.resolveFinalRedirectUrl = resolveFinalRedirectUrl;
+router.resolveFinalRedirectTarget = resolveFinalRedirectTarget;
+router.recordClickEvent = recordClickEvent;
 router.hashLinkPassword = hashLinkPassword;
 router.verifyLinkPassword = verifyLinkPassword;
 router.getEssentialAnalyticsValue = getEssentialAnalyticsValue;
@@ -613,6 +594,8 @@ router.buildDangerConfirmUrl = buildDangerConfirmUrl;
 
 module.exports = router;
 module.exports.resolveFinalRedirectUrl = resolveFinalRedirectUrl;
+module.exports.resolveFinalRedirectTarget = resolveFinalRedirectTarget;
+module.exports.recordClickEvent = recordClickEvent;
 module.exports.hashLinkPassword = hashLinkPassword;
 module.exports.verifyLinkPassword = verifyLinkPassword;
 module.exports.getEssentialAnalyticsValue = getEssentialAnalyticsValue;

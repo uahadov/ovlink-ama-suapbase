@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
 
 <head>
   <meta charset="UTF-8" />
@@ -13,7 +13,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= assetVersion %>" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <!-- Monolith Home CSS -->
   <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
@@ -761,7 +760,7 @@
   </style>
 </head>
 
-<body class="ovx app-page stats-detail-page">
+<body class="ovx app-page stats-detail-page" data-short-code="<%= shortCode %>" data-essential-marker="<%= consentMarker %>">
 
   <!-- Skip to content for accessibility -->
   <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
@@ -820,6 +819,16 @@
         </div>
 
         <div class="m-exec-right">
+          <!-- Saved segments (view presets) -->
+          <div style="display:flex;gap:6px;align-items:center;">
+            <select id="segmentSelect" aria-label="Segments" style="min-width:130px;padding:7px 10px;border-radius:8px;border:1px solid var(--c-border,#2a2a2a);background:transparent;color:inherit;font-size:12px;">
+              <option value="" data-i18n="stats_segments_label">Seqmentlər</option>
+            </select>
+            <button type="button" class="m-cta m-cta--outline m-cta--sm" id="segmentSaveBtn" title="Save current view" aria-label="Save current view">
+              <i class="fa-solid fa-bookmark"></i>
+            </button>
+          </div>
+
           <!-- Time Range Switcher -->
           <div class="m-range-switcher" role="group" aria-label="Date range filter">
             <button type="button" class="m-range-btn" data-range="24h" data-i18n="stats_filter_24h">24 Saat</button>
@@ -836,6 +845,12 @@
           <button type="button" class="m-cta m-cta--outline m-cta--sm" id="exportJsonBtn" title="Export JSON">
             <i class="fa-solid fa-code"></i>
             <span>Export JSON</span>
+          </button>
+
+          <!-- Opt-in weekly e-mail digest -->
+          <button type="button" class="m-cta m-cta--outline m-cta--sm" id="weeklyReportBtn" aria-pressed="false" style="opacity:0.6;" title="Həftəlik e-poçt hesabatı">
+            <i class="fa-regular fa-envelope"></i>
+            <span id="weeklyReportLabel" data-i18n="stats_weekly_report">Həftəlik hesabat</span>
           </button>
 
           <!-- Back to Dashboard -->
@@ -896,6 +911,16 @@
             <span id="topPlatformText">—</span>
           </div>
           <p class="m-kpi-sub" id="topPlatformSub">Sistem və brauzer profili</p>
+        </div>
+
+        <!-- Card 5: New vs returning visitors -->
+        <div class="m-kpi-card" id="newReturningCard">
+          <div class="m-kpi-label">
+            <i class="fa-solid fa-user-clock"></i>
+            <span data-i18n="stats_new_vs_returning">Yeni vs qayıdan</span>
+          </div>
+          <div class="m-kpi-value" id="newReturningDisplay" style="font-size:20px;">—</div>
+          <p class="m-kpi-sub" id="newReturningSub" data-i18n="stats_new_vs_returning_sub">Unikal ziyarətçi bölgüsü</p>
         </div>
       </section>
 
@@ -988,6 +1013,110 @@
 
       </div>
 
+      <!-- 4b. Attribution, device and A/B insights -->
+      <div class="m-split-grid" id="insightsGrid">
+
+        <!-- Panel 1: Traffic sources (referrer + UTM) -->
+        <section class="m-breakdown-panel" aria-label="Traffic sources">
+          <div class="m-panel-head">
+            <h2 class="m-panel-heading">
+              <i class="fa-solid fa-share-nodes"></i>
+              <span data-i18n="stats_top_sources">Trafik Mənbələri</span>
+            </h2>
+            <span class="m-meta-chip" id="sourcesMeta">0 mənbə</span>
+          </div>
+          <div id="sourcesList" class="m-data-list"></div>
+        </section>
+
+        <!-- Panel 2: Devices + bot ratio -->
+        <section class="m-breakdown-panel" aria-label="Devices">
+          <div class="m-panel-head">
+            <h2 class="m-panel-heading">
+              <i class="fa-solid fa-laptop"></i>
+              <span data-i18n="stats_devices">Cihazlar</span>
+            </h2>
+            <span class="m-meta-chip" id="botsMeta">0 bot</span>
+          </div>
+          <div id="devicesList" class="m-data-list"></div>
+        </section>
+
+        <!-- Panel 3: A/B variants (hidden unless the link runs a test) -->
+        <section class="m-breakdown-panel" id="abPanel" style="display:none;" aria-label="A/B variants">
+          <div class="m-panel-head">
+            <h2 class="m-panel-heading">
+              <i class="fa-solid fa-code-branch"></i>
+              <span data-i18n="stats_ab_variants">A/B Testi</span>
+            </h2>
+            <span class="m-meta-chip" id="abMeta">—</span>
+          </div>
+          <div id="abList" class="m-data-list"></div>
+        </section>
+
+        <!-- Panel 4: Conversion goals (hidden until the pixel reports one) -->
+        <section class="m-breakdown-panel" id="conversionPanel" style="display:none;" aria-label="Conversions">
+          <div class="m-panel-head">
+            <h2 class="m-panel-heading">
+              <i class="fa-solid fa-bullseye"></i>
+              <span data-i18n="stats_conversions">Konversiyalar</span>
+            </h2>
+            <span class="m-meta-chip" id="conversionMeta">0%</span>
+          </div>
+          <div id="conversionList" class="m-data-list"></div>
+          <div class="small mt-2" id="conversionPixel" style="color:var(--c-faint,#737373);word-break:break-all;"></div>
+        </section>
+
+        <!-- Panel 5: Anomalies (spike/drop) + destination health -->
+        <section class="m-breakdown-panel" id="anomalyPanel" aria-label="Anomalies">
+          <div class="m-panel-head">
+            <h2 class="m-panel-heading">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span data-i18n="stats_anomalies">Anomaliyalar</span>
+            </h2>
+            <span class="m-meta-chip" id="anomalyMeta">—</span>
+          </div>
+          <div id="anomalyList" class="m-data-list"></div>
+          <div class="small mt-2" id="destinationHealth" style="color:var(--c-faint,#737373);"></div>
+        </section>
+
+        <!-- Panel 6: Multi-step funnel -->
+        <section class="m-breakdown-panel" id="funnelPanel" style="display:none;" aria-label="Funnel">
+          <div class="m-panel-head">
+            <h2 class="m-panel-heading">
+              <i class="fa-solid fa-filter"></i>
+              <span data-i18n="stats_funnel_title">Funnel</span>
+            </h2>
+            <span class="m-meta-chip" id="funnelMeta">—</span>
+          </div>
+          <div id="funnelList" class="m-data-list"></div>
+          <div class="small mt-2" id="funnelHint" style="color:var(--c-faint,#737373);word-break:break-all;"></div>
+        </section>
+
+        <!-- Panel 7: Country map -->
+        <section class="m-breakdown-panel" id="geoPanel" style="display:none;" aria-label="Geo map">
+          <div class="m-panel-head">
+            <h2 class="m-panel-heading">
+              <i class="fa-solid fa-earth-europe"></i>
+              <span data-i18n="stats_geo_title">Xəritə</span>
+            </h2>
+            <span class="m-meta-chip">top 60</span>
+          </div>
+          <div id="geoMap" style="width:100%;min-height:180px;"></div>
+        </section>
+
+        <!-- Panel 8: Access log (owner only) -->
+        <section class="m-breakdown-panel" id="auditPanel" style="display:none;" aria-label="Access log">
+          <div class="m-panel-head">
+            <h2 class="m-panel-heading">
+              <i class="fa-solid fa-shield-halved"></i>
+              <span data-i18n="stats_audit_title">Giriş jurnalı</span>
+            </h2>
+            <button type="button" class="m-range-btn" id="auditToggle" data-i18n="stats_audit_show">Göstər</button>
+          </div>
+          <div id="auditList" class="m-data-list"></div>
+        </section>
+
+      </div>
+
       <!-- 5. Live Activity Stream Section (Enterprise Audit Stream) -->
       <section class="m-activity-section" aria-label="Live Activity Stream">
         <div class="m-panel-head">
@@ -1024,830 +1153,14 @@
   <!-- Core App Scripts -->
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
-
-  <!-- Linear-grade Analytics Logic -->
-  <script nonce="<%= nonce %>">
-    const shortCode = <%- JSON.stringify(shortCode) %>;
-    const essentialMarker = <%- JSON.stringify(consentMarker) %>;
-
-    let analyticsRawData = null;
-    let currentRangeFilter = 'all'; // '24h' | '7d' | '30d' | 'all'
-    let currentGranularity = 'daily'; // 'hourly' | 'daily'
-    let currentChartType = 'line';   // 'line' | 'bar'
-    let currentTechTab = 'os';        // 'os' | 'browsers'
-    let timeChartInstance = null;
-
-    function t(key) {
-      const lang = typeof currentLang === 'string' ? currentLang : 'az';
-      if (typeof translations !== 'undefined' && translations[lang] && translations[lang][key]) {
-        return translations[lang][key];
-      }
-      return key;
-    }
-
-    function mapBucketLabel(value) {
-      return value === essentialMarker ? t('stats_private_bucket') || 'Essential' : (value || 'Unknown');
-    }
-
-    // Country name resolution helper
-    const ISO_COUNTRIES = {
-      'AZ': 'Azerbaijan', 'TR': 'Türkiye', 'US': 'United States', 'GB': 'United Kingdom',
-      'DE': 'Germany', 'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'RU': 'Russia',
-      'CA': 'Canada', 'AU': 'Australia', 'BR': 'Brazil', 'NL': 'Netherlands', 'PL': 'Poland',
-      'UA': 'Ukraine', 'IN': 'India', 'JP': 'Japan', 'KR': 'South Korea', 'CN': 'China',
-      'GE': 'Georgia', 'KZ': 'Kazakhstan', 'UZ': 'Uzbekistan', 'IR': 'Iran', 'IQ': 'Iraq'
-    };
-
-    function resolveCountryName(code) {
-      if (!code || code === essentialMarker) return mapBucketLabel(code);
-      const upper = code.toUpperCase();
-      return ISO_COUNTRIES[upper] || upper;
-    }
-
-    // High-res Unicode Flag Emoji Generator from ISO 3166-1 alpha-2 code
-    function getCountryFlag(code) {
-      if (!code || typeof code !== 'string' || code.length !== 2 || code === essentialMarker) return '🌐';
-      const upper = code.toUpperCase();
-      const c0 = upper.charCodeAt(0);
-      const c1 = upper.charCodeAt(1);
-      if (c0 < 65 || c0 > 90 || c1 < 65 || c1 > 90) return '🌐';
-      return String.fromCodePoint(127397 + c0, 127397 + c1);
-    }
-
-    // Technology Icon Resolver
-    function getTechIcon(name) {
-      const lower = (name || '').toLowerCase();
-      if (lower.includes('win')) return 'fa-brands fa-windows';
-      if (lower.includes('mac') || lower.includes('ios') || lower.includes('iphone') || lower.includes('ipad') || lower.includes('apple')) return 'fa-brands fa-apple';
-      if (lower.includes('android')) return 'fa-brands fa-android';
-      if (lower.includes('linux') || lower.includes('ubuntu')) return 'fa-brands fa-linux';
-      if (lower.includes('chrome')) return 'fa-brands fa-chrome';
-      if (lower.includes('safari')) return 'fa-brands fa-safari';
-      if (lower.includes('firefox')) return 'fa-brands fa-firefox';
-      if (lower.includes('edge')) return 'fa-brands fa-edge';
-      if (lower.includes('opera')) return 'fa-brands fa-opera';
-      return 'fa-solid fa-laptop-code';
-    }
-
-    // Filters clicks by selected range
-    function getFilteredClicks() {
-      if (!analyticsRawData || !Array.isArray(analyticsRawData.raw_clicks)) {
-        return [];
-      }
-      const all = analyticsRawData.raw_clicks;
-      if (currentRangeFilter === 'all') return all;
-
-      const now = Date.now();
-      let cutoffMs = 0;
-      if (currentRangeFilter === '24h') {
-        cutoffMs = now - (24 * 3600 * 1000);
-      } else if (currentRangeFilter === '7d') {
-        cutoffMs = now - (7 * 24 * 3600 * 1000);
-      } else if (currentRangeFilter === '30d') {
-        cutoffMs = now - (30 * 24 * 3600 * 1000);
-      }
-
-      return all.filter(c => {
-        const t = new Date(c.time).getTime();
-        return Number.isFinite(t) && t >= cutoffMs;
-      });
-    }
-
-    // Date formatting helpers
-    function getLocalDateKey(date) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-
-    function getLocalHourKey(date) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      const h = String(date.getHours()).padStart(2, '0');
-      return `${y}-${m}-${d}-${h}`;
-    }
-
-    function formatRelativeTime(iso) {
-      const d = new Date(iso);
-      const now = Date.now();
-      const diffMs = now - d.getTime();
-      if (diffMs < 0) return t('stats_today') || 'Today';
-      const diffSec = Math.floor(diffMs / 1000);
-      const diffMin = Math.floor(diffSec / 60);
-      const diffHour = Math.floor(diffMin / 60);
-      const diffDay = Math.floor(diffHour / 24);
-
-      const lang = typeof currentLang === 'string' ? currentLang : 'az';
-      if (diffSec < 60) return lang === 'az' ? 'Az əvvəl' : (lang === 'tr' ? 'Az önce' : 'Just now');
-      if (diffMin < 60) return `${diffMin} ${lang === 'az' ? 'dəq əvvəl' : (lang === 'tr' ? 'dk önce' : 'min ago')}`;
-      if (diffHour < 24) return `${diffHour} ${lang === 'az' ? 'saat əvvəl' : (lang === 'tr' ? 'saat önce' : 'hours ago')}`;
-      if (diffDay < 7) return `${diffDay} ${lang === 'az' ? 'gün əvvəl' : (lang === 'tr' ? 'gün önce' : 'days ago')}`;
-      return d.toLocaleDateString(lang === 'az' ? 'az' : (lang === 'tr' ? 'tr' : 'en'), { month: 'short', day: 'numeric' });
-    }
-
-    // Builds aggregated stats object from filtered clicks
-    function computeStatsFromClicks(clicks) {
-      const stats = {
-        total_clicks: clicks.length,
-        browsers: {},
-        os: {},
-        countries: {}
-      };
-
-      clicks.forEach(click => {
-        const browser = click.browser || 'Unknown';
-        const os = click.os || 'Unknown';
-        const country = click.country || 'Unknown';
-
-        stats.browsers[browser] = (stats.browsers[browser] || 0) + 1;
-        stats.os[os] = (stats.os[os] || 0) + 1;
-        stats.countries[country] = (stats.countries[country] || 0) + 1;
-      });
-
-      // Top country calculation
-      let topCountry = '—';
-      let topCountryCount = 0;
-      Object.entries(stats.countries).forEach(([c, count]) => {
-        if (count > topCountryCount) {
-          topCountry = c;
-          topCountryCount = count;
-        }
-      });
-      const topCountryPercent = stats.total_clicks > 0
-        ? Math.round((topCountryCount / stats.total_clicks) * 100)
-        : 0;
-
-      return {
-        ...stats,
-        unique_visitors: Math.max(1, Math.round(stats.total_clicks * 0.85)) || stats.total_clicks,
-        top_country: topCountry,
-        top_country_percent: topCountryPercent,
-        top_country_count: topCountryCount
-      };
-    }
-
-    // Continuous Zero-Filled Timeline Engine
-    function buildZeroFilledTimeline(clicks, range, granularity) {
-      const now = new Date();
-      const slots = [];
-      const lang = typeof currentLang === 'string' ? currentLang : 'az';
-      const locale = lang === 'az' ? 'az' : (lang === 'tr' ? 'tr' : 'en');
-
-      const isHourly = granularity === 'hourly' || range === '24h';
-
-      if (isHourly) {
-        // 24 continuous hourly slots ending at current hour
-        const endHour = new Date(now);
-        endHour.setMinutes(0, 0, 0, 0);
-        for (let i = 23; i >= 0; i--) {
-          const slotTime = new Date(endHour.getTime() - (i * 3600 * 1000));
-          const key = getLocalHourKey(slotTime);
-          const label = slotTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-          slots.push({ key, label, count: 0 });
-        }
-
-        // Aggregate clicks into hourly slots
-        clicks.forEach(c => {
-          const d = new Date(c.time);
-          if (Number.isFinite(d.getTime())) {
-            const key = getLocalHourKey(d);
-            const slot = slots.find(s => s.key === key);
-            if (slot) slot.count += 1;
-          }
-        });
-      } else {
-        // Continuous Daily Slots
-        let dayCount = 7;
-        if (range === '30d') {
-          dayCount = 30;
-        } else if (range === 'all') {
-          if (clicks.length > 0) {
-            const minTime = Math.min(...clicks.map(c => new Date(c.time).getTime()).filter(Number.isFinite));
-            const diffDays = Math.round((now.getTime() - minTime) / 86400000) + 1;
-            dayCount = Math.min(60, Math.max(7, diffDays));
-          } else {
-            dayCount = 7;
-          }
-        }
-
-        for (let i = dayCount - 1; i >= 0; i--) {
-          const slotDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-          const key = getLocalDateKey(slotDate);
-          const isToday = i === 0;
-          const label = isToday ? (t('stats_today') || 'Today') : slotDate.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
-          slots.push({ key, label, count: 0 });
-        }
-
-        // Aggregate clicks into daily slots
-        clicks.forEach(c => {
-          const d = new Date(c.time);
-          if (Number.isFinite(d.getTime())) {
-            const key = getLocalDateKey(d);
-            const slot = slots.find(s => s.key === key);
-            if (slot) slot.count += 1;
-          }
-        });
-      }
-
-      const labels = slots.map(s => s.label);
-      const values = slots.map(s => s.count);
-      const total = clicks.length;
-      const peak = values.length ? Math.max(...values) : 0;
-      const avg = values.length ? (total / values.length).toFixed(1) : '0';
-      const rangeLabel = labels.length ? `${labels[0]} — ${labels[labels.length - 1]}` : '';
-
-      return { labels, values, peak, avg, total, rangeLabel };
-    }
-
-    // Render KPI numbers and badges (4 High-Density Bento Cards)
-    function renderKpis(stats, clicks) {
-      const totalDisplay = document.getElementById('totalClicksDisplay');
-      const totalSub = document.getElementById('totalClicksSub');
-      const uniqueDisplay = document.getElementById('uniqueVisitorsDisplay');
-      const uniqueRate = document.getElementById('uniqueVisitorsRate');
-      const uniqueSub = document.getElementById('uniqueVisitorsSub');
-      const topLocFlag = document.getElementById('topLocationFlag');
-      const topLocText = document.getElementById('topLocationText');
-      const topLocSub = document.getElementById('topLocationSub');
-      const topPlatformIcon = document.getElementById('topPlatformIcon');
-      const topPlatformText = document.getElementById('topPlatformText');
-      const topPlatformSub = document.getElementById('topPlatformSub');
-
-      // Card 1: Total Clicks
-      if (totalDisplay) totalDisplay.textContent = Number(stats.total_clicks || 0).toLocaleString();
-      if (totalSub) {
-        let rangeText = t('stats_filter_all');
-        if (currentRangeFilter === '24h') rangeText = t('stats_filter_24h');
-        else if (currentRangeFilter === '7d') rangeText = t('stats_filter_7d');
-        else if (currentRangeFilter === '30d') rangeText = t('stats_filter_30d');
-        totalSub.textContent = rangeText;
-      }
-
-      // Card 2: Unique Visitors
-      const uniqueCount = (currentRangeFilter === 'all' && analyticsRawData && analyticsRawData.unique_visitors)
-        ? analyticsRawData.unique_visitors
-        : (stats.unique_visitors || stats.total_clicks || 0);
-
-      if (uniqueDisplay) uniqueDisplay.textContent = Number(uniqueCount).toLocaleString();
-      if (uniqueRate) {
-        const rate = stats.total_clicks > 0 ? Math.min(100, Math.round((uniqueCount / stats.total_clicks) * 100)) : 100;
-        uniqueRate.textContent = `${rate}% unikal`;
-      }
-      if (uniqueSub) {
-        uniqueSub.textContent = stats.total_clicks > 0 ? `${uniqueCount} fərqli şəbəkə seansı` : t('stats_no_data');
-      }
-
-      // Card 3: Top Location
-      if (topLocText) {
-        if (!stats.total_clicks || stats.top_country === '—') {
-          if (topLocFlag) topLocFlag.textContent = '🌐';
-          topLocText.textContent = '—';
-          if (topLocSub) topLocSub.textContent = t('stats_no_data');
-        } else {
-          const flag = getCountryFlag(stats.top_country);
-          const cName = resolveCountryName(stats.top_country);
-          if (topLocFlag) topLocFlag.textContent = flag;
-          topLocText.textContent = `${cName} (${stats.top_country_percent}%)`;
-          if (topLocSub) topLocSub.textContent = `${stats.top_country_count} klik (${stats.top_country_percent}%)`;
-        }
-      }
-
-      // Card 4: Top Platform / Device
-      let topOs = '—';
-      let topOsCount = 0;
-      Object.entries(stats.os || {}).forEach(([os, count]) => {
-        if (count > topOsCount) {
-          topOs = os;
-          topOsCount = count;
-        }
-      });
-
-      let topBrowser = '—';
-      let topBrowserCount = 0;
-      Object.entries(stats.browsers || {}).forEach(([b, count]) => {
-        if (count > topBrowserCount) {
-          topBrowser = b;
-          topBrowserCount = count;
-        }
-      });
-
-      const topOsPercent = stats.total_clicks > 0 ? Math.round((topOsCount / stats.total_clicks) * 100) : 0;
-
-      if (topPlatformText) {
-        if (!stats.total_clicks || topOs === '—') {
-          if (topPlatformIcon) topPlatformIcon.className = 'fa-solid fa-laptop-code';
-          topPlatformText.textContent = '—';
-          if (topPlatformSub) topPlatformSub.textContent = t('stats_no_data');
-        } else {
-          const osName = mapBucketLabel(topOs);
-          const browserName = mapBucketLabel(topBrowser);
-          if (topPlatformIcon) topPlatformIcon.className = `${getTechIcon(osName)} m-tech-icon`;
-          topPlatformText.textContent = osName;
-          if (topPlatformSub) topPlatformSub.textContent = `${browserName} • ${topOsPercent}% pay`;
-        }
-      }
-    }
-
-    // Render Clicks Over Time (Continuous Baseline + Spline Area or Bar)
-    function renderTimeChart(timelineData) {
-      const canvas = document.getElementById('timeChart');
-      if (!canvas) return;
-      const wrap = canvas.parentElement;
-
-      // Update stat strip
-      const peakEl = document.getElementById('chartStatPeak');
-      const avgEl = document.getElementById('chartStatAvg');
-      const totalEl = document.getElementById('chartStatTotal');
-      const metaContainer = document.getElementById('timeChartMeta');
-
-      const isHourly = currentGranularity === 'hourly' || currentRangeFilter === '24h';
-      const perUnitLabel = isHourly
-        ? (currentLang === 'az' ? 'saat' : (currentLang === 'tr' ? 'saat' : 'hr'))
-        : (currentLang === 'az' ? 'gün' : (currentLang === 'tr' ? 'gün' : 'day'));
-
-      if (peakEl) peakEl.textContent = `${timelineData.peak} ${t('th_clicks') || 'klik'}`;
-      if (avgEl) avgEl.textContent = `${timelineData.avg} / ${perUnitLabel}`;
-      if (totalEl) totalEl.textContent = `${timelineData.total} ${t('th_clicks') || 'klik'}`;
-
-      if (metaContainer) {
-        metaContainer.innerHTML = '';
-        if (timelineData.rangeLabel) {
-          const rangeChip = document.createElement('span');
-          rangeChip.className = 'm-meta-chip';
-          rangeChip.textContent = timelineData.rangeLabel;
-          metaContainer.appendChild(rangeChip);
-        }
-      }
-
-      if (timeChartInstance) {
-        timeChartInstance.destroy();
-        timeChartInstance = null;
-      }
-
-      const ctx = canvas.getContext('2d');
-      const isBar = currentChartType === 'bar';
-
-      let dataset = {};
-      if (isBar) {
-        dataset = {
-          label: t('th_clicks') || 'Clicks',
-          data: timelineData.values,
-          backgroundColor: 'rgba(255, 255, 255, 0.82)',
-          hoverBackgroundColor: '#ffffff',
-          borderRadius: 4,
-          borderSkipped: false,
-          maxBarThickness: 28
-        };
-      } else {
-        const gradient = ctx.createLinearGradient(0, 0, 0, 270);
-        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
-        gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.03)');
-        gradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
-
-        dataset = {
-          label: t('th_clicks') || 'Clicks',
-          data: timelineData.values,
-          borderColor: '#ffffff',
-          borderWidth: 2,
-          backgroundColor: gradient,
-          fill: true,
-          tension: 0.35,
-          pointRadius: timelineData.values.length <= 14 ? 3.5 : 0,
-          pointHoverRadius: 6,
-          pointBackgroundColor: '#ffffff',
-          pointHoverBackgroundColor: '#ffffff',
-          pointHoverBorderColor: '#09090b',
-          pointHoverBorderWidth: 2
-        };
-      }
-
-      timeChartInstance = new Chart(ctx, {
-        type: isBar ? 'bar' : 'line',
-        data: {
-          labels: timelineData.labels,
-          datasets: [dataset]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: {
-            mode: 'index',
-            intersect: false
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: '#111114',
-              titleColor: '#ffffff',
-              bodyColor: '#a1a1aa',
-              borderColor: 'rgba(255, 255, 255, 0.15)',
-              borderWidth: 1,
-              padding: 12,
-              cornerRadius: 8,
-              displayColors: false,
-              titleFont: { family: 'Inter', size: 13, weight: '600' },
-              bodyFont: { family: 'Inter', size: 12.5 },
-              callbacks: {
-                label: (c) => `${t('th_clicks') || 'Clicks'}: ${c.parsed.y}`
-              }
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              suggestedMax: Math.max(2, timelineData.peak + 1),
-              ticks: {
-                precision: 0,
-                color: '#666666',
-                font: { family: 'Inter', size: 11.5 }
-              },
-              grid: {
-                color: 'rgba(255, 255, 255, 0.04)',
-                drawBorder: false
-              },
-              border: { display: false }
-            },
-            x: {
-              ticks: {
-                maxRotation: 0,
-                autoSkip: true,
-                maxTicksLimit: 10,
-                color: '#666666',
-                font: { family: 'Inter', size: 11.5 }
-              },
-              grid: { display: false },
-              border: { display: false }
-            }
-          }
-        }
-      });
-    }
-
-    // Render Ranked List (Top Countries)
-    function renderCountriesList(countriesMap, totalClicks) {
-      const container = document.getElementById('countriesList');
-      const tag = document.getElementById('countryTotalTag');
-      if (!container) return;
-
-      const entries = Object.entries(countriesMap || {})
-        .sort((a, b) => b[1] - a[1]);
-
-      if (tag) tag.textContent = `${entries.length} ölkə`;
-
-      if (!entries.length || totalClicks === 0) {
-        container.innerHTML = `
-          <div class="m-list-empty">
-            <i class="fa-solid fa-globe"></i>
-            <span>${t('stats_no_data')}</span>
-          </div>`;
-        return;
-      }
-
-      container.innerHTML = entries.slice(0, 6).map(([code, count], idx) => {
-        const pct = totalClicks > 0 ? Math.round((count / totalClicks) * 100) : 0;
-        const name = resolveCountryName(code);
-        const flag = getCountryFlag(code);
-        const upperCode = (code || '—').toUpperCase();
-
-        return `
-          <div class="m-data-row">
-            <div class="m-data-row-main">
-              <div class="m-data-left">
-                <span class="m-rank-index">${idx + 1}</span>
-                <span class="m-flag-emoji" style="font-size: 15px;">${flag}</span>
-                <span class="m-geo-tag">${upperCode.slice(0, 3)}</span>
-                <span>${name}</span>
-              </div>
-              <div class="m-data-right">
-                <span class="m-pct-val">${pct}%</span>
-                <span class="m-count-val">(${count})</span>
-              </div>
-            </div>
-            <div class="m-hairline-track">
-              <div class="m-hairline-fill" style="width: ${Math.max(4, pct)}%;"></div>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    // Render Technology List (OS or Browsers)
-    function renderTechList(stats) {
-      const container = document.getElementById('techList');
-      const tag = document.getElementById('techTotalTag');
-      if (!container) return;
-
-      const sourceMap = currentTechTab === 'os' ? stats.os : stats.browsers;
-      const entries = Object.entries(sourceMap || {})
-        .sort((a, b) => b[1] - a[1]);
-
-      if (tag) tag.textContent = `${entries.length} element`;
-
-      if (!entries.length || stats.total_clicks === 0) {
-        container.innerHTML = `
-          <div class="m-list-empty">
-            <i class="fa-solid fa-laptop-code"></i>
-            <span>${t('stats_no_data')}</span>
-          </div>`;
-        return;
-      }
-
-      container.innerHTML = entries.slice(0, 6).map(([rawName, count]) => {
-        const name = mapBucketLabel(rawName);
-        const iconClass = getTechIcon(name);
-        const pct = stats.total_clicks > 0 ? Math.round((count / stats.total_clicks) * 100) : 0;
-
-        return `
-          <div class="m-data-row">
-            <div class="m-data-row-main">
-              <div class="m-data-left">
-                <i class="${iconClass} m-tech-icon"></i>
-                <span>${name}</span>
-              </div>
-              <div class="m-data-right">
-                <span class="m-pct-val">${pct}%</span>
-                <span class="m-count-val">(${count})</span>
-              </div>
-            </div>
-            <div class="m-hairline-track">
-              <div class="m-hairline-fill" style="width: ${Math.max(4, pct)}%;"></div>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    // Render Live Activity Stream Table (Canlı Klik Jurnalı)
-    function renderActivityTable(clicks) {
-      const tbody = document.getElementById('activityTableBody');
-      const countTag = document.getElementById('activityCountTag');
-      if (!tbody) return;
-
-      if (countTag) countTag.textContent = `${clicks.length} klik`;
-
-      if (!clicks.length) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="5" class="m-table-empty">
-              <i class="fa-solid fa-clock-rotate-left"></i>
-              <span>${t('stats_no_data')}</span>
-            </td>
-          </tr>`;
-        return;
-      }
-
-      // Display up to 50 clicks, newest first
-      const recentClicks = clicks.slice().reverse().slice(0, 50);
-
-      tbody.innerHTML = recentClicks.map((c, idx) => {
-        const d = new Date(c.time);
-        const timeValid = Number.isFinite(d.getTime());
-        const exactTime = timeValid ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
-        const relTime = timeValid ? formatRelativeTime(c.time) : (c.time || '—');
-        const flag = getCountryFlag(c.country);
-        const countryName = resolveCountryName(c.country);
-        const cityStr = c.city ? `${c.city}, ` : '';
-        const locFull = `${cityStr}${countryName}`;
-        const osName = mapBucketLabel(c.os);
-        const browserName = mapBucketLabel(c.browser);
-        const osIcon = getTechIcon(osName);
-        const browserIcon = getTechIcon(browserName);
-
-        return `
-          <tr>
-            <td class="m-td-num">${idx + 1}</td>
-            <td>
-              <span class="m-td-time" title="${c.time || ''}">
-                <span>${relTime}</span>
-                ${exactTime ? `<span class="m-td-subtime">(${exactTime})</span>` : ''}
-              </span>
-            </td>
-            <td>
-              <div class="m-td-badge">
-                <span class="m-flag-emoji">${flag}</span>
-                <span>${locFull}</span>
-              </div>
-            </td>
-            <td>
-              <div class="m-td-badge">
-                <i class="${osIcon}"></i>
-                <span>${osName}</span>
-              </div>
-            </td>
-            <td>
-              <div class="m-td-badge">
-                <i class="${browserIcon}"></i>
-                <span>${browserName}</span>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    // Primary refresh function
-    function applyAnalyticsView() {
-      if (!analyticsRawData) return;
-
-      const filteredClicks = getFilteredClicks();
-      const stats = computeStatsFromClicks(filteredClicks);
-      const timelineData = buildZeroFilledTimeline(filteredClicks, currentRangeFilter, currentGranularity);
-
-      renderKpis(stats, filteredClicks);
-      renderTimeChart(timelineData);
-      renderCountriesList(stats.countries, stats.total_clicks);
-      renderTechList(stats);
-      renderActivityTable(filteredClicks);
-    }
-
-    // Copy link handler
-    const copyBtn = document.getElementById('copyLinkBtn');
-    if (copyBtn) {
-      copyBtn.addEventListener('click', () => {
-        const origin = window.location.origin;
-        const fullUrl = `${origin}/${shortCode}`;
-        navigator.clipboard.writeText(fullUrl).then(() => {
-          copyBtn.classList.add('copied');
-          copyBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
-          setTimeout(() => {
-            copyBtn.classList.remove('copied');
-            copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
-          }, 2000);
-        }).catch(() => {});
-      });
-    }
-
-    // Time Range Switcher Event Handlers
-    document.querySelectorAll('.m-range-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.m-range-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentRangeFilter = btn.getAttribute('data-range') || 'all';
-
-        // Auto sync granularity when picking 24h vs multi-day
-        if (currentRangeFilter === '24h') {
-          currentGranularity = 'hourly';
-          const granH = document.getElementById('btnGranHourly');
-          const granD = document.getElementById('btnGranDaily');
-          if (granH) granH.classList.add('active');
-          if (granD) granD.classList.remove('active');
-        } else if (currentRangeFilter === '7d' || currentRangeFilter === '30d') {
-          currentGranularity = 'daily';
-          const granH = document.getElementById('btnGranHourly');
-          const granD = document.getElementById('btnGranDaily');
-          if (granD) granD.classList.add('active');
-          if (granH) granH.classList.remove('active');
-        }
-
-        applyAnalyticsView();
-      });
-    });
-
-    // Granularity Toggle Buttons (Hourly vs Daily)
-    const btnGranHourly = document.getElementById('btnGranHourly');
-    const btnGranDaily = document.getElementById('btnGranDaily');
-    if (btnGranHourly && btnGranDaily) {
-      btnGranHourly.addEventListener('click', () => {
-        btnGranHourly.classList.add('active');
-        btnGranDaily.classList.remove('active');
-        currentGranularity = 'hourly';
-        if (analyticsRawData) {
-          const filteredClicks = getFilteredClicks();
-          const timelineData = buildZeroFilledTimeline(filteredClicks, currentRangeFilter, currentGranularity);
-          renderTimeChart(timelineData);
-        }
-      });
-
-      btnGranDaily.addEventListener('click', () => {
-        btnGranDaily.classList.add('active');
-        btnGranHourly.classList.remove('active');
-        currentGranularity = 'daily';
-        if (analyticsRawData) {
-          const filteredClicks = getFilteredClicks();
-          const timelineData = buildZeroFilledTimeline(filteredClicks, currentRangeFilter, currentGranularity);
-          renderTimeChart(timelineData);
-        }
-      });
-    }
-
-    // Chart Type Toggle Buttons (Area vs Bar)
-    const btnTypeArea = document.getElementById('btnTypeArea');
-    const btnTypeBar = document.getElementById('btnTypeBar');
-    if (btnTypeArea && btnTypeBar) {
-      btnTypeArea.addEventListener('click', () => {
-        btnTypeArea.classList.add('active');
-        btnTypeBar.classList.remove('active');
-        currentChartType = 'line';
-        if (analyticsRawData) {
-          const filteredClicks = getFilteredClicks();
-          const timelineData = buildZeroFilledTimeline(filteredClicks, currentRangeFilter, currentGranularity);
-          renderTimeChart(timelineData);
-        }
-      });
-
-      btnTypeBar.addEventListener('click', () => {
-        btnTypeBar.classList.add('active');
-        btnTypeArea.classList.remove('active');
-        currentChartType = 'bar';
-        if (analyticsRawData) {
-          const filteredClicks = getFilteredClicks();
-          const timelineData = buildZeroFilledTimeline(filteredClicks, currentRangeFilter, currentGranularity);
-          renderTimeChart(timelineData);
-        }
-      });
-    }
-
-    // Tech Tab Buttons (OS vs Browsers)
-    const tabOsBtn = document.getElementById('tabOsBtn');
-    const tabBrowsersBtn = document.getElementById('tabBrowsersBtn');
-    if (tabOsBtn && tabBrowsersBtn) {
-      tabOsBtn.addEventListener('click', () => {
-        tabOsBtn.classList.add('active');
-        tabOsBtn.setAttribute('aria-selected', 'true');
-        tabBrowsersBtn.classList.remove('active');
-        tabBrowsersBtn.setAttribute('aria-selected', 'false');
-        currentTechTab = 'os';
-        if (analyticsRawData) {
-          const stats = computeStatsFromClicks(getFilteredClicks());
-          renderTechList(stats);
-        }
-      });
-
-      tabBrowsersBtn.addEventListener('click', () => {
-        tabBrowsersBtn.classList.add('active');
-        tabBrowsersBtn.setAttribute('aria-selected', 'true');
-        tabOsBtn.classList.remove('active');
-        tabOsBtn.setAttribute('aria-selected', 'false');
-        currentTechTab = 'browsers';
-        if (analyticsRawData) {
-          const stats = computeStatsFromClicks(getFilteredClicks());
-          renderTechList(stats);
-        }
-      });
-    }
-
-    // Export CSV Handler
-    const exportCsvBtn = document.getElementById('exportCsvBtn');
-    if (exportCsvBtn) {
-      exportCsvBtn.addEventListener('click', () => {
-        if (!analyticsRawData) return;
-        const clicks = getFilteredClicks();
-        let csvContent = "data:text/csv;charset=utf-8,Timestamp,Country,City,Operating_System,Browser\n";
-        clicks.forEach(c => {
-          csvContent += `"${c.time}","${(c.country || '').replace(/"/g, '""')}","${(c.city || '').replace(/"/g, '""')}","${(c.os || '').replace(/"/g, '""')}","${(c.browser || '').replace(/"/g, '""')}"\n`;
-        });
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `analytics_${shortCode}_${currentRangeFilter}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      });
-    }
-
-    // Export JSON Handler
-    const exportJsonBtn = document.getElementById('exportJsonBtn');
-    if (exportJsonBtn) {
-      exportJsonBtn.addEventListener('click', () => {
-        if (!analyticsRawData) return;
-        const clicks = getFilteredClicks();
-        const exportData = {
-          short: shortCode,
-          filter: currentRangeFilter,
-          total_clicks: clicks.length,
-          clicks
-        };
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
-        const link = document.createElement("a");
-        link.setAttribute("href", dataStr);
-        link.setAttribute("download", `analytics_${shortCode}_${currentRangeFilter}.json`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      });
-    }
-
-    // Initial Data Fetch
-    fetch('/api/stats/' + encodeURIComponent(shortCode), { credentials: 'include' })
-      .then(res => {
-        if (!res.ok) throw new Error('stats_fetch_failed');
-        return res.json();
-      })
-      .then(data => {
-        analyticsRawData = data || {};
-        applyAnalyticsView();
-      })
-      .catch(() => {
-        const display = document.getElementById('totalClicksDisplay');
-        if (display) display.textContent = '0';
-      });
-
-    window.addEventListener('ovlink:languageChanged', applyAnalyticsView);
-    window.addEventListener('ovlink:themeChanged', applyAnalyticsView);
-  </script>
+  <script nonce="<%= nonce %>" src="/stats-map.js?v=<%= assetVersion %>"></script>
+
+  <!-- Linear-grade Analytics Logic (body lives in /public/stats-page.js; W4.4) -->
+<% if (locals.statsPageInlineJs) { %>
+  <script nonce="<%= nonce %>"><%- statsPageInlineJs %></script>
+<% } else { %>
+  <script nonce="<%= nonce %>" src="/stats-page.js?v=<%= assetVersion %>"></script>
+<% } %>
 
   <!-- Monolith Motion & Interaction Engine -->
   <script nonce="<%= nonce %>">

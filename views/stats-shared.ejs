@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="<%= (typeof defaultLang !== 'undefined' && defaultLang) ? defaultLang : 'en' %>" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="referrer" content="no-referrer" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= assetVersion %>" />
+  <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <title>Ovlink · <%= shortCode %></title>
+  <style nonce="<%= nonce %>">
+    .sh-page { min-height: 100vh; background: var(--c-bg, #0a0a0a); color: var(--c-text, #f3f4f6); padding: 40px 16px 64px; }
+    .sh-shell { max-width: 960px; margin: 0 auto; }
+    .sh-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+    .sh-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -0.02em; }
+    .sh-brand img { height: 26px; width: auto; }
+    .sh-chip { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--c-faint, #737373); border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 6px 12px; }
+    .sh-link { margin: 0 0 6px; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; word-break: break-all; }
+    .sh-orig { color: var(--c-muted, #a1a1aa); font-size: 13px; word-break: break-all; margin-bottom: 24px; }
+    .sh-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .sh-kpi { border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px; background: rgba(255,255,255,0.02); }
+    .sh-kpi-k { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--c-faint, #737373); margin-bottom: 8px; }
+    .sh-kpi-v { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+    .sh-panel { border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 18px; background: rgba(255,255,255,0.02); margin-bottom: 16px; }
+    .sh-panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--c-muted, #a1a1aa); margin: 0 0 14px; }
+    .sh-chart { height: 240px; }
+    .sh-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .sh-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+    .sh-row:last-child { border-bottom: 0; }
+    .sh-row b { font-weight: 700; }
+    .sh-empty { color: var(--c-faint, #737373); font-size: 13px; }
+    .sh-foot { margin-top: 24px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--c-faint, #737373); }
+    .sh-foot a { color: inherit; text-decoration: underline; }
+  </style>
+</head>
+<body class="ovx">
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+  <main class="sh-page" id="mainContent">
+    <div class="sh-shell">
+      <header class="sh-head">
+        <div class="sh-brand">
+          <img src="/home-logo.svg?v=<%= assetVersion %>" alt="Ovlink" />
+          <span>Ovlink Analytics</span>
+        </div>
+        <span class="sh-chip" id="rangeChip">—</span>
+      </header>
+
+      <h1 class="sh-link" id="shortLink">/<%= shortCode %></h1>
+      <p class="sh-orig" id="originalLink"><%= originalUrl %></p>
+
+      <section class="sh-kpis" aria-label="Key metrics">
+        <div class="sh-kpi"><span class="sh-kpi-k" data-k="clicks">Clicks</span><span class="sh-kpi-v" id="kpiClicks">0</span></div>
+        <div class="sh-kpi"><span class="sh-kpi-k" data-k="uniques">Unique visitors</span><span class="sh-kpi-v" id="kpiUniques">0</span></div>
+        <div class="sh-kpi"><span class="sh-kpi-k" data-k="conversions">Conversions</span><span class="sh-kpi-v" id="kpiConversions">0</span></div>
+        <div class="sh-kpi"><span class="sh-kpi-k" data-k="rate">Conversion rate</span><span class="sh-kpi-v" id="kpiRate">0%</span></div>
+      </section>
+
+      <section class="sh-panel" aria-label="Clicks over time">
+        <h2 id="chartTitle">Clicks over time</h2>
+        <div class="sh-chart"><canvas id="sharedChart"></canvas></div>
+      </section>
+
+      <div class="sh-cols">
+        <section class="sh-panel" aria-label="Top countries">
+          <h2 id="countriesTitle">Top countries</h2>
+          <div id="countriesList"><div class="sh-empty">—</div></div>
+        </section>
+        <section class="sh-panel" aria-label="Top sources">
+          <h2 id="sourcesTitle">Top sources</h2>
+          <div id="sourcesList"><div class="sh-empty">—</div></div>
+        </section>
+      </div>
+
+      <footer class="sh-foot">
+        <span id="expiryNote"></span>
+        <span>Powered by <a href="/" rel="noopener">Ovlink</a></span>
+      </footer>
+    </div>
+  </main>
+
+  <script nonce="<%= nonce %>">
+    (function () {
+      var SHORT = <%- JSON.stringify(shortCode) %>;
+      var TOKEN = <%- JSON.stringify(token) %>;
+      var DAYS = <%- JSON.stringify(days) %>;
+      var EXPIRES_AT = <%- JSON.stringify(expiresAt) %>;
+
+      var LABELS = {
+        az: { clicks: 'Kliklər', uniques: 'Unikal ziyarətçi', conversions: 'Konversiyalar', rate: 'Konversiya faizi', chart: 'Zaman üzrə kliklər', countries: 'Əsas ölkələr', sources: 'Trafik mənbələri', expiry: 'Linkin bitmə tarixi', empty: 'Məlumat yoxdur' },
+        tr: { clicks: 'Tıklamalar', uniques: 'Tekil ziyaretçi', conversions: 'Dönüşümler', rate: 'Dönüşüm oranı', chart: 'Zaman içinde tıklamalar', countries: 'Öne çıkan ülkeler', sources: 'Trafik kaynakları', expiry: 'Bağlantının bitiş tarihi', empty: 'Veri yok' },
+        en: { clicks: 'Clicks', uniques: 'Unique visitors', conversions: 'Conversions', rate: 'Conversion rate', chart: 'Clicks over time', countries: 'Top countries', sources: 'Traffic sources', expiry: 'Link expires', empty: 'No data' }
+      };
+      var lang = (document.documentElement.lang || 'en').slice(0, 2);
+      var L = LABELS[lang] || LABELS.en;
+
+      function $(id) { return document.getElementById(id); }
+      function text(id, value) { var el = $(id); if (el) el.textContent = value; }
+
+      document.querySelectorAll('[data-k]').forEach(function (el) {
+        var key = el.getAttribute('data-k');
+        if (L[key]) el.textContent = L[key];
+      });
+      text('chartTitle', L.chart);
+      text('countriesTitle', L.countries);
+      text('sourcesTitle', L.sources);
+      text('expiryNote', L.expiry + ': ' + (EXPIRES_AT ? new Date(EXPIRES_AT).toLocaleDateString() : '—'));
+
+      function renderList(containerId, entries, emptyLabel) {
+        var container = $(containerId);
+        if (!container) return;
+        container.textContent = '';
+        var list = (entries || []).filter(function (item) { return Number(item.count) > 0; }).slice(0, 6);
+        if (!list.length) {
+          var empty = document.createElement('div');
+          empty.className = 'sh-empty';
+          empty.textContent = emptyLabel;
+          container.appendChild(empty);
+          return;
+        }
+        var max = Math.max.apply(null, list.map(function (item) { return Number(item.count); }));
+        list.forEach(function (item) {
+          var row = document.createElement('div');
+          row.className = 'sh-row';
+
+          var name = document.createElement('span');
+          name.textContent = item.name;
+          name.style.overflow = 'hidden';
+          name.style.textOverflow = 'ellipsis';
+          name.style.whiteSpace = 'nowrap';
+
+          var value = document.createElement('b');
+          value.textContent = Number(item.count).toLocaleString() + ' · ' + Math.round((Number(item.count) / (max || 1)) * 100) + '%';
+
+          row.appendChild(name);
+          row.appendChild(value);
+          container.appendChild(row);
+        });
+      }
+
+      function drawChart(series) {
+        var canvas = $('sharedChart');
+        if (!canvas || typeof Chart === 'undefined' || !Array.isArray(series)) return;
+
+        new Chart(canvas, {
+          type: 'line',
+          data: {
+            labels: series.map(function (point) { return point.date.slice(5); }),
+            datasets: [{
+              data: series.map(function (point) { return point.count; }),
+              borderColor: '#ffffff',
+              borderWidth: 2,
+              pointRadius: 0,
+              tension: 0.3,
+              fill: true,
+              backgroundColor: 'rgba(255,255,255,0.06)'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', maxTicksLimit: 8 } },
+              y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', precision: 0 } }
+            }
+          }
+        });
+      }
+
+      fetch('/api/stats/shared/' + encodeURIComponent(SHORT) + '?token=' + encodeURIComponent(TOKEN), { credentials: 'omit' })
+        .then(function (res) { if (!res.ok) throw new Error('unavailable'); return res.json(); })
+        .then(function (data) {
+          // The report is pinned to its own window, so the headline numbers must
+          // be the range values, not the all-time totals.
+          text('kpiClicks', Number(data.total_clicks || 0).toLocaleString());
+          text('kpiUniques', data.uniques_available === false ? '—' : Number(data.uniques_range || 0).toLocaleString());
+          text('kpiConversions', Number(data.conversions_range || 0).toLocaleString());
+          text('kpiRate', Number(data.conversion_rate || 0) + '%');
+          text('rangeChip', DAYS + 'd');
+
+          renderList('countriesList', data.top_countries, L.empty);
+          renderList('sourcesList', data.top_referrers, L.empty);
+          drawChart(data.clicks_by_day);
+        })
+        .catch(function () { text('rangeChip', '—'); });
+    })();
+  </script>
+</body>
+</html>

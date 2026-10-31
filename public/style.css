@@ -3469,3 +3469,51 @@ animation-iteration-count: 1 !important;
 transition-duration: 0.01ms !important;
 }
 }
+
+/* ── Accessibility & RTL foundation (A16) ──────────────────────────────
+   One visible focus ring for every interactive element, plus logical
+   fallbacks so adding an RTL language mirrors the layout without a rewrite. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-ring, 0 0 0 3px rgba(37, 99, 235, 0.45));
+  border-radius: var(--radius-sm, 6px);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  inset-inline-start: 8px;
+  top: -48px;
+  z-index: 1000;
+  padding: 8px 14px;
+  background: #0a0a0a;
+  color: #fff;
+  border-radius: 8px;
+  transition: top .15s ease;
+}
+.skip-link:focus-visible { top: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+[dir="rtl"] body { text-align: right; }
+[dir="rtl"] i[class*="fa-angle-"],
+[dir="rtl"] i[class*="fa-chevron-"],
+[dir="rtl"] i[class*="fa-arrow-"] { transform: scaleX(-1); }

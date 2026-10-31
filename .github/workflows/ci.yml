@@ -8,6 +8,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 12
 
     services:
       postgres:
@@ -43,11 +44,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Syntax check
-        run: node --check server.js routes/admin.js public/script.js public/lang.js public/home.js public/sw.js bots/telegram.js bots/discord.js bots/shared.js utils/polar.js utils/crypto.js
+      - name: Repository hygiene (no prospect data)
+        run: |
+          if git ls-files | grep -Eq '(^|/)(ovlink_)?.*leads.*\.(csv|html)$'; then
+            echo 'Prospect/lead exports must not be tracked in the repository.'
+            git ls-files | grep -E '(^|/)(ovlink_)?.*leads.*\.(csv|html)$'
+            exit 1
+          fi
+
+      - name: Syntax check (whole repository)
+        run: npm run check:syntax:all
 
       - name: Run test suite
         run: npm test
+
+      - name: Coverage report (non-blocking)
+        continue-on-error: true
+        run: npm run test:coverage
 
       - name: Dependency audit (critical)
         continue-on-error: true

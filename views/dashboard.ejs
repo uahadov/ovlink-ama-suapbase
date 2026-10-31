@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="<%= (typeof uiLang !== 'undefined' && uiLang) ? uiLang : 'az' %>">
+<html lang="<%= (typeof uiLang !== 'undefined' && uiLang) ? uiLang : 'az' %>" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -14,10 +14,10 @@
 
     <!-- Icons: Local FontAwesome + CDN Fallback -->
     <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= assetVersion %>" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <!-- Monolith Core Stylesheet -->
     <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+    <link rel="stylesheet" href="/tokens.css?v=<%= assetVersion %>" />
 
     <style nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
       .ovx input.m-adv-input,
@@ -419,6 +419,7 @@
     </style>
   </head>
   <body class="ovx">
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
     <!-- Ambient Cursor Glow -->
     <div id="cursorGlow" aria-hidden="true"></div>
 
@@ -441,6 +442,8 @@
           <h1 style="font-size: clamp(28px, 4vw, 36px); font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin: 0 0 8px 0; line-height: 1.2;" data-i18n="dashboard_title">Dashboard</h1>
           <p style="font-size: 15px; color: var(--c-muted, #a3a3a3); margin: 0; line-height: 1.5;" data-i18n="dashboard_subtitle">Bütün linklərinizi, analitikanızı və iş sahələrinizi idarə edin.</p>
         </div>
+
+        <%- include('partials/onboarding-checklist') %>
 
         <!-- 2. Bento Statistics Grid -->
         <div class="m-dash-bento">
@@ -507,7 +510,7 @@
                 <span data-i18n="ws_quick_create_btn">Qısalt</span>
               </button>
             </div>
-            <div style="width: 100%;"><div id="dashboardQuickMsg" class="small"></div></div>
+            <div class="u-w-full" ><div id="dashboardQuickMsg" class="small"></div></div>
           </form>
         </div>
 
@@ -560,7 +563,7 @@
               <input id="dashboardSearch" class="m-adv-input" placeholder="Kısa / Orijinal Link" data-i18n-placeholder="dashboard_search_placeholder" value="<%= typeof q !== 'undefined' ? q : '' %>" />
             </div>
             <div style="flex: 1; min-width: 140px;">
-              <select id="dashboardFilter" class="m-adv-select" style="width: 100%;">
+              <select id="dashboardFilter" class="m-adv-select u-w-full" >
                 <option value="all" <%= (typeof filter !== 'undefined' && filter === 'all') ? 'selected' : '' %> data-i18n="dashboard_filter_all">Hamısı</option>
                 <option value="reported" <%= (typeof filter !== 'undefined' && filter === 'reported') ? 'selected' : '' %> data-i18n="dashboard_filter_reported">Şikayətli</option>
                 <option value="password" <%= (typeof filter !== 'undefined' && filter === 'password') ? 'selected' : '' %> data-i18n="dashboard_filter_password">Şifrəli</option>
@@ -568,7 +571,7 @@
               </select>
             </div>
             <div style="flex: 1; min-width: 140px;">
-              <select id="dashboardSort" class="m-adv-select" style="width: 100%;">
+              <select id="dashboardSort" class="m-adv-select u-w-full" >
                 <option value="newest" <%= (typeof sort !== 'undefined' && sort === 'newest') ? 'selected' : '' %> data-i18n="dashboard_sort_newest">Yeni → Köhnə</option>
                 <option value="oldest" <%= (typeof sort !== 'undefined' && sort === 'oldest') ? 'selected' : '' %> data-i18n="dashboard_sort_oldest">Köhnə → Yeni</option>
                 <option value="reports" <%= (typeof sort !== 'undefined' && sort === 'reports') ? 'selected' : '' %> data-i18n="dashboard_sort_reports">Şikayət Sayı</option>
@@ -589,15 +592,18 @@
                   <th data-i18n="th_folder">Qovluq</th>
                   <th data-i18n="th_tags">Teqlər</th>
                   <th data-i18n="th_date">Tarix</th>
-                  <th style="text-align: center;" data-i18n="th_report">Şikayət</th>
+                  <th  data-i18n="th_report" class="u-text-center">Şikayət</th>
                   <th style="text-align: right; padding-right: 24px; min-width: 220px; white-space: nowrap;" data-i18n="th_actions">Əməliyyatlar</th>
                 </tr>
               </thead>
               <tbody id="dashboardTableBody">
                 <% if (!displayRows || displayRows.length === 0) { %>
                   <tr>
-                    <td colspan="8" style="text-align: center; padding: 48px 16px; color: var(--c-faint, #737373);" data-i18n="empty_list">
-                      Hələ heç bir link yaratmamısınız.
+                    <td colspan="8" style="text-align: center; padding: 48px 16px; color: var(--c-faint, #737373);">
+                      <span data-i18n="empty_list">Hələ heç bir link yaratmamısınız.</span>
+                      <% if (typeof onboarding !== 'undefined' && onboarding && onboarding.visible) { %>
+                      <div class="u-mt-3"><a href="#dashboardQuickCreateForm" data-i18n="onboard_cta_link"></a></div>
+                      <% } %>
                     </td>
                   </tr>
                   <tr id="dashboardNoResults" class="d-none">
@@ -629,7 +635,7 @@
                         data-created="<%= row.created_at || '' %>"
                         data-password="<%= row.link_password ? 1 : 0 %>"
                         data-disabled="<%= row.disabled ? 1 : 0 %>">
-                      <td style="text-align: center;">
+                      <td class="u-text-center" >
                         <input type="checkbox" class="m-checkbox bulk-select" value="<%= shortCode %>" aria-label="Select link" />
                       </td>
                       <td style="font-weight: 600;">
@@ -665,7 +671,7 @@
                       <td style="font-size: 12.5px; color: var(--c-muted, #a3a3a3); white-space: nowrap;">
                         <%= createdDate %>
                       </td>
-                      <td style="text-align: center;">
+                      <td class="u-text-center" >
                         <% if (reportsCount > 0) { %>
                           <span class="m-badge-reports"><%= reportsCount %></span>
                         <% } else { %>
@@ -751,7 +757,85 @@
           <% } %>
         </div>
 
+
+      <!-- QR codes: persisted rows with lifetime + daily scan counters.
+           Scanning /q/<slug> hands off to the normal /<short> pipeline, so QR
+           traffic is counted exactly once. -->
+      <section class="m-bento-card u-mb-5" id="qrCodesSection" aria-labelledby="qrCodesTitle">
+        <div class="u-w-full">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+              <h2 id="qrCodesTitle" style="margin:0 0 4px;font-size:16px;font-weight:700;color:#fff;" data-i18n="qr_title">QR kodları</h2>
+              <p class="u-text-sm" style="margin:0;color:var(--c-muted,#a3a3a3);" data-i18n="qr_section_subtitle">Linkləriniz üçün skan sayğacı olan QR kodları.</p>
+            </div>
+          </div>
+
+          <form id="qrCreateForm" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px;" onsubmit="return false;">
+            <label class="u-text-xs" for="qrShortInput" data-i18n="qr_link_label" style="color:var(--c-muted,#a3a3a3);">Link</label>
+            <input id="qrShortInput" name="short" list="qrShortOptions" required maxlength="64"
+              placeholder="abc123" autocomplete="off"
+              style="min-width:160px;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);background:#141414;color:#fff;" />
+            <datalist id="qrShortOptions">
+              <% (displayRows || []).forEach((row) => { %>
+              <option value="<%= row.short %>"></option>
+              <% }); %>
+            </datalist>
+            <input id="qrLabelInput" name="label" maxlength="80"
+              placeholder="" data-i18n-placeholder="qr_label_placeholder" autocomplete="off"
+              style="min-width:140px;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);background:#141414;color:#fff;" />
+            <button type="submit" id="qrCreateBtn" class="m-btn-solid" style="padding:8px 14px;border-radius:10px;" data-i18n="qr_create">QR yarat</button>
+          </form>
+          <p id="qrFormMsg" class="u-text-xs" style="margin:8px 0 0;color:#f87171;" role="status" aria-live="polite"></p>
+
+          <% if (!qrCodes || !qrCodes.length) { %>
+          <p class="u-text-sm" style="margin:16px 0 0;color:var(--c-muted,#a3a3a3);" data-i18n="qr_empty">Hələ QR kod yoxdur.</p>
+          <% } else { %>
+          <ul style="list-style:none;margin:16px 0 0;padding:0;display:grid;gap:10px;">
+            <% qrCodes.forEach((qr) => { %>
+            <li style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
+              <i class="fa-solid fa-qrcode" aria-hidden="true" style="color:#60a5fa;"></i>
+              <span style="color:#fff;font-size:13px;font-weight:600;"><%= qr.label || qr.short %></span>
+              <code style="font-size:12px;color:#a3a3a3;">/q/<%= qr.slug || qr.id %></code>
+              <span class="u-text-xs" style="margin-inline-start:auto;color:#a3a3a3;">
+                <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
+                <span data-i18n="qr_scan_count">Skan</span>: <%= Number(qr.scans) || 0 %>
+              </span>
+            </li>
+            <% }); %>
+          </ul>
+          <% } %>
+        </div>
+      </section>
       </div>
+      <script nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
+      (function () {
+        var form = document.getElementById('qrCreateForm');
+        if (!form) return;
+        var msg = document.getElementById('qrFormMsg');
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        var token = meta ? meta.getAttribute('content') : '';
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+          var shortValue = (document.getElementById('qrShortInput').value || '').trim();
+          var labelValue = (document.getElementById('qrLabelInput').value || '').trim();
+          if (!shortValue) return;
+          if (msg) msg.textContent = '';
+          fetch('/api/qr', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-csrf-token': token },
+            body: JSON.stringify({ short: shortValue, label: labelValue })
+          }).then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+            .then(function (result) {
+              if (!result.ok) {
+                if (msg) msg.textContent = (result.data && result.data.error) || 'Xəta';
+                return;
+              }
+              window.location.reload();
+            })
+            .catch(function () { if (msg) msg.textContent = 'Şəbəkə xətası'; });
+        });
+      })();
+      </script>
     </main>
 
     <!-- ==========================================================================
@@ -770,19 +854,19 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <div style="margin-bottom: 16px;">
+            <div class="u-mb-4" >
               <label class="m-adv-label">Qısa Kod</label>
               <input id="dashboardEditShortDisplay" class="m-adv-input" type="text" readonly disabled style="opacity: 0.6;" />
             </div>
-            <div style="margin-bottom: 16px;">
+            <div class="u-mb-4" >
               <label class="m-adv-label" for="dashboardEditOriginalInput" data-i18n="dashboard_edit_url_label">Yeni Hədəf URL</label>
               <input id="dashboardEditOriginalInput" class="m-adv-input" type="url" placeholder="https://example.com/yeni-link" data-i18n-placeholder="dashboard_edit_url_placeholder" required />
             </div>
-            <div style="margin-bottom: 16px;">
+            <div class="u-mb-4" >
               <label class="m-adv-label" for="dashboardEditFolderInput" data-i18n="dashboard_meta_folder_label">Qovluq</label>
               <input id="dashboardEditFolderInput" class="m-adv-input" placeholder="Məs: kampaniyalar" data-i18n-placeholder="dashboard_meta_folder_placeholder" />
             </div>
-            <div style="margin-bottom: 16px;">
+            <div class="u-mb-4" >
               <label class="m-adv-label" for="dashboardEditTagsInput" data-i18n="dashboard_meta_tags_label">Teqlər</label>
               <input id="dashboardEditTagsInput" class="m-adv-input" placeholder="Məs: reklam, instagram, yaz" data-i18n-placeholder="dashboard_meta_tags_placeholder" />
             </div>
@@ -808,12 +892,12 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <div style="margin-bottom: 16px;">
+            <div class="u-mb-4" >
               <label class="m-adv-label" for="dashboardMetaFolderInput" data-i18n="dashboard_meta_folder_label">Qovluq</label>
               <input id="dashboardMetaFolderInput" class="m-adv-input" data-i18n-placeholder="dashboard_meta_folder_placeholder" placeholder="Məs: kampaniyalar" />
               <div id="dashboardMetaFolderPills" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px;"></div>
             </div>
-            <div style="margin-bottom: 16px;">
+            <div class="u-mb-4" >
               <label class="m-adv-label" for="dashboardMetaTagsInput" data-i18n="dashboard_meta_tags_label">Teqlər</label>
               <input id="dashboardMetaTagsInput" class="m-adv-input" data-i18n-placeholder="dashboard_meta_tags_placeholder" placeholder="Məs: reklam, instagram, yaz" />
               <div id="dashboardMetaTagPills" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px;"></div>

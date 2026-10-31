@@ -28,6 +28,7 @@
 
 ## 5) Recovery checks
 - `npm test`
+- `npm run check:syntax:working` (working tree, including files not committed yet)
 - `node --check server.js routes/admin.js routes/auth.js public/script.js public/lang.js`
 - Verify key user flows:
   - login/register
@@ -44,3 +45,50 @@
 - Complete RCA within 48 hours.
 - Track action items with owners and due dates.
 - Add test/monitoring guardrails to prevent recurrence.
+
+## 8) Restore drill (backup verification)
+
+The nightly dump produced by `scripts/backup-telegram.js` is only worth what its
+last successful **restore** is worth. `scripts/verify-backup.js` performs that
+restore against a throwaway database and checks invariants, so a truncated or
+corrupt upload is found here rather than during a SEV1.
+
+### Automated
+- Workflow: `.github/workflows/backup-verify.yml` (`schedule: weekly`, plus
+  `workflow_dispatch` for an on-demand run). It is never triggered by a PR and
+  never points at production.
+- Cron equivalent on the staging host:
+  `15 4 * * 1 cd /var/www/ovlink && ALLOW_RESTORE=1 RESTORE_VERIFY_DB=ovlink_verify node scripts/verify-backup.js`
+
+### Manual run
+```bash
+# staging / a host with pg_dump, pg_restore and psql installed
+export DATABASE_URL='postgres://user:pass@staging-host:5432/ovlink'   # never production
+export RESTORE_VERIFY_DB='ovlink_verify'                              # must end with _verify
+export ALLOW_RESTORE=1                                               # explicit destructive opt-in
+npm run verify:backup
+```
+
+Guards are evaluated **before** any command touches the cluster (`test/backup-verify.test.js`):
+- `NODE_ENV=production` → refused.
+- `ALLOW_RESTORE` unset → refused.
+- `RESTORE_VERIFY_DB` must end with `_verify`, be a bare identifier, and differ
+  from the database in `DATABASE_URL`.
+
+Flow: `pg_dump --format=custom` → `CREATE DATABASE <verify>` →
+`pg_restore --no-owner` → row-count/table-list invariants over
+`users, urls, clicks, link_stats_daily, qr_codes` → `DROP DATABASE IF EXISTS`
+in `finally`, followed by a `pg_database` check that the drop actually landed.
+
+### During a real incident
+1. Identify the dump: the Telegram backup message carries the date; files are
+   `ovlink_backup_YYYY-MM-DD.dump.gz`.
+2. Restore into a **new** database on a staging cluster, never over the live one:
+   `createdb ovlink_incident && pg_restore --no-owner -d ovlink_incident <dump>`
+3. Compare against production before promoting anything:
+   `SELECT count(*) FROM users / urls / clicks;` on both sides.
+4. Only then decide between repairing forward and promoting the restored copy.
+5. Record in the RCA whether the drill last passed and on what date.
+
+If the weekly drill is red, treat it as a SEV2 — the current backup set is not
+proven restorable.

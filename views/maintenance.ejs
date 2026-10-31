@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
 
 <head>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
@@ -17,12 +17,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   
   <link rel="stylesheet" href="/home.css?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>" />
 </head>
 
 <body class="ovx home-page maintenance-page">
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
 
   <!-- Ambient Cursor Glow -->
   <div id="cursorGlow" aria-hidden="true"></div>
@@ -49,10 +49,10 @@
     </div>
   </header>
 
-  <main class="m-page-shell" style="display:flex; align-items:center; justify-content:center; padding: 40px 16px 80px 16px;">
+  <main class="m-page-shell" style="display:flex; align-items:center; justify-content:center; padding: 40px 16px 80px 16px;" id="mainContent">
     <div class="shell" style="max-width: 620px; width: 100%;">
 
-      <div class="m-gateway-card m-gateway-card--warning">
+      <div class="m-gateway-card m-gateway-card--warning" role="status" aria-live="polite">
 
         <!-- Animated Meshed Gears & Core SVG -->
         <div class="m-gateway-svg-wrap" aria-hidden="true" style="width:110px; height:110px; margin-bottom:18px;">

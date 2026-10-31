@@ -1,4 +1,5 @@
 const { getRequestGeoMeta, parseAcceptLang } = require('../lib/geo');
+const { getDir } = require('../lib/seo');
 const { ASSET_VERSION } = require('../config/index');
 
 function extractCookieLang(cookieHeader) {
@@ -39,6 +40,9 @@ function langMiddleware(req, res, next) {
   }
 
   res.locals.defaultLang = lang;
+  // Single source of truth for <html dir>. Every supported language is LTR
+  // today; a future RTL lang only changes seo.js RTL_LANGS.
+  res.locals.dir = getDir(lang);
   res.locals.assetVersion = ASSET_VERSION;
   res.locals.seo = null;
   req.defaultLang = lang;

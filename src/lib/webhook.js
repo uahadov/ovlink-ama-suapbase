@@ -4,6 +4,7 @@ const https = require('https');
 const net = require('net');
 const { db } = require('../db/index');
 const { dbGetAsync, dbAllAsync, dbRunAsync } = require('../db/helpers');
+const { beat } = require('./worker-heartbeat');
 const { isProAccessActive, getEffectivePlanForUser, PLAN_TIERS } = require('./plans');
 const { normalizeLang } = require('./i18n');
 const { normalizeHostName } = require('./url-helpers');
@@ -536,6 +537,7 @@ async function retryFailedWebhooks() {
 
 function scheduleWebhookRetries() {
   const timer = setInterval(() => {
+    beat('webhook-retries');
     void retryFailedWebhooks();
   }, 30_000);
   if (typeof timer.unref === 'function') timer.unref();

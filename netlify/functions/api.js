@@ -1,15 +1,17 @@
 const serverless = require('serverless-http');
-const path = require('path');
 
-// server.js { app, helpers } objesi export ediyor,
-// sadece Express app'ini alıyoruz
-const serverModule = require('../../server.js');
-const app = serverModule && serverModule.app ? serverModule.app : serverModule;
+// server.js is the PM2 entry point: it owns migrations, schedulers, bots and the
+// test-only helper export surface. The serverless function must not pull that
+// whole graph into a cold start, so it requires the Express app directly.
+// src/app.js exports { app } (see src/app.js).
+const { app } = require('../../src/app');
 
-// Binary content types for image files (logo, favicon, etc.)
-// serverless-http v4+ handles binary via the 'binary' option.
-// The response must be base64-encoded with isBase64Encoded=true for
-// API Gateway / Lambda to deliver raw bytes to the client.
+// Serverless capability limits (see DEPLOYMENT_HARDENING.md):
+// - no background schedulers / setInterval workers (they live in server.js)
+// - no marketing or chat bots
+// - no writable filesystem assumptions (public/ and bot_data/ are read-only)
+// - sessions must use Redis or the Postgres store; probes hit /health, which is
+//   mounted before the session middleware.
 exports.handler = serverless(app, {
   binary: [
     'image/png',

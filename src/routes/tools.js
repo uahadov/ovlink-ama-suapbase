@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { validateOutboundWebhookUrl } = require('../lib/url-validator');
+const { requestWebhookWithPinnedIp } = require('../lib/webhook');
+const { toolsAiLimiter, toolsFetchLimiter } = require('../middleware/rate-limiter');
 let cheerio = null;
 try {
   cheerio = require('cheerio');
@@ -17,7 +19,7 @@ router.get('/tools/preview', (req, res) => {
 });
 
 // POST /api/tools/fetch-metadata
-router.post('/api/tools/fetch-metadata', async (req, res) => {
+router.post('/api/tools/fetch-metadata', toolsFetchLimiter, async (req, res) => {
   const { url } = req.body;
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
@@ -36,28 +38,25 @@ router.post('/api/tools/fetch-metadata', async (req, res) => {
       }
 
       const validation = await validateOutboundWebhookUrl(currentUrl).catch(() => null);
-      if (!validation || !validation.ok) {
+      if (!validation || !validation.ok || !validation.pinnedIp) {
         return res.status(400).json({ error: 'This URL cannot be fetched (private or restricted host).' });
       }
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 6000);
-
       try {
-        response = await fetch(currentUrl, {
-          signal: controller.signal,
-          redirect: 'manual',
+        response = await requestWebhookWithPinnedIp(currentUrl, validation.pinnedIp, {
+          method: 'GET',
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
           },
+          timeoutMs: 6000
         });
-      } finally {
-        clearTimeout(timeout);
+      } catch (reqErr) {
+        throw new Error(`Failed to fetch URL: ${reqErr && reqErr.message}`);
       }
 
       if ([301, 302, 303, 307, 308].includes(response.status)) {
-        const location = response.headers.get('location');
+        const location = response.headers ? response.headers['location'] : null;
         if (!location || hops === maxHops) {
           throw new Error('Too many redirects or missing redirect location.');
         }
@@ -69,11 +68,11 @@ router.post('/api/tools/fetch-metadata', async (req, res) => {
       break;
     }
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch URL: ${response.status}`);
+    if (!response || !response.ok) {
+      throw new Error(`Failed to fetch URL: ${response ? response.status : 'no_response'}`);
     }
 
-    const html = await response.text();
+    const html = response.body || '';
     let metadata;
 
     if (cheerio) {
@@ -109,7 +108,7 @@ router.post('/api/tools/fetch-metadata', async (req, res) => {
 });
 
 // POST /api/tools/optimize-title
-router.post('/api/tools/optimize-title', async (req, res) => {
+router.post('/api/tools/optimize-title', toolsAiLimiter, async (req, res) => {
   const { title, description } = req.body;
   if (!title) {
     return res.status(400).json({ error: 'Title is required' });

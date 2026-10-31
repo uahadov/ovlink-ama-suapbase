@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="referrer" content="no-referrer" />
+  <title>Ovlink stats</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: transparent; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #f3f4f6;
+      padding: 10px;
+    }
+    .card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: #0a0a0a;
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .brand { display: flex; align-items: center; gap: 6px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #a1a1aa; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    .short { font-size: 12px; color: #737373; margin: 2px 0 10px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #737373; }
+    .v { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin-top: 2px; }
+    .foot { margin-top: 10px; font-size: 10px; color: #52525b; display: flex; justify-content: space-between; }
+  </style>
+</head>
+<body>
+  <a class="card" href="/" target="_blank" rel="noopener noreferrer">
+    <div class="top">
+      <span class="brand"><span class="dot"></span> Ovlink live stats</span>
+      <span class="brand"><%= days %>d</span>
+    </div>
+    <div class="short">/<%= shortCode %></div>
+    <div class="grid">
+      <div>
+        <div class="k">Clicks</div>
+        <div class="v"><%= Number(clicks).toLocaleString('en-US') %></div>
+      </div>
+      <div>
+        <div class="k">Uniques</div>
+        <div class="v"><%= Number(uniques).toLocaleString('en-US') %></div>
+      </div>
+      <div>
+        <div class="k">Conv.</div>
+        <div class="v"><%= Number(conversions).toLocaleString('en-US') %><span style="font-size:11px;color:#737373;font-weight:600;"> · <%= Number(rate) %>%</span></div>
+      </div>
+    </div>
+    <div class="foot">
+      <span>Powered by Ovlink</span>
+      <span>read-only</span>
+    </div>
+  </a>
+</body>
+</html>

@@ -14,18 +14,35 @@ const {
   normalizeHostName,
   getSafeHostHeader,
   buildShortUrl,
-  pickFirstInputValue,
   SHORT_CODE_RE
 } = require('../../lib/url-helpers');
+// W4.2 move-only split: input parsing/validation lives in src/lib/link-input and
+// workspace ownership guards in src/lib/link-access. Every name keeps its old
+// binding here (and is re-exported at the bottom), so behaviour and import
+// paths are unchanged.
 const {
+  pickFirstInputValue,
+  getUrlHostname,
+  normalizeIdempotencyKey,
+  hashApiIdempotencyKey,
+  buildShortenIdempotencyRequestHash,
+  parseStoredJsonObject,
+  normalizeFolderName,
+  parseTagsJson,
+  escapeCsvCell,
+  normalizeTagsInput,
+  parseCsvLine,
+  extractImportUrlCandidate,
+} = require('../../lib/link-input');
+const {
+  WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL,
+  WORKSPACE_LINK_MUTATION_SQL,
   getWorkspaceById,
   isWorkspaceProActive,
   getWorkspaceMemberRole,
-  WORKSPACE_ROLES
-} = require('./workspaces');
+} = require('../../lib/link-access');
 const {
-  hashLinkPassword,
-  getEssentialAnalyticsValue
+  hashLinkPassword
 } = require('../redirect');
 const {
   getPublicBaseUrl,
@@ -38,8 +55,11 @@ const {
   logSecurityEvent,
   safeJsonStringify
 } = require('../../lib/security');
-const { REDIRECT_CONSENT_MARKER } = require('../../lib/consent');
 const { loadProOverviewPayload } = require('./api-keys');
+const linkStats = require('../../lib/link-stats');
+const { readUtmFields, appendUtmParams } = require('../../lib/utm');
+const analyticsAudit = require('../../lib/analytics-audit');
+const { purgeLinkAnalyticsRows } = require('../../lib/link-purge');
 const { pickLang, normalizeLang } = require('../../lib/i18n');
 const {
   isProAccessActive,
@@ -52,7 +72,7 @@ const { enqueueWebhookEventForUser } = require('../../lib/webhook');
 const { createUserNotification } = require('../../lib/notifications');
 const { scanUrlAsync } = require('../../lib/safety');
 const { redisClient } = require('../../config/redis');
-const { ASSET_VERSION, isEnabledEnv, API_KEY_HASH_KEY_MATERIAL } = require('../../config/index');
+const { ASSET_VERSION, isEnabledEnv } = require('../../config/index');
 const {
   shortenLimiter,
   generalLimiter,
@@ -69,64 +89,10 @@ const {
 } = require('../../middleware/auth');
 const { siteSettings } = require('../../middleware/maintenance');
 const { buildSeo } = require('../../lib/seo');
-
-function buildBanMessage(uiLang, banUntil, banReason) {
-  const lang = normalizeLang(uiLang, 'az');
-  let msg = lang === 'tr'
-    ? 'Bu hesap engellendi.'
-    : (lang === 'en' ? 'This account is blocked.' : 'Bu hesab bloklanıb.');
-  return msg;
-}
-
-const WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL = '(user_id = ? OR workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = ?))';
-
-const WORKSPACE_LINK_MUTATION_SQL = `(user_id = ? OR (workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = ? AND role IN ('${WORKSPACE_ROLES.OWNER}', '${WORKSPACE_ROLES.ADMIN}'))))`;
+// Same trilingual ban copy as the auth flow (src/lib/account-security.js).
+const { buildBanMessage } = require('../../lib/account-security');
 
 const API_IDEMPOTENCY_RETENTION_HOURS = 24;
-
-// normalizeHostName() is a host:port normalizer, not a URL parser: handing it an
-// absolute URL returns the scheme ("https"), which silently disabled every
-// domain check that used it. Always extract the hostname from a parsed URL.
-function getUrlHostname(rawUrl) {
-  const value = (rawUrl || '').toString().trim();
-  if (!value) return '';
-  try {
-    const absolute = ensureAbsoluteUrl(value);
-    if (!absolute) return '';
-    return normalizeHostName(new URL(absolute).hostname || '');
-  } catch {
-    return '';
-  }
-}
-
-function normalizeIdempotencyKey(rawValue) {
-  const value = (rawValue || '').toString().trim();
-  if (!value) return '';
-  if (value.length < 8 || value.length > 120) return '';
-  if (!/^[\x21-\x7E]+$/.test(value)) return '';
-  return value;
-}
-
-function hashApiIdempotencyKey(rawKey) {
-  return crypto
-    .createHmac('sha256', API_KEY_HASH_KEY_MATERIAL)
-    .update(`ovlink:idempotency:${(rawKey || '').toString()}`)
-    .digest('hex');
-}
-
-function buildShortenIdempotencyRequestHash(payload) {
-  const compact = safeJsonStringify(payload, 3000);
-  return crypto.createHash('sha256').update(compact).digest('hex');
-}
-
-function parseStoredJsonObject(raw, fallback = null) {
-  try {
-    const parsed = JSON.parse((raw || '').toString());
-    return (parsed && typeof parsed === 'object') ? parsed : fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 async function reserveApiIdempotencyRecord({ userId, apiKeyId, endpoint, rawIdempotencyKey, requestHash }) {
   const key = normalizeIdempotencyKey(rawIdempotencyKey);
@@ -237,111 +203,6 @@ function buildGuestDailyLimitStoreKey(req, dayKey) {
   return `ovlink:guest-limit:${guestKey}:${safeDayKey}`;
 }
 
-function normalizeFolderName(raw) {
-  const text = (raw || '').toString().replace(/\s+/g, ' ').trim();
-  if (!text) return '';
-  return text.slice(0, 80);
-}
-
-function parseTagsJson(jsonStr) {
-  if (!jsonStr) return [];
-  if (Array.isArray(jsonStr)) {
-    return jsonStr.map(t => (t || '').toString().trim()).filter(Boolean);
-  }
-  try {
-    const arr = JSON.parse(jsonStr);
-    if (Array.isArray(arr)) {
-      return arr.map(t => (t || '').toString().trim().replace(/^["']|["']$/g, '')).filter(Boolean);
-    }
-    if (typeof arr === 'string') {
-      return arr.split(/[,;\n]+/).map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
-    }
-  } catch {}
-  if (typeof jsonStr === 'string') {
-    return jsonStr.split(/[,;\n]+/).map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
-  }
-  return [];
-}
-
-function escapeCsvCell(val) {
-  if (val === null || val === undefined) return '""';
-  let str = String(val);
-  if (/^[=+\-@\t\r]/.test(str)) {
-    str = `'${str}`;
-  }
-  return `"${str.replace(/"/g, '""')}"`;
-}
-
-function normalizeTagsInput(raw) {
-  let items = [];
-  if (Array.isArray(raw)) {
-    items = raw;
-  } else if (typeof raw === 'string') {
-    const text = raw.trim();
-    if (text) {
-      try {
-        const parsed = JSON.parse(text);
-        if (Array.isArray(parsed)) items = parsed;
-        else if (typeof parsed === 'string') items = parsed.split(/[,;\n]+/);
-        else items = text.split(/[,;\n]+/);
-      } catch {
-        items = text.split(/[,;\n]+/);
-      }
-    }
-  }
-  const clean = [];
-  const seen = new Set();
-  for (const item of items) {
-    const tag = (item || '').toString().replace(/\s+/g, ' ').trim().replace(/^["']|["']$/g, '');
-    if (!tag) continue;
-    const safeTag = tag.slice(0, 32);
-    const lower = safeTag.toLowerCase();
-    if (seen.has(lower)) continue;
-    seen.add(lower);
-    clean.push(safeTag);
-    if (clean.length >= 8) break;
-  }
-  return clean;
-}
-
-function parseCsvLine(line) {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i += 1) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === ',' && !inQuotes) {
-      result.push(current);
-      current = '';
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current);
-  return result;
-}
-
-function extractImportUrlCandidate(rawLine) {
-  const line = (rawLine || '').toString().trim();
-  if (!line) return '';
-  const parsed = parseCsvLine(line);
-  if (parsed.length) {
-    for (const item of parsed) {
-      const candidate = (item || '').toString().trim().replace(/^[\s"'<]+|[\s"'>]+$/g, '');
-      if (/^https?:\/\//i.test(candidate)) return candidate;
-    }
-  }
-  const match = line.match(/https?:\/\/[^\s"'<>,]+/i);
-  return match ? match[0] : '';
-}
-
 router.get('/api/pro/v1/account', authenticateProApiKey, trackProApiUsage, proReadLimiter, requireApiScope(API_KEY_SCOPES.ACCOUNT_READ), async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.set('Pragma', 'no-cache');
@@ -410,7 +271,7 @@ router.post('/api/pro/v1/shorten', authenticateProApiKey, trackProApiUsage, proW
     return res.status(400).json({ error: 'Invalid Idempotency-Key header.' });
   }
 
-  const originalAbs = ensureAbsoluteUrl(originalInput);
+  const originalAbs = appendUtmParams(ensureAbsoluteUrl(originalInput), readUtmFields(body));
   if (!originalAbs) {
     return res.status(400).json({ error: 'Invalid original_url.' });
   }
@@ -524,12 +385,13 @@ router.post('/api/pro/v1/shorten', authenticateProApiKey, trackProApiUsage, proW
         splitPercentValue = parsedPercent;
       }
     }
-    const originalBAbs = originalBInput ? ensureAbsoluteUrl(originalBInput) : null;
+    const utmFields = readUtmFields(body);
+    const originalBAbs = originalBInput ? appendUtmParams(ensureAbsoluteUrl(originalBInput), utmFields) : null;
 
     const iosUrlInput = pickFirstInputValue(body.ios_url, body.iosUrl, body.target_ios);
     const androidUrlInput = pickFirstInputValue(body.android_url, body.androidUrl, body.target_android);
-    const iosUrlAbs = iosUrlInput ? ensureAbsoluteUrl(iosUrlInput) : null;
-    const androidUrlAbs = androidUrlInput ? ensureAbsoluteUrl(androidUrlInput) : null;
+    const iosUrlAbs = iosUrlInput ? appendUtmParams(ensureAbsoluteUrl(iosUrlInput), utmFields) : null;
+    const androidUrlAbs = androidUrlInput ? appendUtmParams(ensureAbsoluteUrl(androidUrlInput), utmFields) : null;
 
     for (const altUrl of [originalBAbs, iosUrlAbs, androidUrlAbs]) {
       if (altUrl) {
@@ -571,9 +433,26 @@ router.post('/api/pro/v1/shorten', authenticateProApiKey, trackProApiUsage, proW
       return res.status(idempotencyState.statusCode || 409).json({ error: idempotencyState.error || 'Idempotency conflict.' });
     }
 
+    // Optional campaign grouping — it must belong to the key owner.
+    const campaignInput = pickFirstInputValue(body.campaign_id, body.campaignId, body.campaign);
+    let campaignIdValue = null;
+    if (campaignInput) {
+      const campaignRow = await dbGetAsync(
+        'SELECT id FROM campaigns WHERE id = ? AND user_id = ? LIMIT 1',
+        [Number.parseInt(campaignInput, 10) || 0, ownerId]
+      ).catch(() => null);
+      if (!campaignRow) {
+        if (idempotencyState && idempotencyState.recordId) {
+          await releaseApiIdempotencyRecord(idempotencyState.recordId);
+        }
+        return res.status(400).json({ error: 'Invalid campaign_id.' });
+      }
+      campaignIdValue = campaignRow.id;
+    }
+
     const inserted = await dbRunAsync(
-      'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host, original_b, ab_split_percent, ios_url, android_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [originalAbs, short, createdAt, ownerId, '', expiresAtValue, maxClicksValue, selectedDomainHost || null, originalBAbs, splitPercentValue, iosUrlAbs, androidUrlAbs]
+      'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host, original_b, ab_split_percent, ios_url, android_url, campaign_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [originalAbs, short, createdAt, ownerId, '', expiresAtValue, maxClicksValue, selectedDomainHost || null, originalBAbs, splitPercentValue, iosUrlAbs, androidUrlAbs, campaignIdValue]
     ).catch((insertErr) => {
       const msg = (insertErr && insertErr.message ? insertErr.message : '').toLowerCase();
       if (msg.includes('unique') && msg.includes('urls.short')) return null;
@@ -603,6 +482,7 @@ router.post('/api/pro/v1/shorten', authenticateProApiKey, trackProApiUsage, proW
       domain: selectedDomainHost || null,
       expires_at: expiresAtValue,
       max_clicks: maxClicksValue,
+      campaign_id: campaignIdValue,
       created_at: createdAt,
     };
     if (idempotencyState && idempotencyState.recordId) {
@@ -629,6 +509,101 @@ router.all('/api/pro/v1/shorten', (req, res, next) => {
   if (req.method === 'POST') return next();
   res.set('Allow', 'POST');
   return res.status(405).json({ error: 'Method not allowed. Use POST /api/pro/v1/shorten.' });
+});
+
+// ---------------------------------------------------------------------------
+// Pro API — link analytics
+// Every request is authenticated by the API key itself; the link must belong to
+// the key's owner (no cross-account reads through a guessed short code).
+// ---------------------------------------------------------------------------
+async function loadProLinkForApiKey(req) {
+  const short = normalizeShortCode(req.params && req.params.short);
+  if (!short) return null;
+  const ownerId = req.apiAuth && Number.isInteger(req.apiAuth.userId) ? req.apiAuth.userId : 0;
+  if (!ownerId) return null;
+  return dbGetAsync(
+    'SELECT id, short, original, created_at, max_clicks, disabled FROM urls WHERE short = ? AND user_id = ? LIMIT 1',
+    [short, ownerId]
+  ).catch(() => null);
+}
+
+router.get('/api/pro/v1/links/:short/stats',
+  authenticateProApiKey,
+  trackProApiUsage,
+  proReadLimiter,
+  requireApiScope(API_KEY_SCOPES.ACCOUNT_READ),
+  async (req, res) => {
+    try {
+      const urlRow = await loadProLinkForApiKey(req);
+      if (!urlRow) return res.status(404).json({ error: 'Link not found.' });
+
+      const payload = await linkStats.loadLinkStats({
+        urlRow,
+        query: req.query && typeof req.query === 'object' ? req.query : {},
+      });
+      // Raw click rows are already bounded, but the API never needs them.
+      delete payload.raw_clicks;
+      analyticsAudit.recordAnalyticsAccess({
+        userId: req.apiAuth && req.apiAuth.userId,
+        apiKeyId: req.apiAuth && req.apiAuth.apiKeyId,
+        urlId: urlRow.id,
+        short: urlRow.short,
+        action: analyticsAudit.AUDIT_ACTIONS.API_READ,
+        req,
+        metadata: { endpoint: 'stats' },
+      });
+      return res.json(payload);
+    } catch {
+      return res.status(500).json({ error: 'Server error.' });
+    }
+  });
+
+router.get('/api/pro/v1/links/:short/clicks',
+  authenticateProApiKey,
+  trackProApiUsage,
+  proReadLimiter,
+  requireApiScope(API_KEY_SCOPES.ACCOUNT_READ),
+  async (req, res) => {
+    try {
+      const urlRow = await loadProLinkForApiKey(req);
+      if (!urlRow) return res.status(404).json({ error: 'Link not found.' });
+
+      const rows = await linkStats.loadRawClicks({
+        urlId: urlRow.id,
+        query: req.query && typeof req.query === 'object' ? req.query : {},
+      });
+      const format = (req.query && String(req.query.format || '').toLowerCase() === 'json') ? 'json' : 'csv';
+
+      analyticsAudit.recordAnalyticsAccess({
+        userId: req.apiAuth && req.apiAuth.userId,
+        apiKeyId: req.apiAuth && req.apiAuth.apiKeyId,
+        urlId: urlRow.id,
+        short: urlRow.short,
+        action: analyticsAudit.AUDIT_ACTIONS.API_READ,
+        req,
+        metadata: { endpoint: 'clicks', format },
+      });
+
+      if (format === 'json') {
+        return res.json({
+          short: urlRow.short,
+          exported_at: new Date().toISOString(),
+          count: rows.length,
+          clicks: rows,
+        });
+      }
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="ovlink-clicks-${urlRow.short}.csv"`);
+      return res.send(linkStats.buildClicksCsv(rows));
+    } catch {
+      return res.status(500).json({ error: 'Server error.' });
+    }
+  });
+
+router.all(['/api/pro/v1/links/:short/stats', '/api/pro/v1/links/:short/clicks'], (req, res) => {
+  res.set('Allow', 'GET');
+  return res.status(405).json({ error: 'Method not allowed. Use GET.' });
 });
 
 router.post('/api/shorten',
@@ -684,7 +659,7 @@ router.post('/api/shorten',
     const { original, link_password, customLink, custom_domain, expires_at, max_clicks, original_b, ab_split_percent, ios_url, android_url } = req.body;
     const requestedWorkspaceId = Number.parseInt(req.body && req.body.workspaceId, 10) || 0;
     const requestedDomain = normalizeCustomDomainInput(custom_domain);
-    const originalAbs = ensureAbsoluteUrl(original);
+    const originalAbs = appendUtmParams(ensureAbsoluteUrl(original), readUtmFields(req.body));
     if (!originalAbs) {
       return res.status(400).json({ error: pickLang(uiLang, 'Zəhmət olmasa düzgün bir URL daxil edin.', 'Lütfen geçerli bir URL girin.', 'Please enter a valid URL.') });
     }
@@ -923,16 +898,33 @@ router.post('/api/shorten',
                 splitPercentValue = parsedPercent;
               }
             }
-            const originalBAbs = original_b ? ensureAbsoluteUrl(original_b) : null;
-            const iosUrlAbs = ios_url ? ensureAbsoluteUrl(ios_url) : null;
-            const androidUrlAbs = android_url ? ensureAbsoluteUrl(android_url) : null;
+            const originalBAbs = original_b ? appendUtmParams(ensureAbsoluteUrl(original_b), readUtmFields(req.body)) : null;
+            const iosUrlAbs = ios_url ? appendUtmParams(ensureAbsoluteUrl(ios_url), readUtmFields(req.body)) : null;
+            const androidUrlAbs = android_url ? appendUtmParams(ensureAbsoluteUrl(android_url), readUtmFields(req.body)) : null;
             const initialFolder = normalizeFolderName(req.body && req.body.folder_name);
             const initialTags = normalizeTagsInput(req.body && req.body.tags);
             const initialTagsJson = initialTags.length ? JSON.stringify(initialTags) : null;
 
+            // Optional campaign grouping (only for signed-in owners).
+            let campaignLinkScopeId = null;
+            const campaignInput = req.body && (req.body.campaign_id !== undefined ? req.body.campaign_id : req.body.campaignId);
+            if (campaignInput !== undefined && campaignInput !== null && `${campaignInput}`.trim() !== '') {
+              if (!ownerId) {
+                return res.status(401).json({ error: pickLang(uiLang, 'Kampaniyaya bağlamaq üçün daxil olun.', 'Kampanyaya bağlamak için giriş yapın.', 'Sign in to assign a campaign.') });
+              }
+              const campaignRow = await dbGetAsync(
+                'SELECT id FROM campaigns WHERE id = ? AND user_id = ? LIMIT 1',
+                [Number.parseInt(campaignInput, 10) || 0, ownerId]
+              ).catch(() => null);
+              if (!campaignRow) {
+                return res.status(400).json({ error: pickLang(uiLang, 'Kampaniya tapılmadı.', 'Kampanya bulunamadı.', 'Campaign not found.') });
+              }
+              campaignLinkScopeId = campaignRow.id;
+            }
+
             db.run(
-              'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host, original_b, ab_split_percent, ios_url, android_url, workspace_id, folder_name, tags_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-              [originalAbs, currentShort, createdAt, ownerId, storedLinkPassword, expiresAtValue, maxClicksValue, selectedDomainHost || null, originalBAbs, splitPercentValue, iosUrlAbs, androidUrlAbs, workspaceLinkScopeId, initialFolder || null, initialTagsJson],
+              'INSERT INTO urls (original, short, created_at, user_id, link_password, expires_at, max_clicks, domain_host, original_b, ab_split_percent, ios_url, android_url, workspace_id, folder_name, tags_json, campaign_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [originalAbs, currentShort, createdAt, ownerId, storedLinkPassword, expiresAtValue, maxClicksValue, selectedDomainHost || null, originalBAbs, splitPercentValue, iosUrlAbs, androidUrlAbs, workspaceLinkScopeId, initialFolder || null, initialTagsJson, campaignLinkScopeId],
               function (err) {
                 if (err) {
                   const errMsg = (err.message || '').toLowerCase();
@@ -1076,67 +1068,8 @@ router.post('/api/report', reportLimiter, (req, res) => {
   });
 });
 
-function handleStatsApiRequest(req, res, rawShort) {
-  if (!req.session.userId) return res.status(401).json({ error: 'Giriş gerekli.' });
-  const requestedShort = Array.isArray(rawShort) ? rawShort[0] : rawShort;
-  const short = normalizeShortCode(requestedShort);
-  if (!short) return res.status(400).json({ error: 'Geçersiz kısa kod.' });
-
-  db.get(`SELECT * FROM urls WHERE short = ? AND ${WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL}`, [short, req.session.userId, req.session.userId], (err, url) => {
-    if (err || !url) return res.status(404).json({ error: 'Link bulunamadı veya yetkiniz yok.' });
-
-    db.all('SELECT * FROM clicks WHERE url_id = ?', [url.id], (err, clicks) => {
-      if (err) return res.status(500).json({ error: 'Veri alınamadı.' });
-
-      const stats = {
-        total_clicks: clicks.length,
-        browsers: {},
-        os: {},
-        countries: {},
-        clicks_over_time: {}
-      };
-
-      clicks.forEach(click => {
-        const browserKey = click.browser === REDIRECT_CONSENT_MARKER ? REDIRECT_CONSENT_MARKER : getEssentialAnalyticsValue(click.browser);
-        const osKey = click.os === REDIRECT_CONSENT_MARKER ? REDIRECT_CONSENT_MARKER : getEssentialAnalyticsValue(click.os);
-        const countryKey = click.country === REDIRECT_CONSENT_MARKER ? REDIRECT_CONSENT_MARKER : getEssentialAnalyticsValue(click.country);
-
-        // Browser
-        stats.browsers[browserKey] = (stats.browsers[browserKey] || 0) + 1;
-        // OS
-        stats.os[osKey] = (stats.os[osKey] || 0) + 1;
-        // Country
-        stats.countries[countryKey] = (stats.countries[countryKey] || 0) + 1;
-        // Time (hour bucket, UTC key). Client side local saatte gösterilir.
-        const clickDate = new Date(click.click_time);
-        if (Number.isFinite(clickDate.getTime())) {
-          const hourBucketMs = Math.floor(clickDate.getTime() / 3600000) * 3600000;
-          const bucketKey = new Date(hourBucketMs).toISOString();
-          stats.clicks_over_time[bucketKey] = (stats.clicks_over_time[bucketKey] || 0) + 1;
-        }
-      });
-
-      // Sort Time Stats chronologically
-      const sortedKeys = Object.keys(stats.clicks_over_time)
-        .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-      
-      const clicks_by_day = sortedKeys.map(k => ({
-        date: k,
-        count: stats.clicks_over_time[k]
-      }));
-
-      res.json({
-        ...stats,
-        short: url.short,
-        original: url.original,
-        created_at: url.created_at,
-        clicks_total: stats.total_clicks,
-        clicks_by_day: clicks_by_day
-      });
-    });
-  });
-}
-
+// NOTE: per-link statistics live in src/routes/api/analytics.js. A second, dead
+// copy of the handler used to sit here and drifted from the real one.
 
 router.post('/api/user/delete', async (req, res) => {
   if (!req.session.userId) return res.status(401).send('Giriş yapmalısınız.');
@@ -1151,9 +1084,9 @@ router.post('/api/user/delete', async (req, res) => {
     if (!foundRow) return res.status(404).send('Link tapılmadı və ya səlahiyyətiniz yoxdur.');
 
     await withTransaction(async (tx) => {
-      if (foundRow.id) {
-        await tx.run('DELETE FROM clicks WHERE url_id = ?', [foundRow.id]);
-      }
+      // Analytics tables reference urls(id) without ON DELETE CASCADE, so they
+      // must be cleared first or the link delete fails on a foreign key.
+      await purgeLinkAnalyticsRows(tx, [foundRow.id]);
       await tx.run('DELETE FROM reports WHERE short = ?', [foundRow.short || safeShort]);
       const delResult = await tx.run(
         `DELETE FROM urls WHERE id = ? AND ${WORKSPACE_LINK_MUTATION_SQL}`,
@@ -1233,8 +1166,7 @@ router.post('/api/user/delete-bulk',
         let deletedCount = 0;
         await withTransaction(async (tx) => {
           if (targetIds.length > 0) {
-            const idPlaceholders = targetIds.map(() => '?').join(',');
-            await tx.run(`DELETE FROM clicks WHERE url_id IN (${idPlaceholders})`, targetIds);
+            await purgeLinkAnalyticsRows(tx, targetIds);
           }
           if (targetShorts.length > 0) {
             const shortPlaceholders = targetShorts.map(() => '?').join(',');
@@ -1665,6 +1597,16 @@ router.post('/api/user/import',
    WORKSPACE (PRO) — pages, API and SAML SSO endpoints
    ========================================================= */
 
+// Shim re-exports (W4.2): the helpers below moved to src/lib, but the names stay
+// reachable from this module so existing import paths keep working.
+router.pickFirstInputValue = pickFirstInputValue;
+router.normalizeFolderName = normalizeFolderName;
+router.parseStoredJsonObject = parseStoredJsonObject;
+router.hashApiIdempotencyKey = hashApiIdempotencyKey;
+router.parseCsvLine = parseCsvLine;
+router.extractImportUrlCandidate = extractImportUrlCandidate;
+router.WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL = WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL;
+router.WORKSPACE_LINK_MUTATION_SQL = WORKSPACE_LINK_MUTATION_SQL;
 router.escapeCsvCell = escapeCsvCell;
 router.parseTagsJson = parseTagsJson;
 router.normalizeTagsInput = normalizeTagsInput;
@@ -1673,6 +1615,14 @@ router.buildShortenIdempotencyRequestHash = buildShortenIdempotencyRequestHash;
 router.getUrlHostname = getUrlHostname;
 
 module.exports = router;
+module.exports.pickFirstInputValue = pickFirstInputValue;
+module.exports.normalizeFolderName = normalizeFolderName;
+module.exports.parseStoredJsonObject = parseStoredJsonObject;
+module.exports.hashApiIdempotencyKey = hashApiIdempotencyKey;
+module.exports.parseCsvLine = parseCsvLine;
+module.exports.extractImportUrlCandidate = extractImportUrlCandidate;
+module.exports.WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL = WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL;
+module.exports.WORKSPACE_LINK_MUTATION_SQL = WORKSPACE_LINK_MUTATION_SQL;
 module.exports.escapeCsvCell = escapeCsvCell;
 module.exports.parseTagsJson = parseTagsJson;
 module.exports.normalizeTagsInput = normalizeTagsInput;

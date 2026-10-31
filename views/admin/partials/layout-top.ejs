@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
   <head>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
   <link rel="icon" href="/favicon.ico?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
@@ -11,12 +11,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/home.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
     <link rel="stylesheet" href="/admin/admin.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
     <meta name="csrf-token" content="<%= csrfToken %>" />
   </head>
   <body class="ovx home-page admin-page">
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
     <div id="cursorGlow" aria-hidden="true"></div>
     <div class="admin-shell">
       <aside class="sidebar" id="adminSidebar">
@@ -143,7 +143,7 @@
         </nav>
       </aside>
 
-      <main class="main">
+      <main class="main" id="mainContent">
         <header class="topbar">
           <div class="topbar__left">
             <button type="button" class="mobile-toggle-btn" id="adminMobileToggle" aria-label="Open navigation drawer">

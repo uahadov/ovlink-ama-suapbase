@@ -74,8 +74,18 @@ function blindIndex(plainText) {
   return crypto.createHmac('sha256', key).update(plainText.toString().trim().toLowerCase()).digest('hex');
 }
 
+function safeDecrypt(payload, fallback = '') {
+  if (!payload) return fallback;
+  try {
+    return decryptAES256GCM(payload) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 module.exports = {
   encryptAES256GCM,
   decryptAES256GCM,
+  safeDecrypt,
   blindIndex
 };

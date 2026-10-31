@@ -8,6 +8,7 @@ const geoip = require('geoip-lite');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 const { withTransaction } = require('../src/db/helpers');
+const { purgeLinkAnalyticsRows } = require('../src/lib/link-purge');
 const { siteSettings } = require('../src/middleware/maintenance');
 
 function safeDecrypt(payload, fallback = '') {
@@ -470,7 +471,10 @@ module.exports = function createAdminRouter(db, options = {}) {
           role: user.role,
         };
         if (user.role !== role) {
-          return res.status(403).render('admin/forbidden');
+          return res.status(403).render('admin/forbidden', {
+            admin: res.locals.admin || null,
+            csrfToken: res.locals.csrfToken || res.locals._csrf || '',
+          });
         }
         return next();
       } catch {
@@ -515,7 +519,8 @@ module.exports = function createAdminRouter(db, options = {}) {
   });
 
   router.use((req, res, next) => {
-    res.locals.csrfToken = res.locals._csrf;
+    res.locals.admin = res.locals.admin || null;
+    res.locals.csrfToken = res.locals.csrfToken || res.locals._csrf || '';
     next();
   });
 
@@ -1212,7 +1217,8 @@ module.exports = function createAdminRouter(db, options = {}) {
     if (!url) return res.redirect(back);
 
     await withTransaction(async (tx) => {
-      await tx.run('DELETE FROM clicks WHERE url_id = ?', [url.id]);
+      // Analytics rows reference urls(id) without CASCADE; clear them first.
+      await purgeLinkAnalyticsRows(tx, [url.id]);
       await tx.run('DELETE FROM reports WHERE short = ?', [short]);
       await tx.run('DELETE FROM urls WHERE id = ?', [url.id]);
     });
@@ -1235,7 +1241,7 @@ module.exports = function createAdminRouter(db, options = {}) {
     );
     (rows || []).forEach((r) => {
       if (r.created_by_email) {
-        r.created_by_email = decryptAES256GCM(r.created_by_email);
+        r.created_by_email = safeDecrypt(r.created_by_email, '(unknown)');
       }
     });
     return res.render('admin/domains', { rows });
@@ -1255,7 +1261,7 @@ module.exports = function createAdminRouter(db, options = {}) {
       );
       (rows || []).forEach((r) => {
         if (r.created_by_email) {
-          r.created_by_email = decryptAES256GCM(r.created_by_email);
+          r.created_by_email = safeDecrypt(r.created_by_email, '(unknown)');
         }
       });
       return res.status(400).render('admin/domains', { rows, error: 'Invalid domain.' });
@@ -1961,7 +1967,10 @@ module.exports = function createAdminRouter(db, options = {}) {
   }
 
   router.use((req, res) => {
-    res.status(404).render('admin/not-found');
+    res.status(404).render('admin/not-found', {
+      admin: res.locals.admin || null,
+      csrfToken: res.locals.csrfToken || res.locals._csrf || '',
+    });
   });
 
   return router;

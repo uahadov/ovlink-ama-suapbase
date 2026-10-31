@@ -28,4 +28,10 @@ Allow: /about
 Allow: /how-it-works
 Allow: /why-ovlink
 Allow: /
+Allow: /l/guides
+Allow: /l/free-link-shortener
+Allow: /l/qr-code-generator
+Allow: /l/url-shortener-analytics
+Allow: /l/custom-domain-shortener
+Allow: /l/telegram-link-shortener
 Sitemap: https://ovlink.sbs/sitemap.xml

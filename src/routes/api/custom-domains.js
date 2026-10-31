@@ -51,8 +51,13 @@ function isInternalHost(domain) {
   if (!normalized) return true;
   const baseHost = getCustomDomainTargetHost();
   if (baseHost && (normalized === baseHost || normalized.endsWith('.' + baseHost))) return true;
-  const reserved = ['localhost', '127.0.0.1', 'ovlink.sbs', 'ovlink.com'];
-  return reserved.includes(normalized);
+  const reserved = [
+    'localhost', '127.0.0.1', '0.0.0.0', 'ovlink.sbs', 'ovlink.com',
+    'metadata.google.internal', 'metadata', 'internal', 'local'
+  ];
+  if (reserved.includes(normalized)) return true;
+  if (reserved.some((r) => normalized.endsWith('.' + r))) return true;
+  return false;
 }
 
 const handleListDomains = (req, res) => {

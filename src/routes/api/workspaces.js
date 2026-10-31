@@ -19,6 +19,7 @@ const {
   extractAssertionId
 } = require('../../../utils/sso');
 const { logSecurityEvent, getPublicBaseUrl, buildAbsoluteUrl } = require('../../lib/security');
+const workspaceStats = require('../../lib/workspace-stats');
 const { sendWorkspaceInviteEmail } = require('../../lib/email');
 const { trackUserSession: upsertUserSessionRecord } = require('../../lib/session');
 const { isProdRuntime } = require('../../config/index');
@@ -249,6 +250,25 @@ router.get('/api/workspaces/:id', requireSignedIn, async (req, res) => {
     invitations,
     sso,
   });
+});
+
+router.get('/api/workspaces/:id/stats', requireSignedIn, async (req, res) => {
+  const ctx = await requireWorkspaceMembership(req, res, WORKSPACE_ROLES.MEMBER);
+  if (!ctx) return;
+
+  if (!(await isWorkspaceProActive(ctx.workspace))) {
+    return res.status(403).json({ error: 'Workspace analytics requires an active Pro plan.' });
+  }
+
+  try {
+    const payload = await workspaceStats.loadWorkspaceStats(ctx.workspace.id, {
+      days: req.query && req.query.days,
+    });
+    if (!payload) return res.status(404).json({ error: 'Workspace not found.' });
+    return res.json(payload);
+  } catch {
+    return res.status(500).json({ error: 'Statistics could not be loaded.' });
+  }
 });
 
 router.patch('/api/workspaces/:id', requireSignedIn, async (req, res) => {

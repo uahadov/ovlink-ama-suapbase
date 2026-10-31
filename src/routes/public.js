@@ -136,7 +136,7 @@ router.get('/contact.html', (req, res) => {
   res.render('contact', { csrfToken: res.locals._csrf, seo });
 });
 
-router.get('/pricing', (req, res) => {
+router.get('/pricing', async (req, res) => {
   const seo = buildSeo(req, {
     path: '/pricing',
     titleAz: 'Pro Plan Qiymətləri - Ovlink',
@@ -148,8 +148,16 @@ router.get('/pricing', (req, res) => {
   });
   
   const isLoggedIn = !!(req.session && req.session.userId);
+  // A paying customer must not see "buy now" again: the CTA becomes the Polar
+  // customer-portal button (invoices, card, cancel) rendered by the same
+  // #proManageBtn handler used on /account and /pro.
+  let isProUser = false;
+  if (isLoggedIn) {
+    const planRow = await loadUserPlanRow(req.session.userId).catch(() => null);
+    isProUser = isProAccessActive(planRow);
+  }
   const polarCheckoutUrl = (process.env.POLAR_CHECKOUT_URL || 'https://buy.polar.sh/polar_cl_9QZbWPt4zCzplBGNFgy6xeZf9rxVICG62IIe03GpkNS').trim();
-  res.render('pricing', { csrfToken: res.locals._csrf, seo, isLoggedIn, polarCheckoutUrl });
+  res.render('pricing', { csrfToken: res.locals._csrf, seo, isLoggedIn, isProUser, polarCheckoutUrl });
 });
 router.get('/pricing.html', (req, res) => res.redirect(301, '/pricing'));
 
@@ -365,6 +373,12 @@ router.get('/workspaces', async (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
   const plan = await getEffectivePlanForUser(req.session.userId).catch(() => null);
   return res.render('workspaces', { csrfToken: res.locals._csrf, plan: plan || {} });
+});
+
+router.get('/campaigns', (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  return res.render('campaigns', { csrfToken: res.locals._csrf });
 });
 
 // Resolve + validate an invitation token into everything the accept flow needs.

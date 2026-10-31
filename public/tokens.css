@@ -1,0 +1,42 @@
+/* ================================================================
+   Utility layer — spacing / radius / typography.
+   Tokens live in :root of home.css. This file only maps the most
+   repeated inline styles to classes so templates stop hardcoding
+   pixel values. Loaded only by views that opt in.
+   ================================================================ */
+
+.u-block { display: block; }
+.u-w-full { width: 100%; }
+.u-text-center { text-align: center; }
+.u-muted { color: var(--c-muted); }
+
+.u-mt-1 { margin-top: var(--space-1); }
+.u-mt-2 { margin-top: var(--space-2); }
+.u-mt-3 { margin-top: var(--space-3); }
+.u-mt-4 { margin-top: var(--space-4); }
+.u-mb-1 { margin-bottom: var(--space-1); }
+.u-mb-2 { margin-bottom: var(--space-2); }
+.u-mb-3 { margin-bottom: var(--space-3); }
+.u-mb-4 { margin-bottom: var(--space-4); }
+.u-mb-5 { margin-bottom: var(--space-5); }
+
+.u-p-1 { padding: var(--space-1); }
+.u-p-2 { padding: var(--space-2); }
+.u-p-3 { padding: var(--space-3); }
+.u-p-4 { padding: var(--space-4); }
+
+.u-radius-sm { border-radius: var(--radius-sm); }
+.u-radius-md { border-radius: var(--radius-md); }
+.u-radius-lg { border-radius: var(--radius-lg); }
+
+.u-text-xs { font-size: var(--text-xs); }
+.u-text-sm { font-size: var(--text-sm); }
+.u-text-base { font-size: var(--text-base); }
+.u-text-lg { font-size: var(--text-lg); }
+
+/* Keyboard users get a consistent, visible focus ring. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}

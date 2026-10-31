@@ -2,6 +2,13 @@
   functions = "netlify/functions"
   publish = "public"
 
+# Serverless is not the primary runtime (server.js/PM2 is). These limits are
+# enforced in code, not just documented:
+#   - no background schedulers, no marketing/chat bots
+#   - health probes hit /health, which is mounted before the session middleware
+[build.environment]
+  WEB_ONLY = "1"
+
 [functions]
   node_bundler = "nft"
   included_files = ["public/**"]

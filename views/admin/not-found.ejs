@@ -3,8 +3,8 @@
   heading: 'Page Not Found',
   subtitle: 'The requested administrative resource or endpoint does not exist',
   active: 'home',
-  admin,
-  csrfToken,
+  admin: (typeof admin !== 'undefined' ? admin : (typeof locals !== 'undefined' && locals.admin ? locals.admin : null)),
+  csrfToken: (typeof csrfToken !== 'undefined' ? csrfToken : (typeof locals !== 'undefined' && (locals.csrfToken || locals._csrf) ? (locals.csrfToken || locals._csrf) : '')),
   topRightHtml: null,
 }) %>
 

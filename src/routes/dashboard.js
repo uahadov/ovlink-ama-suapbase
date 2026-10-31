@@ -8,6 +8,7 @@ const { pickLang, normalizeLang } = require('../lib/i18n');
 const { buildAbsoluteUrl, getPublicBaseUrl } = require('../lib/security');
 const { ensureAbsoluteUrl, buildShortUrl } = require('../lib/url-helpers');
 const { isProAccessActive, getEffectivePlanForUser } = require('../lib/plans');
+const { buildOnboardingState } = require('../lib/onboarding-state');
 const { ASSET_VERSION } = require('../config/index');
 const { siteSettings } = require('../middleware/maintenance');
 
@@ -78,7 +79,7 @@ function parseTagsJson(jsonStr) {
 router.get('/dashboard', (req, res) => {
   if (!req.session.userId) return res.redirect('/');
 
-  db.get('SELECT email, banned, ban_until, ban_reason, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled, plan_tier, plan_status, pro_expires_at FROM users WHERE id = ?', [req.session.userId], (uErr, uRow) => {
+  db.get('SELECT email, banned, ban_until, ban_reason, ui_lang, ui_theme, notify_report, notify_limit, notify_disabled, plan_tier, plan_status, pro_expires_at, onboarding_dismissed_at FROM users WHERE id = ?', [req.session.userId], (uErr, uRow) => {
     if (uErr || !uRow) return res.redirect('/');
 
     // Auto-clear expired temp bans
@@ -175,7 +176,7 @@ router.get('/dashboard', (req, res) => {
 
         const linksSql = `SELECT short, original, created_at, reports, link_password, disabled, domain_host, folder_name, tags_json FROM urls ${whereSql} ${orderSql} LIMIT ? OFFSET ?`;
 
-        db.all(linksSql, [...params, perPage, offset], (err, rows) => {
+        db.all(linksSql, [...params, perPage, offset], async (err, rows) => {
           if (err) return res.status(500).send('Veritabanı hatası.');
 
           // Özet İstatistikler
@@ -186,6 +187,46 @@ router.get('/dashboard', (req, res) => {
           const csrfToken = res.locals._csrf || '';
           const nonce = res.locals.nonce || '';
           const assetVersion = res.locals.assetVersion || ASSET_VERSION;
+
+          // QR codes for this user. Bounded (LIMIT 50) and index-backed
+          // (idx_qr_codes_user). A failure must never break the dashboard.
+          let qrCodes = [];
+          try {
+            qrCodes = await dbAllAsync(
+              `SELECT id, short, slug, label, color_dark, color_light, scans, created_at
+                 FROM qr_codes
+                WHERE created_by = ? AND deleted_at IS NULL
+                ORDER BY created_at DESC, id DESC
+                LIMIT 50`,
+              [req.session.userId]
+            );
+          } catch (qrErr) {
+            qrCodes = [];
+          }
+
+          // First click determines the last onboarding step. One EXISTS probe
+          // against link_stats_daily joined through the user's own links.
+          let hasFirstClick = false;
+          try {
+            const clickProbe = await dbGetAsync(
+              `SELECT 1 AS ok FROM link_stats_daily d
+                 JOIN urls u ON u.id = d.url_id
+                WHERE u.user_id = ? AND d.clicks > 0
+                LIMIT 1`,
+              [req.session.userId]
+            );
+            hasFirstClick = !!clickProbe;
+          } catch (probeErr) {
+            hasFirstClick = false;
+          }
+
+          const onboarding = buildOnboardingState({
+            userRow: uRow,
+            totalLinks,
+            qrCount: (qrCodes || []).length,
+            hasFirstClick,
+            onFreePlan: !isPro,
+          });
 
           const paginationUrl = (p) => {
             const params = new URLSearchParams();
@@ -232,6 +273,8 @@ router.get('/dashboard', (req, res) => {
             buildShortUrl: buildShortUrlHelper,
             normalizeFolderName,
             parseTagsJson,
+            qrCodes: Array.isArray(qrCodes) ? qrCodes : [],
+            onboarding,
             csrfToken,
             nonce,
             assetVersion

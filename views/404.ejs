@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="<%= (typeof seo !== 'undefined' && seo && seo.lang) ? seo.lang : 'en' %>">
+<html lang="<%= (typeof seo !== 'undefined' && seo && seo.lang) ? seo.lang : 'en' %>" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
 
 <head>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
@@ -15,16 +15,15 @@
   <% } %>
   <% if (typeof seo !== 'undefined' && seo && seo.canonical) { %>
     <link rel="canonical" href="<%= seo.canonical %>" />
-  <% } %>
+  <% } %>
+
   
   <link rel="manifest" href="/site.webmanifest" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
 
@@ -56,7 +55,7 @@
     <div class="shell">
 
       <!-- High-Impact Monolith 404 Card -->
-      <div class="m-404-card">
+      <div class="m-404-card" role="status" aria-live="polite">
 
         <!-- Eyebrow Pill -->
         <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 20px;">

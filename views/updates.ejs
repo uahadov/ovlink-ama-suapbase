@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="<%= (seo && seo.lang) ? seo.lang : 'en' %>">
+<html lang="<%= (seo && seo.lang) ? seo.lang : 'en' %>" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
 
 <head>
   <meta charset="UTF-8" />
@@ -12,10 +12,8 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
 
@@ -29,8 +27,11 @@
   <meta property="og:title" content="<%= (seo && seo.ogTitle) ? seo.ogTitle : '' %>" />
   <meta property="og:description" content="<%= (seo && seo.ogDescription) ? seo.ogDescription : '' %>" />
   <meta property="og:url" content="<%= (seo && seo.ogUrl) ? seo.ogUrl : '' %>" />
+  <meta property="og:image" content="<%= (seo && seo.ogImage) ? seo.ogImage : '' %>" />
+  <meta property="og:image:alt" content="Ovlink" />
+  <meta name="twitter:image" content="<%= (seo && seo.twitterImage) ? seo.twitterImage : '' %>" />
   <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:card" content="<%= (seo && seo.twitterCard) ? seo.twitterCard : 'summary' %>" />
   <meta name="twitter:title" content="<%= (seo && seo.twitterTitle) ? seo.twitterTitle : '' %>" />
   <meta name="twitter:description" content="<%= (seo && seo.twitterDescription) ? seo.twitterDescription : '' %>" />
   <% if (seo && seo.jsonLd) { %>
@@ -85,6 +86,92 @@
 
       <!-- Monolith Timeline -->
       <div class="m-timeline">
+
+        <!-- Entry: QR management, onboarding checklist, system health -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-qrcode" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20261101_platform_title">QR idarəetməsi, ilk addımlar və sistem sağlamlığı</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20261101_platform_badge">01.11.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20261101_platform_desc">QR kodları artıq yadda saxlanılır və skanlar sayılır.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20261101_platform_item1">QR kodları: yarat, ad ver, skan sayını izlə (/q/&lt;slug&gt;).</li>
+              <li data-i18n="updates_release_20261101_platform_item2">İlk addımlar siyahısı: link → QR → ilk klik.</li>
+              <li data-i18n="updates_release_20261101_platform_item3">Sistem sağlamlığı: /health və /api/health, strukturlaşdırılmış log.</li>
+              <li data-i18n="updates_release_20261101_platform_item4">Abunəlik və fakturalar üçün portal düyməsi.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry: SEO guide pages, generated previews, accessibility -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-sitemap" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20261101_seo_title">SEO təlimat səhifələri, avtomatik önizləmə və əlçatanlıq</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20261101_seo_badge">01.11.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20261101_seo_desc">Ovlink indi axtarış üçün ayrılmış təlimat səhifələri açır və səhifələri klaviatura ilə daha istifadəyə yararlı edir.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20261101_seo_item1">Yeni təlimat səhifələri: /l/guides altında pulsuz qısaltma, QR kod, statistika, öz domeni və Telegram.</li>
+              <li data-i18n="updates_release_20261101_seo_item2">Sosial paylaşım üçün avtomatik og:image (SVG) və /updates.xml lent yazısı.</li>
+              <li data-i18n="updates_release_20261101_seo_item3">Əlçatanlıq: görünən fokus halqası, keçid linkləri, ekran oxuyucu etiketləri və hərəkət azaltma hörməti.</li>
+              <li data-i18n="updates_release_20261101_seo_item4">Sağdan-sola dillərə hazırlıq: &lt;html dir&gt; artıq dilə görə təyin olunur.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry: Analytics 2.0 (funnel, goals, live feed, API) -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-filter-circle-dollar" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20261101_insights_title">Analitika 2.0: funnel, hədəf, canlı lent və API</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20261101_insights_badge">01.11.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20261101_insights_desc">Statistikaya ikinci dalğa imkanlar əlavə edildi.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20261101_insights_item1">Funnel pikseli: hədəf səhifəyə step parametri əlavə edin.</li>
+              <li data-i18n="updates_release_20261101_insights_item2">Yeni vs qayıdan ziyarətçi, A/B əminlik göstəricisi və ölkə xəritəsi.</li>
+              <li data-i18n="updates_release_20261101_insights_item3">Anomaliya hədləri hesab səhifəsindən; kampaniyalara hədəf.</li>
+              <li data-i18n="updates_release_20261101_insights_item4">Pro API /links siyahısı, /campaigns və OpenAPI sənədi.</li>
+              <li data-i18n="updates_release_20261101_insights_item5">Audit jurnalı: kim baxdı, kim export etdi.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Entry: Business analytics platform -->
+        <article class="m-timeline-item">
+          <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>
+          <div class="m-timeline-card">
+            <div class="m-timeline-header">
+              <h2 class="m-timeline-title">
+                <i class="fa-solid fa-chart-line" style="font-size: 14px; color: var(--c-white);" aria-hidden="true"></i>
+                <span data-i18n="updates_release_20261031_analytics_title">Biznes Analitikası Platforması</span>
+              </h2>
+              <span class="m-timeline-date" data-i18n="updates_release_20261031_analytics_badge">31.10.2026</span>
+            </div>
+            <p class="m-timeline-desc" data-i18n="updates_release_20261031_analytics_desc">Statistika artıq təxmin deyil: unikal ziyarətçi, mənbə, UTM, cihaz, konversiya və anomaliya xəbərdarlıqları real datadan hesablanır.</p>
+            <ul class="m-timeline-list">
+              <li data-i18n="updates_release_20261031_analytics_item1">Dəqiq unikal ziyarətçi: gündəlik unikal arbiter cədvəli ilə hesablanır, təxmini faiz göstəricisi tamamilə silindi.</li>
+              <li data-i18n="updates_release_20261031_analytics_item2">Atributlar: mənbə (referrer), UTM source/medium/campaign, cihaz tipi, bot/insan ayrımı, coğrafiya və A/B variantı hər kliklə yazılır.</li>
+              <li data-i18n="updates_release_20261031_analytics_item3">Konversiya pikseli: hədəf səhifəyə 1×1 piksel əlavə edin (/c/abc123.gif?goal=signup) və konversiyaları statistika panelində görün.</li>
+              <li data-i18n="updates_release_20261031_analytics_item4">Kampaniyalar, paylaşılan statistika linki/embed kartı, CSV/JSON export və opt-in həftəlik e-poçt hesabatı əlavə edildi.</li>
+              <li data-i18n="updates_release_20261031_analytics_item5">Anomaliya xəbərdarlıqları: klik partlayışı/düşməsi, limit xəbərdarlığı və hədəf səhifənin cavab verməməsi halında bildiriş düşür. Workspace səhifəsində komanda üzrə umumiləşdirilmiş statistika göstərilir.</li>
+            </ul>
+          </div>
+        </article>
 
         <!-- Entry: Account Page Linear Tab Redesign -->
         <article class="m-timeline-item">
@@ -670,6 +757,10 @@
             <ul class="m-timeline-list">
               <li data-i18n="updates_release_20260321_api_usage_item1">Read/write limitləri, cari pəncərə istifadəsi və qalan kota göstərilir.</li>
               <li data-i18n="updates_release_20260321_api_usage_item2">Son 24 saat üzrə xəta tipləri və HTTP status bölgüsü ayrıca görünür.</li>
+            </ul>
+          </div>
+        </article>
+
         <!-- Entry 17: API Usage Fix -->
         <article class="m-timeline-item">
           <div class="m-timeline-node" aria-hidden="true"><div class="m-timeline-node-inner"></div></div>

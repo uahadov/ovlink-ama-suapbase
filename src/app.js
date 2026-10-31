@@ -8,6 +8,9 @@ const expressSession = require('express-session');
 const { isProdRuntime } = require('./config/index');
 const { getRequestGeoMeta, parseAcceptLang } = require('./lib/geo');
 const { sendOpsAlert } = require('./lib/alerts');
+const { createLogger } = require('./lib/logger');
+const { reportError } = require('./lib/error-report');
+const requestIdMiddleware = require('./middleware/request-id');
 const { getPublicBaseUrl } = require('./lib/security');
 const { isLocalOrPrivateHost } = require('./lib/url-helpers');
 
@@ -28,6 +31,7 @@ const { authLocalsMiddleware, authContextMiddleware } = require('./middleware/au
 const { mountRoutes } = require('./routes/index');
 
 const app = express();
+const log = createLogger('http');
 
 app.set('query parser', 'simple');
 
@@ -53,6 +57,7 @@ if (!isProdRuntime || process.env.DISABLE_VIEW_CACHE === '1' || process.env.FRON
 
 // Apply ALL middleware in EXACT SAME order as server.js
 app.use(compression());
+app.use(requestIdMiddleware);
 app.use(langMiddleware);
 app.use(httpsRedirectMiddleware);
 app.use(canonicalHostMiddleware);
@@ -103,11 +108,16 @@ app.use(express.static(publicDir, {
   }
 }));
 
+// Health probes: mounted before the rate limiters and the session middleware so
+// a probe never creates a session row, touches Redis or consumes a limiter budget.
+app.use(require('./routes/health'));
+
 // Rate Limiters & Security (early)
 app.use(ipBlacklistMiddleware);
 app.use(slowdownMiddleware);
 
 app.use((req, res, next) => {
+  if (req.path === '/health' || req.path === '/api/health') return next();
   if (req.method === 'GET' && !req.path.startsWith('/admin')) {
     return generalLimiter(req, res, next);
   }
@@ -260,7 +270,13 @@ mountRoutes(app);
 app.use((err, req, res, next) => {
   if (!err) return next();
   if (res.headersSent) return next(err);
-  console.error('[error-handler]', err && (err.stack || err.message || err));
+  log.error('unhandled error', {
+    requestId: req.id,
+    method: req.method,
+    path: req.path,
+    error: err,
+  });
+  reportError(err, { requestId: req.id, method: req.method, path: req.path });
   const isApi = req.path.startsWith('/api/');
   const accept = (req.get('accept') || '').toLowerCase();
   const wantsJson =
@@ -324,7 +340,10 @@ app.use((err, req, res, next) => {
     : (status === 404 ? 'Not found.' : 'Request could not be processed.');
 
   if (status >= 500) {
-    sendOpsAlert('http_5xx:' + req.path, 'HTTP 5xx', `${req.method} ${req.originalUrl}\n${(err && (err.message || err.toString()) || '').toString().slice(0, 500)}`);
+    // Key on the error shape + a coarse route, not the full path: the previous
+    // key space was unbounded (one key per arbitrary 404/5xx URL).
+    const alertRoute = (req.baseUrl || '') + (req.route && req.route.path ? req.route.path : req.path.split('/').slice(0, 3).join('/'));
+    sendOpsAlert('http_5xx:' + ((err && err.name) || 'Error') + ':' + alertRoute, 'HTTP 5xx', `${req.method} ${req.originalUrl}\n${(err && (err.message || err.toString()) || '').toString().slice(0, 500)}`);
   }
 
   if (wantsJson) {

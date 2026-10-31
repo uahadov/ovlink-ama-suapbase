@@ -1,0 +1,65 @@
+name: Backup restore drill
+
+# A10 (W8): proves the nightly pg_dump is actually restorable. Deliberately NOT
+# triggered by push/pull_request — a drill that creates and drops a database has
+# no business running on every PR, and it never points at production.
+on:
+  schedule:
+    - cron: '15 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-verify
+  cancel-in-progress: false
+
+jobs:
+  restore-drill:
+    # Scheduled runs fire on every fork; keep the drill on the origin repo only.
+    if: github.repository == 'uahadov/ovlink-ama-suapbase' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ovlink
+          POSTGRES_PASSWORD: ovlink
+          POSTGRES_DB: ovlink_source
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://ovlink:ovlink@localhost:5432/ovlink_source
+      RESTORE_VERIFY_DB: ovlink_verify
+      ALLOW_RESTORE: '1'
+      NODE_ENV: test
+      # CI-only throwaway credentials (same values as ci.yml); the drill never
+      # sees a production secret.
+      SESSION_SECRET: backup_verify_session_secret_that_is_well_over_64_bytes_for_testing_0123456789abcdef
+      ENCRYPTION_KEY: 4f9a1c2b8e7d6053a1f0c9b82d7e4156a3c8f0d2b6e4917c5a0d3f8e2b4c6a9d
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # The drill restores a dump of *this* connection string, so the source
+      # database has to carry the app schema first — booting the app runs the
+      # same startup migration flow production uses.
+      - name: Seed the source database (startup migrations)
+        run: node scripts/seed-schema.js
+
+      - name: Run the restore drill
+        run: npm run verify:backup

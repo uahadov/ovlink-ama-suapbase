@@ -43,6 +43,36 @@ function normalizeSeoKeywords(rawKeywords) {
   return output;
 }
 
+const RTL_LANGS = Object.freeze([]);
+
+/**
+ * Text direction for the current UI language. Every supported language is
+ * left-to-right today; the helper exists so adding Arabic or Farsi later is a
+ * one-line change here instead of a sweep through 46 views.
+ */
+function getDir(lang) {
+  return RTL_LANGS.includes(normalizeLang(lang, 'en')) ? 'rtl' : 'ltr';
+}
+
+/**
+ * Turns a page path into the stable slug used by the generated OG image
+ * (`/og/<slug>.svg`). Only [a-z0-9-] survives, so nothing user-controlled can
+ * break out of the URL.
+ */
+function ogSlugForPath(path) {
+  const slug = (path || '/')
+    .toString()
+    .split('?')[0]
+    .split('#')[0]
+    .replace(/\.html?$/i, '')
+    .replace(/^\/+|\/+$/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+  return slug || 'home';
+}
+
 function buildSeo(req, opts = {}) {
   const base = getPublicBaseUrl(req);
   const rawLang = getLangFromCookie(req) || req.defaultLang || 'en';
@@ -55,6 +85,8 @@ function buildSeo(req, opts = {}) {
   ]).join(', ');
   const path = (opts.path || req.path || '/').toString();
   const canonical = base + path;
+  const ogSlug = ogSlugForPath(path);
+  const ogImage = (opts.ogImage || `${base}/og/${ogSlug}.svg`).toString();
   const org = { "@context": "https://schema.org", "@type": "Organization", "name": "Ovlink", "url": base, "logo": `${base}/logo.png` };
   const website = {
     "@context": "https://schema.org",
@@ -94,6 +126,7 @@ function buildSeo(req, opts = {}) {
   const hreflangXDefault = hreflangEn;
   return {
     lang,
+    dir: getDir(lang),
     title,
     description,
     keywords,
@@ -101,6 +134,10 @@ function buildSeo(req, opts = {}) {
     ogTitle: title,
     ogDescription: description,
     ogUrl: canonical,
+    ogImage,
+    ogSlug,
+    twitterCard: 'summary_large_image',
+    twitterImage: ogImage,
     twitterTitle: title,
     twitterDescription: description,
     hreflangEn,
@@ -114,6 +151,9 @@ function buildSeo(req, opts = {}) {
 module.exports = {
   buildSeo,
   buildSeoMeta: buildSeo,
+  getDir,
+  ogSlugForPath,
+  RTL_LANGS,
   DEFAULT_SEO_KEYWORDS,
   normalizeSeoKeywords
 };

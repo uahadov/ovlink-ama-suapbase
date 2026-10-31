@@ -4342,11 +4342,15 @@ function initShorten() {
         const sourceEl = document.getElementById("utmSource");
         const mediumEl = document.getElementById("utmMedium");
         const campaignEl = document.getElementById("utmCampaign");
+        const termEl = document.getElementById("utmTerm");
+        const contentEl = document.getElementById("utmContent");
 
         if (!val) {
           if (sourceEl) sourceEl.value = "";
           if (mediumEl) mediumEl.value = "";
           if (campaignEl) campaignEl.value = "";
+          if (termEl) termEl.value = "";
+          if (contentEl) contentEl.value = "";
           return;
         }
 
@@ -4357,6 +4361,8 @@ function initShorten() {
             if (sourceEl) sourceEl.value = tpl.source || "";
             if (mediumEl) mediumEl.value = tpl.medium || "";
             if (campaignEl) campaignEl.value = tpl.campaign || "";
+            if (termEl) termEl.value = tpl.term || "";
+            if (contentEl) contentEl.value = tpl.content || "";
           }
         } else if (val.startsWith("custom_")) {
           const idx = parseInt(val.replace("custom_", ""), 10);
@@ -4368,6 +4374,8 @@ function initShorten() {
               if (sourceEl) sourceEl.value = tpl.source || "";
               if (mediumEl) mediumEl.value = tpl.medium || "";
               if (campaignEl) campaignEl.value = tpl.campaign || "";
+              if (termEl) termEl.value = tpl.term || "";
+              if (contentEl) contentEl.value = tpl.content || "";
             }
           } catch (e) {}
         }
@@ -4381,7 +4389,9 @@ function initShorten() {
         const source = document.getElementById("utmSource")?.value?.trim() || "";
         const medium = document.getElementById("utmMedium")?.value?.trim() || "";
         const campaign = document.getElementById("utmCampaign")?.value?.trim() || "";
-        if (!source && !medium && !campaign) {
+        const term = document.getElementById("utmTerm")?.value?.trim() || "";
+        const content = document.getElementById("utmContent")?.value?.trim() || "";
+        if (!source && !medium && !campaign && !term && !content) {
           const alertMsg = (typeof getText === "function" ? getText("adv_utm_no_params_alert") : null) ||
             (typeof pickLang === "function" ? pickLang("Yadda saxlanılacaq UTM parametri tapılmadı!", "Kaydedilecek bir UTM parametresi bulunamadı!", "No UTM parameter found to save!") : "Yadda saxlanılacaq UTM parametri tapılmadı!");
           alert(alertMsg);
@@ -4395,7 +4405,7 @@ function initShorten() {
           const rawStored = localStorage.getItem("ovlink_utm_templates");
           const stored = rawStored ? JSON.parse(rawStored) : [];
           const list = Array.isArray(stored) ? stored : [];
-          list.push({ name: name.trim(), source, medium, campaign });
+          list.push({ name: name.trim(), source, medium, campaign, term, content });
           localStorage.setItem("ovlink_utm_templates", JSON.stringify(list));
           loadUtmTemplates();
           const sel = document.getElementById("utmTemplateSelect");
@@ -4456,6 +4466,8 @@ function initShorten() {
     const utmSource = document.getElementById("utmSource")?.value?.trim();
     const utmMedium = document.getElementById("utmMedium")?.value?.trim();
     const utmCampaign = document.getElementById("utmCampaign")?.value?.trim();
+    const utmTerm = document.getElementById("utmTerm")?.value?.trim();
+    const utmContent = document.getElementById("utmContent")?.value?.trim();
     
     let original_b = document.getElementById("originalB")?.value?.trim() || undefined;
     const ab_split_percent = document.getElementById("abSplitPercent")?.value?.trim() || undefined;
@@ -4465,12 +4477,14 @@ function initShorten() {
 
     const appendUtm = (urlStr) => {
       if (!urlStr) return urlStr;
-      if (!utmSource && !utmMedium && !utmCampaign) return urlStr;
+      if (!utmSource && !utmMedium && !utmCampaign && !utmTerm && !utmContent) return urlStr;
       try {
         const u = new URL(urlStr.startsWith('http') ? urlStr : 'http://' + urlStr);
         if (utmSource) u.searchParams.set('utm_source', utmSource);
         if (utmMedium) u.searchParams.set('utm_medium', utmMedium);
         if (utmCampaign) u.searchParams.set('utm_campaign', utmCampaign);
+        if (utmTerm) u.searchParams.set('utm_term', utmTerm);
+        if (utmContent) u.searchParams.set('utm_content', utmContent);
         return u.toString();
       } catch {
         return urlStr;
@@ -4524,7 +4538,14 @@ function initShorten() {
         original_b,
         ab_split_percent,
         ios_url,
-        android_url
+        android_url,
+        // The server re-applies these idempotently, so the stored URL is
+        // authoritative even if the client-side append is bypassed.
+        utm_source: utmSource || undefined,
+        utm_medium: utmMedium || undefined,
+        utm_campaign: utmCampaign || undefined,
+        utm_term: utmTerm || undefined,
+        utm_content: utmContent || undefined,
       };
 
       if (typeof selectedHomeWorkspaceId !== 'undefined' && selectedHomeWorkspaceId > 0) {
@@ -5060,6 +5081,97 @@ if (document.readyState === "loading") {
     renderWorkspaceDetail(list[0].id);
   }
 
+  // Workspace analytics rollup: aggregated stats for every link in the team.
+  let wsStatsDays = 30;
+
+  function wsDeltaLabel(value) {
+    if (value === null || value === undefined) return "";
+    return (Number(value) > 0 ? "+" : "") + Number(value) + "%";
+  }
+
+  function wsStatRow(container, primary, secondary) {
+    if (!container) return;
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--c-border);font-size:13px;";
+    const left = document.createElement("span");
+    left.textContent = String(primary || "");
+    const right = document.createElement("span");
+    right.style.fontVariantNumeric = "tabular-nums";
+    right.textContent = String(secondary || "");
+    row.appendChild(left);
+    row.appendChild(right);
+    container.appendChild(row);
+  }
+
+  function renderWorkspaceStats(payload) {
+    const clicksEl = document.getElementById("wsStatClicks");
+    if (!clicksEl) return;
+
+    const totals = (payload && payload.totals) || {};
+    const deltas = (payload && payload.deltas) || {};
+    clicksEl.textContent = String(totals.clicks || 0);
+    const uniquesEl = document.getElementById("wsStatUniques");
+    if (uniquesEl) uniquesEl.textContent = String(totals.uniques || 0);
+    const conversionsEl = document.getElementById("wsStatConversions");
+    if (conversionsEl) conversionsEl.textContent = String(totals.conversions || 0);
+    const rateEl = document.getElementById("wsStatRate");
+    if (rateEl) rateEl.textContent = String(totals.conversion_rate || 0) + "%";
+
+    const clicksDelta = document.getElementById("wsStatClicksDelta");
+    if (clicksDelta) {
+      clicksDelta.textContent = wsDeltaLabel(deltas.clicks_percent);
+      clicksDelta.style.color = Number(deltas.clicks_percent) >= 0 ? "#10b981" : "#ef4444";
+    }
+    const uniquesDelta = document.getElementById("wsStatUniquesDelta");
+    if (uniquesDelta) {
+      uniquesDelta.textContent = wsDeltaLabel(deltas.uniques_percent);
+      uniquesDelta.style.color = Number(deltas.uniques_percent) >= 0 ? "#10b981" : "#ef4444";
+    }
+
+    const linksBox = document.getElementById("wsStatsTopLinks");
+    const sourcesBox = document.getElementById("wsStatsSources");
+    if (linksBox) linksBox.textContent = "";
+    if (sourcesBox) sourcesBox.textContent = "";
+
+    const links = (payload && Array.isArray(payload.top_links)) ? payload.top_links : [];
+    const sources = (payload && Array.isArray(payload.sources)) ? payload.sources : [];
+    const emptyLabel = pickLang("Bu dövrdə məlumat yoxdur", "Bu dönemde veri yok", "No data in this period");
+
+    if (!links.length) wsStatRow(linksBox, emptyLabel, "");
+    else links.forEach((item) => wsStatRow(linksBox, item.short, String(item.clicks || 0)));
+
+    if (!sources.length) wsStatRow(sourcesBox, emptyLabel, "");
+    else sources.forEach((item) => wsStatRow(sourcesBox, item.name, String(item.count || 0)));
+  }
+
+  async function loadWorkspaceStats(workspaceId) {
+    const card = document.getElementById("wsStatsCard");
+    if (!card) return;
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/stats?days=${wsStatsDays}`, { credentials: "include" });
+      if (!res.ok) {
+        card.classList.add("d-none");
+        return;
+      }
+      card.classList.remove("d-none");
+      renderWorkspaceStats(await res.json());
+    } catch {
+      card.classList.add("d-none");
+    }
+  }
+
+  document.querySelectorAll("[data-ws-days]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const days = Number(btn.getAttribute("data-ws-days"));
+      if (!days) return;
+      wsStatsDays = days;
+      document.querySelectorAll("[data-ws-days]").forEach((other) => {
+        other.classList.toggle("active", other === btn);
+      });
+      if (wsDetail) loadWorkspaceStats(wsDetail.id);
+    });
+  });
+
   async function renderWorkspaceDetail(workspaceId) {
     let detail = null;
     try {
@@ -5073,6 +5185,7 @@ if (document.readyState === "loading") {
     wsDetail = detail;
     createSection.classList.add("d-none");
     detailSection.classList.remove("d-none");
+    loadWorkspaceStats(detail.id);
 
     document.getElementById("wsDisplayName").textContent = detail.name;
     document.getElementById("wsMyRole").textContent = wsRoleLabel(detail.my_role);

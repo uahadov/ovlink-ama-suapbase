@@ -76,7 +76,40 @@
 
 ---
 
-## 5. Dağıtım ve Ops Kuralları (Deployment & Ops Rules)
+## 5. Analitika Qatı (Analytics Stack)
+
+Amaç: her rakam gerçek veriden gelsin, sorgular tablo taraması yapmasın. Detaylı yol haritası `ANALYTICS_PLAN.md` içindedir.
+
+| Modül | Sorumluluk |
+|---|---|
+| `src/lib/analytics.js` | Klik atfı (referrer, UTM, cihaz, bot, varyant) + günlük rollup yazımı; `recordConversion` piksel için |
+| `src/lib/link-stats.js` | Tek link için tek doğruluk kaynağı: aralık, unikal, seri, top-N, CSV, `toPublicPayload` |
+| `src/lib/workspace-stats.js` | Workspace (ekip/acente) geneli toplama — yalnızca `urls.workspace_id` kapsamı |
+| `src/lib/anomaly-alerts.js` | Klik patlaması/düşüşü, limit uyarısı, hedef sağlığı; bildirim + webhook + ops alarmı |
+| `src/lib/stats-report.js` | Opt-in haftalık e-posta özeti (worker) |
+| `src/lib/utm.js` | UTM builder: normalizasiya + idempotent `utm_*` qoşması (hər iki shorten marşrutu) |
+| `src/lib/funnel.js` | Çoxpilləli funnel: `link_funnel_steps` yazısı + pillə seriyası |
+| `src/lib/ab-significance.js` | A/B iki-nisbət z-testi (p-value, confidence, lider) |
+| `src/lib/alert-thresholds.js` | Anomaliya hədləri: env → user → link prioriteti |
+| `src/lib/visitor-split.js` | Yeni vs qayıdan ziyarətçi (`click_uniques`) |
+| `src/lib/segments.js` | Saxlanmış filtr presetləri (CRUD, `saved_segments`) |
+| `src/lib/analytics-audit.js` | Statistikaya giriş jurnalı (dedupe + toplu yazı + retention) |
+| `src/routes/api/pro-v1.js` | Pro API: `/links` (kursor), `/campaigns`, `/openapi.json` |
+| `src/routes/api/segments.js` | Seqment CRUD (`/api/segments`) |
+| `src/lib/campaigns.js` | Kampanya gruplama ve kampanya bazlı rapor |
+| `src/routes/api/analytics.js` | `/api/stats*`, konversiyon pikseli `/c/:short.gif`, paylaşım/embed uçları |
+| `src/routes/api/campaigns.js` | Kampanya CRUD + link atama |
+| `src/routes/api/workspaces.js` | `GET /api/workspaces/:id/stats` (üyelik + Pro kontrolü) |
+
+**Veri akışı:** redirect → `recordClickSafe` → `clicks` (atıf satırı) + `link_stats_daily` (günlük sayaç) + `click_uniques` (günlük unikal arbiteri). Okuma tarafı yalnızca rollup tablolarını toplar; ham klik satırları sadece sınırlı export/canlı akış için çekilir.
+
+**Gizlilik:** ham IP saklanmaz (yalnızca HMAC `ip_hash`); `essential` onay modunda atıf/şehir/hash yazılmaz. Paylaşılan istatistik linkleri yalnızca `SHA-256(token)` saklar, süresi dolan/iptal edilen link çalışmaz ve ham klik satırları hiçbir paylaşım yanıtına konmaz.
+
+**Dış çağrılar:** hedef sağlığı ve webhook teslimatı pinned-IP + bloklu port/IP listeleri üzerinden gider, yönlendirme izlenmez.
+
+---
+
+## 6. Dağıtım ve Ops Kuralları (Deployment & Ops Rules)
 
 1. **Paket Yöneticisi:** Yalnızca `npm` ve `package-lock.json` kullanılır.
 2. **Doğrulama Komutları:**
@@ -91,5 +124,5 @@
 
 ---
 
-## 6. Gelecek Planı & Hatırlatma (Roadmap)
+## 7. Gelecek Planı & Hatırlatma (Roadmap)
 - **Telegram Otomatik Veritabanı Yedeği:** Her gece saat 03:00'te PostgreSQL veritabanının `.sql.gz` yedeğinin alınarak Telegram Bot API `sendDocument` ile yönetici chatine otomatik gönderilmesi planlanmıştır.

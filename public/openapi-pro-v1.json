@@ -1,0 +1,192 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Ovlink Pro API",
+    "version": "1.0.0",
+    "description": "Read and manage short links, statistics and campaigns with a Pro API key. Every request is authenticated with `x-api-key` (or `Authorization: Bearer <key>`) and scoped to the key owner."
+  },
+  "servers": [{ "url": "https://ovlink.sbs" }],
+  "security": [{ "apiKey": [] }],
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "A key created on /account (Pro plan)."
+      }
+    },
+    "schemas": {
+      "LinkStats": {
+        "type": "object",
+        "properties": {
+          "days": { "oneOf": [{ "type": "integer" }, { "type": "string", "enum": ["all"] }] },
+          "clicks": { "type": "integer" },
+          "uniques": { "type": "integer" },
+          "conversions": { "type": "integer" }
+        }
+      },
+      "LinkListItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "short": { "type": "string" },
+          "original": { "type": "string" },
+          "created_at": { "type": "string" },
+          "campaign_id": { "type": "integer", "nullable": true },
+          "disabled": { "type": "boolean" },
+          "max_clicks": { "type": "integer", "nullable": true },
+          "stats": { "$ref": "#/components/schemas/LinkStats" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": { "error": { "type": "string" } }
+      }
+    }
+  },
+  "paths": {
+    "/api/pro/v1/account": {
+      "get": {
+        "summary": "Account overview, plan and API usage",
+        "responses": {
+          "200": { "description": "Account payload" },
+          "401": { "description": "Missing or invalid key", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Pro plan required" }
+        }
+      }
+    },
+    "/api/pro/v1/shorten": {
+      "post": {
+        "summary": "Create a short link",
+        "parameters": [
+          { "name": "Idempotency-Key", "in": "header", "required": false, "schema": { "type": "string" }, "description": "Replaying the same key returns the original result." }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["original_url"],
+                "properties": {
+                  "original_url": { "type": "string", "format": "uri" },
+                  "original_b": { "type": "string", "format": "uri" },
+                  "custom_alias": { "type": "string" },
+                  "campaign_id": { "type": "integer" },
+                  "utm": {
+                    "type": "object",
+                    "properties": {
+                      "source": { "type": "string" },
+                      "medium": { "type": "string" },
+                      "campaign": { "type": "string" },
+                      "term": { "type": "string" },
+                      "content": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Created link" },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Missing or invalid key" }
+        }
+      }
+    },
+    "/api/pro/v1/links": {
+      "get": {
+        "summary": "List links with cursor pagination",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 25 } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" }, "description": "Opaque cursor from `next_cursor`." },
+          { "name": "days", "in": "query", "schema": { "type": "string", "default": "30" }, "description": "Stats window: 7, 30, 90, 365 or all." },
+          { "name": "campaign_id", "in": "query", "schema": { "type": "integer" } },
+          { "name": "q", "in": "query", "schema": { "type": "string", "maxLength": 80 }, "description": "Short-code prefix filter." },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["active", "disabled"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of links",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "links": { "type": "array", "items": { "$ref": "#/components/schemas/LinkListItem" } },
+                    "has_more": { "type": "boolean" },
+                    "next_cursor": { "type": "string", "nullable": true }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid cursor", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Missing or invalid key" }
+        }
+      }
+    },
+    "/api/pro/v1/links/{short}/stats": {
+      "get": {
+        "summary": "Statistics for one link",
+        "parameters": [
+          { "name": "short", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "days", "in": "query", "schema": { "type": "string", "default": "30" } },
+          { "name": "bots", "in": "query", "schema": { "type": "string", "enum": ["include", "exclude"] } }
+        ],
+        "responses": {
+          "200": { "description": "Aggregated statistics" },
+          "404": { "description": "Link not found or not owned by the key" }
+        }
+      }
+    },
+    "/api/pro/v1/links/{short}/clicks": {
+      "get": {
+        "summary": "Click-level export",
+        "parameters": [
+          { "name": "short", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "format", "in": "query", "schema": { "type": "string", "enum": ["csv", "json"], "default": "csv" } },
+          { "name": "days", "in": "query", "schema": { "type": "string", "default": "30" } }
+        ],
+        "responses": {
+          "200": { "description": "CSV or JSON rows (bounded)" },
+          "404": { "description": "Link not found" }
+        }
+      }
+    },
+    "/api/pro/v1/campaigns": {
+      "get": {
+        "summary": "List campaigns with aggregated counters",
+        "parameters": [
+          { "name": "days", "in": "query", "schema": { "type": "string", "default": "30" } },
+          { "name": "include_archived", "in": "query", "schema": { "type": "string", "enum": ["0", "1"] } }
+        ],
+        "responses": {
+          "200": { "description": "Campaign list" },
+          "401": { "description": "Missing or invalid key" }
+        }
+      }
+    },
+    "/api/pro/v1/campaigns/{id}": {
+      "get": {
+        "summary": "Statistics for one campaign",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "days", "in": "query", "schema": { "type": "string", "default": "30" } }
+        ],
+        "responses": {
+          "200": { "description": "Campaign statistics" },
+          "404": { "description": "Campaign not found" }
+        }
+      }
+    },
+    "/api/pro/v1/openapi.json": {
+      "get": {
+        "summary": "This document",
+        "responses": { "200": { "description": "OpenAPI 3.1 description" } }
+      }
+    }
+  }
+}

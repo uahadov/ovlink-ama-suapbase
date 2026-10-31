@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="<%= (seo && seo.lang) ? seo.lang : 'en' %>">
+<html lang="<%= (seo && seo.lang) ? seo.lang : 'en' %>" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
 
 <head>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
@@ -8,16 +8,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink Pro Pricing' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink Pro Pricing' %></title>
+
   
   <link rel="manifest" href="/site.webmanifest" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
 
@@ -109,12 +108,20 @@
             3 gün pulsuz sınaqdan keçirin. İstədiyiniz an ləğv edə bilərsiniz.
           </p>
 
+          <% if (typeof isProUser !== 'undefined' && isProUser) { %>
+          <!-- Already paying: manage the live subscription (Polar hosted portal). -->
+          <button id="proManageBtn" type="button"
+             class="m-cta m-cta--outline m-plan-cta"
+             data-is-logged-in="<%= isLoggedIn %>"
+             data-i18n="billing_manage_cta">Abunəliyi idarə et</button>
+          <% } else { %>
           <a id="pricingBuyBtn"
              href="<%= (typeof polarCheckoutUrl !== 'undefined' && polarCheckoutUrl) ? polarCheckoutUrl : 'https://buy.polar.sh/polar_cl_9QZbWPt4zCzplBGNFgy6xeZf9rxVICG62IIe03GpkNS' %>"
              class="m-cta m-cta--white m-plan-cta"
              data-is-logged-in="<%= isLoggedIn %>"
              data-checkout-url="<%= (typeof polarCheckoutUrl !== 'undefined' && polarCheckoutUrl) ? polarCheckoutUrl : 'https://buy.polar.sh/polar_cl_9QZbWPt4zCzplBGNFgy6xeZf9rxVICG62IIe03GpkNS' %>"
              data-i18n="pricing_buy_btn">İndi Pro-ya keç</a>
+          <% } %>
         </article>
 
       </div>

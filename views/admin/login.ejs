@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
   <head>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
   <link rel="icon" href="/favicon.ico?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
@@ -13,11 +13,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/home.css?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>" />
     <link rel="stylesheet" href="/admin/admin.css?v=<%= (typeof assetVersion !== 'undefined') ? assetVersion : '1' %>" />
   </head>
   <body class="ovx home-page auth-page admin-login-page">
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
     <div id="cursorGlow" aria-hidden="true"></div>
 
     <main class="m-auth-shell" id="mainContent">
@@ -51,8 +51,8 @@
           </div>
 
           <form class="form" method="POST" action="/admin/login">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-            <input type="hidden" name="next" value="<%= next || '' %>" />
+            <input type="hidden" name="_csrf" value="<%= (typeof csrfToken !== 'undefined' ? csrfToken : (typeof locals !== 'undefined' && locals.csrfToken ? locals.csrfToken : (typeof locals !== 'undefined' && locals._csrf ? locals._csrf : ''))) %>" />
+            <input type="hidden" name="next" value="<%= (typeof next !== 'undefined' && next) ? next : '' %>" />
 
             <div class="m-auth-field">
               <label for="email" class="m-adv-label">Staff Email</label>
@@ -83,6 +83,6 @@
       </div>
     </main>
 
-    <script nonce="<%= nonce %>" src="/admin/admin.js?v=<%= assetVersion %>" defer></script>
+    <script nonce="<%= (typeof nonce !== 'undefined' ? nonce : (typeof locals !== 'undefined' && locals.nonce ? locals.nonce : '')) %>" src="/admin/admin.js?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : (typeof locals !== 'undefined' && locals.assetVersion ? locals.assetVersion : '1')) %>" defer></script>
   </body>
 </html>

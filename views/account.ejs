@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
 
 <head>
   <meta charset="UTF-8" />
@@ -13,10 +13,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= assetVersion %>" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <!-- Monolith Home CSS -->
   <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+  <link rel="stylesheet" href="/tokens.css?v=<%= assetVersion %>" />
 
   <!-- Monolith App & Settings Scoped Styles -->
   <style nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
@@ -907,7 +907,7 @@
                 <!-- Col 1: Şifrə Dəyişdir -->
                 <div class="m-cred-col">
                   <div class="m-cred-box">
-                    <div class="m-section-subhead" style="margin-bottom:16px;">
+                    <div class="m-section-subhead u-mb-4" >
                       <i class="fa-solid fa-lock"></i>
                       <span id="passwordSectionTitle" data-i18n="profile_password_title">Şifrə Dəyişdir</span>
                     </div>
@@ -941,7 +941,7 @@
                       <i class="fa-regular fa-envelope"></i>
                       <span data-i18n="account_email_change_title">E-poçtu dəyiş</span>
                     </div>
-                    <p class="m-card-desc" style="margin-bottom:16px;" data-i18n="account_email_change_hint">E-poçt ünvanınızı yeniləmək üçün cari şifrənizi və yeni e-poçtunuzu daxil edin. Yeni ünvana 6 rəqəmli təsdiq kodu göndəriləcək.</p>
+                    <p class="m-card-desc u-mb-4"  data-i18n="account_email_change_hint">E-poçt ünvanınızı yeniləmək üçün cari şifrənizi və yeni e-poçtunuzu daxil edin. Yeni ünvana 6 rəqəmli təsdiq kodu göndəriləcək.</p>
 
                     <div style="display:flex;flex-direction:column;gap:12px;">
                       <div class="m-form-group">
@@ -993,9 +993,9 @@
                 <span data-i18n="account_2fa_title">İki faktorlu autentifikasiya (2FA)</span>
               </div>
 
-              <div id="twofaStatus" class="m-card-desc" style="margin-bottom:16px;" data-i18n="account_2fa_loading">Yoxlanılır...</div>
+              <div id="twofaStatus" class="m-card-desc u-mb-4"  data-i18n="account_2fa_loading">Yoxlanılır...</div>
 
-              <div id="twofaSetupWrap" class="d-none m-inner-box" style="margin-bottom:16px;">
+              <div id="twofaSetupWrap" class="d-none m-inner-box u-mb-4" >
                 <div style="display:flex;flex-direction:column;align-items:flex-start;gap:12px;">
                   <img id="twofaQr" alt="2FA QR" style="border-radius:10px;border:1px solid var(--c-border);background:#fff;padding:8px;" width="180" height="180">
                   <div style="font-size:12px;color:var(--c-muted);word-break:break-all;">
@@ -1008,7 +1008,7 @@
                 </div>
               </div>
 
-              <div id="twofaDisableWrap" class="d-none m-inner-box" style="margin-bottom:16px;">
+              <div id="twofaDisableWrap" class="d-none m-inner-box u-mb-4" >
                 <div style="display:flex;flex-direction:column;gap:10px;max-width:380px;">
                   <input type="password" id="twofaDisablePassword" class="m-adv-input" data-i18n-placeholder="account_current_pass" placeholder="Cari şifrə">
                   <div style="display:flex;gap:10px;">
@@ -1072,7 +1072,7 @@
                       </span>
                     <% } %>
                   </div>
-                  <p class="m-card-desc" style="margin-bottom:16px;" data-i18n="account_sub_manage_hint">Abunəliyi ləğv et, yenilə və ya kart məlumatını dəyiş.</p>
+                  <p class="m-card-desc u-mb-4"  data-i18n="account_sub_manage_hint">Abunəliyi ləğv et, yenilə və ya kart məlumatını dəyiş.</p>
                   <% if (!plan.polar_linked) { %>
                     <div class="m-alert m-alert--warning" style="margin: 0 0 16px 0;">
                       <i class="fa-solid fa-circle-info"></i>
@@ -1085,7 +1085,7 @@
                 </div>
               <% } else { %>
                 <div class="m-inner-box">
-                  <div style="margin-bottom:12px;">
+                  <div class="u-mb-3" >
                     <span class="m-badge-pill m-badge-pill--muted" data-i18n="account_sub_free">Free plan</span>
                   </div>
                   <p class="m-card-desc" style="margin-bottom:18px;" data-i18n="account_sub_free_hint">Pro imkanları üçün yüksəliş: limitsiz linklər, API, webhooklar və statistika.</p>
@@ -1117,6 +1117,47 @@
              TAB 4: DEVELOPER (DOMAINS & PRO API SUITE)
              ========================================== -->
         <div class="m-tab-panel" id="panel-developer" role="tabpanel" aria-labelledby="tabBtnDeveloper" hidden>
+
+          <!-- 0. Anomaly alert thresholds -->
+          <section class="m-card" id="alertSettingsSection">
+            <div class="m-card-header">
+              <div class="m-card-title-wrap">
+                <div class="m-card-icon"><i class="fa-solid fa-bell"></i></div>
+                <div>
+                  <h2 class="m-card-h2" data-i18n="alerts_title">Anomaliya xəbərdarlıqları</h2>
+                  <div class="m-card-desc" data-i18n="alerts_subtitle">Klik partlayışı və düşməsi üçün hədlər. Boş sahə standart dəyəri saxlayır.</div>
+                </div>
+              </div>
+            </div>
+            <div class="m-card-body">
+              <form id="alertSettingsForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;align-items:end;">
+                <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+                  <span data-i18n="alerts_spike_multiplier">Partlayış əmsalı (×)</span>
+                  <input id="alertSpikeMultiplier" type="number" step="0.1" min="1.5" max="100" placeholder="3" style="padding:9px 11px;border-radius:8px;border:1px solid var(--c-border,#2a2a2a);background:transparent;color:inherit;">
+                </label>
+                <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+                  <span data-i18n="alerts_spike_min_clicks">Minimum klik</span>
+                  <input id="alertSpikeMinClicks" type="number" step="1" min="1" max="100000" placeholder="25" style="padding:9px 11px;border-radius:8px;border:1px solid var(--c-border,#2a2a2a);background:transparent;color:inherit;">
+                </label>
+                <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+                  <span data-i18n="alerts_drop_multiplier">Düşmə əmsalı</span>
+                  <input id="alertDropMultiplier" type="number" step="0.01" min="0.01" max="0.99" placeholder="0.3" style="padding:9px 11px;border-radius:8px;border:1px solid var(--c-border,#2a2a2a);background:transparent;color:inherit;">
+                </label>
+                <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+                  <span data-i18n="alerts_drop_min_baseline">Minimum baza</span>
+                  <input id="alertDropMinBaseline" type="number" step="1" min="1" max="100000" placeholder="10" style="padding:9px 11px;border-radius:8px;border:1px solid var(--c-border,#2a2a2a);background:transparent;color:inherit;">
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;">
+                  <input id="alertHealthEnabled" type="checkbox" checked>
+                  <span data-i18n="alerts_health_enabled">Hədəf sağlamlığı yoxlaması</span>
+                </label>
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <button type="submit" class="m-cta m-cta--white m-cta--sm" data-i18n="alerts_save">Yadda saxla</button>
+                  <span id="alertSettingsMsg" style="font-size:12.5px;"></span>
+                </div>
+              </form>
+            </div>
+          </section>
 
           <!-- 1. Custom Domains Card -->
           <section class="m-card" id="customDomainSection">
@@ -1312,23 +1353,23 @@
                     <i class="fa-solid fa-gauge-high"></i>
                     <span data-i18n="pro_api_usage_title">API Rate Limit Dashboard</span>
                   </div>
-                  <p class="m-card-desc" style="margin-bottom:16px;" data-i18n="pro_api_usage_subtitle">Cari pəncərə istifadəsi, qalan kota və son 24 saatlıq xəta bölünməsi.</p>
+                  <p class="m-card-desc u-mb-4"  data-i18n="pro_api_usage_subtitle">Cari pəncərə istifadəsi, qalan kota və son 24 saatlıq xəta bölünməsi.</p>
 
-                  <div class="m-form-row" style="margin-bottom:12px;">
+                  <div class="m-form-row u-mb-3" >
                     <div class="m-inner-box--nested">
-                      <span class="m-adv-label" style="display:block;margin-bottom:4px;" data-i18n="pro_api_usage_read_window">Read pəncərəsi</span>
+                      <span class="m-adv-label u-block u-mb-1"  data-i18n="pro_api_usage_read_window">Read pəncərəsi</span>
                       <strong id="proApiUsageReadWindow" style="font-size:18px;color:var(--c-white);">0 / 0</strong>
                       <div style="font-size:12px;color:var(--c-muted);margin-top:2px;" id="proApiUsageReadRemaining">Qalan: 0</div>
                     </div>
                     <div class="m-inner-box--nested">
-                      <span class="m-adv-label" style="display:block;margin-bottom:4px;" data-i18n="pro_api_usage_write_window">Write pəncərəsi</span>
+                      <span class="m-adv-label u-block u-mb-1"  data-i18n="pro_api_usage_write_window">Write pəncərəsi</span>
                       <strong id="proApiUsageWriteWindow" style="font-size:18px;color:var(--c-white);">0 / 0</strong>
                       <div style="font-size:12px;color:var(--c-muted);margin-top:2px;" id="proApiUsageWriteRemaining">Qalan: 0</div>
                     </div>
                   </div>
 
-                  <div class="m-inner-box--nested" style="margin-bottom:12px;">
-                    <span class="m-adv-label" style="display:block;margin-bottom:4px;" data-i18n="pro_api_usage_24h_summary">Son 24 saat</span>
+                  <div class="m-inner-box--nested u-mb-3" >
+                    <span class="m-adv-label u-block u-mb-1"  data-i18n="pro_api_usage_24h_summary">Son 24 saat</span>
                     <strong id="proApiUsageLast24h" style="font-size:18px;color:var(--c-white);">0</strong>
                     <div style="font-size:12px;color:var(--c-muted);margin-top:2px;" id="proApiUsageLast24hErrors">Xəta: 0</div>
                   </div>
@@ -1772,6 +1813,74 @@
       if (ael && t) ael.textContent = t;
       document.body.classList.add('has-ribbon');
     }
+  })();
+  </script>
+
+  <script nonce="<%= nonce %>">
+  (function () {
+    var form = document.getElementById('alertSettingsForm');
+    if (!form) return;
+
+    var MSG = {
+      az: { ok: 'Yadda saxlanıldı', err: 'Xəta baş verdi' },
+      tr: { ok: 'Kaydedildi', err: 'Bir hata oluştu' },
+      en: { ok: 'Saved', err: 'Something went wrong' },
+    };
+    var lang = (document.documentElement.lang || 'az').slice(0, 2);
+    var M = MSG[lang] || MSG.az;
+    var msgEl = document.getElementById('alertSettingsMsg');
+    var csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+
+    function setMsg(text, isError) {
+      if (!msgEl) return;
+      msgEl.textContent = text || '';
+      msgEl.style.color = isError ? '#f87171' : '#34d399';
+    }
+
+    function fill(settings) {
+      if (!settings) return;
+      var map = {
+        alertSpikeMultiplier: 'spike_multiplier',
+        alertSpikeMinClicks: 'spike_min_clicks',
+        alertDropMultiplier: 'drop_multiplier',
+        alertDropMinBaseline: 'drop_min_baseline',
+      };
+      Object.keys(map).forEach(function (id) {
+        var el = document.getElementById(id);
+        var row = settings[map[id]];
+        if (!el) return;
+        el.value = row && row.value !== null && row.value !== undefined ? row.value : '';
+      });
+      var health = document.getElementById('alertHealthEnabled');
+      var healthRow = settings.health_enabled;
+      if (health && healthRow) health.checked = !!healthRow.value;
+    }
+
+    fetch('/api/user/alert-thresholds', { credentials: 'include' })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) { if (data && data.settings) fill(data.settings); })
+      .catch(function () {});
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var payload = {
+        spike_multiplier: document.getElementById('alertSpikeMultiplier').value,
+        spike_min_clicks: document.getElementById('alertSpikeMinClicks').value,
+        drop_multiplier: document.getElementById('alertDropMultiplier').value,
+        drop_min_baseline: document.getElementById('alertDropMinBaseline').value,
+        health_enabled: document.getElementById('alertHealthEnabled').checked,
+      };
+      setMsg('…');
+      fetch('/api/user/alert-thresholds', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf },
+        body: JSON.stringify(payload),
+      })
+        .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error('save')); })
+        .then(function (data) { fill(data.settings); setMsg(M.ok, false); })
+        .catch(function () { setMsg(M.err, true); });
+    });
   })();
   </script>
 </body>

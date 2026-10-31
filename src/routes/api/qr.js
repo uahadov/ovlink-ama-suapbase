@@ -1,5 +1,7 @@
 const express = require('express');
+const crypto = require('crypto');
 const QRCode = require('qrcode');
+const pkg = require('../../../package.json');
 const { db } = require('../../db/index');
 const { buildShortUrl } = require('../../lib/url-helpers');
 
@@ -21,6 +23,17 @@ router.get('/api/qrcode', (req, res) => {
     if (err || !row) return res.status(404).json({ error: 'Belə Bir Link Tapılmadı' });
 
     const fullUrl = buildShortUrl(req, shortRaw, row.domain_host || '');
+
+    // Rasterising a QR is pure CPU work: let browsers and proxies revalidate
+    // instead of regenerating the same image on every render.
+    const etag = '"' + crypto.createHash('sha1')
+      .update(`${fullUrl}|${colorDark}|${colorLight}|${pkg.version}`)
+      .digest('hex') + '"';
+    res.setHeader('ETag', etag);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    if ((req.get('if-none-match') || '') === etag) {
+      return res.status(304).end();
+    }
 
     QRCode.toDataURL(fullUrl, {
       color: {

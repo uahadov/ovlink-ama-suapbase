@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { db } = require('../../db/index');
 const { dbGetAsync, dbRunAsync } = require('../../db/helpers');
 const { requireSignedIn } = require('../../middleware/auth');
-const { isProdRuntime } = require('../../config/index');
+const { isProdRuntime, isEnabledEnv } = require('../../config/index');
 const { verifyPolarWebhook, resolvePolarProductPolicy } = require('../../../utils/polar');
 const { blindIndex, encryptAES256GCM, decryptAES256GCM } = require('../../../utils/crypto');
 const { getPublicBaseUrl } = require('../../lib/security');
@@ -270,7 +270,7 @@ router.post('/api/polar/webhook', async (req, res) => {
 
     const findUser = () => new Promise((resolve, reject) => {
       // Narrowed query to avoid fetching sensitive data
-      const q = 'SELECT id, plan_tier, plan_status, pro_expires_at, polar_subscription_id, polar_customer_id, trial_used_at FROM users WHERE ';
+      const q = 'SELECT id, plan_tier, plan_status, pro_expires_at, polar_subscription_id, polar_customer_id, trial_used_at, ui_lang FROM users WHERE ';
       if (Number.isInteger(userId) && userId > 0) {
         db.get(q + 'id = ?', [userId], (err, row) => {
           if (err) return reject(err);
@@ -432,6 +432,9 @@ router.post('/api/polar/webhook', async (req, res) => {
       }
 
       // Revoke Pro immediately on refund, revocation or payment failure
+      // Only a real pro -> free transition sends the dunning mail, so a replayed
+      // or duplicated webhook event cannot produce a second e-mail.
+      const wasProBeforeRevoke = targetUser.plan_tier === 'pro';
       await new Promise((resolve, reject) => {
         db.run(
           'UPDATE users SET plan_tier = ?, plan_status = ?, pro_expires_at = NULL, polar_subscription_id = NULL, pro_updated_at = ? WHERE id = ?',
@@ -460,6 +463,17 @@ router.post('/api/polar/webhook', async (req, res) => {
         ],
         () => {}
       );
+
+      // Optional dunning e-mail (default off). Fire-and-forget: the webhook must
+      // answer 200 as fast as possible and a SMTP failure may never trigger a
+      // Polar retry of an already-processed event.
+      if (wasProBeforeRevoke && customerEmail && isEnabledEnv('ENABLE_DUNNING_EMAIL', false)) {
+        setImmediate(() => {
+          Promise.resolve()
+            .then(() => require('../../lib/email').sendPaymentFailedEmail(customerEmail, targetUser.ui_lang || 'az'))
+            .catch(() => {});
+        });
+      }
     } else if (eventType.startsWith('subscription.canceled')) {
       // Prevent Downgrade Attack
       if (targetUser.polar_subscription_id && polarSubId && targetUser.polar_subscription_id !== polarSubId) {

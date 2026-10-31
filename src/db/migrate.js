@@ -68,6 +68,205 @@ function ensureDbTables() {
       city TEXT,
       FOREIGN KEY(url_id) REFERENCES urls(id)
     )`);
+
+    // ===== Analytics foundation (attribution + daily rollups) =====
+    // ip_hash replaces the raw IP (which is never stored) so unique visitors can
+    // be counted without keeping personal data.
+    db.run('ALTER TABLE clicks ADD COLUMN ip_hash TEXT', () => {});
+    db.run('ALTER TABLE clicks ADD COLUMN referrer_host TEXT', () => {});
+    db.run('ALTER TABLE clicks ADD COLUMN utm_source TEXT', () => {});
+    db.run('ALTER TABLE clicks ADD COLUMN utm_medium TEXT', () => {});
+    db.run('ALTER TABLE clicks ADD COLUMN utm_campaign TEXT', () => {});
+    db.run('ALTER TABLE clicks ADD COLUMN device_type TEXT', () => {});
+    db.run('ALTER TABLE clicks ADD COLUMN is_bot INTEGER DEFAULT 0', () => {});
+    db.run('ALTER TABLE clicks ADD COLUMN variant TEXT', () => {});
+    db.run('ALTER TABLE clicks ADD COLUMN region TEXT', () => {});
+
+    // Headline counters per link/day so stats never scan the whole clicks table.
+    db.run(`CREATE TABLE IF NOT EXISTS link_stats_daily (
+      url_id INTEGER NOT NULL,
+      day TEXT NOT NULL,
+      clicks INTEGER NOT NULL DEFAULT 0,
+      uniques INTEGER NOT NULL DEFAULT 0,
+      bots INTEGER NOT NULL DEFAULT 0,
+      first_click_at TEXT,
+      last_click_at TEXT,
+      PRIMARY KEY (url_id, day),
+      FOREIGN KEY(url_id) REFERENCES urls(id)
+    )`);
+
+    // One row per (link, day, visitor hash): the arbiter for "is this unique?".
+    db.run(`CREATE TABLE IF NOT EXISTS click_uniques (
+      url_id INTEGER NOT NULL,
+      day TEXT NOT NULL,
+      ip_hash TEXT NOT NULL,
+      created_at TEXT,
+      PRIMARY KEY (url_id, day, ip_hash),
+      FOREIGN KEY(url_id) REFERENCES urls(id)
+    )`);
+    db.run('CREATE INDEX IF NOT EXISTS idx_link_stats_daily_day ON link_stats_daily(day)', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_day ON click_uniques(day)', () => {});
+
+    // ===== Conversion goals =====
+    // The destination page pings /c/<short>.gif?goal=<name>. One row per
+    // (link, goal, day, visitor hash) so refresh loops cannot inflate numbers.
+    db.run('ALTER TABLE link_stats_daily ADD COLUMN conversions INTEGER NOT NULL DEFAULT 0', () => {});
+    db.run(`CREATE TABLE IF NOT EXISTS link_conversions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      url_id INTEGER NOT NULL,
+      goal TEXT NOT NULL DEFAULT 'default',
+      day TEXT NOT NULL,
+      ip_hash TEXT NOT NULL,
+      created_at TEXT,
+      UNIQUE (url_id, goal, day, ip_hash),
+      FOREIGN KEY(url_id) REFERENCES urls(id)
+    )`);
+    db.run('CREATE INDEX IF NOT EXISTS idx_link_conversions_url_day ON link_conversions(url_id, day)', () => {});
+
+    // Read-only statistics shares. Only the SHA-256 of the token is stored, and
+    // every share is expiring + revocable, so a leaked link cannot expose data
+    // forever.
+    db.run(`CREATE TABLE IF NOT EXISTS stats_shares (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      url_id INTEGER NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      days INTEGER NOT NULL DEFAULT 30,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      created_by_user_id INTEGER,
+      revoked_at TEXT,
+      FOREIGN KEY(url_id) REFERENCES urls(id)
+    )`);
+    db.run('CREATE INDEX IF NOT EXISTS idx_stats_shares_url ON stats_shares(url_id, revoked_at)', () => {});
+
+    // ===== Campaigns =====
+    // A campaign groups links so agencies can report per client/campaign instead
+    // of per short code. Links stay untouched if the campaign is deleted.
+    db.run(`CREATE TABLE IF NOT EXISTS campaigns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      goal TEXT,
+      created_at TEXT,
+      archived_at TEXT,
+      UNIQUE (user_id, slug),
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    )`);
+    db.run('CREATE INDEX IF NOT EXISTS idx_campaigns_user ON campaigns(user_id, archived_at)', () => {});
+    db.run('ALTER TABLE urls ADD COLUMN campaign_id INTEGER', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_urls_campaign ON urls(campaign_id)', () => {});
+
+    // ===== Analytics v2 (second wave) =====
+    // Everything here is additive and inert until the feature that reads it is
+    // shipped, so a deploy can be rolled back by removing the caller.
+
+    // F4: campaign goals (target vs actual).
+    db.run('ALTER TABLE campaigns ADD COLUMN goal_clicks INTEGER', () => {});
+    db.run('ALTER TABLE campaigns ADD COLUMN goal_conversions INTEGER', () => {});
+
+    // F3: per-user alert thresholds. NULL means "inherit the env default".
+    db.run('ALTER TABLE users ADD COLUMN alert_spike_multiplier REAL', () => {});
+    db.run('ALTER TABLE users ADD COLUMN alert_spike_min_clicks INTEGER', () => {});
+    db.run('ALTER TABLE users ADD COLUMN alert_drop_multiplier REAL', () => {});
+    db.run('ALTER TABLE users ADD COLUMN alert_drop_min_baseline INTEGER', () => {});
+    db.run('ALTER TABLE users ADD COLUMN alert_health_enabled INTEGER', () => {});
+    // Per-link overrides: NULL columns inherit the user value.
+    db.run(`CREATE TABLE IF NOT EXISTS link_alert_settings (
+      url_id INTEGER PRIMARY KEY,
+      alert_spike_multiplier REAL,
+      alert_spike_min_clicks INTEGER,
+      alert_drop_multiplier REAL,
+      alert_drop_min_baseline INTEGER,
+      alert_health_enabled INTEGER,
+      updated_at TEXT,
+      FOREIGN KEY(url_id) REFERENCES urls(id) ON DELETE CASCADE
+    )`);
+
+    // F2: multi-step funnel. A separate table keeps the goal dedupe key
+    // (url_id, goal, day, ip_hash) untouched - one visitor can hit step 1 and
+    // step 2 on the same day without a constraint clash.
+    db.run(`CREATE TABLE IF NOT EXISTS link_funnel_steps (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      url_id INTEGER NOT NULL,
+      step INTEGER NOT NULL,
+      day TEXT NOT NULL,
+      ip_hash TEXT NOT NULL,
+      created_at TEXT,
+      UNIQUE (url_id, step, day, ip_hash),
+      FOREIGN KEY(url_id) REFERENCES urls(id)
+    )`);
+    db.run('CREATE INDEX IF NOT EXISTS idx_link_funnel_steps_url_day ON link_funnel_steps(url_id, day)', () => {});
+
+    // F7: which A/B branch produced the conversion.
+    db.run('ALTER TABLE link_conversions ADD COLUMN variant TEXT', () => {});
+
+    // F10: saved filter presets ("segments").
+    db.run(`CREATE TABLE IF NOT EXISTS saved_segments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      filters_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT,
+      UNIQUE (user_id, name),
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`);
+
+    // F12: who looked at (or exported) a link's statistics.
+    db.run(`CREATE TABLE IF NOT EXISTS analytics_audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at TEXT NOT NULL,
+      user_id INTEGER,
+      api_key_id INTEGER,
+      url_id INTEGER,
+      short TEXT,
+      action TEXT NOT NULL,
+      ip_hash TEXT,
+      metadata_json TEXT
+    )`);
+    db.run('CREATE INDEX IF NOT EXISTS idx_analytics_audit_user_created ON analytics_audit_log(user_id, created_at DESC)', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_analytics_audit_url_created ON analytics_audit_log(url_id, created_at DESC)', () => {});
+
+    // Read-path indexes for the new features.
+    // F6: "has this visitor been here before?" probe.
+    db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});
+    // F7: resolve the visitor's A/B branch at conversion time.
+    db.run('CREATE INDEX IF NOT EXISTS idx_clicks_url_ip ON clicks(url_id, ip_hash, click_time)', () => {});
+    // F11: keyset pagination needs an id tiebreaker next to created_at.
+    db.run('CREATE INDEX IF NOT EXISTS idx_urls_user_created_id ON urls(user_id, created_at DESC, id DESC)', () => {});
+
+    // ===== QR codes (persisted, with scan counts) =====
+    // Deliberately NOT a FK to urls: the analytics purge path deletes these rows
+    // explicitly (src/lib/link-purge.js) so link deletion can never be blocked.
+    // `slug` keeps /q/<slug> unguessable; numeric ids are also accepted.
+    db.run(`CREATE TABLE IF NOT EXISTS qr_codes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      url_id INTEGER NOT NULL,
+      short TEXT NOT NULL,
+      slug TEXT UNIQUE,
+      label TEXT,
+      color_dark TEXT DEFAULT '#000000',
+      color_light TEXT DEFAULT '#ffffff',
+      scans INTEGER NOT NULL DEFAULT 0,
+      created_by INTEGER,
+      created_at TEXT,
+      deleted_at TEXT
+    )`);
+    db.run(`CREATE TABLE IF NOT EXISTS qr_scan_daily (
+      qr_id INTEGER NOT NULL,
+      day TEXT NOT NULL,
+      scans INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (qr_id, day)
+    )`);
+    db.run('CREATE INDEX IF NOT EXISTS idx_qr_codes_user ON qr_codes(created_by, deleted_at)', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_qr_codes_url ON qr_codes(url_id)', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_qr_scan_daily_day ON qr_scan_daily(day)', () => {});
+
+    // ===== Onboarding lifecycle =====
+    db.run('ALTER TABLE users ADD COLUMN onboarding_dismissed_at TEXT', () => {});
+    db.run('ALTER TABLE users ADD COLUMN onboarding_nudged_at TEXT', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_users_onboarding_nudge ON users(created_at)', () => {});
   
     // ===== Admin System Tables / Indexes (NEW) =====
   
@@ -301,6 +500,13 @@ function ensureDbTables() {
   db.run('ALTER TABLE urls ADD COLUMN ab_split_percent INTEGER DEFAULT 50', () => {});
   db.run('ALTER TABLE urls ADD COLUMN ios_url TEXT', () => {});
   db.run('ALTER TABLE urls ADD COLUMN android_url TEXT', () => {});
+
+  // Destination health: result of the last outbound probe from the anomaly
+  // worker, so a dead landing page is reported instead of silently burning
+  // traffic.
+  db.run('ALTER TABLE urls ADD COLUMN last_health_status INTEGER', () => {});
+  db.run('ALTER TABLE urls ADD COLUMN last_health_checked_at TEXT', () => {});
+  db.run('ALTER TABLE urls ADD COLUMN last_health_error TEXT', () => {});
   
     // Privacy scrub: remove legacy full IPs from public analytics/audit tables
     db.run("UPDATE clicks SET ip = NULL WHERE ip IS NOT NULL");
@@ -334,6 +540,9 @@ function ensureDbTables() {
     db.run('ALTER TABLE users ADD COLUMN notify_report INTEGER DEFAULT 1', () => {});
     db.run('ALTER TABLE users ADD COLUMN notify_limit INTEGER DEFAULT 1', () => {});
     db.run('ALTER TABLE users ADD COLUMN notify_disabled INTEGER DEFAULT 1', () => {});
+    // Opt-in weekly statistics digest.
+    db.run('ALTER TABLE users ADD COLUMN stats_report_enabled INTEGER NOT NULL DEFAULT 0', () => {});
+    db.run('ALTER TABLE users ADD COLUMN stats_report_last_sent_at TEXT', () => {});
     db.run("ALTER TABLE users ADD COLUMN auth_provider TEXT DEFAULT 'local'", () => {});
     db.run('ALTER TABLE users ADD COLUMN google_id TEXT', () => {});
     db.run('ALTER TABLE users ADD COLUMN google_id_hash TEXT', () => {});
@@ -352,6 +561,9 @@ function ensureDbTables() {
     db.run('ALTER TABLE users ADD COLUMN pending_email TEXT', () => {});
     db.run('ALTER TABLE users ADD COLUMN pending_email_code TEXT', () => {});
     db.run('ALTER TABLE users ADD COLUMN pending_email_expires_at TEXT', () => {});
+    db.run('ALTER TABLE users ADD COLUMN failed_login_count INTEGER DEFAULT 0', () => {});
+    db.run('ALTER TABLE users ADD COLUMN lock_until TEXT', () => {});
+    db.run('ALTER TABLE users ADD COLUMN last_failed_at TEXT', () => {});
     db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_polar_sub ON users(polar_subscription_id) WHERE polar_subscription_id IS NOT NULL', () => {});
     db.run(`ALTER TABLE api_keys ADD COLUMN scopes TEXT NOT NULL DEFAULT '${DEFAULT_API_KEY_SCOPES_STORAGE}'`, () => {});
     db.run('ALTER TABLE api_keys ADD COLUMN hash_version INTEGER NOT NULL DEFAULT 1', () => {});
@@ -386,6 +598,33 @@ function ensureDbTables() {
     db.run('CREATE INDEX IF NOT EXISTS idx_reports_short ON reports(short)', () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_reports_short_created_at ON reports(short, created_at DESC)', () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_clicks_url_id ON clicks(url_id)', () => {});
+    // Range queries (link + date window) are the hot path for every stats view.
+    db.run('CREATE INDEX IF NOT EXISTS idx_clicks_url_time ON clicks(url_id, click_time)', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_clicks_url_bot ON clicks(url_id, is_bot)', () => {});
+
+    // One-time rollup backfill from historical clicks. Guarded so it only runs
+    // while the rollup table is still empty (idempotent startup migrations).
+    db.get('SELECT COUNT(*) AS cnt FROM link_stats_daily', [], (statsErr, statsRow) => {
+      if (statsErr) return;
+      if (statsRow && Number(statsRow.cnt) > 0) return;
+      db.run(
+        `INSERT INTO link_stats_daily (url_id, day, clicks, uniques, bots, first_click_at, last_click_at)
+         SELECT url_id, SUBSTR(click_time, 1, 10) AS day, COUNT(*) AS clicks, 0 AS uniques, 0 AS bots,
+                MIN(click_time) AS first_click_at, MAX(click_time) AS last_click_at
+         FROM clicks
+         WHERE url_id IS NOT NULL AND click_time IS NOT NULL AND click_time <> ''
+         GROUP BY url_id, SUBSTR(click_time, 1, 10)
+         ON CONFLICT (url_id, day) DO NOTHING`,
+        [],
+        (backfillErr) => {
+          if (backfillErr) {
+            console.error('[migrate] link_stats_daily backfill failed:', backfillErr.message || backfillErr);
+            return;
+          }
+          console.log('[migrate] link_stats_daily backfilled from historical clicks.');
+        }
+      );
+    });
     db.run('CREATE INDEX IF NOT EXISTS idx_urls_user_id ON urls(user_id)', () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_urls_user_created_at ON urls(user_id, created_at DESC)', () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_urls_domain_host ON urls(domain_host)', () => {});
@@ -586,7 +825,8 @@ function ensureDbTables() {
       'blocked_domains', 'admin_audit_log', 'admin_auth_audit', 'guest_limits',
       'custom_domains', 'user_sessions', 'api_keys', 'webhooks', 'webhook_deliveries',
       'subscription_audit', 'security_events', 'api_idempotency_keys', 'api_usage_logs',
-      'notifications', 'password_resets', 'bot_users', 'bot_settings', 'bot_auth_codes'
+      'notifications', 'password_resets', 'bot_users', 'bot_settings', 'bot_auth_codes',
+      'link_funnel_steps', 'saved_segments', 'analytics_audit_log', 'link_alert_settings'
     ];
     allTablesForRls.forEach(t => {
       db.run(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`, () => {});

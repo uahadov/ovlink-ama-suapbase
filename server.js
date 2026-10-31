@@ -8,6 +8,11 @@ const { ensureDbTables } = require('./src/db/migrate');
 const { db } = require('./src/db/index');
 const { syncThreatIntelligenceFeed, scheduleWeeklySafetyScan, THREAT_FEED_SYNC_INTERVAL_MS } = require('./src/lib/safety');
 const { scheduleWebhookRecoveryWorker } = require('./src/lib/webhook');
+const { scheduleWeeklyStatsReports } = require('./src/lib/stats-report');
+const { scheduleAnomalyAlerts } = require('./src/lib/anomaly-alerts');
+const { scheduleAnalyticsAuditPurge } = require('./src/lib/analytics-audit');
+const { scheduleFunnelRetention } = require('./src/lib/funnel');
+const { scheduleOnboardingNudge } = require('./src/lib/onboarding-worker');
 const { initGoogleOidc } = require('./src/lib/google-auth');
 const { refreshCustomDomainCache, validateBaseUrlConfiguration } = require('./src/lib/custom-domain');
 const { initBots } = require('./src/lib/bots');
@@ -53,6 +58,11 @@ if (require.main === module) {
       setInterval(syncThreatIntelligenceFeed, THREAT_FEED_SYNC_INTERVAL_MS).unref();
       scheduleWeeklySafetyScan();
       scheduleWebhookRecoveryWorker();
+      scheduleWeeklyStatsReports();
+      scheduleAnomalyAlerts();
+      scheduleAnalyticsAuditPurge();
+      scheduleFunnelRetention();
+      scheduleOnboardingNudge();
     }
 
     app.listen(PORT, HOST, () => {
@@ -71,6 +81,11 @@ if (require.main === module) {
           console.warn('[startup] Telegram/Discord bots init warning:', botErr && (botErr.message || botErr));
         }
 
+      // Outreach automation is a SEPARATE process (scripts/outreach-runner.js).
+      // The web runtime must never cold-email prospects or post to Reddit/HN:
+      // it shares the event loop with the redirect hot path and the automation
+      // carries ToS/reputational risk unrelated to the link product.
+      if (isEnabledEnv('ENABLE_MARKETING_BOTS', false)) {
         try {
           const b2bEmailHunter = require('./src/marketing_bots/b2b-email-hunter');
           b2bEmailHunter.start();
@@ -84,6 +99,9 @@ if (require.main === module) {
         } catch (socialErr) {
           console.warn('[startup] Social Listener Bot start warning:', socialErr && (socialErr.message || socialErr));
         }
+      } else {
+        console.log('[startup] Marketing automation disabled (ENABLE_MARKETING_BOTS not set).');
+      }
       })().catch(err => {
         console.warn('[startup] Background worker warning:', err && (err.message || err));
       });

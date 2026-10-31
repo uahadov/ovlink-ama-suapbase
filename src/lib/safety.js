@@ -7,13 +7,81 @@ const threatHostSet = new Set();
 let lastThreatFeedSync = 0;
 const THREAT_FEED_SYNC_INTERVAL_MS = 2 * 60 * 60 * 1000;
 
+const SAFE_PLATFORM_HOSTS = new Set([
+  'google.com',
+  'drive.google.com',
+  'docs.google.com',
+  'sites.google.com',
+  'forms.gle',
+  'youtube.com',
+  'youtu.be',
+  'github.com',
+  'raw.githubusercontent.com',
+  'gist.github.com',
+  'github.io',
+  'gitlab.com',
+  'bitbucket.org',
+  'dropbox.com',
+  'box.com',
+  'onedrive.live.com',
+  '1drv.ms',
+  'sharepoint.com',
+  'microsoft.com',
+  'apple.com',
+  'icloud.com',
+  'amazon.com',
+  'amazonaws.com',
+  's3.amazonaws.com',
+  'cloudflare.com',
+  'pages.dev',
+  'workers.dev',
+  'vercel.app',
+  'netlify.app',
+  'firebaseapp.com',
+  'web.app',
+  'discord.com',
+  'discord.gg',
+  'cdn.discordapp.com',
+  't.me',
+  'telegram.org',
+  'facebook.com',
+  'fb.com',
+  'instagram.com',
+  'twitter.com',
+  'x.com',
+  'linkedin.com',
+  'reddit.com',
+  'medium.com',
+  'notion.site',
+  'notion.so',
+  'wikipedia.org',
+  'wikimedia.org',
+  'ovlink.sbs'
+]);
+
+function isSafePlatformHost(hostname) {
+  if (!hostname) return false;
+  const host = hostname.toLowerCase().trim();
+  if (SAFE_PLATFORM_HOSTS.has(host)) return true;
+  for (const safe of SAFE_PLATFORM_HOSTS) {
+    if (host.endsWith('.' + safe)) return true;
+  }
+  return false;
+}
+
 const threatCache = new Map();
 const THREAT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const THREAT_CACHE_MAX_ENTRIES = 5000;
 
 async function syncThreatIntelligenceFeed() {
+  const authKey = (process.env.URLHAUS_AUTH_KEY || process.env.URLHAUS_API_KEY || '').trim();
+  if (!authKey) {
+    // Abuse.ch has retired unauthenticated bulk downloads (returns 410 Gone).
+    // Real-time queries via checkUrlhausThreat, Google Safe Browsing and VirusTotal remain active.
+    return;
+  }
   try {
-    const res = await fetch('https://urlhaus.abuse.ch/downloads/text_online/', {
+    const res = await fetch(`https://urlhaus-api.abuse.ch/v2/files/exports/${encodeURIComponent(authKey)}/recent.csv`, {
       signal: AbortSignal.timeout(10000)
     });
     if (res.ok) {
@@ -27,7 +95,12 @@ async function syncThreatIntelligenceFeed() {
         newUrls.add(trimmed.toLowerCase());
         try {
           const u = new URL(trimmed);
-          if (u.hostname) newHosts.add(u.hostname.toLowerCase());
+          const h = (u.hostname || '').toLowerCase();
+          if (h && !isSafePlatformHost(h)) {
+            if (u.pathname === '/' || u.pathname === '' || !u.pathname) {
+              newHosts.add(h);
+            }
+          }
         } catch {}
       }
       if (newUrls.size > 0) {
@@ -132,7 +205,11 @@ async function checkLiveThreat(targetUrl) {
     targetHostname = new URL(targetUrl).hostname.toLowerCase();
   } catch {}
 
-  if (threatUrlSet.has(normalized) || (targetHostname && threatHostSet.has(targetHostname))) {
+  if (threatUrlSet.has(normalized)) {
+    return { threat: true, reason: 'urlhaus_active_malware', provider: 'urlhaus_live_feed' };
+  }
+
+  if (targetHostname && threatHostSet.has(targetHostname) && !isSafePlatformHost(targetHostname)) {
     return { threat: true, reason: 'urlhaus_active_malware', provider: 'urlhaus_live_feed' };
   }
 

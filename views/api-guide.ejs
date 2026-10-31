@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="<%= (seo && seo.lang) ? seo.lang : 'en' %>">
+<html lang="<%= (seo && seo.lang) ? seo.lang : 'en' %>" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
 
 <head>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
@@ -8,16 +8,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — API Usage Guide' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — API Usage Guide' %></title>
   
   <link rel="manifest" href="/site.webmanifest" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
 
@@ -31,8 +29,11 @@
   <meta property="og:title" content="<%= (seo && seo.ogTitle) ? seo.ogTitle : '' %>" />
   <meta property="og:description" content="<%= (seo && seo.ogDescription) ? seo.ogDescription : '' %>" />
   <meta property="og:url" content="<%= (seo && seo.ogUrl) ? seo.ogUrl : '' %>" />
+  <meta property="og:image" content="<%= (seo && seo.ogImage) ? seo.ogImage : '' %>" />
+  <meta property="og:image:alt" content="Ovlink" />
+  <meta name="twitter:image" content="<%= (seo && seo.twitterImage) ? seo.twitterImage : '' %>" />
   <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:card" content="<%= (seo && seo.twitterCard) ? seo.twitterCard : 'summary' %>" />
   <meta name="twitter:title" content="<%= (seo && seo.twitterTitle) ? seo.twitterTitle : '' %>" />
   <meta name="twitter:description" content="<%= (seo && seo.twitterDescription) ? seo.twitterDescription : '' %>" />
   <% if (seo && seo.jsonLd) { %>
@@ -338,6 +339,16 @@ int main() {
         </div>
 
       </div>
+
+      <!-- OpenAPI (machine-readable) -->
+      <section class="m-card-monolith mb-4" style="padding:20px 24px;margin-top:24px;border-left:3px solid var(--c-white);">
+        <h2 style="font-size:15px;font-weight:700;color:var(--c-white);margin:0 0 8px 0;">OpenAPI 3.1</h2>
+        <p style="font-size:13px;color:var(--c-muted);line-height:1.6;margin:0;">
+          Bütün Pro API endpoint-ləri üçün maşın-oxunaqlı sənəd:
+          <a href="/api/pro/v1/openapi.json" target="_blank" rel="noopener" style="color:var(--c-white);text-decoration:underline;">/api/pro/v1/openapi.json</a>
+          — Postman/Insomnia və ya kod generatoru ilə birbaşa istifadə edin.
+        </p>
+      </section>
 
       <!-- Action Navigation Footer -->
       <div style="display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 48px;">

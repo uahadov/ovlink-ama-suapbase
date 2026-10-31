@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="<%= (seo && seo.lang) ? seo.lang : 'en' %>" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
+
+<head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="icon" href="/favicon.ico?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="apple-touch-icon" href="/logo.png?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink' %></title>
+
+  <link rel="manifest" href="/site.webmanifest" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
+  <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
+  <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
+  <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
+  <link rel="alternate" hreflang="en" href="<%= (seo && seo.hreflangEn) ? seo.hreflangEn : '' %>" />
+  <link rel="alternate" hreflang="az" href="<%= (seo && seo.hreflangAz) ? seo.hreflangAz : '' %>" />
+  <link rel="alternate" hreflang="tr" href="<%= (seo && seo.hreflangTr) ? seo.hreflangTr : '' %>" />
+  <link rel="alternate" hreflang="x-default" href="<%= (seo && seo.hreflangXDefault) ? seo.hreflangXDefault : '' %>" />
+  <meta property="og:title" content="<%= (seo && seo.ogTitle) ? seo.ogTitle : '' %>" />
+  <meta property="og:description" content="<%= (seo && seo.ogDescription) ? seo.ogDescription : '' %>" />
+  <meta property="og:url" content="<%= (seo && seo.ogUrl) ? seo.ogUrl : '' %>" />
+  <meta property="og:image" content="<%= (seo && seo.ogImage) ? seo.ogImage : '' %>" />
+  <meta property="og:image:alt" content="Ovlink" />
+  <meta name="twitter:image" content="<%= (seo && seo.twitterImage) ? seo.twitterImage : '' %>" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="<%= (seo && seo.twitterCard) ? seo.twitterCard : 'summary' %>" />
+  <meta name="twitter:title" content="<%= (seo && seo.twitterTitle) ? seo.twitterTitle : '' %>" />
+  <meta name="twitter:description" content="<%= (seo && seo.twitterDescription) ? seo.twitterDescription : '' %>" />
+  <% if (seo && seo.jsonLd) { %>
+  <script nonce="<%= nonce %>" type="application/ld+json"><%- seo.jsonLd %></script>
+  <% } %>
+</head>
+
+<body class="ovx home-page seo-landing-page">
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
+
+  <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
+    <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
+      <div class="shell">
+        <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+        <span id="siteAnnouncementText"><%= siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en %></span>
+      </div>
+    </div>
+  <% } %>
+
+  <%- include('partials/home-navbar') %>
+
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell" style="max-width: 1040px; width: 100%;">
+
+      <section class="m-content-hero" aria-labelledby="landingHeading">
+        <div class="m-hero-eyebrow" style="display:inline-flex; align-items:center; gap:8px; margin-bottom:18px;">
+          <span class="m-live-dot" aria-hidden="true"></span>
+          <span data-i18n="seo_landing_badge">Guide</span>
+        </div>
+        <h1 id="landingHeading" data-i18n="<%= page.titleKey %>"><%= copy.title %></h1>
+        <p data-i18n="<%= page.leadKey %>"><%= copy.lead %></p>
+
+        <div style="display:flex; gap:14px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:18px;">
+          <a href="/#linkInputForm" class="m-cta m-cta--white" style="padding:10px 22px; font-size:13.5px;">
+            <span data-i18n="seo_landing_cta">Start shortening</span>
+            <i class="fa-solid fa-arrow-right" style="font-size:11px;" aria-hidden="true"></i>
+          </a>
+          <a href="/pricing" class="m-cta m-cta--outline" style="padding:10px 22px; font-size:13.5px;">
+            <span data-i18n="pricing_badge">Ovlink Pro</span>
+          </a>
+        </div>
+      </section>
+
+      <div class="m-why-grid">
+        <% copy.points.forEach(function (point, idx) { %>
+        <article class="m-card-monolith">
+          <div class="m-card-monolith-icon" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.25)"></circle>
+              <path d="M9 12l2 2 4-4" stroke="#4ade80" stroke-width="2"></path>
+            </svg>
+          </div>
+          <h2 class="m-card-monolith-title">
+            <span class="sr-only"><%= idx + 1 %>.</span>
+            <span data-i18n="<%= page.pointKeys[idx] %>"><%= point %></span>
+          </h2>
+        </article>
+        <% }); %>
+      </div>
+
+      <!-- Internal links: every landing page points at the others, so the set is crawlable as a cluster. -->
+      <section class="m-content-hero" aria-labelledby="landingMore">
+        <h2 id="landingMore" data-i18n="seo_landing_more_title">Other guides</h2>
+        <ul class="m-bento-chips" style="list-style:none; padding:0; display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+          <% related.forEach(function (item) { %>
+          <li>
+            <a class="m-bento-chip" href="/l/<%= item.slug %>"><%= item.title %></a>
+          </li>
+          <% }); %>
+        </ul>
+        <div style="display:flex; gap:14px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:12px;">
+          <a href="/" class="m-cta m-cta--outline" style="padding:10px 22px; font-size:13.5px;">
+            <i class="fa-solid fa-arrow-left" style="font-size:11px;" aria-hidden="true"></i>
+            <span data-i18n="nav_home">Home</span>
+          </a>
+          <a href="/how-it-works" class="m-cta m-cta--outline" style="padding:10px 22px; font-size:13.5px;">
+            <span data-i18n="navx_how">How it works</span>
+          </a>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <%- include('partials/home-footer') %>
+
+  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+</body>
+
+</html>

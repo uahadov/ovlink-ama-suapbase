@@ -2,6 +2,6 @@
       </main>
     </div>
     <div class="admin-sidebar-backdrop sidebar-backdrop" id="adminSidebarBackdrop" aria-hidden="true"></div>
-    <script nonce="<%= nonce %>" src="/admin/admin.js?v=<%= assetVersion %>" defer></script>
+    <script nonce="<%= (typeof nonce !== 'undefined' ? nonce : (typeof locals !== 'undefined' && locals.nonce ? locals.nonce : '')) %>" src="/admin/admin.js?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : (typeof locals !== 'undefined' && locals.assetVersion ? locals.assetVersion : '1')) %>" defer></script>
   </body>
 </html>

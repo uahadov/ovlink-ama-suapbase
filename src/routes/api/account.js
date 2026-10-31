@@ -8,6 +8,7 @@ const { body, validationResult } = require('express-validator');
 
 const { db } = require('../../db/index');
 const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../../db/helpers');
+const statsReport = require('../../lib/stats-report');
 const { encryptAES256GCM, decryptAES256GCM, safeDecrypt, blindIndex } = require('../../../utils/crypto');
 const { pickLang, normalizeLang, getCookieValue } = require('../../lib/i18n');
 const { isProdRuntime } = require('../../config/index');
@@ -24,29 +25,17 @@ const { googleOidc, initGoogleOidc, getGoogleRedirectUri, googleOidcInitError } 
 const { requireSignedIn } = require('../../middleware/auth');
 const { authLimiter, sensitiveActionLimiter } = require('../../middleware/rate-limiter');
 const { isProAccessActive, getEffectivePlanForUser, buildPlanPayload, isProExpired, downgradeExpiredProIfNeeded } = require('../../lib/plans');
+// W4.3 move-only split: shared credential / session / 2FA primitives live in
+// src/lib/account-security.js. Local bindings (and handleLogout below) are
+// unchanged, so the existing call sites and source-level tests keep working.
+const {
+  generateVerificationCode,
+  normalizeSessionToken,
+  buildBanMessage,
+  verifyTotpToken
+} = require('../../lib/account-security');
 
 const tempEmailDomains = ['mailinator.com', 'tempmail.com', '10minutemail.com', 'guerrillamail.com', 'sharklasers.com', 'trashmail.com', 'yopmail.com'];
-
-function generateVerificationCode() {
-  // Math.random() is not a CSPRNG: its state is recoverable from a handful of
-  // outputs, which would make 6-digit e-mail codes predictable.
-  return crypto.randomInt(100000, 1000000).toString();
-}
-
-function normalizeSessionToken(raw) {
-  const token = (raw || '').toString().trim();
-  if (!token) return '';
-  if (!/^[A-Za-z0-9_-]{20,128}$/.test(token)) return '';
-  return token;
-}
-
-function buildBanMessage(uiLang, banUntil, banReason) {
-  const lang = normalizeLang(uiLang, 'az');
-  let msg = lang === 'tr'
-    ? 'Bu hesap engellendi.'
-    : (lang === 'en' ? 'This account is blocked.' : 'Bu hesab bloklanıb.');
-  return msg;
-}
 
 router.post('/api/register',
   authLimiter,
@@ -445,12 +434,7 @@ router.post('/api/verify-2fa', authLimiter, (req, res) => {
     if (err || !user || !user.totp_secret) {
       return res.status(401).json({ error: pickLang(uiLang, 'Kod yoxlanıla bilmədi.', 'Kod doğrulanamadı.', 'Code could not be verified.') });
     }
-    const ok = speakeasy.totp.verify({
-      secret: safeDecrypt(user.totp_secret, ''),
-      encoding: 'base32',
-      token: code,
-      window: 1
-    });
+    const ok = verifyTotpToken(user.totp_secret, code);
     if (!ok) {
       logSecurityEvent(req, 'auth.2fa.verify', 'failure', { user_id: user.id });
       return res.status(401).json({ error: pickLang(uiLang, 'Kod yanlışdır.', 'Kod hatalı.', 'Invalid code.') });
@@ -1044,6 +1028,29 @@ router.post('/api/user/ui-lang', (req, res) => {
   }
 });
 
+// ---- Weekly statistics digest (opt-in) ----
+router.get('/api/user/stats-report', requireSignedIn, async (req, res) => {
+  try {
+    const preference = await statsReport.getReportPreference(req.session.userId);
+    if (!preference) return res.status(404).json({ error: 'User not found.' });
+    return res.json(preference);
+  } catch {
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+router.post('/api/user/stats-report', requireSignedIn, sensitiveActionLimiter, async (req, res) => {
+  const enabled = statsReport.readReportFlag(req.body && req.body.enabled);
+  try {
+    const result = await statsReport.setReportPreference(req.session.userId, enabled);
+    if (!result) return res.status(404).json({ error: 'User not found.' });
+    logSecurityEvent(req, 'stats.report.pref', 'success', { user_id: req.session.userId, enabled: result.enabled });
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 // Şifre değiştirme (POST /api/user/password)
 // ---- Account TOTP 2FA (user-level) ----
 router.post('/api/user/2fa/setup', requireSignedIn, sensitiveActionLimiter, (req, res) => {
@@ -1074,7 +1081,7 @@ router.post('/api/user/2fa/enable', requireSignedIn, sensitiveActionLimiter, (re
     if (err || !row || !row.totp_pending_secret) {
       return res.status(400).json({ error: pickLang(uiLang, 'Əvvəlcə quraşdırmanı başladın.', 'Önce kurulumu başlatın.', 'Start the setup first.') });
     }
-    const ok = speakeasy.totp.verify({ secret: safeDecrypt(row.totp_pending_secret, ''), encoding: 'base32', token: code, window: 1 });
+    const ok = verifyTotpToken(row.totp_pending_secret, code);
     if (!ok) {
       return res.status(400).json({ error: pickLang(uiLang, 'Kod yanlışdır.', 'Kod hatalı.', 'Invalid code.') });
     }
@@ -1098,7 +1105,7 @@ router.post('/api/user/2fa/disable', requireSignedIn, sensitiveActionLimiter, (r
     const isPasswordless = ['google', 'sso'].includes(row.auth_provider) || !row.password;
 
     const finalizeDisable = () => {
-      const ok = speakeasy.totp.verify({ secret: safeDecrypt(row.totp_secret, ''), encoding: 'base32', token: code, window: 1 });
+      const ok = verifyTotpToken(row.totp_secret, code);
       if (!ok) {
         return res.status(400).json({ error: pickLang(uiLang, 'Kod yanlışdır.', 'Kod hatalı.', 'Invalid code.') });
       }
@@ -1465,6 +1472,13 @@ router.post('/api/notifications/delete-all', (req, res) => {
 // Internal heuristics (regex/extensions) have been removed. We now strictly rely on live external APIs for threat detection.
 
 module.exports = router;
+// Shim re-exports (W4.3): helpers moved to src/lib/account-security.js stay
+// reachable from this module.
+module.exports.generateVerificationCode = generateVerificationCode;
+module.exports.normalizeSessionToken = normalizeSessionToken;
+module.exports.buildBanMessage = buildBanMessage;
+module.exports.verifyTotpToken = verifyTotpToken;
+module.exports.handleLogout = handleLogout;
 
 
 

@@ -126,6 +126,26 @@ const sensitiveActionLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const toolsAiLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 10,
+  message: { error: 'Çox sayda AI sorğusu göndərildi. Zəhmət olmasa bir az sonra yenidən cəhd edin.' },
+  ...(redisClient ? { store: createRateLimitStore('tools-ai') } : {}),
+  keyGenerator: (req) => buildRateLimitKey(req, 'tools-ai'),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const toolsFetchLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 20,
+  message: { error: 'Çox sayda önbaxış sorğusu göndərildi. Zəhmət olmasa bir az sonra yenidən cəhd edin.' },
+  ...(redisClient ? { store: createRateLimitStore('tools-fetch') } : {}),
+  keyGenerator: (req) => buildRateLimitKey(req, 'tools-fetch'),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   generalLimiter,
   authLimiter,
@@ -136,6 +156,8 @@ module.exports = {
   proKeyCreateLimiter,
   mutationLimiter,
   sensitiveActionLimiter,
+  toolsAiLimiter,
+  toolsFetchLimiter,
   getApiKeyHintFromRequest,
   buildRateLimitKey,
   PRO_API_READ_RATE_LIMIT_WINDOW_MS,

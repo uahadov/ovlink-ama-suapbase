@@ -19,6 +19,10 @@ function mountRoutes(app) {
   app.use(require('./bots'));
   app.use(require('./consent'));
   app.use(require('./tools'));
+  // Scanned QR codes: two segments, so it cannot shadow the /:short catch-all.
+  app.use(require('./qr-scan'));
+  // SEO landing cluster: /l and /l/<slug> are allowlisted, so /:short is unaffected.
+  app.use(require('./seo-landing'));
   app.use(require('./public'));
   app.use(require('./dashboard'));
   // SSO is handled within workspaces routes

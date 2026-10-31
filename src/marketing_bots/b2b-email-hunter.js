@@ -19,7 +19,11 @@ class B2BEmailHunter {
       'big-pickle'
     ];
     this.isRunning = false;
-    this.leadsPath = path.join(__dirname, '../../bot_data/b2b_leads.json');
+    // The outreach worker may run from a different cwd / host than the web app.
+    const outreachDataDir = (process.env.OUTREACH_DATA_DIR || '').toString().trim();
+    this.leadsPath = outreachDataDir
+      ? path.join(outreachDataDir, 'b2b_leads.json')
+      : path.join(__dirname, '../../bot_data/b2b_leads.json');
     this.ensureLeadsQueue();
   }
 
@@ -29,59 +33,10 @@ class B2BEmailHunter {
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
       if (!fs.existsSync(this.leadsPath)) {
-        const defaultLeads = [
-          {
-            id: 'lead_1',
-            name: 'Sarah Jenkins',
-            role: 'Media Buying Director',
-            company: 'GrowthWave Media',
-            niche: 'Digital Marketing & Media Buying Agency',
-            email: 'sarah@growthwavemedia.com',
-            context: 'Managing 25+ paid ad client accounts across TikTok and Meta. Currently struggling with fragmented link attribution and client-branded domain setup.',
-            status: 'pending'
-          },
-          {
-            id: 'lead_2',
-            name: 'Marcus Vance',
-            role: 'Head of Growth',
-            company: 'Lumina Apparel',
-            niche: 'E-Commerce & Direct-to-Consumer',
-            email: 'marcus@luminaapparel.com',
-            context: 'Scaling influencer affiliate links and QR packaging inserts for new seasonal launch. Bitly pricing is too high for their required link volume.',
-            status: 'pending'
-          },
-          {
-            id: 'lead_3',
-            name: 'Elena Rostova',
-            role: 'Founder & CEO',
-            company: 'CloudSync Studio',
-            niche: 'B2B SaaS Startup',
-            email: 'elena@cloudsync.io',
-            context: 'Building developer tools, needs programmatic API link creation and custom branded short links for product onboarding emails.',
-            status: 'pending'
-          },
-          {
-            id: 'lead_4',
-            name: 'David Kim',
-            role: 'Director of Operations',
-            company: 'TechBrief Daily',
-            niche: 'Newsletter & Creator Media Network',
-            email: 'david@techbriefdaily.com',
-            context: 'Publishes daily tech newsletter with 120,000 subscribers. Needs click analytics and sponsor link redirection without link breakdown.',
-            status: 'pending'
-          },
-          {
-            id: 'lead_5',
-            name: 'Alex Rivera',
-            role: 'Affiliate Marketing Manager',
-            company: 'Pulse Commerce',
-            niche: 'Multi-Channel Retail & Affiliates',
-            email: 'alex.rivera@pulsecommerce.net',
-            context: 'Coordinates 200+ micro-affiliates and needs real-time click heatmaps and device targeting for mobile shoppers.',
-            status: 'pending'
-          }
-        ];
-        fs.writeFileSync(this.leadsPath, JSON.stringify(defaultLeads, null, 2), 'utf8');
+        // The repository must not ship prospect data (names, roles, e-mails).
+        // Operators supply their own queue through OUTREACH_DATA_DIR or
+        // bot_data/b2b_leads.json, which is gitignored.
+        fs.writeFileSync(this.leadsPath, JSON.stringify([], null, 2), 'utf8');
       }
     } catch (err) {
       console.warn('[B2B Hunter] Error initializing leads queue:', err.message);

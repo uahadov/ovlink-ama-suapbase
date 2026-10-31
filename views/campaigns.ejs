@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="<%= (typeof defaultLang !== 'undefined' && defaultLang) ? defaultLang : 'az' %>" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<%= csrfToken %>" />
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>" />
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= assetVersion %>" />
+  <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <title data-i18n="campaigns_title">Kampaniyalar — Ovlink</title>
+  <style nonce="<%= nonce %>">
+    .cp-page { min-height: 100vh; background: var(--c-bg, #0a0a0a); color: var(--c-text, #f3f4f6); padding: 32px 16px 72px; }
+    .cp-shell { max-width: 1000px; margin: 0 auto; }
+    .cp-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+    .cp-title { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; margin: 0; }
+    .cp-sub { color: var(--c-muted, #a1a1aa); font-size: 13px; margin: 6px 0 22px; }
+    .cp-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.02); padding: 16px; margin-bottom: 16px; }
+    .cp-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .cp-input { flex: 1 1 220px; min-width: 180px; background: #0f0f0f; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: inherit; padding: 11px 13px; font: inherit; font-size: 14px; }
+    .cp-input:focus { outline: 2px solid rgba(255,255,255,0.22); outline-offset: 1px; }
+    .cp-btn { border: 1px solid rgba(255,255,255,0.14); background: #ffffff; color: #0a0a0a; border-radius: 10px; padding: 11px 18px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .cp-btn--ghost { background: transparent; color: inherit; }
+    .cp-btn--danger { background: transparent; color: #f87171; border-color: rgba(248,113,113,0.4); }
+    .cp-btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+    .cp-msg { font-size: 13px; margin-top: 10px; min-height: 18px; }
+    .cp-msg--err { color: #f87171; }
+    .cp-msg--ok { color: #34d399; }
+    .cp-row { display: grid; grid-template-columns: 1.6fr repeat(4, minmax(72px, 0.7fr)) auto; gap: 10px; align-items: center; padding: 12px 4px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .cp-row:last-child { border-bottom: 0; }
+    .cp-row--head { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--c-faint, #737373); border-bottom-color: rgba(255,255,255,0.1); }
+    .cp-name { font-weight: 700; font-size: 14px; }
+    .cp-slug { font-size: 11px; color: var(--c-faint, #737373); }
+    .cp-num { font-variant-numeric: tabular-nums; font-size: 14px; }
+    .cp-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .cp-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .cp-kpi { border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; }
+    .cp-kpi-k { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--c-faint, #737373); margin-bottom: 6px; }
+    .cp-kpi-v { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+    .cp-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .cp-chart { height: 220px; }
+    .cp-item { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+    .cp-item:last-child { border-bottom: 0; }
+    .cp-empty { color: var(--c-faint, #737373); font-size: 13px; }
+    .cp-back { margin-bottom: 14px; }
+    @media (max-width: 720px) {
+      .cp-row { grid-template-columns: 1.4fr repeat(2, 0.8fr); }
+      .cp-row > .cp-hide-sm { display: none; }
+    }
+  </style>
+</head>
+<body class="ovx">
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+  <main class="cp-page" id="mainContent">
+    <div class="cp-shell">
+      <div class="cp-head">
+        <div>
+          <h1 class="cp-title" data-i18n="campaigns_title">Kampaniyalar</h1>
+          <p class="cp-sub" data-i18n="campaigns_sub">Linkləri kampaniyalar üzrə qruplaşdırın və nəticəni bir ekranda görün.</p>
+        </div>
+        <a class="cp-btn cp-btn--ghost" href="/dashboard" data-i18n="campaigns_back_dashboard">İdarə paneli</a>
+      </div>
+
+      <section class="cp-card" aria-label="New campaign">
+        <form class="cp-form" id="createForm" autocomplete="off">
+          <input class="cp-input" id="campaignName" type="text" maxlength="60" required
+                 placeholder="Kampaniya adı (məs: Yay Satışı)" data-i18n-placeholder="campaigns_name_placeholder" />
+          <input class="cp-input" id="campaignGoal" type="text" maxlength="40"
+                 placeholder="Konversiya hədəfi (məs: signup)" data-i18n-placeholder="campaigns_goal_placeholder" />
+          <button class="cp-btn" type="submit" id="createBtn" data-i18n="campaigns_create">Yarat</button>
+        </form>
+        <div class="cp-msg" id="createMsg" role="status"></div>
+      </section>
+
+      <section id="listSection" class="cp-card" aria-label="Campaigns">
+        <div class="cp-row cp-row--head">
+          <span data-i18n="campaigns_col_name">Kampaniya</span>
+          <span data-i18n="campaigns_col_links">Link</span>
+          <span data-i18n="campaigns_col_clicks">Klik</span>
+          <span class="cp-hide-sm" data-i18n="campaigns_col_uniques">Unikal</span>
+          <span class="cp-hide-sm" data-i18n="campaigns_col_conversions">Konv.</span>
+          <span></span>
+        </div>
+        <div id="campaignList"><div class="cp-empty" data-i18n="campaigns_empty">Hələ kampaniya yoxdur.</div></div>
+      </section>
+
+      <section id="detailSection" class="cp-card" hidden aria-label="Campaign detail">
+        <div class="cp-back">
+          <button class="cp-btn cp-btn--ghost" type="button" id="backBtn" data-i18n="campaigns_back">← Geri</button>
+        </div>
+        <h2 class="cp-title" id="detailName" style="font-size:20px;margin-bottom:2px;">—</h2>
+        <p class="cp-sub" id="detailMeta" style="margin-bottom:16px;"></p>
+
+        <div class="cp-kpis">
+          <div class="cp-kpi"><span class="cp-kpi-k" data-i18n="campaigns_kpi_clicks">Klik</span><span class="cp-kpi-v" id="kClicks">0</span></div>
+          <div class="cp-kpi"><span class="cp-kpi-k" data-i18n="campaigns_kpi_uniques">Unikal</span><span class="cp-kpi-v" id="kUniques">0</span></div>
+          <div class="cp-kpi"><span class="cp-kpi-k" data-i18n="campaigns_kpi_conversions">Konversiya</span><span class="cp-kpi-v" id="kConversions">0</span></div>
+          <div class="cp-kpi"><span class="cp-kpi-k" data-i18n="campaigns_kpi_rate">Konversiya faizi</span><span class="cp-kpi-v" id="kRate">0%</span></div>
+        </div>
+
+        <!-- Campaign goals (target vs actual) -->
+        <div class="cp-card" style="padding:12px;margin-bottom:14px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+              <span data-i18n="campaigns_goal_clicks">Klik hədəfi</span>
+              <input class="cp-input" id="goalClicksInput" type="number" min="0" step="1" style="min-width:130px;" placeholder="1000">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+              <span data-i18n="campaigns_goal_conversions">Konversiya hədəfi</span>
+              <input class="cp-input" id="goalConversionsInput" type="number" min="0" step="1" style="min-width:130px;" placeholder="50">
+            </label>
+            <button class="cp-btn" type="button" id="goalSaveBtn" data-i18n="campaigns_goal_save">Hədəfi saxla</button>
+            <span class="cp-msg" id="goalMsg" style="font-size:12.5px;"></span>
+          </div>
+          <div id="detailGoals" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+        <div class="cp-card" style="padding:12px;">
+          <div class="cp-chart"><canvas id="campaignChart"></canvas></div>
+        </div>
+
+        <div class="cp-cols">
+          <div class="cp-card">
+            <h3 class="cp-kpi-k" data-i18n="campaigns_top_links">Top linklər</h3>
+            <div id="topLinks"><div class="cp-empty">—</div></div>
+          </div>
+          <div class="cp-card">
+            <h3 class="cp-kpi-k" data-i18n="campaigns_sources">Mənbələr</h3>
+            <div id="topSources"><div class="cp-empty">—</div></div>
+          </div>
+          <div class="cp-card">
+            <h3 class="cp-kpi-k" data-i18n="campaigns_goals">Hədəflər</h3>
+            <div id="topGoals"><div class="cp-empty">—</div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script nonce="<%= nonce %>">
+    (function () {
+      var I18N = {
+        az: {
+          campaigns_title: 'Kampaniyalar',
+          campaigns_sub: 'Linkləri kampaniyalar üzrə qruplaşdırın və nəticəni bir ekranda görün.',
+          campaigns_back_dashboard: 'İdarə paneli',
+          campaigns_name_placeholder: 'Kampaniya adı (məs: Yay Satışı)',
+          campaigns_goal_placeholder: 'Konversiya hədəfi (məs: signup)',
+          campaigns_create: 'Yarat',
+          campaigns_col_name: 'Kampaniya',
+          campaigns_col_links: 'Link',
+          campaigns_col_clicks: 'Klik',
+          campaigns_col_uniques: 'Unikal',
+          campaigns_col_conversions: 'Konv.',
+          campaigns_empty: 'Hələ kampaniya yoxdur.',
+          campaigns_back: '← Geri',
+          campaigns_kpi_clicks: 'Klik',
+          campaigns_kpi_uniques: 'Unikal',
+          campaigns_kpi_conversions: 'Konversiya',
+          campaigns_kpi_rate: 'Konversiya faizi',
+          campaigns_goal_clicks: 'Klik hədəfi',
+          campaigns_goal_conversions: 'Konversiya hədəfi',
+          campaigns_goal_save: 'Hədəfi saxla',
+          campaigns_goal_saved: 'Hədəf saxlanıldı.',
+          campaigns_top_links: 'Top linklər',
+          campaigns_sources: 'Mənbələr',
+          campaigns_goals: 'Hədəflər',
+          campaigns_created: 'Kampaniya yaradıldı.',
+          campaigns_deleted: 'Silindi.',
+          campaigns_name_invalid: 'Ad ən az 2 simvol olmalıdır.'
+        },
+        tr: {
+          campaigns_title: 'Kampanyalar',
+          campaigns_sub: 'Linkleri kampanyalar altında gruplayın ve sonucu tek ekranda görün.',
+          campaigns_back_dashboard: 'Kontrol paneli',
+          campaigns_name_placeholder: 'Kampanya adı (örn: Yaz Satışı)',
+          campaigns_goal_placeholder: 'Dönüşüm hedefi (örn: signup)',
+          campaigns_create: 'Oluştur',
+          campaigns_col_name: 'Kampanya',
+          campaigns_col_links: 'Link',
+          campaigns_col_clicks: 'Tıklama',
+          campaigns_col_uniques: 'Tekil',
+          campaigns_col_conversions: 'Dön.',
+          campaigns_empty: 'Henüz kampanya yok.',
+          campaigns_back: '← Geri',
+          campaigns_kpi_clicks: 'Tıklama',
+          campaigns_kpi_uniques: 'Tekil ziyaretçi',
+          campaigns_kpi_conversions: 'Dönüşüm',
+          campaigns_kpi_rate: 'Dönüşüm oranı',
+          campaigns_goal_clicks: 'Tıklama hedefi',
+          campaigns_goal_conversions: 'Dönüşüm hedefi',
+          campaigns_goal_save: 'Hedefi kaydet',
+          campaigns_goal_saved: 'Hedef kaydedildi.',
+          campaigns_top_links: 'En iyi linkler',
+          campaigns_sources: 'Kaynaklar',
+          campaigns_goals: 'Hedefler',
+          campaigns_created: 'Kampanya oluşturuldu.',
+          campaigns_deleted: 'Silindi.',
+          campaigns_name_invalid: 'Ad en az 2 karakter olmalıdır.'
+        },
+        en: {
+          campaigns_title: 'Campaigns',
+          campaigns_sub: 'Group links into campaigns and read the result on one screen.',
+          campaigns_back_dashboard: 'Dashboard',
+          campaigns_name_placeholder: 'Campaign name (e.g. Summer Sale)',
+          campaigns_goal_placeholder: 'Conversion goal (e.g. signup)',
+          campaigns_create: 'Create',
+          campaigns_col_name: 'Campaign',
+          campaigns_col_links: 'Links',
+          campaigns_col_clicks: 'Clicks',
+          campaigns_col_uniques: 'Uniques',
+          campaigns_col_conversions: 'Conv.',
+          campaigns_empty: 'No campaigns yet.',
+          campaigns_back: '← Back',
+          campaigns_kpi_clicks: 'Clicks',
+          campaigns_kpi_uniques: 'Unique visitors',
+          campaigns_kpi_conversions: 'Conversions',
+          campaigns_kpi_rate: 'Conversion rate',
+          campaigns_goal_clicks: 'Click goal',
+          campaigns_goal_conversions: 'Conversion goal',
+          campaigns_goal_save: 'Save goal',
+          campaigns_goal_saved: 'Goal saved.',
+          campaigns_top_links: 'Top links',
+          campaigns_sources: 'Sources',
+          campaigns_goals: 'Goals',
+          campaigns_created: 'Campaign created.',
+          campaigns_deleted: 'Deleted.',
+          campaigns_name_invalid: 'Name must be at least 2 characters.'
+        }
+      };
+      var L = I18N[(document.documentElement.lang || 'az').slice(0, 2)] || I18N.az;
+
+      function applyLabels() {
+        document.querySelectorAll('[data-i18n]').forEach(function (el) {
+          var key = el.getAttribute('data-i18n');
+          if (L[key]) el.textContent = L[key];
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+          var key = el.getAttribute('data-i18n-placeholder');
+          if (L[key]) el.placeholder = L[key];
+        });
+      }
+
+      var CSRF = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+      var chart = null;
+      var currentCampaignId = null;
+
+      function $(id) { return document.getElementById(id); }
+      function text(id, value) { var el = $(id); if (el) el.textContent = value; }
+      function num(value) { return Number(value || 0).toLocaleString(); }
+
+      function setMsg(message, isError) {
+        var el = $('createMsg');
+        if (!el) return;
+        el.textContent = message || '';
+        el.className = 'cp-msg' + (message ? (isError ? ' cp-msg--err' : ' cp-msg--ok') : '');
+      }
+
+      function request(method, url, body) {
+        return fetch(url, {
+          method: method,
+          credentials: 'include',
+          headers: Object.assign(
+            { 'Accept': 'application/json' },
+            body ? { 'Content-Type': 'application/json', 'x-csrf-token': CSRF } : {}
+          ),
+          body: body ? JSON.stringify(body) : undefined,
+        }).then(function (res) {
+          return res.json().catch(function () { return {}; }).then(function (data) {
+            if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+            return data;
+          });
+        });
+      }
+
+      function renderList(campaigns) {
+        var container = $('campaignList');
+        if (!container) return;
+        container.textContent = '';
+
+        if (!campaigns || !campaigns.length) {
+          var empty = document.createElement('div');
+          empty.className = 'cp-empty';
+          empty.setAttribute('data-i18n', 'campaigns_empty');
+          empty.textContent = 'Hələ kampaniya yoxdur.';
+          container.appendChild(empty);
+          return;
+        }
+
+        campaigns.forEach(function (item) {
+          var row = document.createElement('div');
+          row.className = 'cp-row';
+
+          var nameCell = document.createElement('div');
+          var name = document.createElement('div');
+          name.className = 'cp-name';
+          name.textContent = item.name;
+          var slug = document.createElement('div');
+          slug.className = 'cp-slug';
+          slug.textContent = '/' + item.slug;
+          nameCell.appendChild(name);
+          nameCell.appendChild(slug);
+          row.appendChild(nameCell);
+
+          [
+            { value: item.links_count, hideSmall: false },
+            { value: item.clicks, hideSmall: false },
+            { value: item.uniques, hideSmall: true },
+            { value: item.conversions, hideSmall: true },
+          ].forEach(function (cell) {
+            var el = document.createElement('div');
+            el.className = 'cp-num' + (cell.hideSmall ? ' cp-hide-sm' : '');
+            el.textContent = num(cell.value);
+            row.appendChild(el);
+          });
+
+          var actions = document.createElement('div');
+          actions.className = 'cp-actions';
+
+          var openBtn = document.createElement('button');
+          openBtn.type = 'button';
+          openBtn.className = 'cp-btn cp-btn--ghost';
+          openBtn.textContent = '→';
+          openBtn.setAttribute('aria-label', item.name);
+          openBtn.addEventListener('click', function () { openCampaign(item.id); });
+
+          var deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'cp-btn cp-btn--danger';
+          deleteBtn.textContent = '×';
+          deleteBtn.setAttribute('aria-label', 'delete');
+          deleteBtn.addEventListener('click', function () { removeCampaign(item.id, item.name); });
+
+          actions.appendChild(openBtn);
+          actions.appendChild(deleteBtn);
+          row.appendChild(actions);
+          container.appendChild(row);
+        });
+      }
+
+      function renderItems(containerId, entries, formatter) {
+        var container = $(containerId);
+        if (!container) return;
+        container.textContent = '';
+        var list = (entries || []).slice(0, 6);
+        if (!list.length) {
+          var empty = document.createElement('div');
+          empty.className = 'cp-empty';
+          empty.textContent = '—';
+          container.appendChild(empty);
+          return;
+        }
+        list.forEach(function (entry) {
+          var row = document.createElement('div');
+          row.className = 'cp-item';
+          var label = document.createElement('span');
+          label.textContent = formatter ? formatter(entry) : (entry.name || '—');
+          var value = document.createElement('b');
+          value.textContent = num(entry.count);
+          row.appendChild(label);
+          row.appendChild(value);
+          container.appendChild(row);
+        });
+      }
+
+      function renderGoalProgress(progress) {
+        var container = $('detailGoals');
+        if (!container) return;
+        container.textContent = '';
+        if (!progress) return;
+        [
+          { key: 'clicks', label: L.campaigns_goal_clicks },
+          { key: 'conversions', label: L.campaigns_goal_conversions },
+        ].forEach(function (entry) {
+          var item = progress[entry.key];
+          if (!item || !item.target) return;
+          var row = document.createElement('div');
+          row.style.cssText = 'display:flex;flex-direction:column;gap:4px;font-size:12px;';
+          var label = document.createElement('span');
+          label.textContent = entry.label + ': ' + num(item.actual) + ' / ' + num(item.target) + ' · ' + Number(item.percent || 0) + '%';
+          var bar = document.createElement('div');
+          bar.style.cssText = 'height:5px;border-radius:100px;background:rgba(127,127,127,0.2);overflow:hidden;';
+          var fill = document.createElement('div');
+          fill.style.cssText = 'height:100%;border-radius:100px;background:' + (item.achieved ? '#34d399' : 'rgba(255,255,255,0.6)') + ';';
+          fill.style.width = Math.max(2, Number(item.bar_percent || 0)) + '%';
+          bar.appendChild(fill);
+          row.appendChild(label);
+          row.appendChild(bar);
+          container.appendChild(row);
+        });
+      }
+
+      function drawChart(series) {
+        var canvas = $('campaignChart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        if (chart) { chart.destroy(); chart = null; }
+
+        chart = new Chart(canvas, {
+          type: 'line',
+          data: {
+            labels: (series || []).map(function (point) { return point.date.slice(5); }),
+            datasets: [{
+              data: (series || []).map(function (point) { return point.count; }),
+              borderColor: '#ffffff',
+              borderWidth: 2,
+              pointRadius: 0,
+              tension: 0.3,
+              fill: true,
+              backgroundColor: 'rgba(255,255,255,0.06)'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', maxTicksLimit: 8 } },
+              y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', precision: 0 } }
+            }
+          }
+        });
+      }
+
+      function loadList() {
+        return request('GET', '/api/campaigns?days=30')
+          .then(function (data) { renderList(data.campaigns || []); })
+          .catch(function (err) { setMsg(err.message, true); });
+      }
+
+      function openCampaign(id) {
+        currentCampaignId = id;
+        $('listSection').hidden = true;
+        $('detailSection').hidden = false;
+
+        request('GET', '/api/campaigns/' + encodeURIComponent(id) + '?days=30')
+          .then(function (data) {
+            text('detailName', data.campaign.name);
+            text('detailMeta', '/' + data.campaign.slug + ' · ' + data.links_count + ' link · ' + data.range.days + 'g');
+            text('kClicks', num(data.clicks));
+            text('kUniques', num(data.uniques));
+            text('kConversions', num(data.conversions));
+            text('kRate', Number(data.conversion_rate || 0) + '%');
+            renderGoalProgress(data.goal_progress);
+
+            var goalClicksInput = $('goalClicksInput');
+            var goalConversionsInput = $('goalConversionsInput');
+            if (goalClicksInput) goalClicksInput.value = data.campaign.goal_clicks || '';
+            if (goalConversionsInput) goalConversionsInput.value = data.campaign.goal_conversions || '';
+
+            renderItems('topLinks', (data.top_links || []).map(function (link) {
+              return { name: '/' + link.short, count: link.clicks };
+            }));
+            renderItems('topSources', data.top_sources);
+            renderItems('topGoals', data.top_goals);
+            drawChart(data.clicks_by_day);
+          })
+          .catch(function (err) {
+            text('detailName', '—');
+            setMsg(err.message, true);
+          });
+      }
+
+      var goalSaveBtn = $('goalSaveBtn');
+      if (goalSaveBtn) {
+        goalSaveBtn.addEventListener('click', function () {
+          if (!currentCampaignId) return;
+          var goalMsg = $('goalMsg');
+          var payload = {
+            goal_clicks: $('goalClicksInput') ? $('goalClicksInput').value : '',
+            goal_conversions: $('goalConversionsInput') ? $('goalConversionsInput').value : '',
+          };
+          request('PATCH', '/api/campaigns/' + encodeURIComponent(currentCampaignId), payload)
+            .then(function () {
+              if (goalMsg) { goalMsg.textContent = L.campaigns_goal_saved || 'OK'; goalMsg.className = 'cp-msg cp-msg--ok'; }
+              openCampaign(currentCampaignId);
+            })
+            .catch(function (err) {
+              if (goalMsg) { goalMsg.textContent = err.message; goalMsg.className = 'cp-msg cp-msg--err'; }
+            });
+        });
+      }
+
+      function removeCampaign(id, name) {
+        if (!window.confirm('“' + name + '” silinsin? Linklər silinmir.')) return;
+        request('DELETE', '/api/campaigns/' + encodeURIComponent(id))
+          .then(function () { setMsg(L.campaigns_deleted || 'Silindi.', false); return loadList(); })
+          .catch(function (err) { setMsg(err.message, true); });
+      }
+
+      var form = $('createForm');
+      if (form) {
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+          var name = ($('campaignName') && $('campaignName').value || '').trim();
+          var goal = ($('campaignGoal') && $('campaignGoal').value || '').trim();
+          if (name.length < 2) { setMsg(L.campaigns_name_invalid || 'Ad ən az 2 simvol olmalıdır.', true); return; }
+
+          var btn = $('createBtn');
+          if (btn) btn.disabled = true;
+          request('POST', '/api/campaigns', { name: name, goal: goal })
+            .then(function () {
+              setMsg(L.campaigns_created || 'Kampaniya yaradıldı.', false);
+              form.reset();
+              return loadList();
+            })
+            .catch(function (err) { setMsg(err.message, true); })
+            .then(function () { if (btn) btn.disabled = false; });
+        });
+      }
+
+      var backBtn = $('backBtn');
+      if (backBtn) {
+        backBtn.addEventListener('click', function () {
+          $('detailSection').hidden = true;
+          $('listSection').hidden = false;
+          loadList();
+        });
+      }
+
+      applyLabels();
+      loadList();
+    })();
+  </script>
+</body>
+</html>

@@ -682,6 +682,201 @@ function sendWorkspaceInviteEmail(to, workspaceName, inviteUrl, lang = 'az') {
   return sendMail({ to, subject, html, text });
 }
 
+// ---------------------------------------------------------------------------
+// Weekly statistics report
+// ---------------------------------------------------------------------------
+function formatDelta(value, uiLang) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return '';
+  const numeric = Number(value);
+  const sign = numeric > 0 ? '+' : '';
+  return `${sign}${numeric}%`;
+}
+
+/**
+ * Pure builder (no I/O) so the report layout can be unit tested.
+ * `summary` comes from src/lib/stats-report.js#loadWeeklySummary.
+ */
+function buildStatsReportContent(summary, lang = 'az') {
+  const uiLang = normalizeLang(lang, 'az');
+  const s = summary || {};
+  const clicks = Number(s.clicks || 0);
+  const uniques = Number(s.uniques || 0);
+  const conversions = Number(s.conversions || 0);
+  const rate = Number(s.conversion_rate || 0);
+  const deltaClicks = formatDelta(s.deltas ? s.deltas.clicks_percent : null, uiLang);
+  const periodFrom = (s.period_from || '').toString().slice(0, 10);
+  const periodTo = (s.period_to || '').toString().slice(0, 10);
+
+  const subject = pickLang(
+    uiLang,
+    `Ovlink həftəlik hesabat: ${clicks} klik`,
+    `Ovlink haftalık rapor: ${clicks} tıklama`,
+    `Ovlink weekly report: ${clicks} clicks`
+  );
+  const title = pickLang(uiLang, 'Həftəlik statistika', 'Haftalık istatistik', 'Weekly analytics');
+  const subtitle = pickLang(
+    uiLang,
+    `${periodFrom} — ${periodTo} dövrü üçün linklərinizin icmalı.`,
+    `${periodFrom} — ${periodTo} dönemi için linklerinizin özeti.`,
+    `A summary of your links for ${periodFrom} — ${periodTo}.`
+  );
+  const labels = {
+    clicks: pickLang(uiLang, 'Klik', 'Tıklama', 'Clicks'),
+    uniques: pickLang(uiLang, 'Unikal', 'Tekil', 'Uniques'),
+    conversions: pickLang(uiLang, 'Konversiya', 'Dönüşüm', 'Conversions'),
+    rate: pickLang(uiLang, 'Konversiya faizi', 'Dönüşüm oranı', 'Conversion rate'),
+    topLinks: pickLang(uiLang, 'Top linklər', 'En iyi linkler', 'Top links'),
+    source: pickLang(uiLang, 'Əsas mənbə', 'Ana kaynak', 'Top source'),
+    open: pickLang(uiLang, 'Statistikanı aç', 'İstatistikleri aç', 'Open analytics'),
+    none: pickLang(uiLang, 'Bu dövrdə klik olmadı.', 'Bu dönemde tıklama olmadı.', 'No clicks in this period.')
+  };
+
+  const cellStyle = 'padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.07); font-size:13px; color:#e4e4e7;';
+  const labelStyle = 'padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.07); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#71717a;';
+
+  const kpiRow = (label, value, extra = '') =>
+    `<tr><td style="${labelStyle}">${escapeHtml(label)}</td><td style="${cellStyle}" align="right"><strong style="font-size:16px;">${escapeHtml(String(value))}</strong>${extra ? ` <span style="color:#71717a;font-size:11px;">${escapeHtml(extra)}</span>` : ''}</td></tr>`;
+
+  const topLinksHtml = (s.top_links || []).slice(0, 5).map((link) => {
+    const short = `/${(link.short || '').toString()}`;
+    return `<tr><td style="${cellStyle}">${escapeHtml(short)}</td><td style="${cellStyle}" align="right">${Number(link.clicks || 0)}</td></tr>`;
+  }).join('');
+
+  const contentHtml = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0; border:1px solid rgba(255,255,255,0.08); border-radius:10px;">
+      ${kpiRow(labels.clicks, clicks, deltaClicks)}
+      ${kpiRow(labels.uniques, uniques)}
+      ${kpiRow(labels.conversions, conversions)}
+      ${kpiRow(labels.rate, `${rate}%`)}
+      ${s.top_source ? kpiRow(labels.source, s.top_source) : ''}
+    </table>
+    ${topLinksHtml ? `<div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#71717a; margin-bottom:8px;">${escapeHtml(labels.topLinks)}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0; border:1px solid rgba(255,255,255,0.08); border-radius:10px;">${topLinksHtml}</table>` : ''}
+    ${clicks === 0 ? `<p style="color:#a1a1aa; font-size:13px;">${escapeHtml(labels.none)}</p>` : ''}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 8px 0;">
+      <tr><td align="center">
+        <a href="${escapeHtml(s.dashboard_url || '')}" style="display:inline-block; background-color:#ffffff; color:#0a0a0a !important; text-decoration:none; padding:13px 30px; border-radius:8px; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size:13.5px; font-weight:700;">
+          ${escapeHtml(labels.open)} →
+        </a>
+      </td></tr>
+    </table>
+  `;
+
+  const html = buildMonolithEmailShell({
+    uiLang,
+    badge: 'WEEKLY REPORT',
+    title,
+    subtitle,
+    contentHtml
+  });
+
+  const text = [
+    subject,
+    '',
+    subtitle,
+    `${labels.clicks}: ${clicks}`,
+    `${labels.uniques}: ${uniques}`,
+    `${labels.conversions}: ${conversions}`,
+    `${labels.rate}: ${rate}%`,
+    s.top_source ? `${labels.source}: ${s.top_source}` : '',
+    '',
+    s.dashboard_url || ''
+  ].filter(Boolean).join('\n');
+
+  return { subject, html, text };
+}
+
+function sendStatsReportEmail(to, summary, lang = 'az') {
+  const { subject, html, text } = buildStatsReportContent(summary, lang);
+  return sendMail({ to, subject, html, text });
+}
+
+function resolveAppBaseUrl(fallbackPath = '/') {
+  const base = (process.env.PUBLIC_BASE_URL || process.env.BASE_URL || 'https://ovlink.app').toString().replace(/\/+$/, '');
+  return `${base}${fallbackPath}`;
+}
+
+/**
+ * Day-3 activation nudge for users who are still on the free plan.
+ * Content only; the caller decides whether to send (see src/lib/onboarding-worker.js).
+ */
+function buildOnboardingNudgeContent(lang = 'az') {
+  const uiLang = normalizeLang(lang, 'az');
+  const subject = pickLang(
+    uiLang,
+    'Ovlink Pro ilə daha çox imkan',
+    'Ovlink Pro ile daha fazlası',
+    'Get more from Ovlink Pro'
+  );
+  const title = pickLang(uiLang, '3 addımda daha çox', '3 adımda daha fazlası', 'Go further in 3 steps');
+  const subtitle = pickLang(
+    uiLang,
+    'Hesabınız hazırdır. Pro plan linklərinizi daha güclü edir.',
+    'Hesabınız hazır. Pro plan linklerinizi güçlendirir.',
+    'Your account is ready. Pro makes your links stronger.'
+  );
+  const bullets = pickLang(
+    uiLang,
+    ['Şəxsi domenlə brendinizi qoruyun', 'QR kodları və skan statistikası', 'API ilə avtomatlaşdırma'],
+    ['Özel alan adıyla markanızı koruyun', 'QR kodları ve tarama istatistikleri', 'API ile otomasyon'],
+    ['Protect your brand with a custom domain', 'QR codes with scan analytics', 'Automate with the API']
+  );
+  const ctaLabel = pickLang(uiLang, 'Planlara bax', 'Planlara göz at', 'See plans');
+  const contentHtml = `
+    <ul style="margin:0 0 20px 0; padding-left:18px; color:#e4e4e7; font-size:13px; line-height:1.7;">
+      ${bullets.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}
+    </ul>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td align="center">
+        <a href="${escapeHtml(resolveAppBaseUrl('/pricing'))}" style="display:inline-block; background-color:#ffffff; color:#0a0a0a !important; text-decoration:none; padding:13px 30px; border-radius:8px; font-size:13.5px; font-weight:700;">
+          ${escapeHtml(ctaLabel)} →
+        </a>
+      </td></tr>
+    </table>
+  `;
+  const html = buildMonolithEmailShell({ uiLang, badge: 'GETTING STARTED', title, subtitle, contentHtml });
+  const text = [subject, '', subtitle, ...bullets.map((line) => `- ${line}`), '', resolveAppBaseUrl('/pricing')].join('\n');
+  return { subject, html, text };
+}
+
+function sendOnboardingNudgeEmail(to, lang = 'az') {
+  const { subject, html, text } = buildOnboardingNudgeContent(lang);
+  return sendMail({ to, subject, html, text });
+}
+
+/**
+ * Dunning notice sent once when a subscription payment fails.
+ */
+function buildPaymentFailedContent(lang = 'az') {
+  const uiLang = normalizeLang(lang, 'az');
+  const subject = pickLang(uiLang, 'Ödəniş alınmadı', 'Ödeme alınamadı', 'Payment failed');
+  const title = pickLang(uiLang, 'Abunəlik ödənişi tamamlanmadı', 'Abonelik ödemesi tamamlanmadı', 'Subscription payment did not complete');
+  const subtitle = pickLang(
+    uiLang,
+    'Kart ödənişi alınmadı. Pro imkanların kəsilməməsi üçün ödəniş üsulunu yeniləyin.',
+    'Kart ödemesi alınamadı. Pro özelliklerin kesilmemesi için ödeme yöntemini güncelleyin.',
+    'The card payment failed. Update your payment method to keep Pro features.'
+  );
+  const ctaLabel = pickLang(uiLang, 'Abunəliyi idarə et', 'Aboneliği yönet', 'Manage subscription');
+  const contentHtml = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td align="center">
+        <a href="${escapeHtml(resolveAppBaseUrl('/account'))}" style="display:inline-block; background-color:#ffffff; color:#0a0a0a !important; text-decoration:none; padding:13px 30px; border-radius:8px; font-size:13.5px; font-weight:700;">
+          ${escapeHtml(ctaLabel)} →
+        </a>
+      </td></tr>
+    </table>
+  `;
+  const html = buildMonolithEmailShell({ uiLang, badge: 'BILLING', title, subtitle, contentHtml });
+  const text = [subject, '', subtitle, '', resolveAppBaseUrl('/account')].join('\n');
+  return { subject, html, text };
+}
+
+function sendPaymentFailedEmail(to, lang = 'az') {
+  const { subject, html, text } = buildPaymentFailedContent(lang);
+  return sendMail({ to, subject, html, text });
+}
+
 function verifySpaceMailCredentials(user, pass) {
   return new Promise((resolve) => {
     try {
@@ -774,6 +969,12 @@ module.exports = {
   sendNewDeviceLoginEmail,
   sendNewDeviceLoginEmailForUser,
   sendWorkspaceInviteEmail,
+  buildStatsReportContent,
+  sendStatsReportEmail,
+  buildOnboardingNudgeContent,
+  sendOnboardingNudgeEmail,
+  buildPaymentFailedContent,
+  sendPaymentFailedEmail,
   escapeHtml,
   appendSentMailToImap,
   verifySpaceMailCredentials,

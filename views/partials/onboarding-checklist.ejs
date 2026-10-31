@@ -1,0 +1,54 @@
+<%
+  const ob = (typeof onboarding !== 'undefined' && onboarding) ? onboarding : null;
+  // The route computes visibility in src/lib/onboarding-state.js; the guard is
+  // repeated here so a stale include can never render an empty panel.
+  const showOnboarding = !!(ob && ob.visible);
+  const steps = (ob && Array.isArray(ob.steps)) ? ob.steps : [];
+%>
+<% if (showOnboarding) { %>
+<section class="m-bento-card u-mb-5" id="onboardingChecklist" aria-labelledby="onboardTitle">
+  <div class="u-w-full">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+      <div>
+        <h2 id="onboardTitle" style="margin:0 0 4px;font-size:16px;font-weight:700;color:#fff;" data-i18n="onboard_title">İlk addımlar</h2>
+        <p class="u-text-sm" style="margin:0;color:var(--c-muted,#a3a3a3);" data-i18n="onboard_subtitle">Hesabınızı 3 addımda qurun.</p>
+      </div>
+      <button type="button" id="onboardDismissBtn"
+        aria-label="Bağla" data-i18n-aria="onboard_dismiss"
+        style="background:transparent;border:0;color:var(--c-muted,#a3a3a3);font-size:20px;line-height:1;cursor:pointer;padding:4px 8px;">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+    <ol style="list-style:none;margin:16px 0 0;padding:0;display:grid;gap:10px;">
+      <% steps.forEach((step) => { %>
+      <li style="display:flex;align-items:center;gap:10px;">
+        <i class="fa-solid <%= step.done ? 'fa-circle-check' : 'fa-circle' %>"
+           style="color:<%= step.done ? '#22c55e' : '#52525b' %>;" aria-hidden="true"></i>
+        <span class="u-text-sm" style="color:<%= step.done ? '#a3a3a3' : '#f5f5f5' %>;"
+              data-i18n="<%= step.i18nKey %>"></span>
+        <% if (!step.done) { %>
+        <a class="u-text-xs" href="<%= step.href %>" style="margin-inline-start:auto;color:#60a5fa;" data-i18n="<%= step.ctaKey %>"></a>
+        <% } %>
+      </li>
+      <% }); %>
+    </ol>
+  </div>
+</section>
+<script nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
+(function () {
+  var btn = document.getElementById('onboardDismissBtn');
+  var panel = document.getElementById('onboardingChecklist');
+  if (!btn || !panel) return;
+  btn.addEventListener('click', function () {
+    panel.setAttribute('hidden', 'hidden');
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    var token = meta ? meta.getAttribute('content') : '';
+    fetch('/api/user/onboarding-dismiss', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-csrf-token': token },
+      body: '{}'
+    }).catch(function () {});
+  });
+})();
+</script>
+<% } %>

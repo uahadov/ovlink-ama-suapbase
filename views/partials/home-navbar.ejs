@@ -81,6 +81,12 @@
             <span class="m-user-item-hint">Team</span>
           </a>
 
+          <a class="m-user-item" href="/campaigns" role="menuitem">
+            <span class="m-user-item-icon"><i class="fa-solid fa-bullseye" aria-hidden="true"></i></span>
+            <span class="m-user-item-title" data-i18n="nav_campaigns">Kampaniyalar</span>
+            <span class="m-user-item-hint">Stats</span>
+          </a>
+
           <a class="m-user-item" href="/account" role="menuitem">
             <span class="m-user-item-icon"><i class="fa-solid fa-sliders" aria-hidden="true"></i></span>
             <span class="m-user-item-title" data-i18n="nav_account_settings">Hesab Parametrləri</span>
@@ -133,6 +139,7 @@
     <!-- Mobile user links -->
     <a class="m-cta m-cta--white m-cta--sm" id="navAuthUserM" href="/dashboard" data-i18n="nav_dashboard" <%= hasUser ? '' : 'hidden' %>>İdarə Paneli</a>
     <a class="m-cta m-cta--outline m-cta--sm" id="navAuthWorkspacesM" href="/workspaces" data-i18n="nav_workspaces" <%= hasUser ? '' : 'hidden' %>>İş Sahələri</a>
+    <a class="m-cta m-cta--outline m-cta--sm" id="navAuthCampaignsM" href="/campaigns" data-i18n="nav_campaigns" <%= hasUser ? '' : 'hidden' %>>Kampaniyalar</a>
     <a class="m-cta m-cta--outline m-cta--sm" id="navAuthAccountM" href="/account" data-i18n="nav_account_settings" <%= hasUser ? '' : 'hidden' %>>Hesab Parametrləri</a>
     <button type="button" class="m-cta m-cta--outline m-cta--sm" id="navLogoutBtnMobile" data-i18n="nav_logout" <%= hasUser ? '' : 'hidden' %>>Log out</button>
   </div>
