@@ -7,6 +7,7 @@ router.use(csrfRouter);
 router.use(require('./system'));
 router.use(require('./links'));
 router.use(require('./pro-v1'));
+router.use(require('./mcp'));
 router.use(require('./qr'));
 router.use(require('./qr-manage'));
 router.use(require('./analytics'));

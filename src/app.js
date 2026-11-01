@@ -118,6 +118,7 @@ app.use(slowdownMiddleware);
 
 app.use((req, res, next) => {
   if (req.path === '/health' || req.path === '/api/health') return next();
+  if (req.path.startsWith('/api/pro/v1/mcp')) return next();
   if (req.method === 'GET' && !req.path.startsWith('/admin')) {
     return generalLimiter(req, res, next);
   }

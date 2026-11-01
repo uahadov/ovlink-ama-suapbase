@@ -19,6 +19,7 @@ const {
   getApiKeyLast4,
   PRO_API_KEY_MAX_ACTIVE
 } = require('../../lib/security');
+const { getMcpQuotaStatus } = require('../../lib/mcp/quota');
 
 // Fallback loader if plans overview is requested
 async function loadProOverviewPayload(userId, planPayload) {
@@ -72,6 +73,8 @@ async function loadProOverviewPayload(userId, planPayload) {
       last_used_at: row.last_used_at || null,
       revoked_at: row.revoked_at || null,
     }));
+
+    payload.mcp_quota = await getMcpQuotaStatus(userId);
   } catch {}
 
   return payload;

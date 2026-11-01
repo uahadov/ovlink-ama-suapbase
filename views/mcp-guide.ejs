@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="<%= (seo && seo.lang) ? seo.lang : 'en' %>" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
+
+<head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="icon" href="/favicon.ico?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="apple-touch-icon" href="/logo.png?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — Model Context Protocol (MCP) Guide' %></title>
+  
+  <link rel="manifest" href="/site.webmanifest" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="/vendor/fontawesome/webfonts/fa-solid-900.woff2?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+
+  <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
+  <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
+  <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
+  <link rel="alternate" hreflang="en" href="<%= (seo && seo.hreflangEn) ? seo.hreflangEn : '' %>" />
+  <link rel="alternate" hreflang="az" href="<%= (seo && seo.hreflangAz) ? seo.hreflangAz : '' %>" />
+  <link rel="alternate" hreflang="tr" href="<%= (seo && seo.hreflangTr) ? seo.hreflangTr : '' %>" />
+  <link rel="alternate" hreflang="x-default" href="<%= (seo && seo.hreflangXDefault) ? seo.hreflangXDefault : '' %>" />
+  <meta property="og:title" content="<%= (seo && seo.ogTitle) ? seo.ogTitle : '' %>" />
+  <meta property="og:description" content="<%= (seo && seo.ogDescription) ? seo.ogDescription : '' %>" />
+  <meta property="og:url" content="<%= (seo && seo.ogUrl) ? seo.ogUrl : '' %>" />
+  <meta property="og:image" content="<%= (seo && seo.ogImage) ? seo.ogImage : '' %>" />
+  <meta property="og:image:alt" content="Ovlink MCP Server" />
+  <meta name="twitter:image" content="<%= (seo && seo.twitterImage) ? seo.twitterImage : '' %>" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="<%= (seo && seo.twitterCard) ? seo.twitterCard : 'summary' %>" />
+  <meta name="twitter:title" content="<%= (seo && seo.twitterTitle) ? seo.twitterTitle : '' %>" />
+  <meta name="twitter:description" content="<%= (seo && seo.twitterDescription) ? seo.twitterDescription : '' %>" />
+  <% if (seo && seo.jsonLd) { %>
+  <script nonce="<%= nonce %>" type="application/ld+json"><%- seo.jsonLd %></script>
+  <% } %>
+</head>
+
+<body class="ovx home-page resources-page api-guide-page">
+
+  <!-- Top reading progress bar -->
+  <div id="readingProgress" class="m-reading-progress" aria-hidden="true"></div>
+
+  <!-- Skip to content for accessibility -->
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+
+  <!-- Ambient background glow -->
+  <div id="cursorGlow" aria-hidden="true"></div>
+
+  <%- include('partials/home-navbar') %>
+
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell" style="max-width: 1080px; width: 100%;">
+
+      <!-- Header / Hero Section -->
+      <section class="m-content-hero" aria-labelledby="mcpGuideHeading">
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 18px;">
+          <span class="m-live-dot" aria-hidden="true"></span>
+          <span data-i18n="mcp_guide_eyebrow">Ovlink MCP Suite — Streamable HTTP 2026-07-28</span>
+        </div>
+        <h1 id="mcpGuideHeading" data-i18n="mcp_guide_title">Model Context Protocol (MCP) Guide</h1>
+        <p data-i18n="mcp_guide_subtitle">
+          Connect your favorite AI coding assistants and vibe-coding tools directly to Ovlink with enterprise-grade Defense-in-Depth security.
+        </p>
+      </section>
+
+      <!-- 2-Column Documentation Shell: Sticky TOC + Content -->
+      <div class="m-legal-layout">
+
+        <!-- Left Sticky TOC -->
+        <nav class="m-legal-toc" aria-label="Table of Contents">
+          <div class="m-legal-toc-title" data-i18n="mcp_toc_title">Mündəricat</div>
+          <a href="#sec-overview" class="m-legal-toc-link active" data-i18n="mcp_toc_overview">1. MCP & Protokol</a>
+          <a href="#sec-clients" class="m-legal-toc-link" data-i18n="mcp_toc_clients">2. 1-Klik AI Qurulumu</a>
+          <a href="#sec-tools" class="m-legal-toc-link" data-i18n="mcp_toc_tools">3. Alətlər Kataloqu</a>
+          <a href="#sec-security" class="m-legal-toc-link" data-i18n="mcp_toc_security">4. Defense-in-Depth Müdafiə</a>
+          <a href="#sec-limits" class="m-legal-toc-link" data-i18n="mcp_toc_limits">5. Kota və Limitlər</a>
+          <a href="/account" class="m-legal-toc-link" data-i18n="mcp_toc_account">Pro Panelə Qayıt</a>
+        </nav>
+
+        <!-- Right Content Articles -->
+        <div class="m-legal-content">
+
+          <!-- Section 1: Overview & Protocol -->
+          <article class="m-legal-section" id="sec-overview">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-network-wired" style="color: var(--c-white);" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="mcp_overview_heading">1. Model Context Protocol (MCP) & Standart</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="mcp_overview_desc">
+              Ovlink Pro MCP serveri ən son <strong>Streamable HTTP standardını (2026-07-28 spesifikasiyası)</strong> dəstəkləyir. Süni intellekt köməkçiləri (LLM) heç bir əlavə skript olmadan qısa linklər yarada, analitika oxuya və QR kodlar hasil edə bilər.
+            </p>
+
+            <div class="m-api-spec-box">
+              <div class="m-api-endpoint-bar">
+                <span class="m-method-badge m-method-badge--post">POST</span>
+                <span class="m-endpoint-url">https://ovlink.sbs/api/pro/v1/mcp</span>
+              </div>
+              <ul class="m-help-steps-list" style="margin: 0;">
+                <li class="m-help-step-item">
+                  <i class="fa-solid fa-key" style="color: #3b82f6; font-size: 13px; margin-top: 3px;" aria-hidden="true"></i>
+                  <span data-i18n="mcp_overview_auth_hint">Autentifikasiya: <code>x-api-key: ovk_...</code> və ya <code>Authorization: Bearer ovk_...</code></span>
+                </li>
+                <li class="m-help-step-item">
+                  <i class="fa-solid fa-bolt" style="color: #10b981; font-size: 13px; margin-top: 3px;" aria-hidden="true"></i>
+                  <span data-i18n="mcp_overview_stream_hint">Transport: Streamable HTTP (JSON-RPC 2.0 və Server-Sent Events axını)</span>
+                </li>
+                <li class="m-help-step-item">
+                  <i class="fa-solid fa-shield-halved" style="color: #ef4444; font-size: 13px; margin-top: 3px;" aria-hidden="true"></i>
+                  <span data-i18n="mcp_overview_plan_hint">İcazə: Yalnız aktiv Pro abunəliyi olan istifadəçilər üçündür.</span>
+                </li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- Section 2: 1-Click Client Setup -->
+          <article class="m-legal-section" id="sec-clients">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--c-white);" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="mcp_clients_heading">2. 1-Klik AI Vibe-Coding Qurulumu</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="mcp_clients_desc">
+              İstifadə etdiyiniz AI alətini seçin və konfiqurasiya kodunu bir kliklə kopyalayaraq mühitinizə əlavə edin:
+            </p>
+
+            <!-- Bespoke UX: Client Tabs Terminal -->
+            <div class="m-api-terminal">
+              <div class="m-api-terminal-head">
+                <div class="m-api-tabs-nav" role="tablist" aria-label="AI Client Configurations">
+                  <button type="button" class="m-api-tab-btn active" data-mcp-tab="antigravity">Google Antigravity</button>
+                  <button type="button" class="m-api-tab-btn" data-mcp-tab="claudecode">Claude Code CLI</button>
+                  <button type="button" class="m-api-tab-btn" data-mcp-tab="claudedesktop">Claude Desktop</button>
+                  <button type="button" class="m-api-tab-btn" data-mcp-tab="cursor">Cursor IDE</button>
+                  <button type="button" class="m-api-tab-btn" data-mcp-tab="codex">Codex / ChatGPT</button>
+                  <button type="button" class="m-api-tab-btn" data-mcp-tab="opencode">OpenCode</button>
+                  <button type="button" class="m-api-tab-btn" data-mcp-tab="windsurf">Windsurf</button>
+                </div>
+                <button type="button" id="copyMcpCodeBtn" class="m-copy-btn" title="Kodu kopyala">
+                  <i class="fa-solid fa-copy" aria-hidden="true"></i>
+                  <span data-i18n="mcp_copy_btn">Kopyala</span>
+                </button>
+              </div>
+
+              <!-- Google Antigravity -->
+              <pre id="mcp-snippet-antigravity" class="m-api-code-pre"><code>{
+  "mcpServers": {
+    "ovlink": {
+      "url": "https://ovlink.sbs/api/pro/v1/mcp",
+      "headers": {
+        "x-api-key": "ovk_YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}</code></pre>
+
+              <!-- Claude Code CLI -->
+              <pre id="mcp-snippet-claudecode" class="m-api-code-pre" style="display: none;"><code>claude mcp add ovlink --transport http https://ovlink.sbs/api/pro/v1/mcp --header "x-api-key: ovk_YOUR_API_KEY_HERE"</code></pre>
+
+              <!-- Claude Desktop -->
+              <pre id="mcp-snippet-claudedesktop" class="m-api-code-pre" style="display: none;"><code>{
+  "mcpServers": {
+    "ovlink": {
+      "url": "https://ovlink.sbs/api/pro/v1/mcp",
+      "headers": {
+        "x-api-key": "ovk_YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}</code></pre>
+
+              <!-- Cursor IDE -->
+              <pre id="mcp-snippet-cursor" class="m-api-code-pre" style="display: none;"><code>// .cursor/mcp.json və ya Cursor Settings -> Features -> MCP
+{
+  "mcpServers": {
+    "ovlink": {
+      "url": "https://ovlink.sbs/api/pro/v1/mcp",
+      "headers": {
+        "x-api-key": "ovk_YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}</code></pre>
+
+              <!-- OpenAI Codex / ChatGPT -->
+              <pre id="mcp-snippet-codex" class="m-api-code-pre" style="display: none;"><code># OpenAI Custom Actions / Codex MCP Server Configuration
+Server URL: https://ovlink.sbs/api/pro/v1/mcp
+Authentication: Bearer Token
+Token: ovk_YOUR_API_KEY_HERE
+Protocol: Streamable HTTP (2026-07-28)</code></pre>
+
+              <!-- OpenCode -->
+              <pre id="mcp-snippet-opencode" class="m-api-code-pre" style="display: none;"><code>// opencode.json
+{
+  "mcp": {
+    "servers": {
+      "ovlink": {
+        "url": "https://ovlink.sbs/api/pro/v1/mcp",
+        "headers": {
+          "x-api-key": "ovk_YOUR_API_KEY_HERE"
+        }
+      }
+    }
+  }
+}</code></pre>
+
+              <!-- Windsurf / Cascade -->
+              <pre id="mcp-snippet-windsurf" class="m-api-code-pre" style="display: none;"><code>// ~/.codeium/windsurf/mcp_config.json
+{
+  "mcpServers": {
+    "ovlink": {
+      "serverUrl": "https://ovlink.sbs/api/pro/v1/mcp",
+      "headers": {
+        "x-api-key": "ovk_YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}</code></pre>
+            </div>
+          </article>
+
+          <!-- Section 3: Available Tools Reference -->
+          <article class="m-legal-section" id="sec-tools">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-toolbox" style="color: var(--c-white);" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="mcp_tools_heading">3. Alətlər Kataloqu (9 Rəsmi Alət)</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="mcp_tools_desc">
+              AI modellərinin birbaşa çağırışı üçün qapalı və dəqiq parametrlərlə təchiz edilmiş 9 əsas alət:
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              
+              <div class="m-inner-box">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <strong style="color: var(--c-white); font-family: var(--font-mono, monospace);">ovlink_shorten_link</strong>
+                  <span class="m-badge-pill m-badge-pill--success font-monospace">shorten:write</span>
+                </div>
+                <p style="font-size: 13px; color: var(--c-muted); margin: 0 0 8px 0;" data-i18n="mcp_tool_shorten_desc">
+                  Qısa link yaradır. Fərdi alias, şifrə, bitmə tarixi, A/B test və UTM parametrlərini tam dəstəkləyir.
+                </p>
+                <div style="font-size: 12px; color: var(--c-faint); font-family: var(--font-mono, monospace);">
+                  Parametrlər: original_url (mütləq), custom_alias, title, max_clicks, expires_at, password, domain, campaign_id, original_b, ab_split_percent, ios_url, android_url
+                </div>
+              </div>
+
+              <div class="m-inner-box">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <strong style="color: var(--c-white); font-family: var(--font-mono, monospace);">ovlink_bulk_shorten_links</strong>
+                  <span class="m-badge-pill m-badge-pill--success font-monospace">shorten:write</span>
+                </div>
+                <p style="font-size: 13px; color: var(--c-muted); margin: 0 0 8px 0;" data-i18n="mcp_tool_bulk_desc">
+                  100-ə qədər linki toplu şəkildə qısaldır. Qismən Uğur (Partial Success 1.A) arxitekturası ilə xətalı linklər digərlərinin yaranmasına mane olmur.
+                </p>
+                <div style="font-size: 12px; color: var(--c-faint); font-family: var(--font-mono, monospace);">
+                  Parametrlər: links (massiv, 1-100 element), common_campaign_id
+                </div>
+              </div>
+
+              <div class="m-inner-box">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <strong style="color: var(--c-white); font-family: var(--font-mono, monospace);">ovlink_list_links</strong>
+                  <span class="m-badge-pill m-badge-pill--info font-monospace">account:read</span>
+                </div>
+                <p style="font-size: 13px; color: var(--c-muted); margin: 0 0 8px 0;" data-i18n="mcp_tool_list_desc">
+                  Hesabınıza aid linkləri kursor əsaslı səhifələmə və klik analitikası ilə siyahılayır.
+                </p>
+                <div style="font-size: 12px; color: var(--c-faint); font-family: var(--font-mono, monospace);">
+                  Parametrlər: limit (1-100), cursor, query, status (all|active|disabled), campaign_id, days
+                </div>
+              </div>
+
+              <div class="m-inner-box">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <strong style="color: var(--c-white); font-family: var(--font-mono, monospace);">ovlink_get_link</strong>
+                  <span class="m-badge-pill m-badge-pill--info font-monospace">account:read</span>
+                </div>
+                <p style="font-size: 13px; color: var(--c-muted); margin: 0 0 8px 0;" data-i18n="mcp_tool_get_desc">
+                  Seçilmiş linkin konfiqurasiyasını və klik statistikasını qaytarır. Maskalanmış 404 (-32004) IDOR qorumasına malikdir.
+                </p>
+                <div style="font-size: 12px; color: var(--c-faint); font-family: var(--font-mono, monospace);">
+                  Parametrlər: identifier (slug və ya ID), days
+                </div>
+              </div>
+
+              <div class="m-inner-box">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <strong style="color: var(--c-white); font-family: var(--font-mono, monospace);">ovlink_update_link</strong>
+                  <span class="m-badge-pill m-badge-pill--success font-monospace">shorten:write</span>
+                </div>
+                <p style="font-size: 13px; color: var(--c-muted); margin: 0 0 8px 0;" data-i18n="mcp_tool_update_desc">
+                  Mövcud linkin hədəf URL-ini, başlığını, limitini və ya deaktivlik statusunu yeniləyir.
+                </p>
+                <div style="font-size: 12px; color: var(--c-faint); font-family: var(--font-mono, monospace);">
+                  Parametrlər: identifier, original_url, title, campaign_id, disabled, max_clicks
+                </div>
+              </div>
+
+              <div class="m-inner-box">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <strong style="color: var(--c-white); font-family: var(--font-mono, monospace);">ovlink_delete_link</strong>
+                  <span class="m-badge-pill m-badge-pill--warning font-monospace">shorten:write</span>
+                </div>
+                <p style="font-size: 13px; color: var(--c-muted); margin: 0 0 8px 0;" data-i18n="mcp_tool_delete_desc">
+                  Linki və əlaqəli analitika/QR cədvəllərini tranzaksiya daxilində tamamilə təmizləyir.
+                </p>
+                <div style="font-size: 12px; color: var(--c-faint); font-family: var(--font-mono, monospace);">
+                  Parametrlər: identifier (slug və ya ID)
+                </div>
+              </div>
+
+              <div class="m-inner-box">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <strong style="color: var(--c-white); font-family: var(--font-mono, monospace);">ovlink_get_account_stats</strong>
+                  <span class="m-badge-pill m-badge-pill--info font-monospace">account:read</span>
+                </div>
+                <p style="font-size: 13px; color: var(--c-muted); margin: 0 0 8px 0;" data-i18n="mcp_tool_account_desc">
+                  Pro hesab planını, ümumi link/klik sayını və cari aylıq MCP kota istifadəsini göstərir.
+                </p>
+              </div>
+
+              <div class="m-inner-box">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <strong style="color: var(--c-white); font-family: var(--font-mono, monospace);">ovlink_list_campaigns</strong>
+                  <span class="m-badge-pill m-badge-pill--info font-monospace">account:read</span>
+                </div>
+                <p style="font-size: 13px; color: var(--c-muted); margin: 0 0 8px 0;" data-i18n="mcp_tool_campaigns_desc">
+                  Marketinq kampaniyalarını, əlaqəli linkləri və toplam dönüşüm göstəricilərini verir.
+                </p>
+              </div>
+
+              <div class="m-inner-box">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <strong style="color: var(--c-white); font-family: var(--font-mono, monospace);">ovlink_create_qr</strong>
+                  <span class="m-badge-pill m-badge-pill--info font-monospace">account:read</span>
+                </div>
+                <p style="font-size: 13px; color: var(--c-muted); margin: 0 0 8px 0;" data-i18n="mcp_tool_qr_desc">
+                  İstənilən linkiniz üçün fərdiləşdirilmiş rəngli yüksək keyfiyyətli PNG və ya SVG QR kodu hasil edir.
+                </p>
+                <div style="font-size: 12px; color: var(--c-faint); font-family: var(--font-mono, monospace);">
+                  Parametrlər: identifier, format (png|svg), dark_color, light_color
+                </div>
+              </div>
+
+            </div>
+          </article>
+
+          <!-- Section 4: Defense-in-Depth Security -->
+          <article class="m-legal-section" id="sec-security">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-shield-virus" style="color: #ef4444;" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="mcp_security_heading">4. Qat-Qat Dərin Müdafiə (Defense-in-Depth)</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="mcp_security_desc">
+              MCP serveri yalnız bir neçə deyil, bütün potensial zəifliklərə qarşı qat-qat müdafiə sistemi ilə təchiz olunub:
+            </p>
+
+            <div class="m-threat-grid" style="grid-template-columns: 1fr; gap: 12px;">
+              <div class="m-threat-stat-card">
+                <span class="m-threat-stat-label">1. SSRF Müdafiəsi (Server-Side Request Forgery)</span>
+                <div style="font-size: 13px; color: var(--c-muted); margin-top: 4px;" data-i18n="mcp_sec_ssrf_detail">
+                  Bütün daxili IP diapazonları (RFC 1918 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8), bulud metadata serverləri (AWS 169.254.169.254, Alibaba 100.100.100.200), onaltılıq/səkkizlik təsvirlər, təhlükəli portlar və bloklanmış domenlər sərt şəkildə qadağandır.
+                </div>
+              </div>
+
+              <div class="m-threat-stat-card">
+                <span class="m-threat-stat-label">2. Prompt Injection (XPIA) Çətiri</span>
+                <div style="font-size: 13px; color: var(--c-muted); margin-top: 4px;" data-i18n="mcp_sec_xpia_detail">
+                  İstifadəçi tərəfindən daxil edilmiş bütün sətirlər <code>&lt;ovlink_untrusted_data type="..."&gt;</code> teqləri ilə əhatələnir və gizli təlimat tokenləri (<code>&lt;|im_start|&gt;</code>, <code>[INST]</code>) avtomatik zərərsizləşdirilir.
+                </div>
+              </div>
+
+              <div class="m-threat-stat-card">
+                <span class="m-threat-stat-label">3. IDOR Maskalanması</span>
+                <div style="font-size: 13px; color: var(--c-muted); margin-top: 4px;" data-i18n="mcp_sec_idor_detail">
+                  Link oxuma, redaktə və silmə zamanı digər istifadəçilərə aid linklər üçün xüsusi 403 deyil, eyni <strong>-32004: Link not found or access denied</strong> xətası qaytarılır. Beləliklə, hücumçu mövcud linkləri siyahılaya bilməz.
+                </div>
+              </div>
+
+              <div class="m-threat-stat-card">
+                <span class="m-threat-stat-label">4. Sərt GEO Qadağası</span>
+                <div style="font-size: 13px; color: var(--c-muted); margin-top: 4px;" data-i18n="mcp_sec_geo_detail">
+                  MCP üzərindən heç bir alət coğrafi və ya GEO parametrləri qəbul etmir (<code>additionalProperties: false</code>). Hər hansı GEO parametri göndərildikdə əməliyyat dərhal <strong>-32007</strong> xətası ilə dayandırılır.
+                </div>
+              </div>
+
+              <div class="m-threat-stat-card">
+                <span class="m-threat-stat-label">5. DNS Rebinding (CVE-2025-66414) Qoruması</span>
+                <div style="font-size: 13px; color: var(--c-muted); margin-top: 4px;" data-i18n="mcp_sec_rebinding_detail">
+                  Brauzer və xarici mühitlərdən daxil olan Host və Origin başlıqları sərt süzgəcdən keçirilir.
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Section 5: Rate Limiting & Quotas -->
+          <article class="m-legal-section" id="sec-limits">
+            <div class="m-legal-section-header">
+              <i class="fa-solid fa-gauge-high" style="color: var(--c-white);" aria-hidden="true"></i>
+              <h2 class="m-legal-section-title" data-i18n="mcp_limits_heading">5. Kota və Rate Limitlər</h2>
+            </div>
+            <p class="m-legal-section-text" data-i18n="mcp_limits_desc">
+              Ovlink Pro istifadəçilərinin sabitliyini təmin etmək üçün Redis əsaslı limitlər:
+            </p>
+
+            <div class="m-threat-grid">
+              <div class="m-threat-stat-card">
+                <span class="m-threat-stat-label" data-i18n="mcp_limit_monthly_label">Aylıq Alət Kotası</span>
+                <div class="m-threat-stat-value" style="color: #4ade80;">20,000 Çağırış</div>
+              </div>
+              <div class="m-threat-stat-card">
+                <span class="m-threat-stat-label" data-i18n="mcp_limit_read_label">Read Əməliyyatları</span>
+                <div class="m-threat-stat-value">120 sorğu / dəq</div>
+              </div>
+              <div class="m-threat-stat-card">
+                <span class="m-threat-stat-label" data-i18n="mcp_limit_write_label">Write Əməliyyatları</span>
+                <div class="m-threat-stat-value">35 sorğu / dəq</div>
+              </div>
+              <div class="m-threat-stat-card">
+                <span class="m-threat-stat-label" data-i18n="mcp_limit_bulk_label">Toplu (Bulk) Əməliyyatlar</span>
+                <div class="m-threat-stat-value">10 sorğu / dəq</div>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <%- include('partials/home-footer') %>
+
+  <script nonce="<%= nonce %>">
+    // Interactive Tab Switching for MCP Guide Snippets
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabBtns = document.querySelectorAll('[data-mcp-tab]');
+      const copyBtn = document.getElementById('copyMcpCodeBtn');
+
+      tabBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const tab = btn.getAttribute('data-mcp-tab');
+          tabBtns.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          const allPres = document.querySelectorAll('[id^="mcp-snippet-"]');
+          allPres.forEach((p) => { p.style.display = 'none'; });
+
+          const activePre = document.getElementById(`mcp-snippet-${tab}`);
+          if (activePre) activePre.style.display = 'block';
+        });
+      });
+
+      if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+          const activePre = document.querySelector('[id^="mcp-snippet-"]:not([style*="display: none"]) code');
+          if (activePre) {
+            try {
+              await navigator.clipboard.writeText(activePre.innerText);
+              const originalHtml = copyBtn.innerHTML;
+              copyBtn.innerHTML = '<i class="fa-solid fa-check" style="color:#10b981;"></i> <span>Kopyalandı!</span>';
+              setTimeout(() => { copyBtn.innerHTML = originalHtml; }, 2000);
+            } catch (err) {
+              console.error('Clipboard copy failed', err);
+            }
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

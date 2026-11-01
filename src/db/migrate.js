@@ -493,6 +493,16 @@ function ensureDbTables() {
       error_type TEXT NOT NULL DEFAULT 'ok',
       created_at TEXT NOT NULL
     )`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS mcp_usage_monthly (
+      user_id INTEGER NOT NULL,
+      year_month TEXT NOT NULL,
+      call_count INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (user_id, year_month),
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    )`);
+    db.run('CREATE INDEX IF NOT EXISTS idx_mcp_usage_user_month ON mcp_usage_monthly(user_id, year_month)', () => {});
   
   // Domain-aware short links
   db.run('ALTER TABLE urls ADD COLUMN domain_host TEXT', () => {});

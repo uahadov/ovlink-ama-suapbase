@@ -1746,6 +1746,34 @@ function renderProPanel(overview) {
   renderProWebhooks(overview && overview.webhooks ? overview.webhooks : []);
   renderProDeliveries(overview && overview.deliveries ? overview.deliveries : []);
   renderProApiUsage(overview && overview.api_usage ? overview.api_usage : null, overview && overview.limits ? overview.limits : null);
+
+  const mcpLocked = document.getElementById("mcpLockedNotice");
+  const mcpWrap = document.getElementById("mcpFeatureWrap");
+  if (mcpLocked && mcpWrap) {
+    if (active) {
+      mcpLocked.classList.add("d-none");
+      mcpWrap.classList.remove("d-none");
+    } else {
+      mcpWrap.classList.add("d-none");
+      mcpLocked.classList.remove("d-none");
+    }
+  }
+
+  if (overview && overview.mcp_quota) {
+    const q = overview.mcp_quota;
+    const counter = document.getElementById("mcpQuotaCounter");
+    const bar = document.getElementById("mcpQuotaBar");
+    const rem = document.getElementById("mcpQuotaRemaining");
+    if (counter) counter.textContent = `${(q.used || 0).toLocaleString()} / ${(q.limit || 20000).toLocaleString()} çağırış`;
+    if (rem) rem.textContent = `Qalan: ${(q.remaining || 0).toLocaleString()} çağırış`;
+    if (bar) {
+      const pct = Math.min(100, Math.round(((q.used || 0) / (q.limit || 20000)) * 100));
+      bar.style.width = `${pct}%`;
+      if (pct > 90) bar.style.background = '#ef4444';
+      else if (pct > 75) bar.style.background = '#f59e0b';
+      else bar.style.background = 'linear-gradient(90deg, #3b82f6, #10b981)';
+    }
+  }
 }
 
 async function loadProOverview() {
@@ -3487,6 +3515,59 @@ if (customDomainList) {
       } finally {
         btn.disabled = false;
       }
+    });
+  }
+
+  // MCP Suite Client Selector and Copy Handlers
+  const mcpSnippets = {
+    antigravity: '{\n  "mcpServers": {\n    "ovlink": {\n      "url": "https://ovlink.sbs/api/pro/v1/mcp",\n      "headers": {\n        "x-api-key": "ovk_YOUR_API_KEY_HERE"\n      }\n    }\n  }\n}',
+    claudecode: 'claude mcp add ovlink --transport http https://ovlink.sbs/api/pro/v1/mcp --header "x-api-key: ovk_YOUR_API_KEY_HERE"',
+    claudedesktop: '{\n  "mcpServers": {\n    "ovlink": {\n      "url": "https://ovlink.sbs/api/pro/v1/mcp",\n      "headers": {\n        "x-api-key": "ovk_YOUR_API_KEY_HERE"\n      }\n    }\n  }\n}',
+    cursor: '{\n  "mcpServers": {\n    "ovlink": {\n      "url": "https://ovlink.sbs/api/pro/v1/mcp",\n      "headers": {\n        "x-api-key": "ovk_YOUR_API_KEY_HERE"\n      }\n    }\n  }\n}',
+    codex: 'Server URL: https://ovlink.sbs/api/pro/v1/mcp\nAuthentication: Bearer Token\nToken: ovk_YOUR_API_KEY_HERE\nProtocol: Streamable HTTP (2026-07-28)',
+    opencode: '{\n  "mcp": {\n    "servers": {\n      "ovlink": {\n        "url": "https://ovlink.sbs/api/pro/v1/mcp",\n        "headers": {\n          "x-api-key": "ovk_YOUR_API_KEY_HERE"\n        }\n      }\n    }\n  }\n}',
+    windsurf: '{\n  "mcpServers": {\n    "ovlink": {\n      "serverUrl": "https://ovlink.sbs/api/pro/v1/mcp",\n      "headers": {\n        "x-api-key": "ovk_YOUR_API_KEY_HERE"\n      }\n    }\n  }\n}'
+  };
+
+  const mcpPicker = document.getElementById("mcpClientPicker");
+  const mcpDisplay = document.getElementById("mcpSnippetDisplay");
+  if (mcpPicker && mcpDisplay) {
+    mcpPicker.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-mcp-client]");
+      if (!btn) return;
+      mcpPicker.querySelectorAll("[data-mcp-client]").forEach((b) => b.classList.remove("is-selected"));
+      btn.classList.add("is-selected");
+      const client = btn.getAttribute("data-mcp-client");
+      const snippet = mcpSnippets[client] || mcpSnippets.antigravity;
+      const codeEl = mcpDisplay.querySelector("code") || mcpDisplay;
+      codeEl.textContent = snippet;
+    });
+  }
+
+  const copyMcpSnippetBtn = document.getElementById("copyMcpSnippetBtn");
+  if (copyMcpSnippetBtn && mcpDisplay) {
+    copyMcpSnippetBtn.addEventListener("click", async () => {
+      const code = (mcpDisplay.innerText || mcpDisplay.textContent || "").trim();
+      if (!code) return;
+      try {
+        await navigator.clipboard.writeText(code);
+        const originalHtml = copyMcpSnippetBtn.innerHTML;
+        copyMcpSnippetBtn.innerHTML = '<i class="fa-solid fa-check" style="color:#10b981;"></i> <span>Kopyalandı!</span>';
+        setTimeout(() => { copyMcpSnippetBtn.innerHTML = originalHtml; }, 2000);
+      } catch {}
+    });
+  }
+
+  const copyMcpEndpointBtn = document.getElementById("copyMcpEndpointBtn");
+  const mcpEndpointInput = document.getElementById("mcpEndpointInput");
+  if (copyMcpEndpointBtn && mcpEndpointInput) {
+    copyMcpEndpointBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(mcpEndpointInput.value.trim());
+        const originalHtml = copyMcpEndpointBtn.innerHTML;
+        copyMcpEndpointBtn.innerHTML = '<i class="fa-solid fa-check" style="color:#10b981;"></i> <span>Kopyalandı!</span>';
+        setTimeout(() => { copyMcpEndpointBtn.innerHTML = originalHtml; }, 2000);
+      } catch {}
     });
   }
 

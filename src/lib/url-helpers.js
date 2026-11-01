@@ -8,7 +8,7 @@ const RESERVED_SHORT_ALIASES = new Set([
   'about', 'abuse-safety', 'account', 'contact', 'cookie-policy', 'dashboard',
   'docs', 'faq', 'forgot-password', 'help', 'how-it-works', 'login', 'notifications',
   'privacy', 'pricing', 'pro', 'register', 'reset-password', 'stats', 'stats-page', 'sss', 'terms',
-  'updates', 'verify', 'why-ovlink', 'api-guide', 'workspaces', 'campaigns',
+  'updates', 'verify', 'why-ovlink', 'api-guide', 'mcp', 'mcp-guide', 'workspaces', 'campaigns',
   // System and route namespaces
   'admin', 'api', 'auth', 'consent', 'proceed', 'qrcode', 'verify-email', 'logout',
   'ads', 'tools', 'bot', 'bots', 'health', 'sso',

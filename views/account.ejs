@@ -1400,6 +1400,108 @@
             </div>
           </section>
 
+          <!-- 3. MCP Server Suite (Model Context Protocol) Card -->
+          <section class="m-card" id="mcpServerSection" style="margin-top:24px;">
+            <div class="m-card-header">
+              <div class="m-card-title-wrap">
+                <div class="m-card-icon"><i class="fa-solid fa-brain"></i></div>
+                <div>
+                  <h2 class="m-card-h2" data-i18n="mcp_card_title">MCP Server Suite (Model Context Protocol)</h2>
+                  <div class="m-card-desc" data-i18n="mcp_card_subtitle">AI vibe-coding alətləri (Google Antigravity, Claude, Cursor, Codex) üçün rəsmi Streamable HTTP serveri.</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="m-radar-scanner" aria-hidden="true" style="width:36px;height:36px;border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.06);">
+                  <div class="m-radar-sweep-blade" style="background: conic-gradient(from 0deg, rgba(16, 185, 129, 0.4) 0deg, transparent 90deg);"></div>
+                  <i class="fa-solid fa-signal" style="color: #10b981; font-size: 13px; z-index: 2;"></i>
+                </div>
+                <span class="m-badge-pill m-badge-pill--success font-monospace" data-i18n="mcp_badge_active">Active (2026-07-28)</span>
+                <a href="/mcp" class="m-cta m-cta--outline m-cta--sm" data-i18n="mcp_docs_btn">Sənədlər</a>
+              </div>
+            </div>
+
+            <div class="m-card-body">
+              <div id="mcpLockedNotice" class="m-alert m-alert--warning <%= (plan && plan.tier === 'pro' && plan.is_active) ? 'd-none' : '' %>">
+                <i class="fa-solid fa-lock"></i>
+                <div>
+                  <strong data-i18n="mcp_locked_title">Pro tələb olunur.</strong>
+                  <span style="display:block;margin-top:2px;" data-i18n="mcp_locked_text">Model Context Protocol (MCP) serveri yalnız aktiv Pro plan istifadəçiləri üçün açıqdır.</span>
+                </div>
+              </div>
+
+              <div id="mcpFeatureWrap" class="<%= (plan && plan.tier === 'pro' && plan.is_active) ? '' : 'd-none' %>">
+                <!-- Endpoint URL Box -->
+                <div class="m-form-group" style="margin-bottom:16px;">
+                  <label class="m-adv-label" data-i18n="mcp_endpoint_label">Streamable HTTP MCP Endpoint URL</label>
+                  <div style="display:flex;gap:8px;">
+                    <input id="mcpEndpointInput" type="text" class="m-adv-input font-monospace" value="https://ovlink.sbs/api/pro/v1/mcp" readonly style="flex:1;">
+                    <button type="button" id="copyMcpEndpointBtn" class="m-cta m-cta--outline m-cta--sm" title="Endpointi kopyala">
+                      <i class="fa-solid fa-copy"></i>
+                      <span data-i18n="mcp_copy_url_btn">Kopyala</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Monthly Quota Meter -->
+                <div class="m-inner-box" style="margin-bottom:20px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <div style="font-size:13px;font-weight:600;color:var(--c-white);display:flex;align-items:center;gap:6px;">
+                      <i class="fa-solid fa-gauge-high" style="color:#3b82f6;"></i>
+                      <span data-i18n="mcp_quota_title">Aylıq MCP Kotası</span>
+                    </div>
+                    <span id="mcpQuotaCounter" class="font-monospace" style="font-size:13px;color:#10b981;font-weight:700;">0 / 20,000 çağırış</span>
+                  </div>
+                  <div style="width:100%;height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;">
+                    <div id="mcpQuotaBar" style="width:0%;height:100%;background:linear-gradient(90deg, #3b82f6, #10b981);border-radius:4px;transition:width 0.3s ease;"></div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--c-faint);margin-top:6px;">
+                    <span id="mcpQuotaRemaining" data-i18n="mcp_quota_remaining">Qalan: 20,000 çağırış</span>
+                    <span data-i18n="mcp_quota_reset_hint">Hər ayın 1-i sıfırlanır</span>
+                  </div>
+                </div>
+
+                <!-- 1-Click Client Configuration Tabs -->
+                <div class="m-inner-box">
+                  <div class="m-section-subhead" style="margin-bottom:10px;">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span data-i18n="mcp_client_configs_title">1-Klik AI Vibe-Coding Qurulumu</span>
+                  </div>
+                  <p class="m-card-desc" style="margin-bottom:14px;" data-i18n="mcp_client_configs_desc">
+                    Seçilmiş AI köməkçiniz üçün hazır konfiqurasiya. "Kopyala" düyməsinə basın və alətinizə yapışdırın:
+                  </p>
+
+                  <div class="pro-event-picker" id="mcpClientPicker" style="margin-bottom:12px;">
+                    <button type="button" class="is-selected" data-mcp-client="antigravity">Google Antigravity</button>
+                    <button type="button" data-mcp-client="claudecode">Claude Code CLI</button>
+                    <button type="button" data-mcp-client="claudedesktop">Claude Desktop</button>
+                    <button type="button" data-mcp-client="cursor">Cursor IDE</button>
+                    <button type="button" data-mcp-client="codex">Codex / ChatGPT</button>
+                    <button type="button" data-mcp-client="opencode">OpenCode</button>
+                    <button type="button" data-mcp-client="windsurf">Windsurf</button>
+                  </div>
+
+                  <div style="position:relative;">
+                    <pre id="mcpSnippetDisplay" class="m-api-code-pre" style="margin:0;max-height:220px;overflow-y:auto;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:14px;font-family:var(--font-mono, monospace);font-size:12.5px;color:#e2e8f0;line-height:1.5;"><code>{
+  "mcpServers": {
+    "ovlink": {
+      "url": "https://ovlink.sbs/api/pro/v1/mcp",
+      "headers": {
+        "x-api-key": "ovk_YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}</code></pre>
+                    <button type="button" id="copyMcpSnippetBtn" class="m-cta m-cta--outline m-cta--sm" style="position:absolute;top:10px;right:10px;" title="Kopyala">
+                      <i class="fa-solid fa-copy"></i>
+                      <span data-i18n="mcp_copy_code">Kopyala</span>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </section>
+
         </div>
 
       </div>

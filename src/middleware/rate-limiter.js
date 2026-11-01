@@ -25,6 +25,9 @@ function buildRateLimitKey(req, scope = 'global') {
   if (apiKeyHint) {
     return `${safeScope}:api:${apiKeyHint}`;
   }
+  if (req && req.apiAuth && Number.isInteger(req.apiAuth.userId)) {
+    return `${safeScope}:user:${req.apiAuth.userId}`;
+  }
   if (req && req.session && Number.isInteger(req.session.userId)) {
     return `${safeScope}:user:${req.session.userId}`;
   }
@@ -146,6 +149,46 @@ const toolsFetchLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const MCP_READ_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MCP_READ_RATE_LIMIT_MAX = 120;
+const MCP_WRITE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MCP_WRITE_RATE_LIMIT_MAX = 35;
+const MCP_BULK_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MCP_BULK_RATE_LIMIT_MAX = 10;
+
+function createMcpLimiter(scope, windowMs, max) {
+  return rateLimit({
+    windowMs,
+    max,
+    handler: (req, res, next) => {
+      const err = new Error('Rate limit exceeded. Please slow down.');
+      err.code = -32005;
+      err.jsonRpcCode = -32005;
+      err.status = 429;
+      if (typeof next === 'function') {
+        return next(err);
+      }
+      const id = req.body && req.body.id !== undefined ? req.body.id : null;
+      return res.status(429).json({
+        jsonrpc: '2.0',
+        id,
+        error: {
+          code: -32005,
+          message: 'Rate limit exceeded. Please slow down.'
+        }
+      });
+    },
+    ...(redisClient ? { store: createRateLimitStore(scope) } : {}),
+    keyGenerator: (req) => buildRateLimitKey(req, scope),
+    standardHeaders: true,
+    legacyHeaders: false
+  });
+}
+
+const mcpReadLimiter = createMcpLimiter('mcp-read', MCP_READ_RATE_LIMIT_WINDOW_MS, MCP_READ_RATE_LIMIT_MAX);
+const mcpWriteLimiter = createMcpLimiter('mcp-write', MCP_WRITE_RATE_LIMIT_WINDOW_MS, MCP_WRITE_RATE_LIMIT_MAX);
+const mcpBulkLimiter = createMcpLimiter('mcp-bulk', MCP_BULK_RATE_LIMIT_WINDOW_MS, MCP_BULK_RATE_LIMIT_MAX);
+
 module.exports = {
   generalLimiter,
   authLimiter,
@@ -158,6 +201,9 @@ module.exports = {
   sensitiveActionLimiter,
   toolsAiLimiter,
   toolsFetchLimiter,
+  mcpReadLimiter,
+  mcpWriteLimiter,
+  mcpBulkLimiter,
   getApiKeyHintFromRequest,
   buildRateLimitKey,
   PRO_API_READ_RATE_LIMIT_WINDOW_MS,
@@ -165,5 +211,11 @@ module.exports = {
   PRO_API_WRITE_RATE_LIMIT_WINDOW_MS,
   PRO_API_WRITE_RATE_LIMIT_MAX,
   PRO_API_KEY_CREATE_RATE_LIMIT_WINDOW_MS,
-  PRO_API_KEY_CREATE_RATE_LIMIT_MAX
+  PRO_API_KEY_CREATE_RATE_LIMIT_MAX,
+  MCP_READ_RATE_LIMIT_WINDOW_MS,
+  MCP_READ_RATE_LIMIT_MAX,
+  MCP_WRITE_RATE_LIMIT_WINDOW_MS,
+  MCP_WRITE_RATE_LIMIT_MAX,
+  MCP_BULK_RATE_LIMIT_WINDOW_MS,
+  MCP_BULK_RATE_LIMIT_MAX,
 };

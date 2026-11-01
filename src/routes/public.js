@@ -320,6 +320,21 @@ router.get('/api-guide', (req, res) => {
 });
 router.get('/api-guide.html', (req, res) => res.redirect(301, '/api-guide'));
 
+router.get(['/mcp', '/mcp-guide'], (req, res) => {
+  const seo = buildSeo(req, {
+    path: '/mcp',
+    titleAz: 'Model Context Protocol (MCP) Bələdçisi - Ovlink',
+    titleTr: 'Model Context Protocol (MCP) Rehberi - Ovlink',
+    titleEn: 'Model Context Protocol (MCP) Guide - Ovlink',
+    descAz: 'Ovlink Pro MCP serveri ilə AI alətlərini (Google Antigravity, Claude, Cursor, Codex) qısa link infrastrukturunuza bağlayın.',
+    descTr: 'Ovlink Pro MCP sunucusu ile AI araçlarını (Google Antigravity, Claude, Cursor, Codex) kısa link altyapınıza bağlayın.',
+    descEn: 'Connect your AI vibe-coding tools (Google Antigravity, Claude, Cursor, Codex) to your Ovlink short link infrastructure via Pro MCP server.'
+  });
+  res.render('mcp-guide', { csrfToken: res.locals._csrf, seo });
+});
+router.get('/mcp.html', (req, res) => res.redirect(301, '/mcp'));
+router.get('/mcp-guide.html', (req, res) => res.redirect(301, '/mcp-guide'));
+
 router.get('/abuse-safety', (req, res) => {
   const seo = buildSeo(req, {
     path: '/abuse-safety',
