@@ -496,7 +496,7 @@ const TOOL_HANDLERS = {
     const nowIso = new Date().toISOString();
 
     await dbRunAsync(
-      'INSERT INTO urls (original, short, created_at, user_id, title, max_clicks, expires_at, password, domain_host, campaign_id, original_b, ab_split_percent, ios_url, android_url) ' +
+      'INSERT INTO urls (original, short, created_at, user_id, title, max_clicks, expires_at, link_password, domain_host, campaign_id, original_b, ab_split_percent, ios_url, android_url) ' +
       'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         originalAbs,
@@ -780,7 +780,7 @@ const TOOL_HANDLERS = {
       expires_at: row.expires_at || null,
       campaign_id: row.campaign_id ? Number(row.campaign_id) : null,
       domain_host: row.domain_host || null,
-      is_password_protected: !!row.password,
+      is_password_protected: !!(row.link_password || row.password),
       original_b: row.original_b || null,
       ab_split_percent: row.original_b ? Number(row.ab_split_percent || 50) : null,
       ios_url: row.ios_url || null,

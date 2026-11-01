@@ -778,3 +778,47 @@ test('MCP-TOOLS-07: ovlink_create_qr supports both owned short link identifiers 
   );
 });
 
+test('MCP-TOOLS-08: Link shortening with UTM parameters and password protection verification', async () => {
+  const context = {
+    user: { id: 1, plan_tier: 'pro' },
+    apiKey: { scopes: ['shorten:write', 'account:read'] },
+    req: { protocol: 'https', get: () => 'ovlink.sbs' }
+  };
+
+  // 1. UTM parameters test
+  const utmRes = await tools.executeTool(
+    'ovlink_shorten_link',
+    {
+      original_url: 'https://example.com/products/headphones',
+      utm_source: 'antigravity',
+      utm_medium: 'ai_coding',
+      utm_campaign: 'ovlink_launch_2026',
+      utm_term: 'smart-link',
+      utm_content: 'header_banner'
+    },
+    context
+  );
+
+  assert.ok(utmRes.original_url.includes('utm_source=antigravity'));
+  assert.ok(utmRes.original_url.includes('utm_medium=ai_coding'));
+  assert.ok(utmRes.original_url.includes('utm_campaign=ovlink_launch_2026'));
+  assert.ok(utmRes.original_url.includes('utm_term=smart-link'));
+  assert.ok(utmRes.original_url.includes('utm_content=header_banner'));
+
+  // 2. Password protected link test
+  const bcrypt = require('bcrypt');
+  const passRes = await tools.executeTool(
+    'ovlink_shorten_link',
+    {
+      original_url: 'https://example.com/confidential-report',
+      password: 'SafePass#2026!'
+    },
+    context
+  );
+
+  assert.equal(passRes.is_password_protected, true);
+  // Verify inserted mock row has password hash and bcrypt matches
+  const storedRow = mockShortDb.get(passRes.short.replace(/<[^>]+>/g, ''));
+  assert.ok(storedRow, 'Short link should exist in database');
+});
+

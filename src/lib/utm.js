@@ -56,7 +56,10 @@ function readUtmFields(source) {
 /** True when at least one UTM value is worth writing. */
 function hasUtmValues(fields) {
   if (!fields || typeof fields !== 'object') return false;
-  return Object.keys(FIELD_TO_KEY).some((field) => !!normalizeUtmValue(fields[field]));
+  return Object.entries(FIELD_TO_KEY).some(([field, key]) => {
+    const raw = fields[field] !== undefined ? fields[field] : fields[key];
+    return !!normalizeUtmValue(raw);
+  });
 }
 
 /**
@@ -79,7 +82,8 @@ function appendUtmParams(rawUrl, fields) {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return rawUrl;
 
   for (const [field, key] of Object.entries(FIELD_TO_KEY)) {
-    const value = normalizeUtmValue(fields[field]);
+    const raw = fields[field] !== undefined ? fields[field] : fields[key];
+    const value = normalizeUtmValue(raw);
     if (!value) continue;
     // set() (not append) keeps re-submitting the same form from stacking
     // duplicated utm_* parameters.

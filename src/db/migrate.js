@@ -45,6 +45,7 @@ function ensureDbTables() {
   
     db.run('ALTER TABLE urls ADD COLUMN folder_name TEXT', () => {});
     db.run('ALTER TABLE urls ADD COLUMN tags_json TEXT', () => {});
+    db.run('ALTER TABLE urls ADD COLUMN title TEXT', () => {});
   
     // Reports tablosu: "reason" ve "user_id" sâ”œâ•tunlarâ”€â–’nâ”€â–’ iâ”œÄŸeriyor.
     db.run(`CREATE TABLE IF NOT EXISTS reports (
