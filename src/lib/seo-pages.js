@@ -137,7 +137,7 @@ const LANDING_SHARED = Object.freeze({
   cta: { az: "İndi qısaltmağa başla", tr: "Şimdi kısaltmaya başla", en: "Start shortening" },
   more_title: { az: "Digər təlimatlar", tr: "Diğer rehberler", en: "More guides" },
   back_title: { az: "Bütün təlimatlar", tr: "Tüm rehberler", en: "All guides" },
-]);
+});
 
 /** Shared labels resolved for one language. */
 function landingShared(lang) {
