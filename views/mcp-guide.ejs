@@ -65,7 +65,7 @@
         </div>
         <h1 id="mcpGuideHeading" data-i18n="mcp_guide_title">Model Context Protocol (MCP) Guide</h1>
         <p data-i18n="mcp_guide_subtitle">
-          Connect your favorite AI coding assistants and vibe-coding tools directly to Ovlink with enterprise-grade Defense-in-Depth security.
+          Connect your favorite AI coding assistants and vibe-coding tools directly to Ovlink.
         </p>
       </section>
 
@@ -78,8 +78,7 @@
           <a href="#sec-overview" class="m-legal-toc-link active" data-i18n="mcp_toc_overview">1. MCP & Protokol</a>
           <a href="#sec-clients" class="m-legal-toc-link" data-i18n="mcp_toc_clients">2. 1-Klik AI Qurulumu</a>
           <a href="#sec-tools" class="m-legal-toc-link" data-i18n="mcp_toc_tools">3. Alətlər Kataloqu</a>
-          <a href="#sec-security" class="m-legal-toc-link" data-i18n="mcp_toc_security">4. Defense-in-Depth Müdafiə</a>
-          <a href="#sec-limits" class="m-legal-toc-link" data-i18n="mcp_toc_limits">5. Kota və Limitlər</a>
+          <a href="#sec-limits" class="m-legal-toc-link" data-i18n="mcp_toc_limits">4. Kota və Limitlər</a>
           <a href="/account" class="m-legal-toc-link" data-i18n="mcp_toc_account">Pro Panelə Qayıt</a>
         </nav>
 
@@ -280,7 +279,7 @@ Protocol: Streamable HTTP (2026-07-28)</code></pre>
                   <span class="m-badge-pill m-badge-pill--info font-monospace">account:read</span>
                 </div>
                 <p style="font-size: 13px; color: var(--c-muted); margin: 0 0 8px 0;" data-i18n="mcp_tool_get_desc">
-                  Seçilmiş linkin konfiqurasiyasını və klik statistikasını qaytarır. Maskalanmış 404 (-32004) IDOR qorumasına malikdir.
+                  Seçilmiş linkin konfiqurasiyasını və klik statistikasını qaytarır.
                 </p>
                 <div style="font-size: 12px; color: var(--c-faint); font-family: var(--font-mono, monospace);">
                   Parametrlər: identifier (slug və ya ID), days
@@ -349,59 +348,11 @@ Protocol: Streamable HTTP (2026-07-28)</code></pre>
             </div>
           </article>
 
-          <!-- Section 4: Defense-in-Depth Security -->
-          <article class="m-legal-section" id="sec-security">
-            <div class="m-legal-section-header">
-              <i class="fa-solid fa-shield-virus" style="color: #ef4444;" aria-hidden="true"></i>
-              <h2 class="m-legal-section-title" data-i18n="mcp_security_heading">4. Qat-Qat Dərin Müdafiə (Defense-in-Depth)</h2>
-            </div>
-            <p class="m-legal-section-text" data-i18n="mcp_security_desc">
-              MCP serveri yalnız bir neçə deyil, bütün potensial zəifliklərə qarşı qat-qat müdafiə sistemi ilə təchiz olunub:
-            </p>
-
-            <div class="m-threat-grid" style="grid-template-columns: 1fr; gap: 12px;">
-              <div class="m-threat-stat-card">
-                <span class="m-threat-stat-label">1. SSRF Müdafiəsi (Server-Side Request Forgery)</span>
-                <div style="font-size: 13px; color: var(--c-muted); margin-top: 4px;" data-i18n="mcp_sec_ssrf_detail">
-                  Bütün daxili IP diapazonları (RFC 1918 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8), bulud metadata serverləri (AWS 169.254.169.254, Alibaba 100.100.100.200), onaltılıq/səkkizlik təsvirlər, təhlükəli portlar və bloklanmış domenlər sərt şəkildə qadağandır.
-                </div>
-              </div>
-
-              <div class="m-threat-stat-card">
-                <span class="m-threat-stat-label">2. Prompt Injection (XPIA) Çətiri</span>
-                <div style="font-size: 13px; color: var(--c-muted); margin-top: 4px;" data-i18n="mcp_sec_xpia_detail">
-                  İstifadəçi tərəfindən daxil edilmiş bütün sətirlər <code>&lt;ovlink_untrusted_data type="..."&gt;</code> teqləri ilə əhatələnir və gizli təlimat tokenləri (<code>&lt;|im_start|&gt;</code>, <code>[INST]</code>) avtomatik zərərsizləşdirilir.
-                </div>
-              </div>
-
-              <div class="m-threat-stat-card">
-                <span class="m-threat-stat-label">3. IDOR Maskalanması</span>
-                <div style="font-size: 13px; color: var(--c-muted); margin-top: 4px;" data-i18n="mcp_sec_idor_detail">
-                  Link oxuma, redaktə və silmə zamanı digər istifadəçilərə aid linklər üçün xüsusi 403 deyil, eyni <strong>-32004: Link not found or access denied</strong> xətası qaytarılır. Beləliklə, hücumçu mövcud linkləri siyahılaya bilməz.
-                </div>
-              </div>
-
-              <div class="m-threat-stat-card">
-                <span class="m-threat-stat-label">4. Sərt GEO Qadağası</span>
-                <div style="font-size: 13px; color: var(--c-muted); margin-top: 4px;" data-i18n="mcp_sec_geo_detail">
-                  MCP üzərindən heç bir alət coğrafi və ya GEO parametrləri qəbul etmir (<code>additionalProperties: false</code>). Hər hansı GEO parametri göndərildikdə əməliyyat dərhal <strong>-32007</strong> xətası ilə dayandırılır.
-                </div>
-              </div>
-
-              <div class="m-threat-stat-card">
-                <span class="m-threat-stat-label">5. DNS Rebinding (CVE-2025-66414) Qoruması</span>
-                <div style="font-size: 13px; color: var(--c-muted); margin-top: 4px;" data-i18n="mcp_sec_rebinding_detail">
-                  Brauzer və xarici mühitlərdən daxil olan Host və Origin başlıqları sərt süzgəcdən keçirilir.
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <!-- Section 5: Rate Limiting & Quotas -->
+          <!-- Section 4: Rate Limiting & Quotas -->
           <article class="m-legal-section" id="sec-limits">
             <div class="m-legal-section-header">
               <i class="fa-solid fa-gauge-high" style="color: var(--c-white);" aria-hidden="true"></i>
-              <h2 class="m-legal-section-title" data-i18n="mcp_limits_heading">5. Kota və Rate Limitlər</h2>
+              <h2 class="m-legal-section-title" data-i18n="mcp_limits_heading">4. Kota və Rate Limitlər</h2>
             </div>
             <p class="m-legal-section-text" data-i18n="mcp_limits_desc">
               Ovlink Pro istifadəçilərinin sabitliyini təmin etmək üçün Redis əsaslı limitlər:
