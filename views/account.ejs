@@ -812,6 +812,13 @@
               <span class="m-tab-pro-chip">PRO</span>
             <% } %>
           </button>
+          <button type="button" class="m-account-tab-btn" role="tab" id="tabBtnMcp" aria-selected="false" aria-controls="panel-mcp" data-tab-target="mcp">
+            <i class="fa-solid fa-brain" aria-hidden="true"></i>
+            <span data-i18n="account_tab_mcp">MCP</span>
+            <% if (plan && plan.tier === 'pro' && plan.is_active) { %>
+              <span class="m-tab-pro-chip">PRO</span>
+            <% } %>
+          </button>
           <div class="m-account-tab-indicator" id="tabIndicator" aria-hidden="true"></div>
         </div>
       </nav>
@@ -1400,8 +1407,32 @@
             </div>
           </section>
 
-          <!-- 3. MCP Server Suite (Model Context Protocol) Card -->
-          <section class="m-card" id="mcpServerSection" style="margin-top:24px;">
+          <!-- MCP Cross-Navigation Banner -->
+          <div class="m-inner-box" style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);display:flex;align-items:center;justify-content:center;color:#60a5fa;flex-shrink:0;">
+                <i class="fa-solid fa-brain"></i>
+              </div>
+              <div>
+                <div style="font-size:13.5px;font-weight:600;color:var(--c-white);">Model Context Protocol (MCP) Server Suite</div>
+                <div style="font-size:12px;color:var(--c-muted);margin-top:2px;">AI vibe-coding alətləri (Google Antigravity, Claude, Cursor, Codex) üçün MCP xüsusiyyətləri ayrılmış MCP panelindədir.</div>
+              </div>
+            </div>
+            <button type="button" class="m-cta m-cta--outline m-cta--sm" onclick="document.getElementById('tabBtnMcp').click();">
+              <span>MCP Bölməsinə Keç</span>
+              <i class="fa-solid fa-arrow-right" style="font-size:11px;margin-left:6px;"></i>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- ==========================================
+             TAB 5: MCP (MODEL CONTEXT PROTOCOL)
+             ========================================== -->
+        <div class="m-tab-panel" id="panel-mcp" role="tabpanel" aria-labelledby="tabBtnMcp" hidden>
+
+          <!-- 1. MCP Server Suite Card -->
+          <section class="m-card" id="mcpServerSection">
             <div class="m-card-header">
               <div class="m-card-title-wrap">
                 <div class="m-card-icon"><i class="fa-solid fa-brain"></i></div>
@@ -1411,12 +1442,10 @@
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:10px;">
-                <div class="m-radar-scanner" aria-hidden="true" style="width:36px;height:36px;border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.06);">
-                  <div class="m-radar-sweep-blade" style="background: conic-gradient(from 0deg, rgba(16, 185, 129, 0.4) 0deg, transparent 90deg);"></div>
-                  <i class="fa-solid fa-signal" style="color: #10b981; font-size: 13px; z-index: 2;"></i>
-                </div>
-                <span class="m-badge-pill m-badge-pill--success font-monospace" data-i18n="mcp_badge_active">Active (2026-07-28)</span>
-                <a href="/mcp" class="m-cta m-cta--outline m-cta--sm" data-i18n="mcp_docs_btn">Sənədlər</a>
+                <a href="/mcp" class="m-cta m-cta--outline m-cta--sm" style="display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 18px;white-space:nowrap;text-decoration:none;flex-shrink:0;">
+                  <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+                  <span data-i18n="mcp_docs_btn">Sənədlər</span>
+                </a>
               </div>
             </div>
 
@@ -1499,6 +1528,126 @@
                 </div>
 
               </div>
+            </div>
+          </section>
+
+          <!-- 2. MCP Tools & Security Overview Card -->
+          <section class="m-card" id="mcpToolsOverviewSection" style="margin-top:24px;">
+            <div class="m-card-header">
+              <div class="m-card-title-wrap">
+                <div class="m-card-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div>
+                  <h2 class="m-card-h2">Rəsmi AI Alətləri və Təhlükəsizlik Zəmanəti</h2>
+                  <div class="m-card-desc">Streamable HTTP 2026-07-28 standartı ilə 9 tam təchizatlı alət və çoxqatlı müdafiə sistemi</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="m-card-body">
+              <div class="m-inner-box u-mb-3">
+                <div class="m-section-subhead" style="margin-bottom:12px;">
+                  <i class="fa-solid fa-toolbox" style="color:#3b82f6;"></i>
+                  <span>Dəstəklənən 9 Rəsmi Alət (Tools)</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));gap:10px;">
+                  <div class="m-inner-box--nested" style="padding:10px 12px;">
+                    <strong style="color:var(--c-white);font-size:13px;display:block;font-family:var(--font-mono, monospace);">ovlink_shorten_link</strong>
+                    <span style="font-size:12px;color:var(--c-muted);line-height:1.4;display:block;margin-top:2px;">Tək bir linki anında qısaldır (alias, şifrə, son tarix).</span>
+                  </div>
+                  <div class="m-inner-box--nested" style="padding:10px 12px;">
+                    <strong style="color:var(--c-white);font-size:13px;display:block;font-family:var(--font-mono, monospace);">ovlink_bulk_shorten_links</strong>
+                    <span style="font-size:12px;color:var(--c-muted);line-height:1.4;display:block;margin-top:2px;">100-ə qədər linki toplu qısaldır (Hissəvi uğur dəstəyi ilə).</span>
+                  </div>
+                  <div class="m-inner-box--nested" style="padding:10px 12px;">
+                    <strong style="color:var(--c-white);font-size:13px;display:block;font-family:var(--font-mono, monospace);">ovlink_list_links</strong>
+                    <span style="font-size:12px;color:var(--c-muted);line-height:1.4;display:block;margin-top:2px;">Linklərinizi axtarış və səhifələmə ilə sıralayır.</span>
+                  </div>
+                  <div class="m-inner-box--nested" style="padding:10px 12px;">
+                    <strong style="color:var(--c-white);font-size:13px;display:block;font-family:var(--font-mono, monospace);">ovlink_get_link</strong>
+                    <span style="font-size:12px;color:var(--c-muted);line-height:1.4;display:block;margin-top:2px;">Linkin hədəf ünvanını və cari konfiqurasiyasını oxuyur.</span>
+                  </div>
+                  <div class="m-inner-box--nested" style="padding:10px 12px;">
+                    <strong style="color:var(--c-white);font-size:13px;display:block;font-family:var(--font-mono, monospace);">ovlink_update_link</strong>
+                    <span style="font-size:12px;color:var(--c-muted);line-height:1.4;display:block;margin-top:2px;">Mövcud linkin təyinatını və ya statusunu yeniləyir.</span>
+                  </div>
+                  <div class="m-inner-box--nested" style="padding:10px 12px;">
+                    <strong style="color:var(--c-white);font-size:13px;display:block;font-family:var(--font-mono, monospace);">ovlink_delete_link</strong>
+                    <span style="font-size:12px;color:var(--c-muted);line-height:1.4;display:block;margin-top:2px;">Qısa linki və əlaqəli statistikanı təhlükəsiz silir.</span>
+                  </div>
+                  <div class="m-inner-box--nested" style="padding:10px 12px;">
+                    <strong style="color:var(--c-white);font-size:13px;display:block;font-family:var(--font-mono, monospace);">ovlink_get_link_analytics</strong>
+                    <span style="font-size:12px;color:var(--c-muted);line-height:1.4;display:block;margin-top:2px;">Link üzrə klik, referer və zaman bölgüsünü təqdim edir.</span>
+                  </div>
+                  <div class="m-inner-box--nested" style="padding:10px 12px;">
+                    <strong style="color:var(--c-white);font-size:13px;display:block;font-family:var(--font-mono, monospace);">ovlink_get_account_analytics</strong>
+                    <span style="font-size:12px;color:var(--c-muted);line-height:1.4;display:block;margin-top:2px;">Hesab üzrə ümumi trafik və performans analitikasını çəkir.</span>
+                  </div>
+                  <div class="m-inner-box--nested" style="padding:10px 12px;">
+                    <strong style="color:var(--c-white);font-size:13px;display:block;font-family:var(--font-mono, monospace);">ovlink_create_qr</strong>
+                    <span style="font-size:12px;color:var(--c-muted);line-height:1.4;display:block;margin-top:2px;">Link üçün təmiz SVG və Data URL formatında QR kod yaradır.</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Security Specs Box -->
+              <div class="m-inner-box">
+                <div class="m-section-subhead" style="margin-bottom:12px;">
+                  <i class="fa-solid fa-lock" style="color:#10b981;"></i>
+                  <span>Dərin Müdafiə (Defense-in-Depth) Arxitekturası</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:12px;">
+                  <div class="m-inner-box--nested">
+                    <strong style="color:#10b981;font-size:13px;display:flex;align-items:center;gap:6px;">
+                      <i class="fa-solid fa-shield-virus"></i> SSRF & Metadata Blokeri
+                    </strong>
+                    <p style="font-size:12px;color:var(--c-muted);margin:4px 0 0;line-height:1.4;">
+                      Bütün sorğular SSRF, DNS-Rebinding və bulud metadata (169.254.169.254) sızmalarına qarşı DNS səviyyəsində yoxlanılır.
+                    </p>
+                  </div>
+                  <div class="m-inner-box--nested">
+                    <strong style="color:#3b82f6;font-size:13px;display:flex;align-items:center;gap:6px;">
+                      <i class="fa-solid fa-user-shield"></i> IDOR / Hesab İzolyasiyası
+                    </strong>
+                    <p style="font-size:12px;color:var(--c-muted);margin:4px 0 0;line-height:1.4;">
+                      Yalnız sizə aid olan linkləri oxuya və idarə edə bilərsiniz. Yad link sorğuları maskalanmış -32004 xətası ilə cavablandırılır.
+                    </p>
+                  </div>
+                  <div class="m-inner-box--nested">
+                    <strong style="color:#f59e0b;font-size:13px;display:flex;align-items:center;gap:6px;">
+                      <i class="fa-solid fa-terminal"></i> XPIA / Prompt Injection Qalxanı
+                    </strong>
+                    <p style="font-size:12px;color:var(--c-muted);margin:4px 0 0;line-height:1.4;">
+                      AI cavabları və kənar məlumatlar avtomatik &lt;ovlink_untrusted_data&gt; daxilinə alınaraq sistem təlimatlarından təcrid olunur.
+                    </p>
+                  </div>
+                  <div class="m-inner-box--nested">
+                    <strong style="color:#ef4444;font-size:13px;display:flex;align-items:center;gap:6px;">
+                      <i class="fa-solid fa-ban"></i> GEO Dəyişdirilməsinə Qadağa
+                    </strong>
+                    <p style="font-size:12px;color:var(--c-muted);margin:4px 0 0;line-height:1.4;">
+                      Təhlükəsizlik qaydalarına əsasən, GEO profili və hədəfləmə parametrlərinin MCP vasitəsilə dəyişdirilməsi qəti qadağandır (-32007).
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Action Footnote -->
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid var(--c-border);">
+                <div style="font-size:12px;color:var(--c-faint);">
+                  API açarınızı əldə etmək üçün Developer panelinə baxa və ya tam sənədlərlə tanış ola bilərsiniz.
+                </div>
+                <div style="display:flex;gap:10px;">
+                  <button type="button" class="m-cta m-cta--outline m-cta--sm" onclick="document.getElementById('tabBtnDeveloper').click();">
+                    <i class="fa-solid fa-key" style="margin-right:6px;"></i>
+                    <span>API Açarı Al</span>
+                  </button>
+                  <a href="/mcp" class="m-cta m-cta--white m-cta--sm" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    <span>Tam MCP Bələdçisi</span>
+                  </a>
+                </div>
+              </div>
+
             </div>
           </section>
 
@@ -1764,7 +1913,7 @@
       // Initial tab selection from URL hash (e.g. #security, #billing, #developer)
       function handleInitialTab() {
         var hash = (window.location.hash || '').replace('#', '').trim().toLowerCase();
-        var validTabs = ['general', 'security', 'billing', 'developer'];
+        var validTabs = ['general', 'security', 'billing', 'developer', 'mcp'];
         if (validTabs.indexOf(hash) !== -1) {
           switchTab(hash, false);
         } else {
