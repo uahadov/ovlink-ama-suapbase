@@ -12,7 +12,14 @@ cd "$APP_DIR"
 mkdir -p "$BACKUP_DIR"
 
 if [ -f .env ]; then
-  set -a; . ./.env; set +a
+  # Extract only what we need WITHOUT shell expansion: .env values (DB passwords)
+  # can contain literal `$` characters that `source` would try to interpolate.
+  if [ -z "${DATABASE_URL:-}" ]; then
+    DATABASE_URL="$(grep -E '^DATABASE_URL=' .env | head -1 | cut -d= -f2- | sed -E 's/^"//; s/"$//')"
+  fi
+  if [ -z "${SUPABASE_DB_URL:-}" ]; then
+    SUPABASE_DB_URL="$(grep -E '^SUPABASE_DB_URL=' .env | head -1 | cut -d= -f2- | sed -E 's/^"//; s/"$//')"
+  fi
 fi
 
 DB_URL="${DATABASE_URL:-${SUPABASE_DB_URL:-}}"

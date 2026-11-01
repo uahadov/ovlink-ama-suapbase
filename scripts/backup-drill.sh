@@ -10,7 +10,15 @@ APP_DIR="${APP_DIR:-$HOME/ovlink}"
 cd "$APP_DIR"
 
 if [ -f .env ]; then
-  set -a; . ./.env; set +a
+  # Same as backup-daily.sh: grep-extract instead of sourcing, so literal `$`
+  # characters in the DB password are never expanded by the shell.
+  if [ -z "${DATABASE_URL:-}" ]; then
+    DATABASE_URL="$(grep -E '^DATABASE_URL=' .env | head -1 | cut -d= -f2- | sed -E 's/^"//; s/"$//')"
+  fi
+  if [ -z "${SUPABASE_DB_URL:-}" ]; then
+    SUPABASE_DB_URL="$(grep -E '^SUPABASE_DB_URL=' .env | head -1 | cut -d= -f2- | sed -E 's/^"//; s/"$//')"
+  fi
+  export DATABASE_URL SUPABASE_DB_URL
 fi
 
 STAMP="$(date +%Y%m%d%H%M%S)"
