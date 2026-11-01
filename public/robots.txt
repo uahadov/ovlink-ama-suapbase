@@ -18,6 +18,7 @@ Allow: /help
 Allow: /docs
 Allow: /pricing
 Allow: /api-guide
+Allow: /mcp
 Allow: /abuse-safety
 Allow: /updates
 Allow: /privacy

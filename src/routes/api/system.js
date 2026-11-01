@@ -26,6 +26,7 @@ const PUBLIC_INDEXABLE_PATHS = Object.freeze([
   '/help',
   '/docs',
   '/api-guide',
+  '/mcp',
   '/abuse-safety',
   '/updates',
   // Programmatic landing pages come from the allowlisted manifest, so robots and
