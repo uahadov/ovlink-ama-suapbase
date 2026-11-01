@@ -15,10 +15,10 @@ if [ -f .env ]; then
   # Extract only what we need WITHOUT shell expansion: .env values (DB passwords)
   # can contain literal `$` characters that `source` would try to interpolate.
   if [ -z "${DATABASE_URL:-}" ]; then
-    DATABASE_URL="$(grep -E '^DATABASE_URL=' .env | head -1 | cut -d= -f2- | sed -E 's/^"//; s/"$//')"
+    DATABASE_URL="$(grep -E '^DATABASE_URL=' .env | head -1 | cut -d= -f2- | sed -E 's/^"//; s/"$//' || true)"
   fi
   if [ -z "${SUPABASE_DB_URL:-}" ]; then
-    SUPABASE_DB_URL="$(grep -E '^SUPABASE_DB_URL=' .env | head -1 | cut -d= -f2- | sed -E 's/^"//; s/"$//')"
+    SUPABASE_DB_URL="$(grep -E '^SUPABASE_DB_URL=' .env | head -1 | cut -d= -f2- | sed -E 's/^"//; s/"$//' || true)"
   fi
 fi
 
