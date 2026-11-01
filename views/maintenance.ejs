@@ -109,7 +109,7 @@
 
         <!-- Action Row -->
         <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-          <button type="button" onclick="window.location.reload();" class="m-btn m-btn-solid" style="display:inline-flex; align-items:center; gap:8px; padding: 12px 24px; border-radius: 999px; cursor:pointer;">
+          <button type="button" id="maintenanceReloadBtn" class="m-btn m-btn-solid" style="display:inline-flex; align-items:center; gap:8px; padding: 12px 24px; border-radius: 999px; cursor:pointer;">
             <i class="fa-solid fa-rotate-right"></i>
             <span data-i18n="maintenance_refresh">Yenilə</span>
           </button>
@@ -145,6 +145,12 @@
         var text = (lang === 'tr' ? (tr || az || en) : (lang === 'en' ? (en || az || tr) : (az || tr || en)));
         var fallback = (lang === 'tr' ? 'Bakım çalışması devam ediyor.' : (lang === 'en' ? 'Maintenance is in progress.' : 'Texniki xidmət davam edir.'));
         msgEl.textContent = text || fallback;
+      }
+      var reloadBtn = document.getElementById('maintenanceReloadBtn');
+      if (reloadBtn) {
+        reloadBtn.addEventListener('click', function () {
+          window.location.reload();
+        });
       }
     });
   </script>

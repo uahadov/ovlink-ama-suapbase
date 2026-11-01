@@ -1243,6 +1243,46 @@ function updateProSecretModalContent() {
   }
 }
 
+function openModalById(modalId) {
+  const modalEl = document.getElementById(modalId);
+  if (!modalEl) return null;
+  modalEl.dispatchEvent(new CustomEvent('show.bs.modal', { bubbles: true }));
+  modalEl.style.display = 'block';
+  modalEl.classList.add('show');
+  modalEl.removeAttribute('aria-hidden');
+  modalEl.setAttribute('aria-modal', 'true');
+  document.body.classList.add('modal-open');
+  let backdrop = document.getElementById('modalFallbackBackdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.id = 'modalFallbackBackdrop';
+    backdrop.className = 'modal-backdrop fade show';
+    document.body.appendChild(backdrop);
+  }
+  modalEl.dispatchEvent(new CustomEvent('shown.bs.modal', { bubbles: true }));
+  return {
+    hide: () => closeModalById(modalId)
+  };
+}
+
+function closeModalById(modalId) {
+  const modalEl = document.getElementById(modalId);
+  if (!modalEl) return;
+  modalEl.dispatchEvent(new CustomEvent('hide.bs.modal', { bubbles: true }));
+  modalEl.style.display = 'none';
+  modalEl.classList.remove('show');
+  modalEl.setAttribute('aria-hidden', 'true');
+  modalEl.removeAttribute('aria-modal');
+
+  const openModals = document.querySelectorAll('.modal.show');
+  if (openModals.length === 0) {
+    document.body.classList.remove('modal-open');
+    const backdrop = document.getElementById('modalFallbackBackdrop');
+    if (backdrop) backdrop.remove();
+  }
+  modalEl.dispatchEvent(new CustomEvent('hidden.bs.modal', { bubbles: true }));
+}
+
 function openProSecretModal(kind, value) {
   const modalEl = document.getElementById("proSecretModal");
   const input = document.getElementById("proSecretValue");
@@ -2586,46 +2626,6 @@ if (document.readyState === "loading") {
     }, 2200);
   }
 
-  function openModalById(modalId) {
-    const modalEl = document.getElementById(modalId);
-    if (!modalEl) return null;
-    modalEl.dispatchEvent(new CustomEvent('show.bs.modal', { bubbles: true }));
-    modalEl.style.display = 'block';
-    modalEl.classList.add('show');
-    modalEl.removeAttribute('aria-hidden');
-    modalEl.setAttribute('aria-modal', 'true');
-    document.body.classList.add('modal-open');
-    let backdrop = document.getElementById('modalFallbackBackdrop');
-    if (!backdrop) {
-      backdrop = document.createElement('div');
-      backdrop.id = 'modalFallbackBackdrop';
-      backdrop.className = 'modal-backdrop fade show';
-      document.body.appendChild(backdrop);
-    }
-    modalEl.dispatchEvent(new CustomEvent('shown.bs.modal', { bubbles: true }));
-    return {
-      hide: () => closeModalById(modalId)
-    };
-  }
-
-  function closeModalById(modalId) {
-    const modalEl = document.getElementById(modalId);
-    if (!modalEl) return;
-    modalEl.dispatchEvent(new CustomEvent('hide.bs.modal', { bubbles: true }));
-    modalEl.style.display = 'none';
-    modalEl.classList.remove('show');
-    modalEl.setAttribute('aria-hidden', 'true');
-    modalEl.removeAttribute('aria-modal');
-    
-    const openModals = document.querySelectorAll('.modal.show');
-    if (openModals.length === 0) {
-      document.body.classList.remove('modal-open');
-      const backdrop = document.getElementById('modalFallbackBackdrop');
-      if (backdrop) backdrop.remove();
-    }
-    modalEl.dispatchEvent(new CustomEvent('hidden.bs.modal', { bubbles: true }));
-  }
-
   document.addEventListener('click', (e) => {
     // 1. Open trigger
     const triggerBtn = e.target.closest('[data-bs-toggle="modal"], [data-modal-target]');
@@ -3250,7 +3250,8 @@ if (customDomainList) {
         if (nameEl) nameEl.value = "";
         setProPanelMessage(data.message || getText("pro_success_saved", "Saved."), "success");
         await loadProOverview();
-      } catch {
+      } catch (err) {
+        console.error("API key creation error:", err);
         setProPanelMessage(getText("pro_generic_error", pickLang("Əməliyyat uğursuz oldu.", "İşlem başarısız oldu.", "Operation failed.")), "danger");
       } finally {
         if (btn) btn.disabled = false;
