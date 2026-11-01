@@ -36,3 +36,4 @@ Allow: /l/url-shortener-analytics
 Allow: /l/custom-domain-shortener
 Allow: /l/telegram-link-shortener
 Sitemap: https://ovlink.sbs/sitemap.xml
+Sitemap: https://ovlink.sbs/sitemap1.xml

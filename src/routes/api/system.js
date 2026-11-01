@@ -142,8 +142,8 @@ router.get('/robots.txt', (req, res) => {
   });
 });
 
-router.get('/sitemap.xml', (req, res) => {
-  res.type('application/xml');
+router.get(['/sitemap.xml', '/sitemap1.xml', '/sitemap_index.xml'], (req, res) => {
+  res.set('Content-Type', 'application/xml; charset=utf-8');
   res.sendFile(sitemapFile, (err) => {
     if (!err) return;
     const base = getPublicBaseUrl(req);
