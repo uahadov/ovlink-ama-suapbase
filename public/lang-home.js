@@ -18,7 +18,7 @@ const homeTranslations = {
     skip_to_content: "Məzmuna keç",
 
     /* Hero */
-    hero_eyebrow: "Daha sürətli linklər, daha ağıllı nəticələr",
+    hero_eyebrow: "Model Context Protocol aktivdir · Linklərinizi birbaşa AI agentinizlə idarə edin",
     hero_display: "Qısaldın. İzləyin. Paylaşın.",
     hero_display_1: "Qısaldın.",
     hero_display_2: "İzləyin. Paylaşın.",
@@ -256,7 +256,7 @@ const homeTranslations = {
     skip_to_content: "İçeriğe atla",
 
     /* Hero */
-    hero_eyebrow: "Daha hızlı linkler, daha akıllı sonuçlar",
+    hero_eyebrow: "Model Context Protocol aktif · Linklerinizi doğrudan AI ajanınızla yönetin",
     hero_display: "Kısaltın. İzleyin. Paylaşın.",
     hero_display_1: "Kısaltın.",
     hero_display_2: "İzleyin. Paylaşın.",
@@ -494,7 +494,7 @@ const homeTranslations = {
     skip_to_content: "Skip to content",
 
     /* Hero */
-    hero_eyebrow: "Faster links, smarter results",
+    hero_eyebrow: "Model Context Protocol native · Manage your links directly via AI agents",
     hero_display: "Shorten. Track. Share.",
     hero_display_1: "Shorten.",
     hero_display_2: "Track. Share.",
