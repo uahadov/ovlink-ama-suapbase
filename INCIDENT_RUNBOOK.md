@@ -60,6 +60,15 @@ corrupt upload is found here rather than during a SEV1.
 - Cron equivalent on the staging host:
   `15 4 * * 1 cd /var/www/ovlink && ALLOW_RESTORE=1 RESTORE_VERIFY_DB=ovlink_verify node scripts/verify-backup.js`
 
+### Production server ops (ovlink.sbs)
+- `scripts/backup-daily.sh` — daily `pg_dump --format=custom` of the live database into
+  `~/backups/ovlink_<stamp>.dump`, 14-day rotation of its own artifacts only. Cron:
+  `15 3 * * * $HOME/ovlink/scripts/backup-daily.sh >> $HOME/backups/backup.log 2>&1`
+- `scripts/backup-drill.sh` — weekly restore drill against the live cluster via
+  `scripts/verify-backup.js` (throwaway `ovlink_drill_<ts>_verify` database, always dropped
+  in `finally`). Cron: `15 4 * * 0 $HOME/ovlink/scripts/backup-drill.sh >> $HOME/backups/drill.log 2>&1`
+- A drill failure in `~/backups/drill.log` is a SEV2: the last known-good restore is stale.
+
 ### Manual run
 ```bash
 # staging / a host with pg_dump, pg_restore and psql installed
