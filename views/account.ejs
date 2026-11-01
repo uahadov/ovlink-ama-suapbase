@@ -438,25 +438,95 @@
       color: var(--c-white);
     }
 
-    /* Dynamic Item Cards (API Keys, Webhooks, Sessions) */
+    /* Dynamic Item Cards (API Keys, Webhooks, Sessions, Domains) */
     .ovx .pro-item-card,
     .ovx .session-item-card,
     .ovx .domain-item-card {
       background: var(--c-surface-2);
       border: 1px solid var(--c-border);
-      border-radius: 10px;
-      padding: 14px 16px;
+      border-radius: 12px;
+      padding: 16px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      transition: border-color 0.2s;
+      gap: 16px;
+      margin-bottom: 12px;
+      transition: all 0.2s ease;
     }
 
     .ovx .pro-item-card:hover,
     .ovx .session-item-card:hover,
     .ovx .domain-item-card:hover {
       border-color: var(--c-border-hi);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .ovx .pro-item-card.is-revoked {
+      opacity: 0.7;
+    }
+
+    .ovx .pro-item-main {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .ovx .pro-item-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ovx .pro-item-title {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: #ffffff;
+      word-break: break-word;
+    }
+
+    .ovx .pro-item-code {
+      font-family: var(--font-mono, ui-monospace, monospace);
+      font-size: 12px;
+      color: #93c5fd;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      padding: 2px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+    }
+
+    .ovx .pro-item-meta {
+      font-size: 12px;
+      color: var(--c-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      line-height: 1.4;
+    }
+
+    .ovx .pro-meta-dot {
+      color: var(--c-border-hi);
+    }
+
+    .ovx .pro-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .ovx .pro-item-actions .m-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      font-size: 12.5px;
+      white-space: nowrap;
     }
 
     /* Danger Button Style */
@@ -491,50 +561,104 @@
     }
 
     /* Modal Dark Monolith Styling */
-    .ovx .modal-backdrop {
-      background-color: #000;
+    .ovx .modal,
+    #proSecretModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 100000 !important;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
     }
-    .ovx .modal-backdrop.show {
+    .ovx .modal.show,
+    #proSecretModal.show {
+      display: flex !important;
+    }
+
+    .ovx .modal-dialog,
+    #proSecretModal .modal-dialog {
+      width: 100%;
+      max-width: 520px;
+      margin: 1.5rem;
+      pointer-events: auto;
+    }
+
+    .ovx .modal-backdrop,
+    #modalFallbackBackdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #000;
+      z-index: 99999 !important;
+    }
+    .ovx .modal-backdrop.show,
+    #modalFallbackBackdrop.show {
       opacity: 0.85;
       backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
 
-    .ovx .modal-content {
-      background: var(--c-surface);
-      border: 1px solid var(--c-border-hi);
+    .ovx .modal-content,
+    #proSecretModal .modal-content {
+      background: var(--c-surface, #141416);
+      border: 1px solid var(--c-border-hi, rgba(255, 255, 255, 0.15));
       border-radius: 16px;
-      color: var(--c-text);
-      box-shadow: 0 24px 64px rgba(0,0,0,0.8);
+      color: var(--c-text, #ffffff);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.85);
+      overflow: hidden;
+      width: 100%;
     }
 
-    .ovx .modal-header {
-      border-bottom: 1px solid var(--c-border);
-      padding: 20px 24px;
+    .ovx .modal-header,
+    #proSecretModal .modal-header {
+      border-bottom: 1px solid var(--c-border, rgba(255, 255, 255, 0.08));
+      padding: 18px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    .ovx .modal-title {
+    .ovx .modal-title,
+    #proSecretModal .modal-title {
       font-size: 17px;
       font-weight: 600;
-      color: var(--c-white);
+      color: var(--c-white, #ffffff);
       margin: 0;
     }
 
-    .ovx .btn-close {
-      background: none;
-      border: none;
-      color: var(--c-muted);
-      font-size: 16px;
+    .ovx .btn-close,
+    #proSecretModal .btn-close {
+      background: transparent;
+      border: 1px solid var(--c-border, rgba(255, 255, 255, 0.1));
+      border-radius: 8px;
+      color: var(--c-muted, #9ca3af);
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
-      opacity: 0.7;
-      transition: opacity 0.2s, color 0.2s;
+      opacity: 0.8;
+      transition: all 0.2s;
     }
-    .ovx .btn-close::before { content: '✕'; font-family: inherit; font-size: 16px; }
-    .ovx .btn-close:hover { opacity: 1; color: var(--c-white); }
+    .ovx .btn-close:hover,
+    #proSecretModal .btn-close:hover {
+      opacity: 1;
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.05);
+    }
 
-    .ovx .modal-body {
+    .ovx .modal-body,
+    #proSecretModal .modal-body {
       padding: 24px;
     }
 
@@ -1518,31 +1642,33 @@
 
       </div>
     </div>
-  </main>
-
-  <!-- Pro Secret Modal -->
-  <div class="modal fade" id="proSecretModal" tabindex="-1" aria-labelledby="proSecretModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width:500px;margin:1.75rem auto;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="proSecretModalTitle" data-i18n="pro_secret_modal_title_api_key">API açarı yaradıldı</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <p id="proSecretModalDesc" style="font-size:13.5px;color:var(--c-muted);margin-bottom:14px;" data-i18n="pro_secret_modal_desc_api_key">Bu açar yalnız bir dəfə göstərilir. Təhlükəsiz yerdə saxlayın.</p>
-          <div style="display:flex;gap:8px;margin-bottom:10px;">
-            <input id="proSecretValue" type="password" class="m-adv-input font-monospace" autocomplete="off" spellcheck="false" readonly style="flex:1;">
-            <button id="proSecretToggleBtn" class="m-cta m-cta--outline m-cta--sm" type="button" aria-label="Toggle visibility">
-              <i class="fa-solid fa-eye"></i>
+    <!-- Pro Secret Modal -->
+    <div class="modal fade" id="proSecretModal" tabindex="-1" aria-labelledby="proSecretModalTitle" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" style="max-width:500px;margin:1.75rem auto;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="proSecretModalTitle" data-i18n="pro_secret_modal_title_api_key">API açarı yaradıldı</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+              <i class="fa-solid fa-xmark"></i>
             </button>
-            <button id="proSecretCopyBtn" class="m-cta m-cta--white m-cta--sm" type="button" data-i18n="pro_secret_copy_btn">Kopyala</button>
           </div>
-          <div id="proSecretCopyMsg" style="font-size:12.5px;margin-bottom:10px;"></div>
-          <p id="proSecretModalHint" style="font-size:12px;color:var(--c-faint);margin:0;" data-i18n="pro_secret_modal_hint">Təhlükəsizlik səbəbi ilə bu dəyər sonradan yenidən göstərilmir.</p>
+          <div class="modal-body">
+            <p id="proSecretModalDesc" style="font-size:13.5px;color:var(--c-muted);margin-bottom:14px;" data-i18n="pro_secret_modal_desc_api_key">Bu açar yalnız bir dəfə göstərilir. Təhlükəsiz yerdə saxlayın.</p>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+              <input id="proSecretValue" type="text" class="m-adv-input font-monospace" autocomplete="off" spellcheck="false" readonly style="flex:1;">
+              <button id="proSecretToggleBtn" class="m-cta m-cta--outline m-cta--sm" type="button" aria-label="Toggle visibility">
+                <i class="fa-solid fa-eye-slash"></i>
+              </button>
+              <button id="proSecretCopyBtn" class="m-cta m-cta--white m-cta--sm" type="button" data-i18n="pro_secret_copy_btn">Kopyala</button>
+            </div>
+            <div id="proSecretCopyMsg" style="font-size:12.5px;margin-bottom:10px;"></div>
+            <p id="proSecretModalHint" style="font-size:12px;color:var(--c-faint);margin:0;" data-i18n="pro_secret_modal_hint">Təhlükəsizlik səbəbi ilə bu dəyər sonradan yenidən göstərilmir.</p>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+
+  </main>
 
   <!-- Monolith Footer -->
   <%- include('partials/home-footer') %>

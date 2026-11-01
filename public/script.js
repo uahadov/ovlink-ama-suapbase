@@ -1247,7 +1247,8 @@ function openModalById(modalId) {
   const modalEl = document.getElementById(modalId);
   if (!modalEl) return null;
   modalEl.dispatchEvent(new CustomEvent('show.bs.modal', { bubbles: true }));
-  modalEl.style.display = 'block';
+  modalEl.style.zIndex = '100000';
+  modalEl.style.display = 'flex';
   modalEl.classList.add('show');
   modalEl.removeAttribute('aria-hidden');
   modalEl.setAttribute('aria-modal', 'true');
@@ -1257,7 +1258,15 @@ function openModalById(modalId) {
     backdrop = document.createElement('div');
     backdrop.id = 'modalFallbackBackdrop';
     backdrop.className = 'modal-backdrop fade show';
+    backdrop.style.zIndex = '99999';
+    backdrop.addEventListener('click', () => {
+      closeModalById(modalId);
+    });
     document.body.appendChild(backdrop);
+  } else {
+    backdrop.style.zIndex = '99999';
+    backdrop.style.display = 'block';
+    backdrop.classList.add('show');
   }
   modalEl.dispatchEvent(new CustomEvent('shown.bs.modal', { bubbles: true }));
   return {
@@ -1298,7 +1307,7 @@ function openProSecretModal(kind, value) {
   updateProSecretModalContent();
   setProSecretCopyMessage("");
 
-  input.type = "password";
+  input.type = "text";
   input.value = proSecretRawValue;
   updateProSecretToggleButton();
 
@@ -1426,53 +1435,75 @@ function renderProApiKeys(items) {
 
   items.forEach((item) => {
     const row = document.createElement("div");
-    row.className = "pro-item-card border rounded-3 p-2";
+    row.className = "pro-item-card" + (item.revoked_at ? " is-revoked" : "");
 
-    const top = document.createElement("div");
-    top.className = "d-flex flex-wrap justify-content-between align-items-center gap-2";
+    // 1. Left container (Title, Code, Metadata)
+    const main = document.createElement("div");
+    main.className = "pro-item-main";
+
+    const header = document.createElement("div");
+    header.className = "pro-item-header";
+
     const name = document.createElement("strong");
     name.className = "pro-item-title";
     name.textContent = item.name || "API key";
+
     const mask = document.createElement("code");
     mask.className = "pro-item-code";
     mask.textContent = `${item.key_prefix || "ovk_"}...${item.last4 || "----"}`;
-    top.appendChild(name);
-    top.appendChild(mask);
+
+    header.appendChild(name);
+    header.appendChild(mask);
+    main.appendChild(header);
 
     const meta = document.createElement("div");
-    meta.className = "small text-muted mt-1";
+    meta.className = "pro-item-meta";
     const created = item.created_at ? formatDateTime(item.created_at, currentLang) : "-";
-    const used = item.last_used_at ? formatDateTime(item.last_used_at, currentLang) : getText("pro_api_keys_never_used", "never used");
-    meta.textContent = `${getText("pro_created_label", "Created")}: ${created} · ${getText("pro_last_used_label", "Last used")}: ${used}`;
+    const used = item.last_used_at ? formatDateTime(item.last_used_at, currentLang) : getText("pro_api_keys_never_used", pickLang("heç istifadə edilməyib", "hiç kullanılmadı", "never used"));
 
+    const createdSpan = document.createElement("span");
+    createdSpan.textContent = `${getText("pro_created_label", "Yaradılıb")}: ${created}`;
+
+    const dotSpan = document.createElement("span");
+    dotSpan.className = "pro-meta-dot";
+    dotSpan.textContent = "·";
+
+    const usedSpan = document.createElement("span");
+    usedSpan.textContent = `${getText("pro_last_used_label", "Son istifadə")}: ${used}`;
+
+    meta.appendChild(createdSpan);
+    meta.appendChild(dotSpan);
+    meta.appendChild(usedSpan);
+    main.appendChild(meta);
+
+    // 2. Right container (Action buttons or Revoked badge)
     const actions = document.createElement("div");
-    actions.className = "d-flex gap-2 mt-2 flex-wrap";
+    actions.className = "pro-item-actions";
 
     if (item.revoked_at) {
       const revoked = document.createElement("span");
-      revoked.className = "badge text-bg-secondary";
-      revoked.textContent = getText("pro_api_key_revoked", "Revoked");
+      revoked.className = "m-badge-pill m-badge-pill--muted";
+      revoked.innerHTML = '<i class="fa-solid fa-circle-xmark" style="margin-right:4px;"></i>' + getText("pro_api_key_revoked", pickLang("Ləğv edildi", "İptal edildi", "Revoked"));
       actions.appendChild(revoked);
     } else {
       const rotateBtn = document.createElement("button");
       rotateBtn.type = "button";
-      rotateBtn.className = "btn btn-sm btn-outline-primary";
+      rotateBtn.className = "m-cta m-cta--outline m-cta--sm";
       rotateBtn.setAttribute("data-pro-key-action", "rotate");
       rotateBtn.setAttribute("data-pro-key-id", String(item.id));
-      rotateBtn.textContent = getText("pro_api_key_rotate_btn", "Rotate");
+      rotateBtn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> ' + getText("pro_api_key_rotate_btn", pickLang("Rotasiya", "Döndür", "Rotate"));
       actions.appendChild(rotateBtn);
 
       const revokeBtn = document.createElement("button");
       revokeBtn.type = "button";
-      revokeBtn.className = "btn btn-sm btn-outline-danger";
+      revokeBtn.className = "m-cta m-cta--danger m-cta--sm";
       revokeBtn.setAttribute("data-pro-key-action", "revoke");
       revokeBtn.setAttribute("data-pro-key-id", String(item.id));
-      revokeBtn.textContent = getText("pro_api_key_revoke_btn", "Revoke");
+      revokeBtn.innerHTML = '<i class="fa-solid fa-ban"></i> ' + getText("pro_api_key_revoke_btn", pickLang("Ləğv et", "İptal et", "Revoke"));
       actions.appendChild(revokeBtn);
     }
 
-    row.appendChild(top);
-    row.appendChild(meta);
+    row.appendChild(main);
     row.appendChild(actions);
     list.appendChild(row);
   });
@@ -1574,62 +1605,62 @@ function renderProWebhooks(items) {
     }
 
     const badge = document.createElement("span");
-    badge.className = item.is_active ? "badge text-bg-success" : "badge text-bg-secondary";
+    badge.className = item.is_active ? "m-badge-pill m-badge-pill--success" : "m-badge-pill m-badge-pill--muted";
     badge.textContent = item.is_active ? getText("pro_webhook_active", "Active") : getText("pro_webhook_inactive", "Inactive");
 
     header.appendChild(left);
     header.appendChild(badge);
 
     const actions = document.createElement("div");
-    actions.className = "d-flex flex-wrap gap-2 mt-2";
+    actions.className = "pro-item-actions";
 
     const testBtn = document.createElement("button");
     testBtn.type = "button";
-    testBtn.className = "btn btn-sm btn-outline-primary";
+    testBtn.className = "m-cta m-cta--outline m-cta--sm";
     testBtn.setAttribute("data-pro-webhook-action", "test");
     testBtn.setAttribute("data-pro-webhook-id", String(item.id));
-    testBtn.textContent = getText("pro_webhook_test_btn", "Test");
+    testBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ' + getText("pro_webhook_test_btn", "Test");
     actions.appendChild(testBtn);
 
     const rotateSecretBtn = document.createElement("button");
     rotateSecretBtn.type = "button";
-    rotateSecretBtn.className = "btn btn-sm btn-outline-primary";
+    rotateSecretBtn.className = "m-cta m-cta--outline m-cta--sm";
     rotateSecretBtn.setAttribute("data-pro-webhook-action", "rotate_secret");
     rotateSecretBtn.setAttribute("data-pro-webhook-id", String(item.id));
-    rotateSecretBtn.textContent = getText("pro_webhook_rotate_secret_btn", "Rotate secret");
+    rotateSecretBtn.innerHTML = '<i class="fa-solid fa-key"></i> ' + getText("pro_webhook_rotate_secret_btn", "Rotate secret");
     actions.appendChild(rotateSecretBtn);
 
     const editBtn = document.createElement("button");
     editBtn.type = "button";
-    editBtn.className = "btn btn-sm btn-outline-secondary";
+    editBtn.className = "m-cta m-cta--outline m-cta--sm";
     editBtn.setAttribute("data-pro-webhook-action", "edit");
     editBtn.setAttribute("data-pro-webhook-id", String(item.id));
-    editBtn.textContent = getText("pro_webhook_edit_btn", "Edit");
+    editBtn.innerHTML = '<i class="fa-solid fa-pen"></i> ' + getText("pro_webhook_edit_btn", "Edit");
     actions.appendChild(editBtn);
 
     const toggleBtn = document.createElement("button");
     toggleBtn.type = "button";
-    toggleBtn.className = "btn btn-sm btn-outline-secondary";
+    toggleBtn.className = "m-cta m-cta--outline m-cta--sm";
     toggleBtn.setAttribute("data-pro-webhook-action", "toggle");
     toggleBtn.setAttribute("data-pro-webhook-id", String(item.id));
     toggleBtn.setAttribute("data-pro-webhook-active", item.is_active ? "1" : "0");
-    toggleBtn.textContent = item.is_active ? getText("pro_webhook_disable_btn", "Disable") : getText("pro_webhook_enable_btn", "Enable");
+    toggleBtn.innerHTML = (item.is_active ? '<i class="fa-solid fa-pause"></i> ' : '<i class="fa-solid fa-play"></i> ') + (item.is_active ? getText("pro_webhook_disable_btn", "Disable") : getText("pro_webhook_enable_btn", "Enable"));
     actions.appendChild(toggleBtn);
 
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
-    deleteBtn.className = "btn btn-sm btn-outline-danger";
+    deleteBtn.className = "m-cta m-cta--danger m-cta--sm";
     deleteBtn.setAttribute("data-pro-webhook-action", "delete");
     deleteBtn.setAttribute("data-pro-webhook-id", String(item.id));
-    deleteBtn.textContent = getText("pro_webhook_delete_btn", "Delete");
+    deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> ' + getText("pro_webhook_delete_btn", "Delete");
     actions.appendChild(deleteBtn);
 
     if (item.url) {
       const copyUrlBtn = document.createElement("button");
       copyUrlBtn.type = "button";
-      copyUrlBtn.className = "btn btn-sm btn-outline-secondary";
+      copyUrlBtn.className = "m-cta m-cta--outline m-cta--sm";
       copyUrlBtn.setAttribute("data-copy-text", item.url || "");
-      copyUrlBtn.textContent = getText("pro_webhook_copy_url_btn", pickLang("URL kopyala", "URL kopyala", "Copy URL"));
+      copyUrlBtn.innerHTML = '<i class="fa-solid fa-copy"></i> ' + getText("pro_webhook_copy_url_btn", pickLang("URL kopyala", "URL kopyala", "Copy URL"));
       actions.appendChild(copyUrlBtn);
     }
 
