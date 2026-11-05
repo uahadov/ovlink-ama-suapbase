@@ -143,6 +143,18 @@ checkOptional('API_KEY_HASH_SECRET', process.env.API_KEY_HASH_SECRET,
 checkOptional('WEBHOOK_HASH_SECRET', process.env.WEBHOOK_HASH_SECRET, 
   'Webhook güvenliği için', 'Otomatik fallback var ama production\'da tanımlı olmalı');
 
+console.log('\n🛡️  TEHDİT İSTİHBARATI (THREAT FEEDS):');
+console.log('-'.repeat(70));
+const hasUrlhaus = checkOptional('URLHAUS_AUTH_KEY', process.env.URLHAUS_AUTH_KEY || process.env.URLHAUS_API_KEY,
+  'URLhaus malware/phishing feed', 'Kötü amaçlı link taraması için URLhaus API auth key önerilir (https://urlhaus.abuse.ch/api/)');
+const hasGsb = checkOptional('GOOGLE_SAFE_BROWSING_KEY', process.env.GOOGLE_SAFE_BROWSING_KEY || process.env.SAFE_BROWSING_API_KEY,
+  'Google Safe Browsing API', 'Phishing ve malware tespiti için Google Safe Browsing önerilir');
+const hasVt = checkOptional('VIRUSTOTAL_API_KEY', process.env.VIRUSTOTAL_API_KEY,
+  'VirusTotal API', 'Çoklu antivirüs motoru analizi için VirusTotal API önerilir');
+if (!hasUrlhaus && !hasGsb && !hasVt) {
+  console.warn('   ⚠️  Hiçbir canlı tehdit istihbaratı API anahtarı tanımlı değil! Canlı zararlı link taraması pasif kalacak.');
+}
+
 console.log('\n💾 VERİTABANI:');
 console.log('-'.repeat(70));
 const dbUrl = checkRequired('DATABASE_URL', process.env.DATABASE_URL, 'PostgreSQL bağlantısı için gerekli');

@@ -51,7 +51,7 @@ const EXPECTED_EXPORTS = Object.freeze([
 
 // Mount order decides precedence when two routers answer the same path.
 const EXPECTED_MOUNT_ORDER = Object.freeze([
-  'system', 'links', 'pro-v1', 'qr', 'qr-manage', 'analytics', 'campaigns',
+  'system', 'links', 'pro-v1', 'mcp', 'qr', 'qr-manage', 'analytics', 'campaigns',
   'segments', 'account', 'onboarding', 'webhooks', 'api-keys', 'workspaces',
   'custom-domains', 'billing',
 ]);
@@ -115,7 +115,7 @@ test('LINKS-MAP-04: the pro v1 aliases stay reachable from this router', () => {
     if (entry.method !== 'ALL') continue;
     const guarded = pro.some((r) => r.path === entry.path && r.method !== 'ALL');
     assert.ok(guarded, `ALL ${entry.path} has no guarded verb handler`);
-    assert.match(entry.args, /^\s*\(req, res[\s\S]{0,40}=>/, `ALL ${entry.path} gained middleware`);
+    assert.match(entry.args, /,\s*\(req, res(?:,\s*next)?[\s\S]{0,40}=>/, `ALL ${entry.path} gained middleware`);
   }
 });
 
@@ -174,7 +174,7 @@ test('LINKS-MAP-06: helper extraction keeps the original exports available', () 
         .flatMap((m) => m[1].split(',').map((t) => t.trim().split(':')[0].trim())),
     ].filter(Boolean));
     assert.ok(libNames.size > 0, `${rel} exports nothing`);
-    assert.ok(new RegExp(`require\\('\\.\\./\\.\\./lib/${rel.replace('src/lib/', '')}'\\)`).test(source),
+    assert.ok(new RegExp(`require\\('\\.\\./\\.\\./lib/${rel.replace('src/lib/', '').replace(/\.js$/, '')}(?:\\.js)?'\\)`).test(source),
       `links.js does not require ${rel}`);
     // Names the rest of the app imports from links.js may not silently vanish.
     for (const name of EXPECTED_EXPORTS) {

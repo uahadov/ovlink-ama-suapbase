@@ -75,9 +75,16 @@ const THREAT_CACHE_MAX_ENTRIES = 5000;
 
 async function syncThreatIntelligenceFeed() {
   const authKey = (process.env.URLHAUS_AUTH_KEY || process.env.URLHAUS_API_KEY || '').trim();
+  const hasGsb = !!(process.env.GOOGLE_SAFE_BROWSING_KEY || process.env.SAFE_BROWSING_API_KEY || '').trim();
+  const hasVt = !!(process.env.VIRUSTOTAL_API_KEY || '').trim();
+
   if (!authKey) {
     // Abuse.ch has retired unauthenticated bulk downloads (returns 410 Gone).
-    // Real-time queries via checkUrlhausThreat, Google Safe Browsing and VirusTotal remain active.
+    // Real-time queries via checkUrlhausThreat, Google Safe Browsing and VirusTotal remain active if configured.
+    if (!hasGsb && !hasVt && lastThreatFeedSync === 0) {
+      console.warn('[threat-intel] No threat feed credentials configured (URLHAUS_AUTH_KEY, GOOGLE_SAFE_BROWSING_KEY, VIRUSTOTAL_API_KEY). Real-time external malware scanning will be inactive.');
+      lastThreatFeedSync = -1;
+    }
     return;
   }
   try {

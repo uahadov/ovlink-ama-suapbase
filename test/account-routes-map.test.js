@@ -160,7 +160,7 @@ test('ACCOUNT-MAP-06: helper extraction keeps the original exports available', (
   assert.match(source, /^function handleLogout\(req, res\) \{/m);
   if (fs.existsSync(SECURITY_LIB)) {
     const libNames = [...fs.readFileSync(SECURITY_LIB, 'utf8')
-      .matchAll(/^module\.exports = \{([\s\S]*?)\};/m)]
+      .matchAll(/^module\.exports = \{([\s\S]*?)\};/gm)]
       .flatMap((m) => m[1].split(',').map((t) => t.trim()));
     for (const name of ['generateVerificationCode', 'normalizeSessionToken', 'buildBanMessage', 'verifyTotpToken']) {
       assert.ok(libNames.includes(name), `${name} is not exported from account-security.js`);

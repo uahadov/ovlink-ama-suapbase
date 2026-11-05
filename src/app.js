@@ -35,10 +35,10 @@ const log = createLogger('http');
 
 app.set('query parser', 'simple');
 
-let trustProxyHops = Number.parseInt((process.env.TRUST_PROXY_HOPS || '').toString(), 10);
+let trustProxyHops = Number.parseInt((process.env.TRUST_PROXY_HOPS || process.env.TRUST_PROXY || '').toString(), 10);
 if (!Number.isInteger(trustProxyHops) || trustProxyHops < 0 || trustProxyHops > 16) {
   if (isProdRuntime) {
-    console.warn('[startup] TRUST_PROXY_HOPS is not a valid hop count (0-16); defaulting to 1 in production. Set it to the exact number of proxies in front of the app.');
+    console.warn('[startup] TRUST_PROXY_HOPS (or TRUST_PROXY) is not a valid hop count (0-16); defaulting to 1 in production. Set it to the exact number of proxies in front of the app.');
   }
   trustProxyHops = isProdRuntime ? 1 : 0;
 }
