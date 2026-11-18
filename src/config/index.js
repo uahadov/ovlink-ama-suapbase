@@ -109,7 +109,23 @@ const API_KEY_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('API_KEY_HASH_SECRE
   minBytes: 64,
   allowFallbackInProduction: true,
 });
-const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || '20261102-01';
+// Fingerprint shipped assets at startup, so every deploy invalidates stale CDN/browser CSS.
+// Keep an explicit environment override for deployments with their own asset pipeline.
+function fingerprintStaticAssets() {
+  const fs = require('fs');
+  const path = require('path');
+  const fingerprint = crypto.createHash('sha256');
+  const root = path.resolve(__dirname, '../../public');
+  for (const name of ['home.css', 'tokens.css', 'style.css', 'dashboard-ux.css',
+    'script.js', 'lang.js', 'campaigns-page.js', 'campaign-report.js']) {
+    const filename = path.join(root, name);
+    if (!fs.existsSync(filename)) continue;
+    fingerprint.update(name);
+    fingerprint.update(fs.readFileSync(filename));
+  }
+  return fingerprint.digest('hex').slice(0, 12);
+}
+const ASSET_VERSION = (process.env.ASSET_VERSION || process.env.RENDER_GIT_COMMIT || '').toString().trim() || fingerprintStaticAssets();
 const WEBHOOK_HASH_KEY_MATERIAL = resolveSecurityKeyMaterial('WEBHOOK_HASH_SECRET', 'ovlink:webhook-secret-hash:v2', {
   minBytes: 64,
   allowFallbackInProduction: true,

@@ -18,6 +18,7 @@
     <!-- Monolith Core Stylesheet -->
     <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
     <link rel="stylesheet" href="/tokens.css?v=<%= assetVersion %>" />
+    <link rel="stylesheet" href="/dashboard-ux.css?v=<%= assetVersion %>" />
 
     <style nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
       .ovx input.m-adv-input,
@@ -567,11 +568,11 @@
 
           <!-- Filter & Search Toolbar -->
           <div class="m-dash-toolbar" id="dashboardFilterForm" role="search" aria-label="Link filters" data-i18n-aria="dashboard_filter_panel_label">
-            <div style="flex: 2; min-width: 220px;">
+            <div class="m-dash-filter-field m-dash-filter-field--search">
               <label class="m-dash-filter-label" for="dashboardSearch" data-i18n="dashboard_search_label">Axtar</label>
               <input id="dashboardSearch" class="m-adv-input" type="search" maxlength="250" autocomplete="off" placeholder="Kısa / Orijinal Link" data-i18n-placeholder="dashboard_search_placeholder" value="<%= typeof q !== 'undefined' ? q : '' %>" />
             </div>
-            <div style="flex: 1; min-width: 140px;">
+            <div class="m-dash-filter-field">
               <label class="m-dash-filter-label" for="dashboardFilter" data-i18n="dashboard_filter_label">Filtr</label>
               <select id="dashboardFilter" class="m-adv-select u-w-full" >
                 <option value="all" <%= (typeof filter !== 'undefined' && filter === 'all') ? 'selected' : '' %> data-i18n="dashboard_filter_all">Hamısı</option>
@@ -580,7 +581,7 @@
                 <option value="disabled" <%= (typeof filter !== 'undefined' && filter === 'disabled') ? 'selected' : '' %> data-i18n="dashboard_filter_disabled">Deaktiv</option>
               </select>
             </div>
-            <div style="flex: 1; min-width: 140px;">
+            <div class="m-dash-filter-field">
               <label class="m-dash-filter-label" for="dashboardSort" data-i18n="dashboard_sort_label">Sırala</label>
               <select id="dashboardSort" class="m-adv-select u-w-full" >
                 <option value="newest" <%= (typeof sort !== 'undefined' && sort === 'newest') ? 'selected' : '' %> data-i18n="dashboard_sort_newest">Yeni → Köhnə</option>

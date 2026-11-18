@@ -1,0 +1,67 @@
+/* Ovlink Monolith — dashboard layout corrections. Scoped and cache fingerprinted. */
+.ovx .m-dash-actions {
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px; margin:22px 0 24px; align-items:stretch;
+}
+.ovx .m-dash-actions .m-dash-action {
+  display:flex; min-width:0; min-height:46px; align-items:center; justify-content:center;
+  gap:10px; padding:11px 14px; border:1px solid var(--c-border-hi);
+  border-radius:10px; background:var(--c-surface); color:var(--c-text);
+  text-align:center; font-size:13px; font-weight:600; line-height:1.35;
+  text-decoration:none; transition:background-color .2s ease,border-color .2s ease,transform .2s ease;
+}
+.ovx .m-dash-actions .m-dash-action i { flex-shrink:0; font-size:13px; opacity:.82; }
+.ovx .m-dash-actions .m-dash-action:hover { background:var(--c-surface-2); border-color:rgba(255,255,255,.28); transform:translateY(-1px); }
+.ovx .m-dash-actions .m-dash-action--primary { background:var(--c-white); border-color:var(--c-white); color:var(--c-bg); }
+.ovx .m-dash-actions .m-dash-action--primary:hover { background:#dedede; border-color:#dedede; color:var(--c-bg); }
+.ovx .m-dash-actions .m-dash-action:focus-visible { outline:2px solid #fff; outline-offset:3px; }
+
+.ovx #onboardingChecklist { display:block; padding:20px 22px; margin-bottom:20px; }
+.ovx #onboardingChecklist[hidden] { display:none; }
+.ovx #onboardingChecklist .m-onboard-progress-head { display:flex; justify-content:space-between; align-items:center; margin-top:18px; margin-bottom:8px; gap:12px; font-size:12px; font-weight:600; color:var(--c-muted); }
+.ovx #onboardingChecklist .m-onboard-progress { display:block; height:7px; width:100%; background:var(--c-surface-2); border:1px solid var(--c-border); border-radius:999px; overflow:hidden; }
+.ovx #onboardingChecklist .m-onboard-progress-fill { display:block; height:100%; border-radius:inherit; background:#f0f0f0; }
+.ovx #onboardingChecklist .m-onboard-steps { display:grid; gap:12px; list-style:none; padding:0; margin-top:18px; }
+.ovx #onboardingChecklist .m-onboard-step { display:flex; align-items:center; gap:12px; padding:0; min-height:26px; }
+.ovx #onboardingChecklist .m-onboard-step i { flex:0 0 15px; text-align:center; }
+.ovx #onboardingChecklist .m-onboard-step .u-text-sm { flex:1; min-width:0; }
+.ovx #onboardingChecklist .m-onboard-step-link { margin-left:auto; color:#fff; font-weight:600; text-decoration:underline; text-underline-offset:3px; white-space:nowrap; }
+
+.ovx #dashboardFilterForm.m-dash-toolbar { display:grid; grid-template-columns:minmax(190px,2fr) minmax(130px,1fr) minmax(130px,1fr); align-items:end; column-gap:14px; row-gap:16px; padding:19px 22px; }
+.ovx #dashboardFilterForm .m-dash-filter-field { min-width:0; width:100%; }
+.ovx #dashboardFilterForm .m-dash-filter-label { display:block; font-size:12px; font-weight:600; color:#a3a3a3; margin:0 0 8px; line-height:1.35; }
+.ovx #dashboardFilterForm .m-adv-input, .ovx #dashboardFilterForm .m-adv-select { width:100%!important; min-width:0; min-height:42px!important; font-size:13px; }
+.ovx #dashboardMetaFilters { grid-column:1/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; width:100%; min-width:0; margin:0; padding:14px 0 0; border-top:1px solid var(--c-border); }
+.ovx #dashboardMetaFilters .dashboard-meta-filter-field { min-width:0; width:100%; }
+.ovx #dashboardMetaFilters select { width:100%; border-radius:9px; }
+.ovx .m-dash-filter-feedback { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:52px; padding:10px 22px; border-bottom:1px solid var(--c-border); }
+.ovx #dashboardFilterStatus { font-size:12px; line-height:1.5; color:var(--c-muted); }
+.ovx .m-dash-clear-filters { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; min-height:34px; padding:6px 12px; border:1px solid var(--c-border-hi); border-radius:8px; color:var(--c-text); background:var(--c-surface-2); font-size:12px; font-weight:600; text-decoration:none; }
+.ovx .m-dash-clear-filters:hover { color:#fff; border-color:rgba(255,255,255,.3); }
+.ovx .m-dash-clear-filters:focus-visible { outline:2px solid #fff; outline-offset:3px; }
+.ovx #dashboardMetaFilterClear { display:none!important; }
+
+@media(max-width:900px) {
+  .ovx .m-dash-actions { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .ovx #dashboardFilterForm.m-dash-toolbar { grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); }
+  .ovx #dashboardFilterForm .m-dash-filter-field--search { grid-column:1/-1; }
+}
+@media(max-width:560px) {
+  .ovx .m-dash-actions { gap:8px; margin:18px 0 20px; }
+  .ovx .m-dash-actions .m-dash-action { min-height:48px; font-size:12px; padding:10px 8px; gap:7px; }
+  .ovx #onboardingChecklist { padding:16px; }
+  .ovx #onboardingChecklist .m-onboard-step { flex-wrap:wrap; }
+  .ovx #dashboardFilterForm.m-dash-toolbar { grid-template-columns:repeat(2,minmax(0,1fr)); padding:16px; gap:12px; }
+  .ovx #dashboardMetaFilters { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding-top:14px; }
+  .ovx .m-dash-filter-feedback { padding:10px 16px; }
+  .ovx .m-dash-clear-filters { white-space:normal; }
+  .ovx .m-table-wrap { overflow-x:auto; }
+}
+@media(max-width:359px) {
+  .ovx #dashboardMetaFilters { grid-template-columns:minmax(0,1fr); }
+  .ovx .m-dash-actions .m-dash-action { font-size:11.5px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .ovx .m-dash-actions .m-dash-action { transition:none; }
+  .ovx .m-dash-actions .m-dash-action:hover { transform:none; }
+}

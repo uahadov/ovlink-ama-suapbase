@@ -6738,3 +6738,32 @@ body.modal-open {
 [dir="rtl"] i[class*="fa-angle-"],
 [dir="rtl"] i[class*="fa-chevron-"],
 [dir="rtl"] i[class*="fa-arrow-"] { transform: scaleX(-1); }
+
+/* Docs mobile layout: code tabs, scope badges, and long endpoints must not
+   force the legal grid beyond the viewport. */
+.ovx.api-guide-page .m-legal-layout { min-width:0; grid-template-columns:260px minmax(0,1fr); }
+.ovx.api-guide-page .m-legal-content,
+.ovx.api-guide-page .m-legal-section,
+.ovx.api-guide-page .m-api-terminal,
+.ovx.api-guide-page .m-api-spec-box { min-width:0; max-width:100%; }
+.ovx.api-guide-page .m-legal-section-header { min-width:0; }
+.ovx.api-guide-page .m-legal-section-title,
+.ovx.api-guide-page .m-legal-section-text,
+.ovx.api-guide-page .m-help-step-item,
+.ovx.api-guide-page .m-help-step-item span,
+.ovx.api-guide-page .m-endpoint-url { overflow-wrap:anywhere; word-break:break-word; }
+.ovx.api-guide-page .m-api-tabs-nav { min-width:0; max-width:100%; }
+.ovx.api-guide-page .m-api-tab-btn { white-space:nowrap; }
+.ovx.api-guide-page .m-api-code-pre { min-width:0; max-width:100%; overflow-x:auto; }
+.ovx.api-guide-page .m-badge-pill { max-width:100%; overflow-wrap:anywhere; }
+@media(max-width:900px) {
+  .ovx.api-guide-page .m-legal-layout { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:560px) {
+  .ovx.api-guide-page .m-legal-section { padding:18px 16px; }
+  .ovx.api-guide-page .m-api-spec-box { padding:14px 12px; }
+  .ovx.api-guide-page .m-api-terminal-head { align-items:stretch; }
+  .ovx.api-guide-page .m-api-tabs-nav { width:100%; gap:4px; overflow-x:auto; flex-wrap:nowrap; padding-bottom:6px; scrollbar-width:thin; }
+  .ovx.api-guide-page .m-api-tabs-nav .m-api-tab-btn { flex:0 0 auto; padding:8px 10px; }
+  .ovx.api-guide-page .m-api-code-pre { padding:16px 12px; font-size:12px; }
+}

@@ -2556,17 +2556,16 @@ if (document.readyState === "loading") {
     if (!filtersRow) {
       filtersRow = document.createElement("div");
       filtersRow.id = "dashboardMetaFilters";
-      filtersRow.className = "col-12 d-flex flex-wrap align-items-end gap-2";
+      filtersRow.className = "dashboard-meta-filters";
       filtersRow.innerHTML = `
         <div class="dashboard-meta-filter-field">
-          <label class="form-label small fw-bold text-muted mb-1" for="dashboardFolderFilter" data-i18n="dashboard_meta_filter_folder_label">Qovluq</label>
-          <select id="dashboardFolderFilter" class="form-select form-select-sm"></select>
+          <label class="m-dash-filter-label" for="dashboardFolderFilter" data-i18n="dashboard_meta_filter_folder_label">Qovluq</label>
+          <select id="dashboardFolderFilter" class="m-adv-select"></select>
         </div>
         <div class="dashboard-meta-filter-field">
-          <label class="form-label small fw-bold text-muted mb-1" for="dashboardTagFilter" data-i18n="dashboard_meta_filter_tag_label">Teq</label>
-          <select id="dashboardTagFilter" class="form-select form-select-sm"></select>
+          <label class="m-dash-filter-label" for="dashboardTagFilter" data-i18n="dashboard_meta_filter_tag_label">Teq</label>
+          <select id="dashboardTagFilter" class="m-adv-select"></select>
         </div>
-        <button type="button" id="dashboardMetaFilterClear" class="btn btn-outline-secondary btn-sm" data-i18n="dashboard_meta_filter_clear">Təmizlə</button>
       `;
       dashboardFilterForm.appendChild(filtersRow);
       if (typeof applyLanguage === "function") applyLanguage();
@@ -2574,7 +2573,6 @@ if (document.readyState === "loading") {
 
     dashboardFolderFilter = document.getElementById("dashboardFolderFilter");
     dashboardTagFilter = document.getElementById("dashboardTagFilter");
-    const clearBtn = document.getElementById("dashboardMetaFilterClear");
 
     if (!filtersRow.dataset.initialized) {
       const params = new URLSearchParams(window.location.search);
@@ -2585,11 +2583,7 @@ if (document.readyState === "loading") {
       filtersRow.dataset.initialized = "1";
       dashboardFolderFilter?.addEventListener("change", applyDashboardFilters);
       dashboardTagFilter?.addEventListener("change", applyDashboardFilters);
-      clearBtn?.addEventListener("click", () => {
-        if (dashboardFolderFilter) dashboardFolderFilter.value = "all";
-        if (dashboardTagFilter) dashboardTagFilter.value = "all";
-        applyDashboardFilters();
-      });
+      // Reset is owned by #dashboardClearFilters below; do not bind twice.
     }
     rebuildDashboardMetaFilterOptions();
     // Metadata options are refreshed after each server-side filter response.
