@@ -19,15 +19,19 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 router.get('/api/organizations', guard, generalLimiter, requireSignedIn, async (req, res) => {
   try {
     const rows = await dbAllAsync(
-      `SELECT o.id,o.display_name,o.state,om.role, o.created_at,
-              ob.billing_mode,
+      `SELECT o.id,o.display_name,o.state,
+              CASE WHEN o.legacy_workspace_id IS NOT NULL THEN wm.role ELSE om.role END AS role,
+              o.created_at,ob.billing_mode,
               (SELECT count(*)::integer FROM organization_workspaces ow
                 WHERE ow.organization_id=o.id) AS workspace_count
          FROM organizations o
-         JOIN organization_members om ON om.organization_id=o.id
+         LEFT JOIN organization_members om ON om.organization_id=o.id AND om.user_id=?
+         LEFT JOIN workspace_members wm ON wm.workspace_id=o.legacy_workspace_id AND wm.user_id=?
          JOIN organization_billing ob ON ob.organization_id=o.id
-        WHERE om.user_id=? AND o.state='active'
-        ORDER BY o.created_at ASC, o.id ASC`, [userId(req)]
+        WHERE o.state='active' AND
+          ((o.legacy_workspace_id IS NULL AND om.user_id IS NOT NULL)
+           OR (o.legacy_workspace_id IS NOT NULL AND wm.user_id IS NOT NULL))
+        ORDER BY o.created_at ASC, o.id ASC`, [userId(req),userId(req)]
     );
     res.set('Cache-Control', 'no-store');
     return res.json({ organizations: rows });
@@ -40,12 +44,17 @@ router.get('/api/organizations/:id', guard, generalLimiter, requireSignedIn, asy
   if (!uuid.test(req.params.id)) return res.status(404).json({ error: 'Not found' });
   try {
     const row = await dbGetAsync(
-      `SELECT o.id,o.display_name,o.state,om.role,o.created_at,ob.billing_mode
+      `SELECT o.id,o.display_name,o.state,
+              CASE WHEN o.legacy_workspace_id IS NOT NULL THEN wm.role ELSE om.role END AS role,
+              o.created_at,ob.billing_mode
          FROM organizations o
-         JOIN organization_members om ON om.organization_id=o.id
+         LEFT JOIN organization_members om ON om.organization_id=o.id AND om.user_id=?
+         LEFT JOIN workspace_members wm ON wm.workspace_id=o.legacy_workspace_id AND wm.user_id=?
          JOIN organization_billing ob ON ob.organization_id=o.id
-        WHERE o.id=? AND om.user_id=? AND o.state='active'`,
-      [req.params.id, userId(req)]
+        WHERE o.id=? AND o.state='active' AND
+          ((o.legacy_workspace_id IS NULL AND om.user_id IS NOT NULL)
+           OR (o.legacy_workspace_id IS NOT NULL AND wm.user_id IS NOT NULL))`,
+      [userId(req), userId(req), req.params.id]
     );
     if (!row) return res.status(404).json({ error: 'Not found' });
     const workspaces = await dbAllAsync(

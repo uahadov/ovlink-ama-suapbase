@@ -89,6 +89,23 @@ test('P07: opt-in organization CRUD shell, membership isolation, legacy-Pro owne
     );
     assert.equal(shadow.rowCount,1,'new workspaces must not wait for next restart');
     assert.equal(shadow.rows[0].state,'active');
+    await db.query(
+      "INSERT INTO workspace_members(workspace_id,user_id,role,created_at) VALUES($1,$2,'member',$3)",
+      [oldWorkspaceId,bob,new Date().toISOString()]
+    );
+    // Snapshot backfill can contain stale membership rows. The organization
+    // API must still use the CURRENT legacy workspace membership as authority.
+    await migrateOrganizationModel();
+    assert.equal(
+      (await api(bob,'GET',`/api/organizations/${shadow.rows[0].id}`)).status,200
+    );
+    await db.query(
+      'DELETE FROM workspace_members WHERE workspace_id=$1 AND user_id=$2',[oldWorkspaceId,bob]
+    );
+    const revokedOrg=await api(bob,'GET',`/api/organizations/${shadow.rows[0].id}`);
+    assert.equal(revokedOrg.status,404,'removed workspace member must lose org access');
+    const revokedList=await api(bob,'GET','/api/organizations');
+    assert.ok(!revokedList.body.organizations.some(o=>o.id===shadow.rows[0].id),'revoked member must not see org metadata');
     const deleteResult=await api(alice,'DELETE',`/api/workspaces/${oldWorkspaceId}`);
     assert.equal(deleteResult.status,200,JSON.stringify(deleteResult));
     const archived=await db.query(
