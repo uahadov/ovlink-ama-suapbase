@@ -53,7 +53,7 @@ const EXPECTED_EXPORTS = Object.freeze([
 const EXPECTED_MOUNT_ORDER = Object.freeze([
   'system', 'links', 'pro-v1', 'mcp', 'qr', 'qr-manage', 'analytics', 'campaigns',
   'segments', 'account', 'onboarding', 'webhooks', 'api-keys', 'workspaces',
-  'custom-domains', 'billing',
+  'organizations', 'custom-domains', 'billing',
 ]);
 
 const source = fs.readFileSync(ROUTE_FILE, 'utf8');
