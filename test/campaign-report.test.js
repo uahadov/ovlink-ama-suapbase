@@ -20,8 +20,8 @@ test('campaign CSV represents server-provided metrics and date boundaries', () =
   assert.match(csv, /"Unique visitors","81"/);
   assert.match(csv, /"Conversions","9"/);
   assert.match(csv, /"Date from \(UTC\)","2026-11-01T00:00:00Z"/);
-  assert.match(csv, /"Bot filter \(source breakdown only\)","Excluded"/);
-  assert.match(csv, /"Totals methodology"/);
+  assert.match(csv, /"Bot filter","Excluded"/);
+  assert.match(csv, /"Metric source","unspecified"/);
   assert.match(csv, /"Qış, kampaniyası"/);
   assert.match(csv, /"Date","Clicks"\r\n"2026-11-18","100"/);
 });

@@ -154,6 +154,8 @@ function ensureDbTables() {
       UNIQUE (user_id, slug),
       FOREIGN KEY(user_id) REFERENCES users(id)
     )`);
+    db.run('ALTER TABLE campaigns ADD COLUMN workspace_id INTEGER', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_campaigns_workspace ON campaigns(workspace_id, archived_at)', () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_campaigns_user ON campaigns(user_id, archived_at)', () => {});
     db.run('ALTER TABLE urls ADD COLUMN campaign_id INTEGER', () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_urls_campaign ON urls(campaign_id)', () => {});

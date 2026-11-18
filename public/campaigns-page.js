@@ -14,6 +14,14 @@
           campaigns_col_uniques: 'Unikal',
           campaigns_col_conversions: 'Konv.',
           campaigns_empty: 'Hələ kampaniya yoxdur.',
+          campaigns_bot_filter_label: 'Klik filtri',
+          campaigns_all_clicks: 'Bütün kliklər',
+          campaigns_human_clicks: 'Botlar xaric',
+          campaigns_last_click: 'Son qeydə alınan klik: ',
+          campaigns_no_clicks: 'Klik qeydə alınmayıb',
+          campaigns_workspace_label: 'Kampaniya sahəsi',
+          campaigns_personal_scope: 'Şəxsi kampaniya',
+          campaigns_team_label: 'Komanda',
           campaigns_name_label: 'Kampaniya adı',
           campaigns_goal_label: 'Konversiya hədəfi',
           campaigns_list_title: 'Kampaniyalarım',
@@ -56,6 +64,14 @@
           campaigns_col_uniques: 'Tekil',
           campaigns_col_conversions: 'Dön.',
           campaigns_empty: 'Henüz kampanya yok.',
+          campaigns_bot_filter_label: 'Tıklama filtresi',
+          campaigns_all_clicks: 'Tüm tıklamalar',
+          campaigns_human_clicks: 'Botlar hariç',
+          campaigns_last_click: 'Son kaydedilen tıklama: ',
+          campaigns_no_clicks: 'Henüz tıklama yok',
+          campaigns_workspace_label: 'Kampanya alanı',
+          campaigns_personal_scope: 'Kişisel kampanya',
+          campaigns_team_label: 'Ekip',
           campaigns_name_label: 'Kampanya adı',
           campaigns_goal_label: 'Dönüşüm hedefi',
           campaigns_list_title: 'Kampanyalarım',
@@ -98,6 +114,14 @@
           campaigns_col_uniques: 'Uniques',
           campaigns_col_conversions: 'Conv.',
           campaigns_empty: 'No campaigns yet.',
+          campaigns_bot_filter_label: 'Click filter',
+          campaigns_all_clicks: 'All clicks',
+          campaigns_human_clicks: 'Exclude bots',
+          campaigns_last_click: 'Last recorded click: ',
+          campaigns_no_clicks: 'No clicks recorded',
+          campaigns_workspace_label: 'Campaign workspace',
+          campaigns_personal_scope: 'Personal campaign',
+          campaigns_team_label: 'Team',
           campaigns_name_label: 'Campaign name',
           campaigns_goal_label: 'Conversion goal',
           campaigns_list_title: 'My campaigns',
@@ -145,6 +169,23 @@
       var chart = null;
       var currentCampaignId = null;
       var currentCampaignSnapshot = null;
+      var workspaceNameById = {};
+      var lastCampaigns = null;
+      function loadCampaignWorkspaces() {
+        return request('GET', '/api/workspaces').then(function (data) {
+          var select = $('campaignWorkspace');
+          if (!select) return;
+          (data.workspaces || []).forEach(function (ws) {
+            workspaceNameById[String(ws.id)] = ws.name;
+            if (!ws.pro_active || !['owner', 'admin'].includes(ws.role)) return;
+            var option = document.createElement('option');
+            option.value = String(ws.id);
+            option.textContent = ws.name + ' (' + L.campaigns_team_label + ')';
+            select.appendChild(option);
+          });
+          if (lastCampaigns) renderList(lastCampaigns);
+        }).catch(function () { /* Personal campaigns still work without workspace service. */ });
+      }
 
       function $(id) { return document.getElementById(id); }
       function text(id, value) { var el = $(id); if (el) el.textContent = value; }
@@ -215,6 +256,12 @@
           slug.textContent = '/' + item.slug;
           nameCell.appendChild(name);
           nameCell.appendChild(slug);
+          if (item.workspace_id) {
+            var scope = document.createElement('div');
+            scope.className = 'cp-slug';
+            scope.textContent = L.campaigns_team_label + ': ' + (workspaceNameById[String(item.workspace_id)] || '#' + item.workspace_id);
+            nameCell.appendChild(scope);
+          }
           row.appendChild(nameCell);
 
           [
@@ -247,7 +294,7 @@
           deleteBtn.addEventListener('click', function () { removeCampaign(item.id, item.name); });
 
           actions.appendChild(openBtn);
-          actions.appendChild(deleteBtn);
+          if (item.can_manage !== false) actions.appendChild(deleteBtn);
           row.appendChild(actions);
           container.appendChild(row);
         });
@@ -349,7 +396,8 @@
         return request('GET', '/api/campaigns?days=30')
           .then(function (data) {
             if (generation !== listGeneration) return;
-            renderList(data.campaigns || []);
+            lastCampaigns = data.campaigns || [];
+            renderList(lastCampaigns);
             setListStatus('', 'done');
           })
           .catch(function () {
@@ -377,13 +425,19 @@
         $('listSection').hidden = true;
         $('detailSection').hidden = false;
 
-        request('GET', '/api/campaigns/' + encodeURIComponent(id) + '?days=30')
+        request('GET', '/api/campaigns/' + encodeURIComponent(id) + '?days=30&bots=' + encodeURIComponent($('campaignBotFilter') ? $('campaignBotFilter').value : 'include'))
           .then(function (data) {
             if (currentCampaignId !== id || $('detailSection').hidden) return;
             currentCampaignSnapshot = data;
+            if ($('goalSaveBtn')) $('goalSaveBtn').disabled = data.campaign.can_manage === false;
+            if ($('goalClicksInput')) $('goalClicksInput').disabled = data.campaign.can_manage === false;
+            if ($('goalConversionsInput')) $('goalConversionsInput').disabled = data.campaign.can_manage === false;
             if ($('campaignExportCsv')) $('campaignExportCsv').disabled = false;
             text('detailName', data.campaign.name);
             text('detailMeta', '/' + data.campaign.slug + ' · ' + data.links_count + ' link · ' + data.range.days + 'g');
+            text('detailFreshness', data.last_recorded_click_at
+              ? (L.campaigns_last_click + new Date(data.last_recorded_click_at).toLocaleString())
+              : L.campaigns_no_clicks);
             text('kClicks', num(data.clicks));
             text('kUniques', num(data.uniques));
             text('kConversions', num(data.conversions));
@@ -409,13 +463,17 @@
           });
       }
 
+      var filter = $('campaignBotFilter');
+      if (filter) filter.addEventListener('change', function () {
+        if (currentCampaignId) openCampaign(currentCampaignId);
+      });
       var exportButton = $('campaignExportCsv');
       if (exportButton) exportButton.addEventListener('click', function () {
         if (!currentCampaignSnapshot || !currentCampaignId || !window.OvlinkCampaignReport) return;
         var requestedCampaignId = currentCampaignId;
         var requestedSnapshot = currentCampaignSnapshot;
         exportButton.disabled = true;
-        fetch('/api/campaigns/' + encodeURIComponent(requestedCampaignId) + '/export.csv?days=30', {
+        fetch('/api/campaigns/' + encodeURIComponent(requestedCampaignId) + '/export.csv?days=30&bots=' + encodeURIComponent($('campaignBotFilter') ? $('campaignBotFilter').value : 'include'), {
           credentials: 'same-origin', headers: { Accept: 'text/csv' }
         })
           .then(function (response) {
@@ -477,7 +535,8 @@
 
           var btn = $('createBtn');
           if (btn) btn.disabled = true;
-          request('POST', '/api/campaigns', { name: name, goal: goal })
+          var selectedWorkspace = $('campaignWorkspace') && $('campaignWorkspace').value;
+          request('POST', '/api/campaigns', { name: name, goal: goal, workspace_id: selectedWorkspace || null })
             .then(function () {
               setMsg(L.campaigns_created || 'Kampaniya yaradıldı.', false);
               form.reset();
@@ -501,4 +560,5 @@
 
       applyLabels();
       loadList();
+      loadCampaignWorkspaces();
     })();

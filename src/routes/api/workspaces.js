@@ -290,6 +290,11 @@ router.delete('/api/workspaces/:id', requireSignedIn, async (req, res) => {
   // Workspace links fall back to their creator's personal scope; redirects
   // never break.
   await withTransaction(async (tx) => {
+    // Workspace campaigns must not outlive the workspace: otherwise their
+    // owner-scoped links become invisible but retain invalid group pointers.
+    // Keep all the cleanup in the *same* transaction so links never disappear.
+    await tx.run('UPDATE urls SET campaign_id = NULL WHERE workspace_id = ? AND campaign_id IN (SELECT id FROM campaigns WHERE workspace_id = ?)', [workspaceId, workspaceId]);
+    await tx.run('DELETE FROM campaigns WHERE workspace_id = ?', [workspaceId]);
     await tx.run('UPDATE urls SET workspace_id = NULL WHERE workspace_id = ?', [workspaceId]);
     await tx.run('DELETE FROM sso_connections WHERE workspace_id = ?', [workspaceId]);
     await tx.run('DELETE FROM workspace_invitations WHERE workspace_id = ?', [workspaceId]);

@@ -11,7 +11,7 @@ const { beat } = require('./worker-heartbeat');
  */
 
 const { dbGetAsync, dbAllAsync, dbRunAsync } = require('../db/helpers');
-const { sendStatsReportEmail } = require('./email');
+const emailLib = require('./email');
 const { safeDecrypt } = require('../../utils/crypto');
 const { normalizeLang } = require('./i18n');
 const { getConfiguredPublicBaseUrl } = require('./security');
@@ -50,13 +50,13 @@ async function loadWeeklySummary(userId, { days = REPORT_WINDOW_DAYS, now = new 
         'FROM link_stats_daily d JOIN urls u ON u.id = d.url_id ' +
         'WHERE u.user_id = ? AND d.day >= ?',
       [id, currentStartDay]
-    ).catch(() => null),
+    ),
     dbGetAsync(
       'SELECT COALESCE(SUM(d.clicks), 0) AS clicks, COALESCE(SUM(d.uniques), 0) AS uniques ' +
         'FROM link_stats_daily d JOIN urls u ON u.id = d.url_id ' +
         'WHERE u.user_id = ? AND d.day >= ? AND d.day < ?',
       [id, previousStartDay, currentStartDay]
-    ).catch(() => null),
+    ),
     dbAllAsync(
       'SELECT u.short, COALESCE(SUM(d.clicks), 0) AS clicks, COALESCE(SUM(d.uniques), 0) AS uniques ' +
         'FROM urls u LEFT JOIN link_stats_daily d ON d.url_id = u.id AND d.day >= ? ' +
@@ -64,14 +64,14 @@ async function loadWeeklySummary(userId, { days = REPORT_WINDOW_DAYS, now = new 
         'GROUP BY u.short HAVING COALESCE(SUM(d.clicks), 0) > 0 ' +
         'ORDER BY clicks DESC LIMIT 5',
       [currentStartDay, id]
-    ).catch(() => []),
+    ),
     dbGetAsync(
       "SELECT COALESCE(NULLIF(c.referrer_host, ''), 'direct') AS name, COUNT(*) AS count " +
         'FROM clicks c JOIN urls u ON u.id = c.url_id ' +
         'WHERE u.user_id = ? AND c.click_time >= ? ' +
         "GROUP BY COALESCE(NULLIF(c.referrer_host, ''), 'direct') ORDER BY count DESC LIMIT 1",
       [id, currentStart.toISOString()]
-    ).catch(() => null),
+    ),
   ]);
 
   const clicks = totalsRow ? Number(totalsRow.clicks || 0) : 0;
@@ -112,8 +112,8 @@ async function setReportPreference(userId, enabled) {
   const id = Number.parseInt(userId, 10);
   if (!Number.isInteger(id) || id <= 0) return null;
   const flag = readReportFlag(enabled) ? 1 : 0;
-  await dbRunAsync('UPDATE users SET stats_report_enabled = ? WHERE id = ?', [flag, id]).catch(() => null);
-  return { enabled: flag === 1 };
+  const updated = await dbRunAsync('UPDATE users SET stats_report_enabled = ? WHERE id = ?', [flag, id]);
+  return updated && updated.changes ? { enabled: flag === 1 } : null;
 }
 
 async function getReportPreference(userId) {
@@ -138,19 +138,26 @@ async function sendWeeklyStatsReports({ now = new Date(), limit = REPORT_BATCH_L
   const guardCutoff = addDays(now, -REPORT_RESEND_GUARD_DAYS).toISOString();
 
   const recipients = await dbAllAsync(
-    'SELECT id, email, ui_lang FROM users ' +
+    'SELECT id, email, ui_lang, stats_report_last_sent_at FROM users ' +
       'WHERE stats_report_enabled = 1 AND COALESCE(email_verified, 0) = 1 AND COALESCE(banned, 0) = 0 ' +
       'AND (stats_report_last_sent_at IS NULL OR stats_report_last_sent_at < ?) ' +
       'ORDER BY id ASC LIMIT ?',
     [guardCutoff, safeLimit]
-  ).catch(() => []);
+  );
 
   let sent = 0;
   let skipped = 0;
   let failed = 0;
 
   for (const user of recipients || []) {
-    const summary = await loadWeeklySummary(user.id, { now }).catch(() => null);
+    let summary;
+    try {
+      summary = await loadWeeklySummary(user.id, { now });
+    } catch (err) {
+      failed += 1;
+      console.warn('[stats-report] data query failed', user.id, err && (err.message || err));
+      continue;
+    }
     if (!summary || (summary.clicks === 0 && summary.conversions === 0)) {
       skipped += 1;
       continue;
@@ -162,12 +169,36 @@ async function sendWeeklyStatsReports({ now = new Date(), limit = REPORT_BATCH_L
       continue;
     }
 
+    // Atomic, multi-instance-safe claim. Two scheduler processes racing for
+    // this account cannot both send. A failed sender restores the old timestamp
+    // only if this run still owns the claim (compare-and-swap).
+    const claimTime = now.toISOString();
+    let claimed;
     try {
-      await sendStatsReportEmail(email, summary, normalizeLang(user.ui_lang, 'az'));
-      await dbRunAsync('UPDATE users SET stats_report_last_sent_at = ? WHERE id = ?', [now.toISOString(), user.id]);
+      claimed = await dbRunAsync(
+        'UPDATE users SET stats_report_last_sent_at = ? WHERE id = ? AND stats_report_enabled = 1 ' +
+          'AND (stats_report_last_sent_at IS NULL OR stats_report_last_sent_at < ?)',
+        [claimTime, user.id, guardCutoff]
+      );
+    } catch (err) {
+      failed += 1;
+      console.warn('[stats-report] claim failed', user.id, err && (err.message || err));
+      continue;
+    }
+    if (!claimed || !claimed.changes) {
+      skipped += 1;
+      continue;
+    }
+
+    try {
+      await emailLib.sendStatsReportEmail(email, summary, normalizeLang(user.ui_lang, 'az'));
       sent += 1;
     } catch (err) {
       failed += 1;
+      await dbRunAsync(
+        'UPDATE users SET stats_report_last_sent_at = ? WHERE id = ? AND stats_report_last_sent_at = ?',
+        [user.stats_report_last_sent_at || null, user.id, claimTime]
+      ).catch((restoreErr) => console.warn('[stats-report] claim restore failed', user.id, restoreErr && (restoreErr.message || restoreErr)));
       console.warn('[stats-report] send failed', user.id, err && (err.message || err));
     }
   }

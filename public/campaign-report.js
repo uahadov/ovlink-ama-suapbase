@@ -23,13 +23,16 @@
     function add() { lines.push(Array.from(arguments).map(cell).join(',')); }
     function blank() { lines.push(''); }
 
-    add('Ovlink campaign report', 'v1');
+    add('Ovlink campaign report', 'v2');
     add('Campaign', data.campaign.name);
     add('Campaign slug', data.campaign.slug);
     add('Date from (UTC)', data.range.from);
     add('Date to (UTC)', data.range.to);
-    add('Bot filter (source breakdown only)', data.range.bots === 'include' ? 'Included' : 'Excluded');
-    add('Totals methodology', 'Click, unique and conversion totals use daily aggregates and may include bots');
+    add('Bot filter', data.range.bots === 'include' ? 'Included' : 'Excluded');
+    add('Metric source', data.metric_method || 'unspecified');
+    add('Unique definition', data.unique_method || 'unspecified');
+    add('Conversion attribution', data.conversion_method || 'unspecified');
+    add('Last recorded click (UTC)', data.last_recorded_click_at || '');
     add('Generated at (UTC)', data.generated_at);
     blank();
     add('Metric', 'Value');

@@ -438,7 +438,7 @@ router.post('/api/pro/v1/shorten', authenticateProApiKey, trackProApiUsage, proW
     let campaignIdValue = null;
     if (campaignInput) {
       const campaignRow = await dbGetAsync(
-        'SELECT id FROM campaigns WHERE id = ? AND user_id = ? LIMIT 1',
+        'SELECT id FROM campaigns WHERE id = ? AND user_id = ? AND workspace_id IS NULL LIMIT 1',
         [Number.parseInt(campaignInput, 10) || 0, ownerId]
       ).catch(() => null);
       if (!campaignRow) {
@@ -913,8 +913,12 @@ router.post('/api/shorten',
                 return res.status(401).json({ error: pickLang(uiLang, 'Kampaniyaya bağlamaq üçün daxil olun.', 'Kampanyaya bağlamak için giriş yapın.', 'Sign in to assign a campaign.') });
               }
               const campaignRow = await dbGetAsync(
-                'SELECT id FROM campaigns WHERE id = ? AND user_id = ? LIMIT 1',
-                [Number.parseInt(campaignInput, 10) || 0, ownerId]
+                'SELECT c.id FROM campaigns c WHERE c.id = ? AND (' +
+                ' (c.workspace_id IS NULL AND c.user_id = ? AND ?::integer IS NULL) OR ' +
+                ' (c.workspace_id = ? AND c.workspace_id IS NOT NULL AND EXISTS ' +
+                ' (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = c.workspace_id AND wm.user_id = ?))' +
+                ') LIMIT 1',
+                [Number.parseInt(campaignInput, 10) || 0, ownerId, workspaceLinkScopeId, workspaceLinkScopeId, ownerId]
               ).catch(() => null);
               if (!campaignRow) {
                 return res.status(400).json({ error: pickLang(uiLang, 'Kampaniya tapılmadı.', 'Kampanya bulunamadı.', 'Campaign not found.') });

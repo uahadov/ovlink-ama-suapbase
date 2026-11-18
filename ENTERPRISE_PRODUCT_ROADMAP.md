@@ -71,3 +71,6 @@ Ovlink is an everyday link, QR and campaign operations workspace for marketing t
 
 ## B2B operations slice — 18 Nov 2026
 See `ENTERPRISE_OPERATIONS_20261118.md` for the applied server-side fixes, PostgreSQL QA evidence, competitor benchmark and rollout gates. This new phase prioritizes campaign/report consistency, role-scoped mutations, transactional cleanup and reliable migration over cosmetic UI work.
+
+## Team collaboration and analytics continuation (18 Nov 2026)
+Optional workspace-owned campaigns, role-aware read/manage permissions, transactional workspace cleanup, consistent non-bot analytics, provenance-bearing CSV reports and atomic opt-in weekly email send claims implemented. See `ENTERPRISE_OPERATIONS_20261118.md` for scope and remaining production gates.

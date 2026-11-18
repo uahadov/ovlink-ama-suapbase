@@ -6,6 +6,7 @@
  */
 
 const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../db/helpers');
+const { getWorkspaceMemberRole, isWorkspaceProActive, getWorkspaceById } = require('../routes/api/workspaces');
 const {
   parseRange,
   parseBotsFilter,
@@ -102,6 +103,8 @@ function mapCampaignRow(row) {
     id: Number(row.id),
     name: row.name || '',
     slug: row.slug || '',
+    workspace_id: row.workspace_id ? Number(row.workspace_id) : null,
+    can_manage: row.can_manage === undefined ? true : !!Number(row.can_manage),
     goal: row.goal || '',
     goal_clicks: goalClicks,
     goal_conversions: goalConversions,
@@ -120,9 +123,23 @@ function mapCampaignRow(row) {
 }
 
 /** Creates a campaign, returning `{ error }` for validation/duplicate cases. */
-async function createCampaign({ userId, name, goal, goalClicks, goalConversions }) {
+async function createCampaign({ userId, name, goal, goalClicks, goalConversions, workspaceId = null }) {
   const ownerId = Number.parseInt(userId, 10);
   if (!Number.isInteger(ownerId) || ownerId <= 0) return { error: 'unauthorized' };
+
+  let ownerIdForCampaign = ownerId;
+  let scopedWorkspaceId = null;
+  if (workspaceId !== null && workspaceId !== undefined && workspaceId !== '') {
+    const requestedWorkspace = Number(workspaceId);
+    if (!Number.isSafeInteger(requestedWorkspace) || requestedWorkspace <= 0) return { error: 'invalid_workspace' };
+    const workspace = await getWorkspaceById(requestedWorkspace);
+    if (!workspace) return { error: 'workspace_not_found' };
+    const role = await getWorkspaceMemberRole(ownerId, requestedWorkspace);
+    if (!['owner', 'admin'].includes(role)) return { error: 'workspace_forbidden' };
+    if (!await isWorkspaceProActive(workspace)) return { error: 'workspace_inactive' };
+    ownerIdForCampaign = Number(workspace.owner_user_id);
+    scopedWorkspaceId = requestedWorkspace;
+  }
 
   const cleanName = normalizeCampaignName(name);
   if (cleanName.length < 2) return { error: 'invalid_name' };
@@ -132,7 +149,7 @@ async function createCampaign({ userId, name, goal, goalClicks, goalConversions 
 
   const existing = await dbGetAsync(
     'SELECT id FROM campaigns WHERE user_id = ? AND slug = ? LIMIT 1',
-    [ownerId, slug]
+    [ownerIdForCampaign, slug]
   ).catch(() => null);
   if (existing) return { error: 'duplicate' };
 
@@ -140,14 +157,15 @@ async function createCampaign({ userId, name, goal, goalClicks, goalConversions 
   const targetConversions = normalizeGoalTarget(goalConversions);
 
   const inserted = await dbRunAsync(
-    'INSERT INTO campaigns (user_id, name, slug, goal, goal_clicks, goal_conversions, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [ownerId, cleanName, slug, normalizeCampaignName(goal) || null, targetClicks, targetConversions, new Date().toISOString()]
+    'INSERT INTO campaigns (user_id, workspace_id, name, slug, goal, goal_clicks, goal_conversions, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [ownerIdForCampaign, scopedWorkspaceId, cleanName, slug, normalizeCampaignName(goal) || null, targetClicks, targetConversions, new Date().toISOString()]
   ).catch(() => null);
 
   if (!inserted) return { error: 'db_error' };
   return {
     campaign: {
       id: Number(inserted.lastID),
+      workspace_id: scopedWorkspaceId,
       name: cleanName,
       slug,
       goal: normalizeCampaignName(goal) || '',
@@ -164,19 +182,38 @@ async function getCampaignForUser({ userId, campaignId }) {
   return dbGetAsync('SELECT * FROM campaigns WHERE id = ? AND user_id = ? LIMIT 1', [id, ownerId]).catch(() => null);
 }
 
+async function getCampaignForActor({ userId, campaignId, write = false }) {
+  const uid = Number(userId);
+  const id = Number(campaignId);
+  if (!Number.isSafeInteger(uid) || uid <= 0 || !Number.isSafeInteger(id) || id <= 0) return null;
+  const roles = write ? " AND wm.role IN ('owner', 'admin')" : '';
+  return dbGetAsync(
+    'SELECT c.*, CASE WHEN c.workspace_id IS NULL THEN 1 WHEN EXISTS ' +
+    "(SELECT 1 FROM workspace_members wm2 WHERE wm2.workspace_id = c.workspace_id AND wm2.user_id = ? AND wm2.role IN ('owner','admin')) THEN 1 ELSE 0 END AS can_manage " +
+    'FROM campaigns c WHERE c.id = ? AND (' +
+    ' (c.workspace_id IS NULL AND c.user_id = ?) OR ' +
+    ' (c.workspace_id IS NOT NULL AND EXISTS (SELECT 1 FROM workspace_members wm ' +
+    ' WHERE wm.workspace_id = c.workspace_id AND wm.user_id = ?' + roles + '))' +
+    ') LIMIT 1',
+    [uid, id, uid, uid]
+  );
+}
+
 async function listCampaigns({ userId, days, includeArchived = false } = {}) {
   const ownerId = Number.parseInt(userId, 10);
   if (!Number.isInteger(ownerId) || ownerId <= 0) return [];
 
   const range = parseRange(days);
   const dayClause = range.all ? '' : ' AND d.day >= ?';
-  const params = [];
+  const params = [ownerId];
   if (!range.all) params.push(isoDay(addDays(new Date(), -range.days)));
-  params.push(ownerId);
+  params.push(ownerId, ownerId);
 
   const sql =
     'SELECT c.id, c.name, c.slug, c.goal, c.goal_clicks, c.goal_conversions, ' +
-    'c.created_at, c.archived_at, ' +
+    'c.created_at, c.archived_at, c.workspace_id, ' +
+    'CASE WHEN c.workspace_id IS NULL THEN 1 WHEN EXISTS ' +
+    "(SELECT 1 FROM workspace_members wm2 WHERE wm2.workspace_id = c.workspace_id AND wm2.user_id = ? AND wm2.role IN ('owner','admin')) THEN 1 ELSE 0 END AS can_manage, " +
     'COUNT(DISTINCT u.id) AS links_count, ' +
     'COALESCE(SUM(d.clicks), 0) AS clicks, ' +
     'COALESCE(SUM(d.uniques), 0) AS uniques, ' +
@@ -185,8 +222,10 @@ async function listCampaigns({ userId, days, includeArchived = false } = {}) {
     'FROM campaigns c ' +
     'LEFT JOIN urls u ON u.campaign_id = c.id ' +
     'LEFT JOIN link_stats_daily d ON d.url_id = u.id' + dayClause + ' ' +
-    'WHERE c.user_id = ?' + (includeArchived ? '' : ' AND c.archived_at IS NULL') + ' ' +
-    'GROUP BY c.id, c.name, c.slug, c.goal, c.goal_clicks, c.goal_conversions, c.created_at, c.archived_at ' +
+    'WHERE ((c.workspace_id IS NULL AND c.user_id = ?) OR ' +
+    ' (c.workspace_id IS NOT NULL AND EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = c.workspace_id AND wm.user_id = ?)))' +
+    (includeArchived ? '' : ' AND c.archived_at IS NULL') + ' ' +
+    'GROUP BY c.id, c.name, c.slug, c.goal, c.goal_clicks, c.goal_conversions, c.created_at, c.archived_at, c.workspace_id ' +
     'ORDER BY clicks DESC, c.id DESC ' +
     `LIMIT ${CAMPAIGN_LIST_LIMIT}`;
 
@@ -195,69 +234,63 @@ async function listCampaigns({ userId, days, includeArchived = false } = {}) {
   return (rows || []).map(mapCampaignRow);
 }
 
-/**
- * Aggregated campaign statistics across every link assigned to it.
+/** Human-only analytics is intentionally computed from raw events; the daily
+ * rollup has no human-only uniques/conversions. Conversion attribution requires
+ * a preceding non-bot click by the same hashed visitor on the same link.
+ * Unmatched conversions are excluded and explicitly described in the payload.
  */
-async function loadCampaignStats({ campaign, query } = {}) {
-  if (!campaign || !campaign.id) throw new Error('loadCampaignStats requires a campaign row');
-
-  const q = query && typeof query === 'object' ? query : {};
-  const range = parseRange(q.days || q.range);
-  const includeBots = parseBotsFilter(q.bots);
-  const now = new Date();
-  const endDay = isoDay(now);
-  const rangeStart = range.all ? null : addDays(now, -range.days);
-  const rangeStartDay = rangeStart ? isoDay(rangeStart) : null;
-  const rangeStartIso = rangeStart ? rangeStart.toISOString() : null;
+async function loadHumanCampaignStats({ campaign, range, now, rangeStartIso, rangeStartDay, endDay }) {
   const campaignId = Number(campaign.id);
-
-  const dayClause = rangeStartDay ? ' AND d.day >= ?' : '';
-  const dayParams = rangeStartDay ? [rangeStartDay] : [];
-  const clickClause = rangeStartIso ? ' AND c.click_time >= ?' : '';
-  const clickParams = rangeStartIso ? [rangeStartIso] : [];
-  const conversionClause = rangeStartIso ? ' AND v.created_at >= ?' : '';
-  const conversionParams = rangeStartIso ? [rangeStartIso] : [];
-  const botClause = includeBots ? '' : ' AND COALESCE(c.is_bot, 0) = 0';
-
-  const [totalsRow, linksRow, dailyRow, sourcesRow, goalsRow, linksCountRow] = await Promise.all([
-    dbGetAsync(
-      'SELECT COALESCE(SUM(d.clicks), 0) AS clicks, COALESCE(SUM(d.uniques), 0) AS uniques, ' +
-        'COALESCE(SUM(d.bots), 0) AS bots, COALESCE(SUM(d.conversions), 0) AS conversions ' +
-        'FROM link_stats_daily d JOIN urls u ON u.id = d.url_id ' +
-        'WHERE u.campaign_id = ?' + dayClause,
-      [campaignId, ...dayParams]
-    ),
-    dbAllAsync(
-      'SELECT u.short, u.original, u.created_at, COALESCE(SUM(d.clicks), 0) AS clicks, ' +
-        'COALESCE(SUM(d.uniques), 0) AS uniques, COALESCE(SUM(d.conversions), 0) AS conversions ' +
-        'FROM urls u LEFT JOIN link_stats_daily d ON d.url_id = u.id' + dayClause + ' ' +
-        'WHERE u.campaign_id = ? ' +
-        'GROUP BY u.id, u.short, u.original, u.created_at ' +
-        `ORDER BY clicks DESC, u.id DESC LIMIT ${TOP_LINKS_LIMIT}`,
-      [...dayParams, campaignId]
-    ),
-    dbAllAsync(
-      'SELECT d.day AS name, COALESCE(SUM(d.clicks), 0) AS clicks, COALESCE(SUM(d.uniques), 0) AS uniques ' +
-        'FROM link_stats_daily d JOIN urls u ON u.id = d.url_id ' +
-        'WHERE u.campaign_id = ?' + dayClause + ' GROUP BY d.day',
-      [campaignId, ...dayParams]
-    ),
-    dbAllAsync(
-      "SELECT COALESCE(NULLIF(c.referrer_host, ''), 'direct') AS name, COUNT(*) AS count " +
-        'FROM clicks c JOIN urls u ON u.id = c.url_id ' +
-        'WHERE u.campaign_id = ?' + clickClause + botClause + ' ' +
-        'GROUP BY COALESCE(NULLIF(c.referrer_host, \'\'), \'direct\') ORDER BY count DESC LIMIT 12',
-      [campaignId, ...clickParams]
-    ),
-    dbAllAsync(
-      'SELECT v.goal AS name, COUNT(*) AS count ' +
-        'FROM link_conversions v JOIN urls u ON u.id = v.url_id ' +
-        'WHERE u.campaign_id = ?' + conversionClause + ' GROUP BY v.goal ORDER BY count DESC LIMIT 12',
-      [campaignId, ...conversionParams]
-    ),
+  const clickPeriod = rangeStartIso ? ' AND c.click_time >= ?' : '';
+  const convPeriod = rangeStartIso ? ' AND v.created_at >= ?' : '';
+  const clickArgs = rangeStartIso ? [campaignId, rangeStartIso] : [campaignId];
+  const convArgs = rangeStartIso ? [campaignId, rangeStartIso] : [campaignId];
+  const humans = ' AND COALESCE(c.is_bot, 0) = 0';
+  const uniqueByVisit = "COUNT(DISTINCT (c.url_id, LEFT(c.click_time, 10), c.ip_hash)) FILTER (WHERE c.ip_hash IS NOT NULL AND c.ip_hash <> '')";
+  const verifiedConversion =
+    ' AND EXISTS (SELECT 1 FROM clicks c WHERE c.url_id = v.url_id AND c.ip_hash = v.ip_hash ' +
+    ' AND c.click_time <= v.created_at AND COALESCE(c.is_bot, 0) = 0)';
+  const [totals, links, daily, sources, conversionGroups, linkCount] = await Promise.all([
+    dbGetAsync('SELECT COUNT(c.id) AS clicks, ' + uniqueByVisit + ' AS uniques, MAX(c.click_time) AS last_click_at ' +
+      'FROM clicks c JOIN urls u ON u.id=c.url_id WHERE u.campaign_id = ?' + clickPeriod + humans, clickArgs),
+    dbAllAsync('SELECT u.id, u.short, u.original, u.created_at, COUNT(c.id) AS clicks, ' +
+      uniqueByVisit + ' AS uniques FROM urls u LEFT JOIN clicks c ON c.url_id=u.id' +
+      (rangeStartIso ? ' AND c.click_time >= ?' : '') + humans +
+      ' WHERE u.campaign_id = ? GROUP BY u.id, u.short, u.original, u.created_at ' +
+      `ORDER BY clicks DESC, u.id DESC LIMIT ${TOP_LINKS_LIMIT}`,
+      rangeStartIso ? [rangeStartIso, campaignId] : [campaignId]),
+    dbAllAsync("SELECT LEFT(c.click_time, 10) AS name, COUNT(*) AS clicks FROM clicks c JOIN urls u ON u.id=c.url_id " +
+      'WHERE u.campaign_id = ?' + clickPeriod + humans + ' GROUP BY LEFT(c.click_time, 10)', clickArgs),
+    dbAllAsync("SELECT COALESCE(NULLIF(c.referrer_host,''),'direct') AS name, COUNT(*) AS count " +
+      'FROM clicks c JOIN urls u ON u.id=c.url_id WHERE u.campaign_id = ?' + clickPeriod + humans +
+      " GROUP BY COALESCE(NULLIF(c.referrer_host,''),'direct') ORDER BY count DESC LIMIT 12", clickArgs),
+    dbAllAsync('SELECT v.url_id, v.goal, COUNT(*) AS count FROM link_conversions v ' +
+      'JOIN urls u ON u.id=v.url_id WHERE u.campaign_id = ?' + convPeriod + verifiedConversion +
+      ' GROUP BY v.url_id, v.goal', convArgs),
     dbGetAsync('SELECT COUNT(*) AS count FROM urls WHERE campaign_id = ?', [campaignId]),
   ]);
+  const perLink = new Map();
+  const perGoal = new Map();
+  let conversionCount = 0;
+  for (const row of conversionGroups || []) {
+    const count = Number(row.count || 0);
+    conversionCount += count;
+    perLink.set(Number(row.url_id), (perLink.get(Number(row.url_id)) || 0) + count);
+    const key = normalizeBucketName(row.goal);
+    perGoal.set(key, (perGoal.get(key) || 0) + count);
+  }
+  const goals = [...perGoal].map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count).slice(0, 12);
+  const totalsRow = { ...totals, bots: 0, conversions: conversionCount };
+  const linksRow = (links || []).map(row => ({ ...row, conversions: perLink.get(Number(row.id)) || 0 }));
+  return formatCampaignStats({ campaign, range, includeBots: false, now, rangeStartIso,
+    rangeStartDay, endDay, totalsRow, linksRow, dailyRow: daily, sourcesRow: sources,
+    goalsRow: goals, linksCountRow: linkCount });
+}
 
+function formatCampaignStats({ campaign, range, includeBots, now, rangeStartIso, rangeStartDay,
+  endDay, totalsRow, linksRow, dailyRow, sourcesRow, goalsRow, linksCountRow }) {
+  const campaignId = Number(campaign.id);
   const clicks = totalsRow ? Number(totalsRow.clicks || 0) : 0;
   const uniques = totalsRow ? Number(totalsRow.uniques || 0) : 0;
   const bots = totalsRow ? Number(totalsRow.bots || 0) : 0;
@@ -274,6 +307,8 @@ async function loadCampaignStats({ campaign, query } = {}) {
   return {
     campaign: {
       id: campaignId,
+      workspace_id: campaign.workspace_id ? Number(campaign.workspace_id) : null,
+      can_manage: campaign.can_manage === undefined ? true : !!Number(campaign.can_manage),
       name: campaign.name || '',
       slug: campaign.slug || '',
       goal: campaign.goal || '',
@@ -312,7 +347,81 @@ async function loadCampaignStats({ campaign, query } = {}) {
     goals: rowsToCountMap(goalsRow),
     top_goals: topEntries(goalsRow),
     generated_at: now.toISOString(),
+    last_recorded_click_at: totalsRow && totalsRow.last_click_at || null,
+    metric_method: includeBots ? 'daily_rollup' : 'raw_nonbot_events',
+    unique_method: includeBots ? 'daily_unique_rollup' : 'per_link_per_day_hashed_visitor',
+    conversion_method: includeBots ? 'all_recorded_conversions' : 'conversions_with_prior_nonbot_click_match',
   };
+}
+
+/**
+ * Aggregated campaign statistics across every link assigned to it.
+ */
+async function loadCampaignStats({ campaign, query } = {}) {
+  if (!campaign || !campaign.id) throw new Error('loadCampaignStats requires a campaign row');
+
+  const q = query && typeof query === 'object' ? query : {};
+  const range = parseRange(q.days || q.range);
+  const includeBots = parseBotsFilter(q.bots);
+  const now = new Date();
+  const endDay = isoDay(now);
+  const rangeStart = range.all ? null : addDays(now, -range.days);
+  const rangeStartDay = rangeStart ? isoDay(rangeStart) : null;
+  const rangeStartIso = rangeStart ? rangeStart.toISOString() : null;
+  const campaignId = Number(campaign.id);
+  if (!includeBots) {
+    return loadHumanCampaignStats({ campaign, range, now, rangeStartIso, rangeStartDay, endDay });
+  }
+
+  const dayClause = rangeStartDay ? ' AND d.day >= ?' : '';
+  const dayParams = rangeStartDay ? [rangeStartDay] : [];
+  const clickClause = rangeStartIso ? ' AND c.click_time >= ?' : '';
+  const clickParams = rangeStartIso ? [rangeStartIso] : [];
+  const conversionClause = rangeStartIso ? ' AND v.created_at >= ?' : '';
+  const conversionParams = rangeStartIso ? [rangeStartIso] : [];
+  const botClause = includeBots ? '' : ' AND COALESCE(c.is_bot, 0) = 0';
+
+  const [totalsRow, linksRow, dailyRow, sourcesRow, goalsRow, linksCountRow] = await Promise.all([
+    dbGetAsync(
+      'SELECT COALESCE(SUM(d.clicks), 0) AS clicks, COALESCE(SUM(d.uniques), 0) AS uniques, ' +
+        'COALESCE(SUM(d.bots), 0) AS bots, COALESCE(SUM(d.conversions), 0) AS conversions, MAX(d.last_click_at) AS last_click_at ' +
+        'FROM link_stats_daily d JOIN urls u ON u.id = d.url_id ' +
+        'WHERE u.campaign_id = ?' + dayClause,
+      [campaignId, ...dayParams]
+    ),
+    dbAllAsync(
+      'SELECT u.short, u.original, u.created_at, COALESCE(SUM(d.clicks), 0) AS clicks, ' +
+        'COALESCE(SUM(d.uniques), 0) AS uniques, COALESCE(SUM(d.conversions), 0) AS conversions ' +
+        'FROM urls u LEFT JOIN link_stats_daily d ON d.url_id = u.id' + dayClause + ' ' +
+        'WHERE u.campaign_id = ? ' +
+        'GROUP BY u.id, u.short, u.original, u.created_at ' +
+        `ORDER BY clicks DESC, u.id DESC LIMIT ${TOP_LINKS_LIMIT}`,
+      [...dayParams, campaignId]
+    ),
+    dbAllAsync(
+      'SELECT d.day AS name, COALESCE(SUM(d.clicks), 0) AS clicks, COALESCE(SUM(d.uniques), 0) AS uniques ' +
+        'FROM link_stats_daily d JOIN urls u ON u.id = d.url_id ' +
+        'WHERE u.campaign_id = ?' + dayClause + ' GROUP BY d.day',
+      [campaignId, ...dayParams]
+    ),
+    dbAllAsync(
+      "SELECT COALESCE(NULLIF(c.referrer_host, ''), 'direct') AS name, COUNT(*) AS count " +
+        'FROM clicks c JOIN urls u ON u.id = c.url_id ' +
+        'WHERE u.campaign_id = ?' + clickClause + botClause + ' ' +
+        'GROUP BY COALESCE(NULLIF(c.referrer_host, \'\'), \'direct\') ORDER BY count DESC LIMIT 12',
+      [campaignId, ...clickParams]
+    ),
+    dbAllAsync(
+      'SELECT v.goal AS name, COUNT(*) AS count ' +
+        'FROM link_conversions v JOIN urls u ON u.id = v.url_id ' +
+        'WHERE u.campaign_id = ?' + conversionClause + ' GROUP BY v.goal ORDER BY count DESC LIMIT 12',
+      [campaignId, ...conversionParams]
+    ),
+    dbGetAsync('SELECT COUNT(*) AS count FROM urls WHERE campaign_id = ?', [campaignId]),
+  ]);
+
+  return formatCampaignStats({ campaign, range, includeBots, now, rangeStartIso,
+    rangeStartDay, endDay, totalsRow, linksRow, dailyRow, sourcesRow, goalsRow, linksCountRow });
 }
 
 /** Verifies that a campaign belongs to the caller before assigning links to it. */
@@ -335,6 +444,7 @@ module.exports = {
   mapCampaignRow,
   createCampaign,
   getCampaignForUser,
+  getCampaignForActor,
   listCampaigns,
   loadCampaignStats,
   assertCampaignOwnership,

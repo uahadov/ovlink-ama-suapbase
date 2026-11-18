@@ -58,7 +58,9 @@
     .cp-list-status[data-state="error"] { color:#fca5a5; }
     @media (prefers-reduced-motion:reduce) { .cp-btn { transition:none; } }
     .cp-back { margin-bottom: 14px; }
-    .cp-detail-actions { margin-bottom:14px; display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; }
+    .cp-detail-actions { margin-bottom:14px; display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; align-items:center; }
+    .cp-filter-inline { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--c-muted); }
+    .cp-filter-inline .cp-input { min-width:130px; flex:0 1 170px; padding:9px 10px; font-size:12px; }
     @media (max-width: 720px) {
       .cp-row { grid-template-columns: minmax(0, 1.5fr) minmax(36px, 0.6fr) minmax(36px, 0.6fr) auto; gap:6px; }
       .cp-row .cp-name,.cp-row .cp-slug { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -88,6 +90,10 @@
           <label for="campaignGoal" class="cp-sr-only" data-i18n="campaigns_goal_label">Konversiya hədəfi</label>
           <input class="cp-input" id="campaignGoal" type="text" maxlength="40"
                  placeholder="Konversiya hədəfi (məs: signup)" data-i18n-placeholder="campaigns_goal_placeholder" />
+          <label for="campaignWorkspace" class="cp-sr-only" data-i18n="campaigns_workspace_label">Kampaniya sahəsi</label>
+          <select class="cp-input" id="campaignWorkspace" style="flex:1 1 170px;min-width:150px;">
+            <option value="" data-i18n="campaigns_personal_scope">Şəxsi kampaniya</option>
+          </select>
           <button class="cp-btn" type="submit" id="createBtn" data-i18n="campaigns_create">Yarat</button>
         </form>
         <div class="cp-msg" id="createMsg" role="status"></div>
@@ -113,10 +119,18 @@
       <section id="detailSection" class="cp-card" hidden aria-label="Campaign detail">
         <div class="cp-detail-actions">
           <button class="cp-btn cp-btn--ghost" type="button" id="backBtn" data-i18n="campaigns_back">← Geri</button>
+          <label class="cp-filter-inline" for="campaignBotFilter">
+            <span data-i18n="campaigns_bot_filter_label">Klik filtri</span>
+            <select class="cp-input" id="campaignBotFilter">
+              <option value="include" data-i18n="campaigns_all_clicks">Bütün kliklər</option>
+              <option value="exclude" data-i18n="campaigns_human_clicks">Botlar xaric</option>
+            </select>
+          </label>
           <button class="cp-btn cp-btn--ghost" type="button" id="campaignExportCsv" disabled><i class="fa-solid fa-file-csv" aria-hidden="true"></i> <span data-i18n="campaigns_export_csv">CSV hesabatı endir</span></button>
         </div>
         <h2 class="cp-title" id="detailName" style="font-size:20px;margin-bottom:2px;">—</h2>
         <p class="cp-sub" id="detailMeta" style="margin-bottom:16px;"></p>
+        <p class="cp-sub" id="detailFreshness" role="status" style="margin-top:0;"></p>
 
         <div class="cp-kpis">
           <div class="cp-kpi"><span class="cp-kpi-k" data-i18n="campaigns_kpi_clicks">Klik</span><span class="cp-kpi-v" id="kClicks">0</span></div>

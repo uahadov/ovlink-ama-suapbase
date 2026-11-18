@@ -79,10 +79,10 @@ test('workspace campaign mutation honors role and preserves campaign ownership',
     // can ever be touched, even if a test crashes before ROLLBACK.
     await client.query('CREATE TEMP TABLE urls (short TEXT PRIMARY KEY, user_id INTEGER, workspace_id INTEGER, campaign_id INTEGER) ON COMMIT DROP');
     await client.query('CREATE TEMP TABLE workspace_members (user_id INTEGER, workspace_id INTEGER, role TEXT) ON COMMIT DROP');
-    await client.query('CREATE TEMP TABLE campaigns (id INTEGER PRIMARY KEY, user_id INTEGER) ON COMMIT DROP');
+    await client.query('CREATE TEMP TABLE campaigns (id INTEGER PRIMARY KEY, user_id INTEGER, workspace_id INTEGER) ON COMMIT DROP');
     await client.query("INSERT INTO urls VALUES ('enterprise-qa-link', 1, 17, NULL)");
     await client.query("INSERT INTO workspace_members VALUES (2, 17, 'member'), (3, 17, 'admin')");
-    await client.query('INSERT INTO campaigns VALUES (101, 1), (102, 2), (103, 3)');
+    await client.query('INSERT INTO campaigns VALUES (101, 1, 17), (102, 2, NULL), (103, 3, NULL)');
     const sql = db.convertSql(CAMPAIGN_ASSIGNMENT_SQL);
     async function mutate(userId, campaignId) {
       return (await client.query(sql, [campaignId, 'enterprise-qa-link', userId, userId, campaignId, campaignId])).rowCount;

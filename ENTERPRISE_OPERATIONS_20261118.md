@@ -42,3 +42,17 @@ Target first paid users: Azerbaijani agencies, small marketing teams and local S
 
 ## Acceptance principles
 No fake analytics, silent retries on destructive writes, unverified customer claims, public production testing with fake users, forced npm audit upgrades, or removing existing security protections simply to make a test pass. Each shipped feature needs measurable adoption and an owned operational failure path.
+
+## B2B continuation — shared campaigns, attributable analytics and reliable weekly reports
+- Personal campaign behavior remains backwards compatible. An optional workspace_id makes a campaign shared; owner/admin may create/change/delete, member can read/export, outsiders cannot access. Workspace deletion is transactional: it removes associated campaigns and clears link memberships without deleting redirecting URLs.
+- Campaign assignment enforces scope in the database: personal campaigns match the owning user, workspace campaigns match the link's workspace; privileged workspace role is required to mutate. The API and browser selectors expose allowed workspaces and role-aware controls.
+- Human-only campaign analytics (`bots=exclude`) derive clicks, per-link/per-day hashed unique visitors, source breakdowns and daily charts from filtered raw click events; conversions require a prior matching non-bot click on the same link and hashed visitor. This is an attribution model, not proof of human identity. If bots are included, the legacy daily rollup is used. CSV exports include measurement methodology, bot-selection and last recorded click time.
+- Existing *opt-in* weekly email digest has an atomic PostgreSQL claim to avoid double sends by simultaneous workers. Failed send attempts release their claim for retry; a process crash after claim but before send can delay a digest until the resend window elapses — add leased outbox/delivery receipts before high-volume distribution. No new unsolicited emails were enabled.
+- QA evidence: 25/25 DB-backed existing & new campaign/workspace tests; 5/5 weekly report concurrency and existing report tests; 37/37 focused regression tests; Playwright campaign UI with mock API at 320, 390 and 1440px. All destructive QA uses a dedicated disposable local PostgreSQL database, not customer data.
+- Release limitations: full application test suite still has unrelated unresolved failures; human-only analytics scans raw events and needs load tests/index validation before high-traffic pilots; no production authenticated customer journey or pilot has yet been certified; workspace campaign shares/exports remain member-only and are not public client links.
+
+### Next operational gates
+1. Bench human-only queries for large click volumes and bound/prune expensive raw range scans; add timeouts and p95 metrics.
+2. Add workspace event journal for campaign create/update/archive/delete, role changes and exports with actor ID and stable timestamps.
+3. Introduce a durable email outbox with leases and delivery receipts, plus explicit schedule/frequency controls before enabling campaign digests.
+4. Resolve remaining QR/auth/smoke failures and run a real two-account Playwright pilot on isolated staging.

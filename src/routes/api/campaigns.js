@@ -17,7 +17,9 @@ const {
 // owner relationship remains valid even with concurrent workspace activity.
 const CAMPAIGN_ASSIGNMENT_SQL =
   'UPDATE urls SET campaign_id = ? WHERE short = ? AND ' + WORKSPACE_LINK_MUTATION_SQL +
-  ' AND (?::integer IS NULL OR EXISTS (SELECT 1 FROM campaigns c WHERE c.id = ? AND c.user_id = urls.user_id))';
+  ' AND (?::integer IS NULL OR EXISTS (SELECT 1 FROM campaigns c WHERE c.id = ? AND (' +
+  ' (c.workspace_id IS NULL AND c.user_id = urls.user_id) OR ' +
+  ' (c.workspace_id IS NOT NULL AND c.workspace_id = urls.workspace_id))))';
 
 const ERROR_MESSAGES = {
   unauthorized: 'Giriş gerekli.',
@@ -25,6 +27,10 @@ const ERROR_MESSAGES = {
   duplicate: 'Bu adda kampaniya artıq mövcuddur.',
   db_error: 'Kampaniya yaradıla bilmədi.',
   not_found: 'Kampaniya tapılmadı.',
+  workspace_forbidden: 'Workspace-də bu əməliyyata icazəniz yoxdur.',
+  workspace_inactive: 'Workspace üçün aktiv Pro tələb olunur.',
+  invalid_workspace: 'Yanlış workspace ID.',
+  workspace_not_found: 'Workspace tapılmadı.',
 };
 
 function currentUserId(req) {
@@ -58,11 +64,15 @@ router.post('/api/campaigns', async (req, res) => {
   const goal = (req.body && req.body.goal) || '';
   const goalClicks = req.body ? req.body.goal_clicks : null;
   const goalConversions = req.body ? req.body.goal_conversions : null;
+  const workspaceId = req.body ? req.body.workspace_id : null;
 
   try {
-    const result = await campaignLib.createCampaign({ userId, name, goal, goalClicks, goalConversions });
+    const result = await campaignLib.createCampaign({ userId, name, goal, goalClicks, goalConversions, workspaceId });
     if (result.error) {
-      const status = result.error === 'duplicate' ? 409 : (result.error === 'invalid_name' ? 400 : 500);
+      const status = result.error === 'duplicate' ? 409 :
+        (['invalid_name', 'invalid_workspace'].includes(result.error) ? 400 :
+        (result.error === 'workspace_forbidden' ? 403 : (result.error === 'workspace_not_found' ? 404 :
+        (result.error === 'workspace_inactive' ? 403 : 500))));
       return res.status(status).json({ error: ERROR_MESSAGES[result.error] || 'Kampaniya yaradıla bilmədi.' });
     }
     return res.status(201).json({ campaign: result.campaign });
@@ -76,7 +86,7 @@ router.get('/api/campaigns/:id', async (req, res) => {
   const userId = currentUserId(req);
   if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
 
-  const campaign = await campaignLib.getCampaignForUser({ userId, campaignId: req.params.id });
+  const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: req.params.id });
   if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
 
   try {
@@ -105,7 +115,7 @@ router.get('/api/campaigns/:id/export.csv', async (req, res) => {
     // Preserve the difference between missing campaign (404) and database
     // failure (503): getCampaignForUser intentionally tolerates DB errors for
     // older UI callers, which is inappropriate for an audited business export.
-    const campaign = await dbGetAsync('SELECT * FROM campaigns WHERE id = ? AND user_id = ? LIMIT 1', [campaignId, userId]);
+    const campaign = await campaignLib.getCampaignForActor({ userId, campaignId });
     if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
 
     const payload = await campaignLib.loadCampaignStats({
@@ -142,7 +152,7 @@ router.patch('/api/campaigns/:id', async (req, res) => {
   const userId = currentUserId(req);
   if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
 
-  const campaign = await campaignLib.getCampaignForUser({ userId, campaignId: req.params.id });
+  const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: req.params.id, write: true });
   if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
 
   const body = req.body && typeof req.body === 'object' ? req.body : {};
@@ -168,7 +178,7 @@ router.patch('/api/campaigns/:id', async (req, res) => {
     if (slug !== campaign.slug) {
       const clash = await dbGetAsync(
         'SELECT id FROM campaigns WHERE user_id = ? AND slug = ? AND id <> ? LIMIT 1',
-        [userId, slug, campaign.id]
+        [campaign.user_id, slug, campaign.id]
       ).catch(() => null);
       if (clash) return res.status(409).json({ error: ERROR_MESSAGES.duplicate });
     }
@@ -188,10 +198,15 @@ router.patch('/api/campaigns/:id', async (req, res) => {
   }
 
   try {
-    await dbRunAsync(
-      'UPDATE campaigns SET name = ?, slug = ?, goal = ?, archived_at = ?, goal_clicks = ?, goal_conversions = ? WHERE id = ? AND user_id = ?',
-      [nextName, nextSlug, nextGoal, nextArchivedAt, nextGoalClicks, nextGoalConversions, campaign.id, userId]
+    const updated = await dbRunAsync(
+      'UPDATE campaigns SET name = ?, slug = ?, goal = ?, archived_at = ?, goal_clicks = ?, goal_conversions = ? WHERE id = ? AND (' +
+      ' (workspace_id IS NULL AND user_id = ?) OR ' +
+      " (workspace_id IS NOT NULL AND EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = campaigns.workspace_id AND wm.user_id = ? AND wm.role IN ('owner','admin'))))",
+      [nextName, nextSlug, nextGoal, nextArchivedAt, nextGoalClicks, nextGoalConversions, campaign.id, userId, userId]
     );
+    if (!updated || !updated.changes) {
+      return res.status(409).json({ error: 'Kampaniya yenilənə bilmədi. İcazəni və vəziyyəti yeniləyin.' });
+    }
     return res.json({
       campaign: {
         id: Number(campaign.id),
@@ -201,6 +216,7 @@ router.patch('/api/campaigns/:id', async (req, res) => {
         goal_clicks: nextGoalClicks === null || nextGoalClicks === undefined ? null : Number(nextGoalClicks),
         goal_conversions: nextGoalConversions === null || nextGoalConversions === undefined ? null : Number(nextGoalConversions),
         archived_at: nextArchivedAt,
+        workspace_id: campaign.workspace_id ? Number(campaign.workspace_id) : null,
       },
     });
   } catch {
@@ -213,7 +229,7 @@ router.delete('/api/campaigns/:id', async (req, res) => {
   const userId = currentUserId(req);
   if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
 
-  const campaign = await campaignLib.getCampaignForUser({ userId, campaignId: req.params.id });
+  const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: req.params.id, write: true });
   if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
 
   try {
@@ -221,7 +237,10 @@ router.delete('/api/campaigns/:id', async (req, res) => {
     // detach links, because those assignments affect business reporting.
     const deleted = await withTransaction(async (tx) => {
       await tx.run('UPDATE urls SET campaign_id = NULL WHERE campaign_id = ?', [campaign.id]);
-      const result = await tx.run('DELETE FROM campaigns WHERE id = ? AND user_id = ?', [campaign.id, userId]);
+      const result = await tx.run('DELETE FROM campaigns WHERE id = ? AND (' +
+        ' (workspace_id IS NULL AND user_id = ?) OR ' +
+        " (workspace_id IS NOT NULL AND EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = campaigns.workspace_id AND wm.user_id = ? AND wm.role IN ('owner','admin'))))",
+        [campaign.id, userId, userId]);
       if (!result || !result.changes) throw new Error('Campaign changed during deletion');
       return result;
     });
@@ -247,7 +266,7 @@ router.get('/api/links/:short/campaign', async (req, res) => {
   if (!row) return res.status(404).json({ error: 'Link bulunamadı.' });
   if (!row.campaign_id) return res.json({ short, campaign: null });
 
-  const campaign = await campaignLib.getCampaignForUser({ userId, campaignId: row.campaign_id });
+  const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: row.campaign_id });
   return res.json({
     short,
     campaign: campaign
@@ -275,7 +294,7 @@ router.post('/api/links/:short/campaign', async (req, res) => {
   }
 
   if (campaignId !== null) {
-    const owned = await campaignLib.getCampaignForUser({ userId, campaignId });
+    const owned = await campaignLib.getCampaignForActor({ userId, campaignId, write: true });
     if (!owned) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
   }
 
