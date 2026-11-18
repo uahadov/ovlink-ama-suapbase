@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../../db/helpers');
-const { buildShortUrl } = require('../../lib/url-helpers');
+const { buildAbsoluteUrl } = require('../../lib/security');
 
 const SHORT_RE = /^(?:[A-Za-z0-9_-]{1,64})$/;
 const HEX_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
@@ -49,7 +49,7 @@ function serializeRow(row, req) {
     colorLight: row.color_light || '#ffffff',
     scans: Number(row.scans) || 0,
     createdAt: row.created_at,
-    scanUrl: row.deleted_at ? null : buildShortUrl(req, `q/${row.slug || row.id}`, ''),
+    scanUrl: row.deleted_at ? null : buildAbsoluteUrl(req, `/q/${encodeURIComponent(String(row.slug || row.id))}`),
   };
 }
 

@@ -165,6 +165,9 @@ test('qr: CRUD, ownership isolation and /q/:slug scan counting', async (t) => {
     createdQrIds.push(created.id);
     assert.equal(created.scans, 0);
     assert.match(created.scanUrl, /\/q\/[0-9a-f]{12}$/);
+    const scanTarget = new URL(created.scanUrl);
+    assert.equal(scanTarget.pathname, `/q/${created.slug}`, 'QR path segments must not be percent-encoded together');
+    assert.doesNotMatch(scanTarget.pathname, /%2f/i, 'a QR URL must never contain encoded path slashes');
     assert.equal(created.label, 'Poster');
   });
 
