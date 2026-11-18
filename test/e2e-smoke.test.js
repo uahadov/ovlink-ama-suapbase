@@ -96,8 +96,21 @@ test('smoke: public pages, redirect hot path and health endpoint', async (t) => 
     const row = await helpers.dbGetAsync('SELECT id FROM urls WHERE short = ?', [short]);
     assert.ok(row && row.id, 'seed link must exist');
 
-    const redirectRes = await fetch(`${baseUrl}/${short}`, { redirect: 'manual' });
-    assert.equal(redirectRes.status, 302, 'redirect must answer 302');
+    // Privacy contract: no consent means the short URL must lead to the
+    // decision page, not silently redirect or record an analytics click.
+    const consentGate = await fetch(`${baseUrl}/${short}`, { redirect: 'manual' });
+    assert.equal(consentGate.status, 302, 'first visit must request consent');
+    assert.equal(consentGate.headers.get('location'), `/consent/redirect/${short}`);
+    await consentGate.arrayBuffer();
+    const beforeConsent = await helpers.dbGetAsync('SELECT COUNT(*) AS total FROM clicks WHERE url_id = ?', [row.id]);
+    assert.equal(Number(beforeConsent.total), 0, 'no tracking before visitor consent');
+
+    // A visitor who has opted in receives the normal redirect and a click.
+    const redirectRes = await fetch(`${baseUrl}/${short}`, {
+      redirect: 'manual',
+      headers: { Cookie: 'ovlink_redirect_consent=analytics' },
+    });
+    assert.equal(redirectRes.status, 302, 'opted-in redirect must answer 302');
     assert.match(redirectRes.headers.get('location') || '', /example\.com\/smoke-target/);
     await redirectRes.arrayBuffer();
 

@@ -7,6 +7,11 @@ const speakeasy = require('speakeasy');
 process.env.SESSION_SECRET = 'test_session_secret_for_tests_only_very_long_string_must_be_64_bytes_12345678901234567890123456789012';
 process.env.NODE_ENV = 'test';
 process.env.PORT = '0';
+// Test-only Resend client: the email-change subtest intercepts its HTTP call.
+// Never expose a real provider credential or send a network email from QA.
+if (process.env.NODE_ENV === 'test' && /^postgresql:\/\/ovlinkqa:[^@]+@localhost:55491\/ovlink_p02_qa$/.test(process.env.DATABASE_URL || '')) {
+  process.env.RESEND_API_KEY = 're_p03_in_memory_only_not_a_real_key';
+}
 
 const { app, helpers } = require('../server');
 const { blindIndex, encryptAES256GCM, decryptAES256GCM } = require('../utils/crypto');

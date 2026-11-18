@@ -206,8 +206,8 @@ test('AV2-02: funnel pixel, visitor split, live feed, thresholds, segments and a
       });
       assert.equal(patch.status, 200);
       const patched = await patch.json();
-      assert.equal(patched.settings.spike_multiplier.value, 6);
-      assert.equal(patched.settings.spike_multiplier.source, 'user');
+      assert.equal(patched.settings.spikeMultiplier.value, 6);
+      assert.equal(patched.settings.spikeMultiplier.source, 'user');
 
       const linkPatch = await fetch(`${baseUrl}/api/stats/${link.short}/alert-thresholds`, {
         method: 'PATCH',
@@ -216,8 +216,8 @@ test('AV2-02: funnel pixel, visitor split, live feed, thresholds, segments and a
       });
       assert.equal(linkPatch.status, 200);
       const linkPayload = await linkPatch.json();
-      assert.equal(linkPayload.settings.spike_multiplier.value, 9);
-      assert.equal(linkPayload.settings.spike_multiplier.source, 'link');
+      assert.equal(linkPayload.settings.spikeMultiplier.value, 9);
+      assert.equal(linkPayload.settings.spikeMultiplier.source, 'link');
 
       const insights = await fetch(`${baseUrl}/api/stats/${link.short}/anomalies?days=14`, { headers: auth });
       assert.equal(insights.status, 200);

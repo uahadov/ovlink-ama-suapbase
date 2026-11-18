@@ -180,7 +180,15 @@ test.beforeEach(async () => {
 });
 
 test.after(async () => {
-  if (server) await new Promise((resolve) => server.close(resolve));
+  // Close idle undici keep-alive connections before waiting for server.close().
+  if (server) {
+    server.closeIdleConnections?.();
+    await new Promise((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
+  }
+  // This test imports the application and its PostgreSQL pool. Do not leave
+  // the worker alive after the assertions have passed.
+  const { helpers } = require('../server');
+  await helpers.closeDbPool();
 });
 
 test('SEO-09: /l/<slug> renders, unknown slugs do not create a page', async (t) => {
