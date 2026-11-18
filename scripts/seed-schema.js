@@ -24,6 +24,11 @@ function assertSafeTarget(env) {
 async function seed({ timeoutMs = 60000, expected = ['users', 'urls', 'clicks', 'link_stats_daily', 'qr_codes'] } = {}) {
   assertSafeTarget(process.env);
   const { helpers } = require('../server');
+  const { ensureDbTables } = require('../src/db/migrate');
+
+  // Requiring server.js does not execute its require.main startup branch.
+  // The seed helper must explicitly start the same idempotent migrations.
+  ensureDbTables();
 
   const deadline = Date.now() + timeoutMs;
   while (!helpers.isDbMigrationQueueDrained() && Date.now() < deadline) {

@@ -10,8 +10,8 @@ const path = require('node:path');
  * A key added to one block only falls back to the raw key in the other two
  * languages, which is exactly the drift this test prevents.
  *
- * views/campaigns.ejs keeps its own three-language dictionary, so its keys are
- * checked against that file instead.
+ * public/campaigns-page.js keeps its own three-language dictionary, so its keys
+ * are checked against that asset instead.
  *
  * The check is intentionally simple: each key line must appear exactly three
  * times. Keys are unique inside a block, so three occurrences mean az + tr + en.
@@ -19,7 +19,7 @@ const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
 const LANG_SOURCE = fs.readFileSync(path.join(ROOT, 'public', 'lang.js'), 'utf8');
-const CAMPAIGN_SOURCE = fs.readFileSync(path.join(ROOT, 'views', 'campaigns.ejs'), 'utf8');
+const CAMPAIGN_SOURCE = fs.readFileSync(path.join(ROOT, 'public', 'campaigns-page.js'), 'utf8');
 
 function countKey(source, key) {
   const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

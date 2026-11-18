@@ -220,9 +220,21 @@ router.get('/dashboard', (req, res) => {
             hasFirstClick = false;
           }
 
+          // Filtering and workspace scoping must not reset account onboarding.
+          let accountHasLink = totalLinks > 0 && !activeWorkspace && !q && filter === 'all' && folder === 'all' && tag === 'all';
+          if (!accountHasLink) {
+            try {
+              accountHasLink = !!(await dbGetAsync(
+                'SELECT 1 AS ok FROM urls WHERE user_id = ? LIMIT 1',
+                [req.session.userId]
+              ));
+            } catch (_) {
+              accountHasLink = false;
+            }
+          }
           const onboarding = buildOnboardingState({
             userRow: uRow,
-            totalLinks,
+            totalLinks: accountHasLink ? 1 : 0,
             qrCount: (qrCodes || []).length,
             hasFirstClick,
             onFreePlan: !isPro,

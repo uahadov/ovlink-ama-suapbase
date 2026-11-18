@@ -558,18 +558,21 @@
               <button id="bulkImportBtn" type="button" class="m-cta m-cta--outline m-cta--sm">
                 <i class="fa-solid fa-file-import"></i> <span data-i18n="dashboard_import_btn">Toplu import</span>
               </button>
-              <button id="bulkDeleteBtn" type="button" class="m-cta m-cta--danger m-cta--sm">
+              <span class="m-dash-selected-count" id="bulkSelectionStatus" role="status" aria-live="polite" aria-atomic="true"><span id="bulkSelectionNumber">0</span> <span data-i18n="dashboard_selected_count">seçilib</span></span>
+              <button id="bulkDeleteBtn" type="button" class="m-cta m-cta--danger m-cta--sm" disabled>
                 <i class="fa-solid fa-trash-can"></i> <span data-i18n="bulk_delete_btn">Seçilənləri sil</span>
               </button>
             </div>
           </div>
 
           <!-- Filter & Search Toolbar -->
-          <div class="m-dash-toolbar">
+          <div class="m-dash-toolbar" id="dashboardFilterForm" role="search" aria-label="Link filters" data-i18n-aria="dashboard_filter_panel_label">
             <div style="flex: 2; min-width: 220px;">
-              <input id="dashboardSearch" class="m-adv-input" placeholder="Kısa / Orijinal Link" data-i18n-placeholder="dashboard_search_placeholder" value="<%= typeof q !== 'undefined' ? q : '' %>" />
+              <label class="m-dash-filter-label" for="dashboardSearch" data-i18n="dashboard_search_label">Axtar</label>
+              <input id="dashboardSearch" class="m-adv-input" type="search" maxlength="250" autocomplete="off" placeholder="Kısa / Orijinal Link" data-i18n-placeholder="dashboard_search_placeholder" value="<%= typeof q !== 'undefined' ? q : '' %>" />
             </div>
             <div style="flex: 1; min-width: 140px;">
+              <label class="m-dash-filter-label" for="dashboardFilter" data-i18n="dashboard_filter_label">Filtr</label>
               <select id="dashboardFilter" class="m-adv-select u-w-full" >
                 <option value="all" <%= (typeof filter !== 'undefined' && filter === 'all') ? 'selected' : '' %> data-i18n="dashboard_filter_all">Hamısı</option>
                 <option value="reported" <%= (typeof filter !== 'undefined' && filter === 'reported') ? 'selected' : '' %> data-i18n="dashboard_filter_reported">Şikayətli</option>
@@ -578,12 +581,18 @@
               </select>
             </div>
             <div style="flex: 1; min-width: 140px;">
+              <label class="m-dash-filter-label" for="dashboardSort" data-i18n="dashboard_sort_label">Sırala</label>
               <select id="dashboardSort" class="m-adv-select u-w-full" >
                 <option value="newest" <%= (typeof sort !== 'undefined' && sort === 'newest') ? 'selected' : '' %> data-i18n="dashboard_sort_newest">Yeni → Köhnə</option>
                 <option value="oldest" <%= (typeof sort !== 'undefined' && sort === 'oldest') ? 'selected' : '' %> data-i18n="dashboard_sort_oldest">Köhnə → Yeni</option>
                 <option value="reports" <%= (typeof sort !== 'undefined' && sort === 'reports') ? 'selected' : '' %> data-i18n="dashboard_sort_reports">Şikayət Sayı</option>
               </select>
             </div>
+          </div>
+
+          <div class="m-dash-filter-feedback">
+            <span id="dashboardFilterStatus" role="status" aria-live="polite" aria-atomic="true"></span>
+            <button type="button" class="m-dash-clear-filters" id="dashboardClearFilters" data-i18n="dashboard_filters_reset">Bütün filtrləri sıfırla</button>
           </div>
 
           <!-- Table Container -->

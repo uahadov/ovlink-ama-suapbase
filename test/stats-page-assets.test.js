@@ -64,7 +64,8 @@ test('STATS-ASSET-01: the analytics logic body is gone from the view', () => {
 
 test('STATS-ASSET-02: page logic is loaded as a versioned, nonced asset', () => {
   assert.match(viewSource, /<script nonce="<%= nonce %>" src="\/stats-page\.js\?v=<%= assetVersion %>"><\/script>/);
-  const scripts = [...viewSource.matchAll(/<script\b([^>]*)>/g)];
+  // An EJS attribute contains %>; parse EJS expressions as units, not raw HTML '>'.
+  const scripts = [...viewSource.matchAll(/<script\b((?:<%[\s\S]*?%>|[^>])*)>/g)];
   assert.ok(scripts.length > 0);
   for (const tag of scripts) {
     assert.match(tag[1], /nonce="<%= nonce %>"/, 'a <script> tag lost its nonce');

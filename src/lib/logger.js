@@ -27,7 +27,9 @@ function setSink(fn) {
 function resolveLevel() {
   const raw = (process.env.LOG_LEVEL || '').toString().trim().toLowerCase();
   if (LEVELS[raw]) return raw;
-  return process.env.NODE_ENV === 'test' ? 'error' : 'info';
+  // An explicitly injected sink is used by test harnesses and integrations;
+  // the default test silence should not suppress its structured events.
+  return process.env.NODE_ENV === 'test' && !customSink ? 'error' : 'info';
 }
 
 function redact(value, depth = 0, seen = new Set()) {

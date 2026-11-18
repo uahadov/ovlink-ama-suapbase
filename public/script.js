@@ -2383,6 +2383,8 @@ if (document.readyState === "loading") {
   const dashboardBody = document.getElementById("dashboardTableBody");
   const dashboardNoResults = document.getElementById("dashboardNoResults");
   const dashboardFilterForm = document.getElementById("dashboardFilterForm");
+  const dashboardFilterStatus = document.getElementById("dashboardFilterStatus");
+  const dashboardClearFilters = document.getElementById("dashboardClearFilters");
   let dashboardFolderFilter = null;
   let dashboardTagFilter = null;
   let dashboardMetaModal = null;
@@ -2526,7 +2528,10 @@ if (document.readyState === "loading") {
       option.textContent = label;
       dashboardFolderFilter.appendChild(option);
     });
-    dashboardFolderFilter.value = folders.some(([token]) => token === previousFolder) ? previousFolder : "all";
+    if (previousFolder !== "all" && !folders.some(([token]) => token === previousFolder)) {
+      dashboardFolderFilter.add(new Option(previousFolder.replace(/_/g, " "), previousFolder));
+    }
+    dashboardFolderFilter.value = previousFolder;
 
     dashboardTagFilter.innerHTML = "";
     const allTagOption = document.createElement("option");
@@ -2539,7 +2544,10 @@ if (document.readyState === "loading") {
       option.textContent = label;
       dashboardTagFilter.appendChild(option);
     });
-    dashboardTagFilter.value = tags.some(([token]) => token === previousTag) ? previousTag : "all";
+    if (previousTag !== "all" && !tags.some(([token]) => token === previousTag)) {
+      dashboardTagFilter.add(new Option(previousTag.replace(/_/g, " "), previousTag));
+    }
+    dashboardTagFilter.value = previousTag;
   };
 
   const mountDashboardMetaFilters = () => {
@@ -2568,14 +2576,23 @@ if (document.readyState === "loading") {
     dashboardTagFilter = document.getElementById("dashboardTagFilter");
     const clearBtn = document.getElementById("dashboardMetaFilterClear");
 
+    if (!filtersRow.dataset.initialized) {
+      const params = new URLSearchParams(window.location.search);
+      for (const [select, key] of [[dashboardFolderFilter, "folder"], [dashboardTagFilter, "tag"]]) {
+        const val = params.get(key);
+        if (select && val && val !== "all") select.add(new Option(val.replace(/_/g, " "), val));
+      }
+      filtersRow.dataset.initialized = "1";
+      dashboardFolderFilter?.addEventListener("change", applyDashboardFilters);
+      dashboardTagFilter?.addEventListener("change", applyDashboardFilters);
+      clearBtn?.addEventListener("click", () => {
+        if (dashboardFolderFilter) dashboardFolderFilter.value = "all";
+        if (dashboardTagFilter) dashboardTagFilter.value = "all";
+        applyDashboardFilters();
+      });
+    }
     rebuildDashboardMetaFilterOptions();
-    dashboardFolderFilter?.addEventListener("change", applyDashboardFilters);
-    dashboardTagFilter?.addEventListener("change", applyDashboardFilters);
-    clearBtn?.addEventListener("click", () => {
-      if (dashboardFolderFilter) dashboardFolderFilter.value = "all";
-      if (dashboardTagFilter) dashboardTagFilter.value = "all";
-      applyDashboardFilters();
-    });
+    // Metadata options are refreshed after each server-side filter response.
   };
 
   const buildMetaTagsInput = (raw) => {
@@ -3027,6 +3044,13 @@ if (document.readyState === "loading") {
   };
 
   let dashboardFilterTimeout;
+  let dashboardFilterRequest = null;
+  let dashboardFilterGeneration = 0;
+  const setDashboardFilterStatus = (message, state = "") => {
+    if (!dashboardFilterStatus) return;
+    dashboardFilterStatus.textContent = message;
+    dashboardFilterStatus.dataset.state = state;
+  };
   const applyDashboardFilters = (isInit = false) => {
     if (!dashboardBody) return;
     
@@ -3041,6 +3065,9 @@ if (document.readyState === "loading") {
     }
 
     clearTimeout(dashboardFilterTimeout);
+    if (dashboardFilterRequest) dashboardFilterRequest.abort();
+    const generation = ++dashboardFilterGeneration;
+    setDashboardFilterStatus(getText("dashboard_filters_loading", pickLang("Linklər yüklənir…", "Bağlantılar yükleniyor…", "Loading links…")), "loading");
     dashboardFilterTimeout = setTimeout(() => {
       const query = (dashboardSearch && dashboardSearch.value || "").trim().toLowerCase();
       const filter = dashboardFilter ? dashboardFilter.value : "all";
@@ -3055,15 +3082,25 @@ if (document.readyState === "loading") {
       if (tagFilter !== "all") params.set("tag", tagFilter); else params.delete("tag");
       params.delete("page");
 
-      const newUrl = window.location.pathname + "?" + params.toString();
-      window.history.replaceState({}, "", newUrl);
+      const queryString = params.toString();
+      const newUrl = window.location.pathname + (queryString ? "?" + queryString : "");
+      dashboardFilterRequest = new AbortController();
 
-      fetch(newUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } })
-        .then(r => r.text())
+      fetch(newUrl, {
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+        signal: dashboardFilterRequest.signal
+      })
+        .then(r => {
+          if (!r.ok) throw new Error(`Dashboard HTTP ${r.status}`);
+          return r.text();
+        })
         .then(html => {
+          if (generation !== dashboardFilterGeneration) return;
           const doc = new DOMParser().parseFromString(html, "text/html");
           const newBody = doc.getElementById("dashboardTableBody");
-          if (newBody) dashboardBody.innerHTML = newBody.innerHTML;
+          if (!newBody) throw new Error("Dashboard response missing table");
+          dashboardBody.innerHTML = newBody.innerHTML;
+          window.history.replaceState({}, "", newUrl);
           
           const oldPagination = document.querySelector(".m-pagination-bar");
           const newPagination = doc.querySelector(".m-pagination-bar");
@@ -3089,8 +3126,17 @@ if (document.readyState === "loading") {
           if (typeof applyLanguage === "function") {
             applyLanguage();
           }
+          const resultCount = dashboardBody.querySelectorAll("tr[data-short]").length;
+          setDashboardFilterStatus(resultCount
+            ? getText("dashboard_filters_results", pickLang("Göstərilən linklər", "Gösterilen bağlantılar", "Links shown")) + ": " + resultCount
+            : getText("dashboard_no_results", pickLang("Nəticə tapılmadı", "Sonuç bulunamadı", "No results found")), "done");
+          updateSelectAll();
         })
-        .catch(console.error);
+        .catch(err => {
+          if (err.name === "AbortError" || generation !== dashboardFilterGeneration) return;
+          setDashboardFilterStatus(getText("dashboard_filters_error", pickLang("Yükləmə alınmadı. Yenidən cəhd edin.", "Yükleme başarısız. Tekrar deneyin.", "Could not load links. Try again.")), "error");
+          console.error("Dashboard filter failed:", err);
+        });
     }, 250);
   };
 
@@ -3107,6 +3153,14 @@ if (document.readyState === "loading") {
     dashboardFilter && dashboardFilter.addEventListener("change", () => applyDashboardFilters(false));
     dashboardSort && dashboardSort.addEventListener("change", () => applyDashboardFilters(false));
     applyDashboardFilters(true);
+    dashboardClearFilters?.addEventListener("click", () => {
+      if (dashboardSearch) dashboardSearch.value = "";
+      if (dashboardFilter) dashboardFilter.value = "all";
+      if (dashboardSort) dashboardSort.value = "newest";
+      if (dashboardFolderFilter) dashboardFolderFilter.value = "all";
+      if (dashboardTagFilter) dashboardTagFilter.value = "all";
+      applyDashboardFilters(false);
+    });
   }
 
   const profileForm = document.getElementById("profileSettingsForm");
@@ -4069,20 +4123,20 @@ if (customDomainList) {
       document.querySelectorAll(".bulk-select").forEach((cb) => {
         if (!cb.disabled) cb.checked = checked;
       });
+      updateSelectAll();
     });
   }
 
   const updateSelectAll = () => {
     if (!bulkSelectAll) return;
     const items = Array.from(document.querySelectorAll(".bulk-select")).filter((cb) => !cb.disabled);
-    if (!items.length) {
-      bulkSelectAll.checked = false;
-      bulkSelectAll.indeterminate = false;
-      return;
-    }
     const checked = items.filter((cb) => cb.checked).length;
-    bulkSelectAll.checked = checked === items.length;
+    bulkSelectAll.checked = items.length > 0 && checked === items.length;
     bulkSelectAll.indeterminate = checked > 0 && checked < items.length;
+    const number = document.getElementById("bulkSelectionNumber");
+    if (number) number.textContent = String(checked);
+    const deleteButton = document.getElementById("bulkDeleteBtn");
+    if (deleteButton) deleteButton.disabled = checked === 0;
   };
 
   document.addEventListener("change", (e) => {
@@ -4091,6 +4145,7 @@ if (customDomainList) {
     }
   });
 
+  updateSelectAll();
   const bulkDeleteBtn = document.getElementById("bulkDeleteBtn");
   if (bulkDeleteBtn) {
     bulkDeleteBtn.addEventListener("click", () => {

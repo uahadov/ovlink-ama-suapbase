@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= assetVersion %>" />
   <script nonce="<%= nonce %>" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script nonce="<%= nonce %>" src="/campaign-report.js?v=<%= assetVersion %>"></script>
   <title data-i18n="campaigns_title">Kampaniyalar — Ovlink</title>
   <style nonce="<%= nonce %>">
     .cp-page { min-height: 100vh; background: var(--c-bg, #0a0a0a); color: var(--c-text, #f3f4f6); padding: 32px 16px 72px; }
@@ -42,10 +43,27 @@
     .cp-chart { height: 220px; }
     .cp-item { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
     .cp-item:last-child { border-bottom: 0; }
+    .cp-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
     .cp-empty { color: var(--c-faint, #737373); font-size: 13px; }
+    .cp-list-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .cp-list-head h2 { margin:0; font-size:15px; font-weight:700; }
+    .cp-list-head p { margin:4px 0 0; font-size:12px; color:var(--c-muted); }
+    .cp-empty-state { display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:9px; padding:36px 16px; border-radius:12px; border:1px dashed var(--c-border-hi); }
+    .cp-empty-state i { font-size:23px; margin-bottom:4px; color:var(--c-text); }
+    .cp-empty-state h3 { color:var(--c-text); font-size:16px; margin:0; }
+    .cp-empty-state p { color:var(--c-muted); font-size:13px; margin:0 0 7px; max-width:360px; line-height:1.5; }
+    .cp-btn:focus-visible { outline:2px solid var(--c-white); outline-offset:3px; }
+    .cp-btn:hover:not([disabled]) { filter:brightness(0.9); }
+    .cp-list-status { font-size:12px; color:var(--c-muted); min-height:18px; margin:0 0 12px; }
+    .cp-list-status[data-state="error"] { color:#fca5a5; }
+    @media (prefers-reduced-motion:reduce) { .cp-btn { transition:none; } }
     .cp-back { margin-bottom: 14px; }
+    .cp-detail-actions { margin-bottom:14px; display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; }
     @media (max-width: 720px) {
-      .cp-row { grid-template-columns: 1.4fr repeat(2, 0.8fr); }
+      .cp-row { grid-template-columns: minmax(0, 1.5fr) minmax(36px, 0.6fr) minmax(36px, 0.6fr) auto; gap:6px; }
+      .cp-row .cp-name,.cp-row .cp-slug { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .cp-row .cp-actions .cp-btn { padding:7px 9px; min-width:30px; }
+      .cp-row .cp-num { font-size:12px; }
       .cp-row > .cp-hide-sm { display: none; }
     }
   </style>
@@ -64,8 +82,10 @@
 
       <section class="cp-card" aria-label="New campaign">
         <form class="cp-form" id="createForm" autocomplete="off">
+          <label for="campaignName" class="cp-sr-only" data-i18n="campaigns_name_label">Kampaniya adı</label>
           <input class="cp-input" id="campaignName" type="text" maxlength="60" required
                  placeholder="Kampaniya adı (məs: Yay Satışı)" data-i18n-placeholder="campaigns_name_placeholder" />
+          <label for="campaignGoal" class="cp-sr-only" data-i18n="campaigns_goal_label">Konversiya hədəfi</label>
           <input class="cp-input" id="campaignGoal" type="text" maxlength="40"
                  placeholder="Konversiya hədəfi (məs: signup)" data-i18n-placeholder="campaigns_goal_placeholder" />
           <button class="cp-btn" type="submit" id="createBtn" data-i18n="campaigns_create">Yarat</button>
@@ -74,6 +94,11 @@
       </section>
 
       <section id="listSection" class="cp-card" aria-label="Campaigns">
+        <div class="cp-list-head">
+          <div><h2 data-i18n="campaigns_list_title">Kampaniyalarım</h2><p data-i18n="campaigns_period">Son 30 günün nəticələri</p></div>
+          <button class="cp-btn cp-btn--ghost" id="campaignRefresh" type="button"><i class="fa-solid fa-rotate" aria-hidden="true"></i> <span data-i18n="campaigns_refresh">Yenilə</span></button>
+        </div>
+        <div id="campaignListStatus" class="cp-list-status" role="status" aria-live="polite"></div>
         <div class="cp-row cp-row--head">
           <span data-i18n="campaigns_col_name">Kampaniya</span>
           <span data-i18n="campaigns_col_links">Link</span>
@@ -82,12 +107,13 @@
           <span class="cp-hide-sm" data-i18n="campaigns_col_conversions">Konv.</span>
           <span></span>
         </div>
-        <div id="campaignList"><div class="cp-empty" data-i18n="campaigns_empty">Hələ kampaniya yoxdur.</div></div>
+        <div id="campaignList"><div class="cp-empty" data-i18n="campaigns_loading">Kampaniyalar yüklənir…</div></div>
       </section>
 
       <section id="detailSection" class="cp-card" hidden aria-label="Campaign detail">
-        <div class="cp-back">
+        <div class="cp-detail-actions">
           <button class="cp-btn cp-btn--ghost" type="button" id="backBtn" data-i18n="campaigns_back">← Geri</button>
+          <button class="cp-btn cp-btn--ghost" type="button" id="campaignExportCsv" disabled><i class="fa-solid fa-file-csv" aria-hidden="true"></i> <span data-i18n="campaigns_export_csv">CSV hesabatı endir</span></button>
         </div>
         <h2 class="cp-title" id="detailName" style="font-size:20px;margin-bottom:2px;">—</h2>
         <p class="cp-sub" id="detailMeta" style="margin-bottom:16px;"></p>
@@ -138,389 +164,6 @@
     </div>
   </main>
 
-  <script nonce="<%= nonce %>">
-    (function () {
-      var I18N = {
-        az: {
-          campaigns_title: 'Kampaniyalar',
-          campaigns_sub: 'Linkləri kampaniyalar üzrə qruplaşdırın və nəticəni bir ekranda görün.',
-          campaigns_back_dashboard: 'İdarə paneli',
-          campaigns_name_placeholder: 'Kampaniya adı (məs: Yay Satışı)',
-          campaigns_goal_placeholder: 'Konversiya hədəfi (məs: signup)',
-          campaigns_create: 'Yarat',
-          campaigns_col_name: 'Kampaniya',
-          campaigns_col_links: 'Link',
-          campaigns_col_clicks: 'Klik',
-          campaigns_col_uniques: 'Unikal',
-          campaigns_col_conversions: 'Konv.',
-          campaigns_empty: 'Hələ kampaniya yoxdur.',
-          campaigns_back: '← Geri',
-          campaigns_kpi_clicks: 'Klik',
-          campaigns_kpi_uniques: 'Unikal',
-          campaigns_kpi_conversions: 'Konversiya',
-          campaigns_kpi_rate: 'Konversiya faizi',
-          campaigns_goal_clicks: 'Klik hədəfi',
-          campaigns_goal_conversions: 'Konversiya hədəfi',
-          campaigns_goal_save: 'Hədəfi saxla',
-          campaigns_goal_saved: 'Hədəf saxlanıldı.',
-          campaigns_top_links: 'Top linklər',
-          campaigns_sources: 'Mənbələr',
-          campaigns_goals: 'Hədəflər',
-          campaigns_created: 'Kampaniya yaradıldı.',
-          campaigns_deleted: 'Silindi.',
-          campaigns_name_invalid: 'Ad ən az 2 simvol olmalıdır.'
-        },
-        tr: {
-          campaigns_title: 'Kampanyalar',
-          campaigns_sub: 'Linkleri kampanyalar altında gruplayın ve sonucu tek ekranda görün.',
-          campaigns_back_dashboard: 'Kontrol paneli',
-          campaigns_name_placeholder: 'Kampanya adı (örn: Yaz Satışı)',
-          campaigns_goal_placeholder: 'Dönüşüm hedefi (örn: signup)',
-          campaigns_create: 'Oluştur',
-          campaigns_col_name: 'Kampanya',
-          campaigns_col_links: 'Link',
-          campaigns_col_clicks: 'Tıklama',
-          campaigns_col_uniques: 'Tekil',
-          campaigns_col_conversions: 'Dön.',
-          campaigns_empty: 'Henüz kampanya yok.',
-          campaigns_back: '← Geri',
-          campaigns_kpi_clicks: 'Tıklama',
-          campaigns_kpi_uniques: 'Tekil ziyaretçi',
-          campaigns_kpi_conversions: 'Dönüşüm',
-          campaigns_kpi_rate: 'Dönüşüm oranı',
-          campaigns_goal_clicks: 'Tıklama hedefi',
-          campaigns_goal_conversions: 'Dönüşüm hedefi',
-          campaigns_goal_save: 'Hedefi kaydet',
-          campaigns_goal_saved: 'Hedef kaydedildi.',
-          campaigns_top_links: 'En iyi linkler',
-          campaigns_sources: 'Kaynaklar',
-          campaigns_goals: 'Hedefler',
-          campaigns_created: 'Kampanya oluşturuldu.',
-          campaigns_deleted: 'Silindi.',
-          campaigns_name_invalid: 'Ad en az 2 karakter olmalıdır.'
-        },
-        en: {
-          campaigns_title: 'Campaigns',
-          campaigns_sub: 'Group links into campaigns and read the result on one screen.',
-          campaigns_back_dashboard: 'Dashboard',
-          campaigns_name_placeholder: 'Campaign name (e.g. Summer Sale)',
-          campaigns_goal_placeholder: 'Conversion goal (e.g. signup)',
-          campaigns_create: 'Create',
-          campaigns_col_name: 'Campaign',
-          campaigns_col_links: 'Links',
-          campaigns_col_clicks: 'Clicks',
-          campaigns_col_uniques: 'Uniques',
-          campaigns_col_conversions: 'Conv.',
-          campaigns_empty: 'No campaigns yet.',
-          campaigns_back: '← Back',
-          campaigns_kpi_clicks: 'Clicks',
-          campaigns_kpi_uniques: 'Unique visitors',
-          campaigns_kpi_conversions: 'Conversions',
-          campaigns_kpi_rate: 'Conversion rate',
-          campaigns_goal_clicks: 'Click goal',
-          campaigns_goal_conversions: 'Conversion goal',
-          campaigns_goal_save: 'Save goal',
-          campaigns_goal_saved: 'Goal saved.',
-          campaigns_top_links: 'Top links',
-          campaigns_sources: 'Sources',
-          campaigns_goals: 'Goals',
-          campaigns_created: 'Campaign created.',
-          campaigns_deleted: 'Deleted.',
-          campaigns_name_invalid: 'Name must be at least 2 characters.'
-        }
-      };
-      var L = I18N[(document.documentElement.lang || 'az').slice(0, 2)] || I18N.az;
-
-      function applyLabels() {
-        document.querySelectorAll('[data-i18n]').forEach(function (el) {
-          var key = el.getAttribute('data-i18n');
-          if (L[key]) el.textContent = L[key];
-        });
-        document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
-          var key = el.getAttribute('data-i18n-placeholder');
-          if (L[key]) el.placeholder = L[key];
-        });
-      }
-
-      var CSRF = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
-      var chart = null;
-      var currentCampaignId = null;
-
-      function $(id) { return document.getElementById(id); }
-      function text(id, value) { var el = $(id); if (el) el.textContent = value; }
-      function num(value) { return Number(value || 0).toLocaleString(); }
-
-      function setMsg(message, isError) {
-        var el = $('createMsg');
-        if (!el) return;
-        el.textContent = message || '';
-        el.className = 'cp-msg' + (message ? (isError ? ' cp-msg--err' : ' cp-msg--ok') : '');
-      }
-
-      function request(method, url, body) {
-        return fetch(url, {
-          method: method,
-          credentials: 'include',
-          headers: Object.assign(
-            { 'Accept': 'application/json' },
-            body ? { 'Content-Type': 'application/json', 'x-csrf-token': CSRF } : {}
-          ),
-          body: body ? JSON.stringify(body) : undefined,
-        }).then(function (res) {
-          return res.json().catch(function () { return {}; }).then(function (data) {
-            if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
-            return data;
-          });
-        });
-      }
-
-      function renderList(campaigns) {
-        var container = $('campaignList');
-        if (!container) return;
-        container.textContent = '';
-
-        if (!campaigns || !campaigns.length) {
-          var empty = document.createElement('div');
-          empty.className = 'cp-empty';
-          empty.setAttribute('data-i18n', 'campaigns_empty');
-          empty.textContent = 'Hələ kampaniya yoxdur.';
-          container.appendChild(empty);
-          return;
-        }
-
-        campaigns.forEach(function (item) {
-          var row = document.createElement('div');
-          row.className = 'cp-row';
-
-          var nameCell = document.createElement('div');
-          var name = document.createElement('div');
-          name.className = 'cp-name';
-          name.textContent = item.name;
-          var slug = document.createElement('div');
-          slug.className = 'cp-slug';
-          slug.textContent = '/' + item.slug;
-          nameCell.appendChild(name);
-          nameCell.appendChild(slug);
-          row.appendChild(nameCell);
-
-          [
-            { value: item.links_count, hideSmall: false },
-            { value: item.clicks, hideSmall: false },
-            { value: item.uniques, hideSmall: true },
-            { value: item.conversions, hideSmall: true },
-          ].forEach(function (cell) {
-            var el = document.createElement('div');
-            el.className = 'cp-num' + (cell.hideSmall ? ' cp-hide-sm' : '');
-            el.textContent = num(cell.value);
-            row.appendChild(el);
-          });
-
-          var actions = document.createElement('div');
-          actions.className = 'cp-actions';
-
-          var openBtn = document.createElement('button');
-          openBtn.type = 'button';
-          openBtn.className = 'cp-btn cp-btn--ghost';
-          openBtn.textContent = '→';
-          openBtn.setAttribute('aria-label', item.name);
-          openBtn.addEventListener('click', function () { openCampaign(item.id); });
-
-          var deleteBtn = document.createElement('button');
-          deleteBtn.type = 'button';
-          deleteBtn.className = 'cp-btn cp-btn--danger';
-          deleteBtn.textContent = '×';
-          deleteBtn.setAttribute('aria-label', 'delete');
-          deleteBtn.addEventListener('click', function () { removeCampaign(item.id, item.name); });
-
-          actions.appendChild(openBtn);
-          actions.appendChild(deleteBtn);
-          row.appendChild(actions);
-          container.appendChild(row);
-        });
-      }
-
-      function renderItems(containerId, entries, formatter) {
-        var container = $(containerId);
-        if (!container) return;
-        container.textContent = '';
-        var list = (entries || []).slice(0, 6);
-        if (!list.length) {
-          var empty = document.createElement('div');
-          empty.className = 'cp-empty';
-          empty.textContent = '—';
-          container.appendChild(empty);
-          return;
-        }
-        list.forEach(function (entry) {
-          var row = document.createElement('div');
-          row.className = 'cp-item';
-          var label = document.createElement('span');
-          label.textContent = formatter ? formatter(entry) : (entry.name || '—');
-          var value = document.createElement('b');
-          value.textContent = num(entry.count);
-          row.appendChild(label);
-          row.appendChild(value);
-          container.appendChild(row);
-        });
-      }
-
-      function renderGoalProgress(progress) {
-        var container = $('detailGoals');
-        if (!container) return;
-        container.textContent = '';
-        if (!progress) return;
-        [
-          { key: 'clicks', label: L.campaigns_goal_clicks },
-          { key: 'conversions', label: L.campaigns_goal_conversions },
-        ].forEach(function (entry) {
-          var item = progress[entry.key];
-          if (!item || !item.target) return;
-          var row = document.createElement('div');
-          row.style.cssText = 'display:flex;flex-direction:column;gap:4px;font-size:12px;';
-          var label = document.createElement('span');
-          label.textContent = entry.label + ': ' + num(item.actual) + ' / ' + num(item.target) + ' · ' + Number(item.percent || 0) + '%';
-          var bar = document.createElement('div');
-          bar.style.cssText = 'height:5px;border-radius:100px;background:rgba(127,127,127,0.2);overflow:hidden;';
-          var fill = document.createElement('div');
-          fill.style.cssText = 'height:100%;border-radius:100px;background:' + (item.achieved ? '#34d399' : 'rgba(255,255,255,0.6)') + ';';
-          fill.style.width = Math.max(2, Number(item.bar_percent || 0)) + '%';
-          bar.appendChild(fill);
-          row.appendChild(label);
-          row.appendChild(bar);
-          container.appendChild(row);
-        });
-      }
-
-      function drawChart(series) {
-        var canvas = $('campaignChart');
-        if (!canvas || typeof Chart === 'undefined') return;
-        if (chart) { chart.destroy(); chart = null; }
-
-        chart = new Chart(canvas, {
-          type: 'line',
-          data: {
-            labels: (series || []).map(function (point) { return point.date.slice(5); }),
-            datasets: [{
-              data: (series || []).map(function (point) { return point.count; }),
-              borderColor: '#ffffff',
-              borderWidth: 2,
-              pointRadius: 0,
-              tension: 0.3,
-              fill: true,
-              backgroundColor: 'rgba(255,255,255,0.06)'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', maxTicksLimit: 8 } },
-              y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', precision: 0 } }
-            }
-          }
-        });
-      }
-
-      function loadList() {
-        return request('GET', '/api/campaigns?days=30')
-          .then(function (data) { renderList(data.campaigns || []); })
-          .catch(function (err) { setMsg(err.message, true); });
-      }
-
-      function openCampaign(id) {
-        currentCampaignId = id;
-        $('listSection').hidden = true;
-        $('detailSection').hidden = false;
-
-        request('GET', '/api/campaigns/' + encodeURIComponent(id) + '?days=30')
-          .then(function (data) {
-            text('detailName', data.campaign.name);
-            text('detailMeta', '/' + data.campaign.slug + ' · ' + data.links_count + ' link · ' + data.range.days + 'g');
-            text('kClicks', num(data.clicks));
-            text('kUniques', num(data.uniques));
-            text('kConversions', num(data.conversions));
-            text('kRate', Number(data.conversion_rate || 0) + '%');
-            renderGoalProgress(data.goal_progress);
-
-            var goalClicksInput = $('goalClicksInput');
-            var goalConversionsInput = $('goalConversionsInput');
-            if (goalClicksInput) goalClicksInput.value = data.campaign.goal_clicks || '';
-            if (goalConversionsInput) goalConversionsInput.value = data.campaign.goal_conversions || '';
-
-            renderItems('topLinks', (data.top_links || []).map(function (link) {
-              return { name: '/' + link.short, count: link.clicks };
-            }));
-            renderItems('topSources', data.top_sources);
-            renderItems('topGoals', data.top_goals);
-            drawChart(data.clicks_by_day);
-          })
-          .catch(function (err) {
-            text('detailName', '—');
-            setMsg(err.message, true);
-          });
-      }
-
-      var goalSaveBtn = $('goalSaveBtn');
-      if (goalSaveBtn) {
-        goalSaveBtn.addEventListener('click', function () {
-          if (!currentCampaignId) return;
-          var goalMsg = $('goalMsg');
-          var payload = {
-            goal_clicks: $('goalClicksInput') ? $('goalClicksInput').value : '',
-            goal_conversions: $('goalConversionsInput') ? $('goalConversionsInput').value : '',
-          };
-          request('PATCH', '/api/campaigns/' + encodeURIComponent(currentCampaignId), payload)
-            .then(function () {
-              if (goalMsg) { goalMsg.textContent = L.campaigns_goal_saved || 'OK'; goalMsg.className = 'cp-msg cp-msg--ok'; }
-              openCampaign(currentCampaignId);
-            })
-            .catch(function (err) {
-              if (goalMsg) { goalMsg.textContent = err.message; goalMsg.className = 'cp-msg cp-msg--err'; }
-            });
-        });
-      }
-
-      function removeCampaign(id, name) {
-        if (!window.confirm('“' + name + '” silinsin? Linklər silinmir.')) return;
-        request('DELETE', '/api/campaigns/' + encodeURIComponent(id))
-          .then(function () { setMsg(L.campaigns_deleted || 'Silindi.', false); return loadList(); })
-          .catch(function (err) { setMsg(err.message, true); });
-      }
-
-      var form = $('createForm');
-      if (form) {
-        form.addEventListener('submit', function (event) {
-          event.preventDefault();
-          var name = ($('campaignName') && $('campaignName').value || '').trim();
-          var goal = ($('campaignGoal') && $('campaignGoal').value || '').trim();
-          if (name.length < 2) { setMsg(L.campaigns_name_invalid || 'Ad ən az 2 simvol olmalıdır.', true); return; }
-
-          var btn = $('createBtn');
-          if (btn) btn.disabled = true;
-          request('POST', '/api/campaigns', { name: name, goal: goal })
-            .then(function () {
-              setMsg(L.campaigns_created || 'Kampaniya yaradıldı.', false);
-              form.reset();
-              return loadList();
-            })
-            .catch(function (err) { setMsg(err.message, true); })
-            .then(function () { if (btn) btn.disabled = false; });
-        });
-      }
-
-      var backBtn = $('backBtn');
-      if (backBtn) {
-        backBtn.addEventListener('click', function () {
-          $('detailSection').hidden = true;
-          $('listSection').hidden = false;
-          loadList();
-        });
-      }
-
-      applyLabels();
-      loadList();
-    })();
-  </script>
+  <script nonce="<%= nonce %>" src="/campaigns-page.js?v=<%= assetVersion %>"></script>
 </body>
 </html>

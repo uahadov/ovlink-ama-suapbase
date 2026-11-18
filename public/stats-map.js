@@ -7,7 +7,7 @@
  * "where is the traffic" map, not a land-border map, so there is no large
  * vector asset to vendor or license.
  *
- * All labels are written with textContent; nothing here uses innerHTML.
+ * All labels use safe DOM text nodes; the map never parses markup from data.
  */
 (function () {
   'use strict';

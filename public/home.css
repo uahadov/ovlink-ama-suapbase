@@ -5979,6 +5979,26 @@ body.modal-open {
   flex-wrap: wrap;
 }
 
+/* Bulk actions present the actual selected row count, not a guessed total. */
+.ovx .m-dash-selected-count { display:inline-flex; align-items:center; gap:5px; padding:7px 10px; border:1px solid var(--c-border); border-radius:8px; color:var(--c-muted); font-size:12px; font-weight:600; white-space:nowrap; }
+.ovx .m-dash-selected-count #bulkSelectionNumber { font-variant-numeric:tabular-nums; color:var(--c-white); }
+.ovx #bulkDeleteBtn:disabled { opacity:.45; cursor:not-allowed; }
+
+/* Dashboard link finder: one consistent form surface and explicit network states. */
+.ovx .m-dash-filter-label { display:block; margin:0 0 7px; font-size:12px; font-weight:600; color:var(--c-muted); }
+.ovx .m-dash-filter-feedback { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:9px 24px; min-height:42px; color:var(--c-muted); font-size:12px; border-bottom:1px solid var(--c-border); }
+.ovx #dashboardFilterStatus[data-state="error"] { color:#fca5a5; }
+.ovx #dashboardFilterStatus[data-state="loading"] { color:var(--c-text); }
+.ovx .m-dash-clear-filters { border:0; background:transparent; color:var(--c-text); font:inherit; font-weight:600; text-decoration:underline; text-underline-offset:3px; cursor:pointer; padding:6px 0; }
+.ovx .m-dash-clear-filters:hover { color:var(--c-white); }
+.ovx .m-dash-clear-filters:focus-visible { outline:2px solid var(--c-white); outline-offset:3px; }
+.ovx .dashboard-meta-filter-field { min-width:130px; flex:1 1 150px; }
+.ovx .dashboard-meta-filter-field select { width:100%; }
+.ovx #dashboardMetaFilters { width:100%; display:flex; flex-wrap:wrap; align-items:end; gap:10px; }
+.ovx #dashboardMetaFilterClear { min-height:38px; padding:7px 14px; border:1px solid var(--c-border-hi); background:var(--c-surface); color:var(--c-text); border-radius:8px; cursor:pointer; }
+.ovx #dashboardMetaFilterClear:hover { background:var(--c-surface-2); }
+@media (max-width:600px) { .ovx .m-dash-toolbar > div { min-width:100% !important; } .ovx .m-dash-filter-feedback { padding-inline:16px; } }
+
 /* Monolith Table & Toolbar */
 .ovx .m-dash-panel {
   background: var(--c-surface, #111111);

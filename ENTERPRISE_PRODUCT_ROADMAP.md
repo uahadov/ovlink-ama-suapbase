@@ -45,11 +45,23 @@ Ovlink is an everyday link, QR and campaign operations workspace for marketing t
 - For each release: record before → apply → verify desktop/mobile + keyboard + all language variants → review diffs → document release.
 - Flag risky product changes; don't promise a feature until verified end-to-end.
 
-## Current implementation (phase 1 slice)
-- Added dashboard links/QR/campaigns/team navigation using existing routes/anchors.
-- Added onboarding progress bar computed server-side from already available state.
-- Added accessible focus styles, mobile action grid, reduced-motion support, three-language copy and changelog.
-- Pending: authenticated Playwright walkthrough with representative account, deep refactor of inline styles, business pilot and field performance evidence.
+## Implemented — phase 1 + phase 2 operational slices (18 Nov 2026)
+- Dashboard context actions and responsive Monolith navigation across link, QR, campaign and team journeys.
+- Dashboard link finder: **actual folder/tag toolbar**, explicit search/filter/sort labels, async loading/error/zero-result feedback, reset-all, stale request cancellation and successful navigation URL synchronization.
+- Bulk selection counter with disabled delete action for zero selections; existing confirmation and CSRF protections retained.
+- Onboarding progress tied to account-wide link state even when search/workspace filters show zero results. Server-rendered fallback text localized AZ/TR/EN before JavaScript runs.
+- Campaign experience: meaningful empty state, keyboard focus into first action, refresh/retry controls, optimistic prevention of stale detailed responses, accessible labels and responsive 320px+ presentation.
+- CSV campaign report from **real existing API data**: actual date window, bot inclusion, total/unique/conversions, daily clicks, top links/sources/goals, spreadsheet formula neutralization. This is download/export; it is **not yet a shared scheduled branded PDF report**.
+- Extracted ~21KB campaign controller into a versioned, cacheable JS asset; no framework migration, no added JS dependencies.
+- Baseline regressions addressed: repeated/incorrect i18n keys, spacing token adoption, safe geo-map renderer source consistency, logger injected-sink semantics, shared motion script parity, test parser assumptions for EJS, backup-drill guard test assumptions.
+- **Real reliability issue fixed:** `scripts/seed-schema.js` now actually starts idempotent migrations before waiting for the queue; isolated PostgreSQL seeding with five checked core tables succeeded.
+
+## Remaining mandatory release work
+1. Authenticated end-to-end user journeys against isolated staging DB and browser, including workspace invitations/permissions, campaign CRUD and QR across accounts; fixtures tested so far are mock-API browser flows.
+2. True workspace/team workflow and access controls audit, custom branding and agency report sharing, business pilot interviews and repeat usage measurement.
+3. Consolidate large legacy inline CSS and repeated motion scripts, measure actual p75 field Web Vitals and backend p95, implement CI-driven visual diffs and accessibility audits.
+4. Clean remaining DB/worker migration warnings, distinguish pre-existing test failures from new defects, run migration/restore drill and 7–14 day stability checks.
+5. Production release only after approvals, staging smoke tests, backup restore verification and rollback plan. No production deployment in this stage.
 
 ## Source references checked 18 Nov 2026
 - Playwright screenshot & visual comparison: https://playwright.dev/docs/screenshots , https://playwright.dev/docs/test-snapshots

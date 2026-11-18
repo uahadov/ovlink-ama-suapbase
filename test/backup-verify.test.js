@@ -93,7 +93,7 @@ test('BACKUP-VERIFY-06: guards run before any command and cleanup is uncondition
   assert.match(main, /process\.exitCode = 1;\s*\n\s*return;/, 'the guard must stop the drill, not warn');
 
   const finallyBlock = main.slice(main.indexOf('} finally {'));
-  assert.ok(finallyBlock.length > 0 && finallyBlock.indexOf('DROP DATABASE IF EXISTS') < finallyBlock.indexOf('}'));
+  assert.ok(finallyBlock.includes('DROP DATABASE IF EXISTS') && finallyBlock.includes('if (created)'));
   assert.ok(finallyBlock.includes('pg_terminate_backend'), 'lingering connections would block the drop');
   // Every drop statement must be conditional — a bare `DROP DATABASE x` would
   // abort the whole drill (and the workflow) when the throwaway is absent.
@@ -124,10 +124,14 @@ test('BACKUP-VERIFY-07: the weekly workflow is schedule/dispatch only and never 
   assert.match(yml, /ALLOW_RESTORE: '1'/);
   assert.match(yml, /RESTORE_VERIFY_DB: \w*_verify/);
   assert.ok(!/NODE_ENV: production/.test(yml), 'the drill must never target production');
-  assert.match(yml, /scripts\/verify-backup\.js/);
+  // Workflow may invoke the drill directly or through the reviewed npm script.
+  const packageSource = fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8');
+  assert.ok(/scripts\/verify-backup\.js/.test(yml) ||
+    (/npm run verify:backup/.test(yml) && /scripts\/verify-backup\.js/.test(packageSource)));
   // A dump of an empty cluster restores "fine" and proves nothing, so the
   // source database has to be seeded through the real migration flow first.
   assert.match(yml, /node scripts\/seed-schema\.js/);
+  assert.match(fs.readFileSync(path.join(ROOT, 'scripts/seed-schema.js'), 'utf8'), /ensureDbTables\(\)/, 'seed helper must start the migrations, not just wait');
   assert.match(yml, /actions\/setup-node@v4/);
   // Scheduled jobs also fire on every fork; the guard keeps them off.
   assert.match(yml, /if: github\.repository == .+ \|\| github\.event_name == 'workflow_dispatch'/);
