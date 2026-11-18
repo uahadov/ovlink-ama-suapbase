@@ -5868,6 +5868,23 @@ body.modal-open {
   gap: 10px;
 }
 
+/* Enterprise dashboard navigation — scoped, reusable, no global overrides. */
+.ovx .m-dash-actions { display:flex; flex-wrap:wrap; gap:10px; margin: -7px 0 24px; }
+.ovx .m-dash-action { min-height:44px; display:inline-flex; align-items:center; justify-content:center; gap:9px; padding:10px 15px; text-decoration:none; font-size:13px; font-weight:600; color:var(--c-text); border:1px solid var(--c-border); border-radius:10px; background:var(--c-surface); transition:background-color .18s ease,border-color .18s ease,transform .18s ease; }
+.ovx .m-dash-action:hover { color:var(--c-white); background:var(--c-surface-2); border-color:var(--c-border-hi); transform:translateY(-1px); }
+.ovx .m-dash-action--primary { color:var(--c-bg); background:var(--c-white); border-color:var(--c-white); }
+.ovx .m-dash-action--primary:hover { color:var(--c-bg); background:#e5e5e5; }
+.ovx .m-dash-action:focus-visible,.ovx .m-onboard-step-link:focus-visible { outline:2px solid var(--c-white); outline-offset:3px; }
+.ovx .m-onboard-progress-head { display:flex; align-items:center; justify-content:space-between; color:var(--c-muted); margin-top:20px; font-size:12px; font-weight:600; }
+.ovx .m-onboard-progress { height:6px; width:100%; overflow:hidden; background:var(--c-surface-2); border-radius:100px; margin-top:8px; }
+.ovx .m-onboard-progress-fill { display:block; height:100%; background:var(--c-white); border-radius:inherit; transition:width .3s ease; }
+.ovx .m-onboard-steps { list-style:none; margin:18px 0 0; padding:0; display:grid; gap:12px; }
+.ovx .m-onboard-step { display:flex; align-items:center; gap:12px; min-height:32px; }
+.ovx .m-onboard-step-link { margin-inline-start:auto; color:var(--c-white); text-decoration:underline; text-underline-offset:3px; }
+.ovx .m-onboard-step.is-done { opacity:.7; }
+@media (max-width:600px) { .ovx .m-dash-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .ovx .m-dash-action { padding:10px 8px; font-size:12px; } }
+@media (prefers-reduced-motion:reduce) { .ovx .m-dash-action,.ovx .m-onboard-progress-fill { transition:none; } .ovx .m-dash-action:hover { transform:none; } }
+
 /* Monolith Dashboard Bento Grid */
 .ovx .m-dash-hero {
   margin-bottom: 28px;

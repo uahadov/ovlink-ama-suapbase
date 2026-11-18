@@ -443,6 +443,13 @@
           <p style="font-size: 15px; color: var(--c-muted, #a3a3a3); margin: 0; line-height: 1.5;" data-i18n="dashboard_subtitle">Bütün linklərinizi, analitikanızı və iş sahələrinizi idarə edin.</p>
         </div>
 
+        <nav class="m-dash-actions" aria-label="Dashboard quick navigation" data-i18n-aria="dash_actions_aria">
+          <a class="m-dash-action m-dash-action--primary" href="#dashboardQuickCreateForm"><i class="fa-solid fa-plus" aria-hidden="true"></i><span data-i18n="dash_action_create">Yeni link yarat</span></a>
+          <a class="m-dash-action" href="#qrCodesSection"><i class="fa-solid fa-qrcode" aria-hidden="true"></i><span data-i18n="dash_action_qr">QR kodlar</span></a>
+          <a class="m-dash-action" href="/campaigns"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i><span data-i18n="dash_action_campaigns">Kampaniyalar</span></a>
+          <a class="m-dash-action" href="/workspaces"><i class="fa-solid fa-users" aria-hidden="true"></i><span data-i18n="dash_action_team">Komandam</span></a>
+        </nav>
+
         <%- include('partials/onboarding-checklist') %>
 
         <!-- 2. Bento Statistics Grid -->

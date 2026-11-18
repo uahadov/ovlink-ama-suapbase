@@ -4,6 +4,8 @@
   // repeated here so a stale include can never render an empty panel.
   const showOnboarding = !!(ob && ob.visible);
   const steps = (ob && Array.isArray(ob.steps)) ? ob.steps : [];
+  const completedSteps = steps.filter((step) => step.done).length;
+  const progressPercent = steps.length ? Math.round(completedSteps * 100 / steps.length) : 0;
 %>
 <% if (showOnboarding) { %>
 <section class="m-bento-card u-mb-5" id="onboardingChecklist" aria-labelledby="onboardTitle">
@@ -19,15 +21,22 @@
         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
       </button>
     </div>
-    <ol style="list-style:none;margin:16px 0 0;padding:0;display:grid;gap:10px;">
+    <div class="m-onboard-progress-head">
+      <span data-i18n="onboard_progress">Tamamlanma</span>
+      <span><%= completedSteps %>/<%= steps.length %></span>
+    </div>
+    <div class="m-onboard-progress" role="progressbar" aria-label="Onboarding progress" data-i18n-aria="onboard_progress" aria-valuenow="<%= completedSteps %>" aria-valuemin="0" aria-valuemax="<%= steps.length %>">
+      <span class="m-onboard-progress-fill" style="width:<%= progressPercent %>%"></span>
+    </div>
+    <ol class="m-onboard-steps">
       <% steps.forEach((step) => { %>
-      <li style="display:flex;align-items:center;gap:10px;">
+      <li class="m-onboard-step <%= step.done ? 'is-done' : '' %>">
         <i class="fa-solid <%= step.done ? 'fa-circle-check' : 'fa-circle' %>"
            style="color:<%= step.done ? '#22c55e' : '#52525b' %>;" aria-hidden="true"></i>
         <span class="u-text-sm" style="color:<%= step.done ? '#a3a3a3' : '#f5f5f5' %>;"
               data-i18n="<%= step.i18nKey %>"></span>
         <% if (!step.done) { %>
-        <a class="u-text-xs" href="<%= step.href %>" style="margin-inline-start:auto;color:#60a5fa;" data-i18n="<%= step.ctaKey %>"></a>
+        <a class="m-onboard-step-link u-text-xs" href="<%= step.href %>" data-i18n="<%= step.ctaKey %>"></a>
         <% } %>
       </li>
       <% }); %>
