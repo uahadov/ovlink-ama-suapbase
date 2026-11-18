@@ -190,7 +190,8 @@ async function listCampaigns({ userId, days, includeArchived = false } = {}) {
     'ORDER BY clicks DESC, c.id DESC ' +
     `LIMIT ${CAMPAIGN_LIST_LIMIT}`;
 
-  const rows = await dbAllAsync(sql, params).catch(() => []);
+  // A database outage must not look like a genuinely empty campaign portfolio.
+  const rows = await dbAllAsync(sql, params);
   return (rows || []).map(mapCampaignRow);
 }
 
@@ -225,7 +226,7 @@ async function loadCampaignStats({ campaign, query } = {}) {
         'FROM link_stats_daily d JOIN urls u ON u.id = d.url_id ' +
         'WHERE u.campaign_id = ?' + dayClause,
       [campaignId, ...dayParams]
-    ).catch(() => null),
+    ),
     dbAllAsync(
       'SELECT u.short, u.original, u.created_at, COALESCE(SUM(d.clicks), 0) AS clicks, ' +
         'COALESCE(SUM(d.uniques), 0) AS uniques, COALESCE(SUM(d.conversions), 0) AS conversions ' +
@@ -234,27 +235,27 @@ async function loadCampaignStats({ campaign, query } = {}) {
         'GROUP BY u.id, u.short, u.original, u.created_at ' +
         `ORDER BY clicks DESC, u.id DESC LIMIT ${TOP_LINKS_LIMIT}`,
       [...dayParams, campaignId]
-    ).catch(() => []),
+    ),
     dbAllAsync(
       'SELECT d.day AS name, COALESCE(SUM(d.clicks), 0) AS clicks, COALESCE(SUM(d.uniques), 0) AS uniques ' +
         'FROM link_stats_daily d JOIN urls u ON u.id = d.url_id ' +
         'WHERE u.campaign_id = ?' + dayClause + ' GROUP BY d.day',
       [campaignId, ...dayParams]
-    ).catch(() => []),
+    ),
     dbAllAsync(
       "SELECT COALESCE(NULLIF(c.referrer_host, ''), 'direct') AS name, COUNT(*) AS count " +
         'FROM clicks c JOIN urls u ON u.id = c.url_id ' +
         'WHERE u.campaign_id = ?' + clickClause + botClause + ' ' +
         'GROUP BY COALESCE(NULLIF(c.referrer_host, \'\'), \'direct\') ORDER BY count DESC LIMIT 12',
       [campaignId, ...clickParams]
-    ).catch(() => []),
+    ),
     dbAllAsync(
       'SELECT v.goal AS name, COUNT(*) AS count ' +
         'FROM link_conversions v JOIN urls u ON u.id = v.url_id ' +
         'WHERE u.campaign_id = ?' + conversionClause + ' GROUP BY v.goal ORDER BY count DESC LIMIT 12',
       [campaignId, ...conversionParams]
-    ).catch(() => []),
-    dbGetAsync('SELECT COUNT(*) AS count FROM urls WHERE campaign_id = ?', [campaignId]).catch(() => null),
+    ),
+    dbGetAsync('SELECT COUNT(*) AS count FROM urls WHERE campaign_id = ?', [campaignId]),
   ]);
 
   const clicks = totalsRow ? Number(totalsRow.clicks || 0) : 0;

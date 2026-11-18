@@ -68,3 +68,6 @@ Ovlink is an everyday link, QR and campaign operations workspace for marketing t
 - W3C WCAG 2.2: https://www.w3.org/TR/WCAG22/
 - Google Core Web Vitals: https://developers.google.com/search/docs/appearance/core-web-vitals
 - Bitly current enterprise surface: https://bitly.com/pages/solutions/enterprise/ and https://support.bitly.com/hc/en-us/articles/34262355353997-What-s-new-at-Bitly
+
+## B2B operations slice — 18 Nov 2026
+See `ENTERPRISE_OPERATIONS_20261118.md` for the applied server-side fixes, PostgreSQL QA evidence, competitor benchmark and rollout gates. This new phase prioritizes campaign/report consistency, role-scoped mutations, transactional cleanup and reliable migration over cosmetic UI work.

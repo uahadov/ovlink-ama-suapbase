@@ -14,36 +14,13 @@
           campaigns_col_uniques: 'Unikal',
           campaigns_col_conversions: 'Konv.',
           campaigns_empty: 'Hələ kampaniya yoxdur.',
-          campaigns_name_label: 'Campaign name',
-          campaigns_goal_label: 'Conversion goal',
-          campaigns_list_title: 'My campaigns',
-          campaigns_period: 'Results for the last 30 days',
-          campaigns_refresh: 'Refresh',
-          campaigns_export_csv: 'Download CSV report',
-          campaigns_export_csv: 'CSV raporu indir',
-          campaigns_export_csv: 'CSV hesabatı endir',
-          campaigns_loading: 'Loading campaigns…',
-          campaigns_empty_title: 'Create your first campaign',
-          campaigns_empty_desc: 'Track links and results together under one goal.',
-          campaigns_empty_cta: 'Create campaign',
-          campaigns_load_error: 'Could not load campaigns.',
-          campaigns_retry: 'Try again',
-          campaigns_name_label: 'Kampanya adı',
-          campaigns_goal_label: 'Dönüşüm hedefi',
-          campaigns_list_title: 'Kampanyalarım',
-          campaigns_period: 'Son 30 günün sonuçları',
-          campaigns_refresh: 'Yenile',
-          campaigns_loading: 'Kampanyalar yükleniyor…',
-          campaigns_empty_title: 'İlk kampanyanızı oluşturun',
-          campaigns_empty_desc: 'Bağlantıları ve sonuçları tek bir hedef altında izleyin.',
-          campaigns_empty_cta: 'Kampanya oluştur',
-          campaigns_load_error: 'Kampanyalar yüklenemedi.',
-          campaigns_retry: 'Tekrar dene',
           campaigns_name_label: 'Kampaniya adı',
           campaigns_goal_label: 'Konversiya hədəfi',
           campaigns_list_title: 'Kampaniyalarım',
           campaigns_period: 'Son 30 günün nəticələri',
           campaigns_refresh: 'Yenilə',
+          campaigns_export_csv: 'CSV hesabatı endir',
+          campaigns_export_error: 'Hesabat endirilə bilmədi. Yenidən cəhd edin.',
           campaigns_loading: 'Kampaniyalar yüklənir…',
           campaigns_empty_title: 'İlk kampaniyanızı yaradın',
           campaigns_empty_desc: 'Linkləri və nəticələri bir məqsəd altında izləməyə başlayın.',
@@ -79,6 +56,19 @@
           campaigns_col_uniques: 'Tekil',
           campaigns_col_conversions: 'Dön.',
           campaigns_empty: 'Henüz kampanya yok.',
+          campaigns_name_label: 'Kampanya adı',
+          campaigns_goal_label: 'Dönüşüm hedefi',
+          campaigns_list_title: 'Kampanyalarım',
+          campaigns_period: 'Son 30 günün sonuçları',
+          campaigns_refresh: 'Yenile',
+          campaigns_export_csv: 'CSV raporu indir',
+          campaigns_export_error: 'Rapor indirilemedi. Tekrar deneyin.',
+          campaigns_loading: 'Kampanyalar yükleniyor…',
+          campaigns_empty_title: 'İlk kampanyanızı oluşturun',
+          campaigns_empty_desc: 'Bağlantıları ve sonuçları tek bir hedef altında izleyin.',
+          campaigns_empty_cta: 'Kampanya oluştur',
+          campaigns_load_error: 'Kampanyalar yüklenemedi.',
+          campaigns_retry: 'Tekrar dene',
           campaigns_back: '← Geri',
           campaigns_kpi_clicks: 'Tıklama',
           campaigns_kpi_uniques: 'Tekil ziyaretçi',
@@ -108,6 +98,19 @@
           campaigns_col_uniques: 'Uniques',
           campaigns_col_conversions: 'Conv.',
           campaigns_empty: 'No campaigns yet.',
+          campaigns_name_label: 'Campaign name',
+          campaigns_goal_label: 'Conversion goal',
+          campaigns_list_title: 'My campaigns',
+          campaigns_period: 'Results for the last 30 days',
+          campaigns_refresh: 'Refresh',
+          campaigns_export_csv: 'Download CSV report',
+          campaigns_export_error: 'Could not download report. Please try again.',
+          campaigns_loading: 'Loading campaigns…',
+          campaigns_empty_title: 'Create your first campaign',
+          campaigns_empty_desc: 'Track links and results together under one goal.',
+          campaigns_empty_cta: 'Create campaign',
+          campaigns_load_error: 'Could not load campaigns.',
+          campaigns_retry: 'Try again',
           campaigns_back: '← Back',
           campaigns_kpi_clicks: 'Clicks',
           campaigns_kpi_uniques: 'Unique visitors',
@@ -408,17 +411,33 @@
 
       var exportButton = $('campaignExportCsv');
       if (exportButton) exportButton.addEventListener('click', function () {
-        if (!currentCampaignSnapshot || !window.OvlinkCampaignReport) return;
-        var report = window.OvlinkCampaignReport;
-        var csv = report.toCsv(currentCampaignSnapshot);
-        var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-        var link = document.createElement('a');
-        link.href = url;
-        link.download = report.filename(currentCampaignSnapshot);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+        if (!currentCampaignSnapshot || !currentCampaignId || !window.OvlinkCampaignReport) return;
+        var requestedCampaignId = currentCampaignId;
+        var requestedSnapshot = currentCampaignSnapshot;
+        exportButton.disabled = true;
+        fetch('/api/campaigns/' + encodeURIComponent(requestedCampaignId) + '/export.csv?days=30', {
+          credentials: 'same-origin', headers: { Accept: 'text/csv' }
+        })
+          .then(function (response) {
+            if (!response.ok) throw new Error(L.campaigns_export_error);
+            return response.blob();
+          })
+          .then(function (blob) {
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = window.OvlinkCampaignReport.filename(requestedSnapshot);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+          })
+          .catch(function (error) {
+            if (requestedCampaignId === currentCampaignId) setMsg(error.message, true);
+          })
+          .finally(function () {
+            if (requestedCampaignId === currentCampaignId) exportButton.disabled = false;
+          });
       });
 
       var goalSaveBtn = $('goalSaveBtn');

@@ -28,7 +28,8 @@
     add('Campaign slug', data.campaign.slug);
     add('Date from (UTC)', data.range.from);
     add('Date to (UTC)', data.range.to);
-    add('Bot clicks', data.range.bots === 'include' ? 'Included' : 'Excluded');
+    add('Bot filter (source breakdown only)', data.range.bots === 'include' ? 'Included' : 'Excluded');
+    add('Totals methodology', 'Click, unique and conversion totals use daily aggregates and may include bots');
     add('Generated at (UTC)', data.generated_at);
     blank();
     add('Metric', 'Value');

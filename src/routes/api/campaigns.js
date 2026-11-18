@@ -1,11 +1,23 @@
 const express = require('express');
 const router = express.Router();
 
-const { dbGetAsync, dbRunAsync } = require('../../db/helpers');
+const { dbGetAsync, dbRunAsync, withTransaction } = require('../../db/helpers');
 const { normalizeShortCode } = require('../../lib/url-helpers');
 const campaignLib = require('../../lib/campaigns');
+const campaignReport = require('../../../public/campaign-report');
 
-const WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL = '(user_id = ? OR workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = ?))';
+const {
+  WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL,
+  WORKSPACE_LINK_MUTATION_SQL,
+} = require('../../lib/link-access');
+
+// Campaigns belong to individual accounts. A team member may read a shared
+// link, but cannot assign their private campaign to somebody else's link.
+// This check is part of the UPDATE (rather than a preflight SELECT) so the
+// owner relationship remains valid even with concurrent workspace activity.
+const CAMPAIGN_ASSIGNMENT_SQL =
+  'UPDATE urls SET campaign_id = ? WHERE short = ? AND ' + WORKSPACE_LINK_MUTATION_SQL +
+  ' AND (?::integer IS NULL OR EXISTS (SELECT 1 FROM campaigns c WHERE c.id = ? AND c.user_id = urls.user_id))';
 
 const ERROR_MESSAGES = {
   unauthorized: 'Giriş gerekli.',
@@ -75,6 +87,53 @@ router.get('/api/campaigns/:id', async (req, res) => {
     return res.json(payload);
   } catch {
     return res.status(500).json({ error: 'Veri alınamadı.' });
+  }
+});
+
+// GET /api/campaigns/:id/export.csv — audited, server-generated report.
+// The same aggregate model powers both the dashboard and the export, avoiding
+// client/browser-dependent report generation for business workflows.
+router.get('/api/campaigns/:id/export.csv', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+
+  try {
+    const campaignId = Number(req.params.id);
+    if (!Number.isSafeInteger(campaignId) || campaignId <= 0) {
+      return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+    }
+    // Preserve the difference between missing campaign (404) and database
+    // failure (503): getCampaignForUser intentionally tolerates DB errors for
+    // older UI callers, which is inappropriate for an audited business export.
+    const campaign = await dbGetAsync('SELECT * FROM campaigns WHERE id = ? AND user_id = ? LIMIT 1', [campaignId, userId]);
+    if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+
+    const payload = await campaignLib.loadCampaignStats({
+      campaign,
+      query: req.query && typeof req.query === 'object' ? req.query : {},
+    });
+    const csv = campaignReport.toCsv(payload);
+    const filename = campaignReport.filename(payload);
+
+    // Keep a durable, low-PII export receipt. If audit persistence fails,
+    // fail closed rather than silently delivering an untraceable report.
+    await dbRunAsync(
+      'INSERT INTO analytics_audit_log (created_at, user_id, url_id, short, action, metadata_json) VALUES (?, ?, NULL, NULL, ?, ?)',
+      [new Date().toISOString(), userId, 'campaign.csv.export', JSON.stringify({
+        campaign_id: Number(campaign.id),
+        days: payload.range.days,
+        bots: payload.range.bots,
+      })]
+    );
+
+    return res
+      .set('Cache-Control', 'private, no-store, max-age=0')
+      .set('X-Content-Type-Options', 'nosniff')
+      .set('Content-Type', 'text/csv; charset=utf-8')
+      .set('Content-Disposition', `attachment; filename="${filename}"`)
+      .send(csv);
+  } catch (error) {
+    return res.status(503).json({ error: 'Hesabat hazır deyil. Yenidən cəhd edin.' });
   }
 });
 
@@ -158,9 +217,15 @@ router.delete('/api/campaigns/:id', async (req, res) => {
   if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
 
   try {
-    await dbRunAsync('UPDATE urls SET campaign_id = NULL WHERE campaign_id = ?', [campaign.id]);
-    const deleted = await dbRunAsync('DELETE FROM campaigns WHERE id = ? AND user_id = ?', [campaign.id, userId]);
-    return res.json({ deleted: !!(deleted && deleted.changes) });
+    // Campaign deletion must be atomic: a failing DELETE must not silently
+    // detach links, because those assignments affect business reporting.
+    const deleted = await withTransaction(async (tx) => {
+      await tx.run('UPDATE urls SET campaign_id = NULL WHERE campaign_id = ?', [campaign.id]);
+      const result = await tx.run('DELETE FROM campaigns WHERE id = ? AND user_id = ?', [campaign.id, userId]);
+      if (!result || !result.changes) throw new Error('Campaign changed during deletion');
+      return result;
+    });
+    return res.json({ deleted: !!deleted.changes });
   } catch {
     return res.status(500).json({ error: 'Kampaniya silinmədi.' });
   }
@@ -214,9 +279,11 @@ router.post('/api/links/:short/campaign', async (req, res) => {
     if (!owned) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
   }
 
+  // Detaching is also a mutation: ordinary workspace members can view the
+  // existing campaign assignment, but only owner/admin roles may modify it.
   const result = await dbRunAsync(
-    'UPDATE urls SET campaign_id = ? WHERE short = ? AND ' + WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL,
-    [campaignId, short, userId, userId]
+    CAMPAIGN_ASSIGNMENT_SQL,
+    [campaignId, short, userId, userId, campaignId, campaignId]
   ).catch(() => null);
 
   if (!result || !result.changes) {
@@ -229,3 +296,4 @@ router.post('/api/links/:short/campaign', async (req, res) => {
 module.exports = router;
 module.exports.ERROR_MESSAGES = ERROR_MESSAGES;
 module.exports.currentUserId = currentUserId;
+module.exports.CAMPAIGN_ASSIGNMENT_SQL = CAMPAIGN_ASSIGNMENT_SQL;

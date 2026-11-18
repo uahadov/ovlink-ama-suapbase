@@ -267,7 +267,7 @@ function ensureDbTables() {
     // ===== Onboarding lifecycle =====
     db.run('ALTER TABLE users ADD COLUMN onboarding_dismissed_at TEXT', () => {});
     db.run('ALTER TABLE users ADD COLUMN onboarding_nudged_at TEXT', () => {});
-    db.run('CREATE INDEX IF NOT EXISTS idx_users_onboarding_nudge ON users(created_at)', () => {});
+
   
     // ===== Admin System Tables / Indexes (NEW) =====
   
@@ -537,6 +537,7 @@ function ensureDbTables() {
   
     // Columns for user moderation
     db.run('ALTER TABLE users ADD COLUMN created_at TEXT', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_users_onboarding_nudge ON users(created_at)', () => {});
     db.run('ALTER TABLE users ADD COLUMN email_hash TEXT', () => {});
     db.run('ALTER TABLE users ADD COLUMN last_login_at TEXT', () => {});
     db.run('ALTER TABLE users ADD COLUMN banned INTEGER DEFAULT 0', () => {});
@@ -736,6 +737,10 @@ function ensureDbTables() {
       'SELECT pg_get_constraintdef(c.oid) AS def FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid WHERE t.relname = $1 AND c.conname = $2',
       ['security_events', conname]
     ).then(({ rows }) => {
+      // A newly created table has no FKs to normalize. Only legacy constraints
+      // present in pg_constraint need migration; trying to add them immediately
+      // races with the CREATE TABLE operation queued above.
+      if (!rows || !rows.length) return undefined;
       const def = rows && rows[0] && rows[0].def ? String(rows[0].def) : '';
       if (/ON DELETE SET NULL/i.test(def)) return undefined;
       return pool.query(
@@ -755,8 +760,6 @@ function ensureDbTables() {
     normalizeSecurityEventFk('security_events_api_key_id_fkey', 'api_key_id', 'api_keys');
   
     // Notifications
-    db.run('ALTER TABLE notifications ADD COLUMN title_en TEXT', () => {});
-    db.run('ALTER TABLE notifications ADD COLUMN body_en TEXT', () => {});
     db.run(`CREATE TABLE IF NOT EXISTS notifications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -774,6 +777,9 @@ function ensureDbTables() {
       FOREIGN KEY(user_id) REFERENCES users(id)
     )`);
   
+    // Only alter legacy notifications after its CREATE TABLE is queued.
+    db.run('ALTER TABLE notifications ADD COLUMN title_en TEXT', () => {});
+    db.run('ALTER TABLE notifications ADD COLUMN body_en TEXT', () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id)', () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_notifications_read_at ON notifications(read_at)', () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_notifications_user_created_at ON notifications(user_id, created_at DESC)', () => {});
@@ -836,7 +842,7 @@ function ensureDbTables() {
       'blocked_domains', 'admin_audit_log', 'admin_auth_audit', 'guest_limits',
       'custom_domains', 'user_sessions', 'api_keys', 'webhooks', 'webhook_deliveries',
       'subscription_audit', 'security_events', 'api_idempotency_keys', 'api_usage_logs',
-      'notifications', 'password_resets', 'bot_users', 'bot_settings', 'bot_auth_codes',
+      'notifications', 'password_resets',
       'link_funnel_steps', 'saved_segments', 'analytics_audit_log', 'link_alert_settings'
     ];
     allTablesForRls.forEach(t => {
@@ -876,6 +882,10 @@ function ensureDbTables() {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`, () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_bot_auth_codes_code ON bot_auth_codes(code)', () => {});
+    // These tables are created above; enabling RLS before DDL raced on fresh DBs.
+    for (const name of ['bot_users', 'bot_settings', 'bot_auth_codes']) {
+      db.run(`ALTER TABLE ${name} ENABLE ROW LEVEL SECURITY`, () => {});
+    }
   
   	  // Team workspaces (Pro-only): one workspace per Pro owner, members share
   	  // link creation through the same account; SSO connections bind a corporate

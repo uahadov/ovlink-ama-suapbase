@@ -20,7 +20,8 @@ test('campaign CSV represents server-provided metrics and date boundaries', () =
   assert.match(csv, /"Unique visitors","81"/);
   assert.match(csv, /"Conversions","9"/);
   assert.match(csv, /"Date from \(UTC\)","2026-11-01T00:00:00Z"/);
-  assert.match(csv, /"Bot clicks","Excluded"/);
+  assert.match(csv, /"Bot filter \(source breakdown only\)","Excluded"/);
+  assert.match(csv, /"Totals methodology"/);
   assert.match(csv, /"Qış, kampaniyası"/);
   assert.match(csv, /"Date","Clicks"\r\n"2026-11-18","100"/);
 });
@@ -49,4 +50,23 @@ test('campaign interface uses localized accessible export control and script ass
   const campaignScript = fs.readFileSync(require('node:path').resolve(__dirname,'../public/campaigns-page.js'),'utf8');
   assert.equal((campaignScript.match(/^\s*campaigns_export_csv:/gm) || []).length, 3);
   assert.match(campaignScript, /currentCampaignSnapshot = data/);
+});
+
+test('campaign business controls have correct locale-specific translations', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const source = fs.readFileSync(path.resolve(__dirname, '../public/campaigns-page.js'), 'utf8');
+  const parts = {
+    az: source.split('        az: {')[1].split('        tr: {')[0],
+    tr: source.split('        tr: {')[1].split('        en: {')[0],
+    en: source.split('        en: {')[1].split('      };')[0],
+  };
+  for (const part of Object.values(parts)) {
+    for (const key of ['campaigns_export_csv', 'campaigns_export_error', 'campaigns_empty_title', 'campaigns_load_error']) {
+      assert.equal((part.match(new RegExp('^\\s*' + key + ':', 'gm')) || []).length, 1, `${key} must exist exactly once per locale`);
+    }
+  }
+  assert.match(parts.az, /campaigns_export_csv: 'CSV hesabatı endir'/);
+  assert.match(parts.tr, /campaigns_export_csv: 'CSV raporu indir'/);
+  assert.match(parts.en, /campaigns_export_csv: 'Download CSV report'/);
 });
