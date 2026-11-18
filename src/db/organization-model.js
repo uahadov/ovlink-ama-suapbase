@@ -36,4 +36,40 @@ async function migrateOrganizationModel({ clientPool = pool } = {}) {
   }
 }
 
-module.exports = { migrateOrganizationModel, organizationFeatureEnabled };
+/**
+ * Link a newly created legacy workspace in the SAME transaction as its
+ * workspace/member rows. This avoids waiting until the next server restart.
+ * Only runs with opt-in feature enabled; no existing access/plan changes.
+ */
+async function linkLegacyWorkspace(tx, workspaceId) {
+  const workspace = await tx.get('SELECT id,name,owner_user_id FROM workspaces WHERE id=?', [workspaceId]);
+  if (!workspace) throw new Error('Legacy workspace missing in transaction');
+  const row = await tx.get(
+    `INSERT INTO organizations(display_name,owner_user_id,legacy_workspace_id)
+       VALUES(?,?,?)
+       ON CONFLICT (legacy_workspace_id)
+       DO UPDATE SET display_name=EXCLUDED.display_name
+       RETURNING id`,
+    [workspace.name,workspace.owner_user_id,workspace.id]
+  );
+  await tx.run(
+    'INSERT INTO organization_workspaces(organization_id,workspace_id) VALUES(?,?) ON CONFLICT(workspace_id) DO NOTHING',
+    [row.id,workspace.id]
+  );
+  await tx.run(
+    "INSERT INTO organization_members(organization_id,user_id,role) VALUES(?,?,'owner') ON CONFLICT(organization_id,user_id) DO NOTHING",
+    [row.id,workspace.owner_user_id]
+  );
+  await tx.run('INSERT INTO organization_settings(organization_id) VALUES(?) ON CONFLICT(organization_id) DO NOTHING',[row.id]);
+  await tx.run(
+    'INSERT INTO organization_billing(organization_id,billing_owner_user_id) VALUES(?,?) ON CONFLICT(organization_id) DO NOTHING',
+    [row.id,workspace.owner_user_id]
+  );
+  await tx.run(
+    "INSERT INTO organization_audit_log(organization_id,event_key,actor_user_id,metadata_json) VALUES(?,'p07_legacy_backfill_v1',?,'{}'::jsonb) ON CONFLICT(organization_id,event_key) DO NOTHING",
+    [row.id,workspace.owner_user_id]
+  );
+  return row.id;
+}
+
+module.exports = { migrateOrganizationModel, organizationFeatureEnabled, linkLegacyWorkspace };

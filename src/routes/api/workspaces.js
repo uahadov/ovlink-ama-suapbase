@@ -7,6 +7,7 @@ const { requireSignedIn, requireProAccess } = require('../../middleware/auth');
 const { pickLang, normalizeLang, getCookieValue } = require('../../lib/i18n');
 const { isProAccessActive, isIsoTimeExpired, getEffectivePlanForUser } = require('../../lib/plans');
 const { db } = require('../../db/index');
+const { organizationFeatureEnabled, linkLegacyWorkspace } = require('../../db/organization-model');
 const { sensitiveActionLimiter, mutationLimiter, authLimiter, generalLimiter } = require('../../middleware/rate-limiter');
 const { encryptAES256GCM, decryptAES256GCM, blindIndex } = require('../../../utils/crypto');
 const {
@@ -164,15 +165,20 @@ router.post('/api/workspaces',
       });
     }
     const nowIso = new Date().toISOString();
-    const inserted = await dbRunAsync(
-      'INSERT INTO workspaces (name, owner_user_id, created_at) VALUES (?, ?, ?) RETURNING id',
-      [name, req.session.userId, nowIso]
-    );
-    const workspaceId = inserted.lastID;
-    await dbRunAsync(
-      'INSERT INTO workspace_members (workspace_id, user_id, role, created_at) VALUES (?, ?, ?, ?)',
-      [workspaceId, req.session.userId, WORKSPACE_ROLES.OWNER, nowIso]
-    );
+    // Create the legacy workspace and optional organization mapping atomically.
+    // A failed org mapping must never leave a half-created owner workspace.
+    const workspaceId = await withTransaction(async tx => {
+      const inserted = await tx.get(
+        'INSERT INTO workspaces (name, owner_user_id, created_at) VALUES (?, ?, ?) RETURNING id',
+        [name, req.session.userId, nowIso]
+      );
+      await tx.run(
+        'INSERT INTO workspace_members (workspace_id, user_id, role, created_at) VALUES (?, ?, ?, ?)',
+        [inserted.id, req.session.userId, WORKSPACE_ROLES.OWNER, nowIso]
+      );
+      if (organizationFeatureEnabled()) await linkLegacyWorkspace(tx, inserted.id);
+      return inserted.id;
+    });
     logSecurityEvent(req, 'workspace.created', 'success', { workspace_id: workspaceId });
     return res.json({ id: workspaceId, name });
   });
@@ -299,6 +305,11 @@ router.delete('/api/workspaces/:id', requireSignedIn, async (req, res) => {
     await tx.run('DELETE FROM sso_connections WHERE workspace_id = ?', [workspaceId]);
     await tx.run('DELETE FROM workspace_invitations WHERE workspace_id = ?', [workspaceId]);
     await tx.run('DELETE FROM workspace_members WHERE workspace_id = ?', [workspaceId]);
+    // Retain the stable organization ID and audit trail, but hide a deleted
+    // legacy workspace from active organization listings.
+    if (organizationFeatureEnabled()) {
+      await tx.run("UPDATE organizations SET state = 'suspended' WHERE legacy_workspace_id = ?", [workspaceId]);
+    }
     await tx.run('DELETE FROM workspaces WHERE id = ?', [workspaceId]);
   });
   logSecurityEvent(req, 'workspace.deleted', 'success', { workspace_id: workspaceId });

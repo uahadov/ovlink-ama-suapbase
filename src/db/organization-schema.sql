@@ -7,8 +7,8 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     display_name TEXT NOT NULL CHECK (length(trim(display_name)) BETWEEN 1 AND 100),
-    owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    legacy_workspace_id INTEGER UNIQUE REFERENCES workspaces(id) ON DELETE RESTRICT,
+    owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    legacy_workspace_id INTEGER UNIQUE REFERENCES workspaces(id) ON DELETE SET NULL,
     state TEXT NOT NULL DEFAULT 'active' CHECK (state IN ('active', 'suspended')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS organization_members (
 CREATE INDEX IF NOT EXISTS idx_org_members_user ON organization_members(user_id);
 
 CREATE TABLE IF NOT EXISTS organization_workspaces (
-    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
-    workspace_id INTEGER PRIMARY KEY REFERENCES workspaces(id) ON DELETE RESTRICT,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    workspace_id INTEGER PRIMARY KEY REFERENCES workspaces(id) ON DELETE CASCADE,
     linked_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_org_workspaces_org ON organization_workspaces(organization_id);
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS organization_settings (
 -- A future approved billing stage must decide how the provider customer is moved.
 CREATE TABLE IF NOT EXISTS organization_billing (
     organization_id UUID PRIMARY KEY REFERENCES organizations(id) ON DELETE CASCADE,
-    billing_owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    billing_owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     billing_mode TEXT NOT NULL DEFAULT 'legacy_user_pro'
        CHECK (billing_mode IN ('legacy_user_pro','organization_subscription')),
     provider_customer_id TEXT,
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS organization_billing (
 
 CREATE TABLE IF NOT EXISTS organization_audit_log (
     id BIGSERIAL PRIMARY KEY,
-    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     event_key TEXT NOT NULL,
     actor_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,

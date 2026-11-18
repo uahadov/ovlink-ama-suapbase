@@ -34,6 +34,7 @@ test('P07: opt-in organization CRUD shell, membership isolation, legacy-Pro owne
     app.use(express.json());
     app.use((req,_res,next)=>{req.session={userId:Number(req.get('x-test-user')||0)};next();});
     app.use(require('../src/routes/api/organizations'));
+    app.use(require('../src/routes/api/workspaces'));
     server=app.listen(0,'127.0.0.1');
     await new Promise(resolve=>server.once('listening',resolve));
     const url=`http://127.0.0.1:${server.address().port}`;
@@ -76,6 +77,32 @@ test('P07: opt-in organization CRUD shell, membership isolation, legacy-Pro owne
     await migrateOrganizationModel();
     const check=await db.query('SELECT id FROM organizations WHERE id=ANY($1::uuid[])',[created]);
     assert.equal(check.rowCount,2);
+
+    // Legacy workspace creation must materialize a matching organization in
+    // the same transaction; deletion must still be possible after backfill.
+    const legacy = await api(alice,'POST','/api/workspaces',{name:'Legacy Client Team'});
+    assert.equal(legacy.status,200,JSON.stringify(legacy));
+    const oldWorkspaceId=legacy.body.id;
+    const shadow=await db.query(
+      'SELECT id,state FROM organizations WHERE legacy_workspace_id=$1',
+      [oldWorkspaceId]
+    );
+    assert.equal(shadow.rowCount,1,'new workspaces must not wait for next restart');
+    assert.equal(shadow.rows[0].state,'active');
+    const deleteResult=await api(alice,'DELETE',`/api/workspaces/${oldWorkspaceId}`);
+    assert.equal(deleteResult.status,200,JSON.stringify(deleteResult));
+    const archived=await db.query(
+      'SELECT state,legacy_workspace_id FROM organizations WHERE id=$1',
+      [shadow.rows[0].id]
+    );
+    assert.equal(archived.rows[0].state,'suspended');
+    assert.equal(archived.rows[0].legacy_workspace_id,null);
+    assert.equal((await db.query(
+      'SELECT 1 FROM organization_workspaces WHERE workspace_id=$1',[oldWorkspaceId]
+    )).rowCount,0);
+    const currentList=await api(alice,'GET','/api/organizations');
+    assert.ok(!currentList.body.organizations.some(o=>o.id===shadow.rows[0].id));
+    created.push(shadow.rows[0].id);
 
     // Feature flag OFF must not disclose existing private organization.
     process.env.ENABLE_ORGANIZATION_MODEL='0';
