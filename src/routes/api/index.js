@@ -18,6 +18,7 @@ router.use(require('./onboarding'));
 router.use(require('./webhooks'));
 router.use(require('./api-keys'));
 router.use(require('./workspaces'));
+router.use(require('./organizations')); // P07 feature-off-by-default organization API
 router.use(require('./custom-domains'));
 router.use(require('./billing'));
 

@@ -35,6 +35,9 @@ async function seed({ timeoutMs = 60000, expected = ['users', 'urls', 'clicks', 
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
 
+  const { organizationFeatureEnabled, migrateOrganizationModel } = require('../src/db/organization-model');
+  if (organizationFeatureEnabled()) await migrateOrganizationModel();
+
   const rows = await helpers.dbAllAsync(
     `SELECT table_name FROM information_schema.tables WHERE table_name IN ('${expected.join("','")}')`
   );
