@@ -554,6 +554,32 @@ function ensureDbTables() {
       db.run('CREATE INDEX IF NOT EXISTS idx_int_wh_deliv_owner ON integration_webhook_deliveries(owner_user_id, id DESC)', () => {});
     });
 
+    // P34: B2B organization billing accounts & idempotent subscription events.
+    db.run(`CREATE TABLE IF NOT EXISTS org_billing_accounts (
+      id SERIAL PRIMARY KEY,
+      workspace_id INTEGER NOT NULL UNIQUE,
+      billing_owner_user_id INTEGER NOT NULL,
+      plan_code TEXT NOT NULL DEFAULT 'free',
+      status TEXT NOT NULL DEFAULT 'active',
+      addons_json TEXT NOT NULL DEFAULT '[]',
+      polar_customer_id TEXT,
+      polar_subscription_id TEXT,
+      polar_product_id TEXT,
+      grandfathered_legacy_pro BOOLEAN NOT NULL DEFAULT FALSE,
+      current_period_end TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`, () => {});
+    db.run(`CREATE TABLE IF NOT EXISTS org_billing_events (
+      id SERIAL PRIMARY KEY,
+      provider_event_id TEXT NOT NULL UNIQUE,
+      workspace_id INTEGER NOT NULL,
+      event_type TEXT NOT NULL,
+      plan_code TEXT,
+      status_after TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`, () => {});
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});

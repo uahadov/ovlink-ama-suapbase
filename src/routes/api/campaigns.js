@@ -19,6 +19,7 @@ const backgroundJobs = require('../../lib/background-jobs');
 const mcpWorkflows = require('../../lib/mcp/workflows');
 const ga4Connector = require('../../lib/ga4-connector');
 const webhookReliability = require('../../lib/webhook-reliability');
+const orgBilling = require('../../lib/org-billing');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -1909,6 +1910,67 @@ router.post('/api/integrations/webhooks/deliveries/:id/replay', async (req, res)
     return res.json(result);
   } catch {
     return res.status(503).json({ error: 'Webhook təkrar göndərilə bilmədi.' });
+  }
+});
+
+// ===== P34: B2B Organization Billing Model =====
+
+router.post('/api/org-billing/accounts', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const wsId = Number.parseInt(body.workspace_id, 10);
+    if (!Number.isInteger(wsId) || wsId <= 0) return res.status(400).json({ error: ERROR_MESSAGES.invalid_workspace });
+    const result = await orgBilling.upsertOrgBillingAccount({
+      workspaceId: wsId,
+      billingOwnerUserId: userId,
+      planCode: body.plan_code || 'starter',
+      addons: body.addons || [],
+      polarCustomerId: body.polar_customer_id || null,
+      polarSubscriptionId: body.polar_subscription_id || null,
+      polarProductId: body.polar_product_id || null,
+    });
+    return res.status(201).json(result);
+  } catch {
+    return res.status(500).json({ error: 'Təşkilat billing hesabı yaradıla bilmədi.' });
+  }
+});
+
+router.get('/api/org-billing/accounts/:workspaceId', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const account = await orgBilling.getOrgBillingAccount({
+      workspaceId: req.params.workspaceId,
+      billingOwnerUserId: userId,
+    });
+    if (!account) return res.status(404).json({ error: 'Təşkilat billing hesabı tapılmadı.' });
+    return res.json({ account });
+  } catch {
+    return res.status(500).json({ error: 'Billing məlumatı alına bilmədi.' });
+  }
+});
+
+router.post('/api/org-billing/sandbox-webhook', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const result = await orgBilling.applyOrgSubscriptionWebhookEvent({
+      providerEventId: body.provider_event_id,
+      workspaceId: body.workspace_id,
+      billingOwnerUserId: userId,
+      eventType: body.event_type,
+      polarProductId: body.polar_product_id || null,
+      polarCustomerId: body.polar_customer_id || null,
+      polarSubscriptionId: body.polar_subscription_id || null,
+      currentPeriodEnd: body.current_period_end || null,
+    });
+    if (result.error) return res.status(result.statusCode || 400).json(result);
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'Billing webhook emal edilə bilmədi.' });
   }
 });
 
