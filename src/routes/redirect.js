@@ -22,9 +22,11 @@ const {
   setRedirectConsentSession,
   setRedirectConsentMode,
   buildRedirectConfirmToken,
-  isRedirectConfirmTokenValid
+  isRedirectConfirmTokenValid,
+  REDIRECT_CONSENT_COUNTDOWN_MS
 } = require('../lib/consent');
-const { recordClickSafe } = require('../lib/analytics');
+const analyticsLib = require('../lib/analytics');
+const redirectSlo = require('../lib/redirect-slo');
 const { createUserNotification } = require('../lib/notifications');
 const { sensitiveActionLimiter } = require('../middleware/rate-limiter');
 const { getRequestHostName, getShortHostAccess } = require('../lib/custom-domain');
@@ -103,10 +105,17 @@ function send404(res) {
   return res.status(404).render('404', { csrfToken: res.locals._csrf, seo });
 }
 
-// Kept as a thin, side-effect-free recorder for call sites/tests that only need
-// "a click happened": all attribution lives in src/lib/analytics.js.
+// Kept as a thin, resilient recorder for call sites/tests: analytics failures
+// (sync throw or async rejection) must NEVER block or crash a valid redirect.
 function recordClickEvent(req, row, consentMode, resolvedTarget) {
-  void recordClickSafe({ row, req, consentMode, context: resolvedTarget });
+  try {
+    const p = analyticsLib.recordClickSafe({ row, req, consentMode, context: resolvedTarget });
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => { redirectSlo.recordAnalyticsFailure(); });
+    }
+  } catch (_err) {
+    redirectSlo.recordAnalyticsFailure();
+  }
 }
 
 /**
@@ -239,11 +248,14 @@ async function applyDeliveryGates(req, res, row, targetUrl, options = {}) {
 
 // Mərkəzləşdirilmiş Yönləndirmə Məntiqi
 async function handleRedirection(req, res, row, passwordVerified = false) {
+  const startedAt = process.hrtime.bigint();
+  const elapsedMs = () => Number(process.hrtime.bigint() - startedAt) / 1e6;
   const short = row.short;
   const consentState = getRedirectConsentModeForRequest(req, short, 'redirect');
   const consentMode = consentState.mode;
 
   if (!consentMode) {
+    redirectSlo.recordOutcome('consent_redirects', elapsedMs());
     return res.redirect(302, `/consent/redirect/${encodeURIComponent(short)}`);
   }
 
@@ -253,20 +265,29 @@ async function handleRedirection(req, res, row, passwordVerified = false) {
 
     // 1. Şifrə tələb olunan linklər: əvvəlcə bütün geytlər, sonra şifrə formu.
     if (row.link_password && !passwordVerified) {
-      if (!targetUrl) return send404(res);
-      if (await applyDeliveryGates(req, res, row, targetUrl, { skipDangerWarning: true, notifyOnLimit: true })) return undefined;
+      if (!targetUrl) { redirectSlo.recordOutcome('not_found', elapsedMs()); return send404(res); }
+      if (await applyDeliveryGates(req, res, row, targetUrl, { skipDangerWarning: true, notifyOnLimit: true })) {
+        redirectSlo.recordOutcome('gated', elapsedMs());
+        return undefined;
+      }
+      redirectSlo.recordOutcome('gated', elapsedMs());
       return res.redirect(`/proceed/${encodeURIComponent(short)}`);
     }
 
-    if (!targetUrl) return send404(res);
+    if (!targetUrl) { redirectSlo.recordOutcome('not_found', elapsedMs()); return send404(res); }
 
     // 2. Moderation / expiry / blocklist / limit / danger warning
-    if (await applyDeliveryGates(req, res, row, targetUrl, { notifyOnLimit: true })) return undefined;
+    if (await applyDeliveryGates(req, res, row, targetUrl, { notifyOnLimit: true })) {
+      redirectSlo.recordOutcome('gated', elapsedMs());
+      return undefined;
+    }
 
     // 3. Tracking (yalnız yönləndirmə həqiqətən baş verəndə qeyd olunur)
     recordClickEvent(req, row, consentMode, resolvedTarget);
+    redirectSlo.recordOutcome('delivered', elapsedMs());
     return res.redirect(targetUrl);
   } catch (err) {
+    redirectSlo.recordOutcome('errors', elapsedMs());
     console.error('[redirect] delivery failed:', err && (err.message || err));
     if (!res.headersSent) return res.status(500).send('Server error.');
     return undefined;

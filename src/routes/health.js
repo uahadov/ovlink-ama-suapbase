@@ -18,6 +18,7 @@ const express = require('express');
 const pkg = require('../../package.json');
 const { dbGetAsync } = require('../db/helpers');
 const { snapshot: workerSnapshot } = require('../lib/worker-heartbeat');
+const { snapshot: redirectSloSnapshot } = require('../lib/redirect-slo');
 const { redisClient } = require('../config/redis');
 
 const router = express.Router();
@@ -117,6 +118,7 @@ router.get(['/health', '/api/health'], async (req, res) => {
     } catch (err) {
       body.checks.pool = { error: 'unavailable' };
     }
+    body.checks.redirect_slo = redirectSloSnapshot();
   }
 
   return res.status(db.ok ? 200 : 503).json(body);
