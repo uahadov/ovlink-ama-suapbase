@@ -40,7 +40,7 @@ test('P27 unit: low-RAM pure-Node PDF 1.4 matches CSV KPIs 1:1 and renders in <1
   assert.ok(csv.includes('"Clicks","245"') && pdfText.includes('Clicks: 245'));
   assert.ok(csv.includes('"Unique visitors","190"') && pdfText.includes('Unique visitors: 190'));
   assert.ok(csv.includes('"Conversions","28"') && pdfText.includes('Conversions: 28'));
-  assert.ok(csv.includes('"Conversion rate (%)","11.4"') && pdfText.includes('Conversion rate (%): 11.4'));
+  assert.ok(csv.includes('"Conversion rate (%)","11.4"') && pdfText.includes('Conversion rate \\(%\\): 11.4'));
 });
 
 const dbUrl = process.env.DATABASE_URL || '';

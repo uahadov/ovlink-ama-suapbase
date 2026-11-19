@@ -53,7 +53,13 @@ test('P30 integration: parallel workers SKIP LOCKED, crash->lease recovery, dead
 
   // 3. Crash -> Lease expiry -> Recovery by second worker
   const kCrash = `p30_crash_${suffix}`;
-  const crashEnq = await backgroundJobs.enqueueJob({ jobType: 'scheduled_report', idempotencyKey: kCrash, ownerUserId: userId, payload: { crash: true } });
+  const crashEnq = await backgroundJobs.enqueueJob({
+    jobType: 'scheduled_report',
+    idempotencyKey: kCrash,
+    ownerUserId: userId,
+    payload: { crash: true },
+    nextRunAt: new Date(Date.now() - 10000).toISOString(),
+  });
   const crashedClaim = await backgroundJobs.claimNextJob({
     workerId: 'dead-worker',
     ownerUserId: userId,
