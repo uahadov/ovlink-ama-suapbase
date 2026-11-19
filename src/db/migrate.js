@@ -432,6 +432,42 @@ function ensureDbTables() {
       db.run('CREATE INDEX IF NOT EXISTS idx_report_deliveries_schedule ON report_schedule_deliveries(schedule_id, id DESC)', () => {});
     });
 
+    // P29: business alert engine & notification preferences.
+    db.run(`CREATE TABLE IF NOT EXISTS business_alerts (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      campaign_id INTEGER,
+      signal_type TEXT NOT NULL,
+      severity TEXT NOT NULL DEFAULT 'warning',
+      confidence TEXT NOT NULL DEFAULT 'medium',
+      source_name TEXT NOT NULL DEFAULT 'ovlink_analytics',
+      dedupe_key TEXT NOT NULL,
+      title TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      action_url TEXT,
+      status TEXT NOT NULL DEFAULT 'open',
+      occurrence_count INTEGER NOT NULL DEFAULT 1,
+      ops_escalated BOOLEAN NOT NULL DEFAULT FALSE,
+      retry_policy_json TEXT,
+      metadata_json TEXT,
+      first_seen_at TEXT NOT NULL,
+      last_seen_at TEXT NOT NULL,
+      resolved_at TEXT
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_business_alerts_user_status ON business_alerts(user_id, status, id DESC)', () => {});
+      db.run('CREATE INDEX IF NOT EXISTS idx_business_alerts_dedupe ON business_alerts(dedupe_key, status, last_seen_at DESC)', () => {});
+    });
+    db.run(`CREATE TABLE IF NOT EXISTS alert_preferences (
+      user_id INTEGER PRIMARY KEY,
+      channels_json TEXT NOT NULL,
+      frequency TEXT NOT NULL DEFAULT 'instant',
+      drop_threshold_percent INTEGER NOT NULL DEFAULT 40,
+      spike_threshold_percent INTEGER NOT NULL DEFAULT 100,
+      min_sample_size INTEGER NOT NULL DEFAULT 30,
+      dedupe_window_minutes INTEGER NOT NULL DEFAULT 60,
+      updated_at TEXT NOT NULL
+    )`, () => {});
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});

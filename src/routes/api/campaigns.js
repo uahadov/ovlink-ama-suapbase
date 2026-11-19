@@ -14,6 +14,7 @@ const reportTemplates = require('../../lib/report-templates');
 const clientPortal = require('../../lib/client-portal');
 const pdfReport = require('../../lib/pdf-report');
 const scheduledReports = require('../../lib/scheduled-reports');
+const businessAlerts = require('../../lib/business-alerts');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -1552,6 +1553,116 @@ router.post('/api/report-schedules/:id/cancel', async (req, res) => {
     return res.json(result);
   } catch {
     return res.status(500).json({ error: 'Cədvəl ləğv edilə bilmədi.' });
+  }
+});
+
+// ===== P29: Business Alert Engine & Notification Preferences =====
+
+router.get('/api/business-alerts/preferences', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const preferences = await businessAlerts.getAlertPreferences({ userId });
+    return res.json({ contract_version: businessAlerts.BUSINESS_ALERTS_CONTRACT_VERSION, preferences });
+  } catch {
+    return res.status(500).json({ error: 'Bildiriş tənzimləmələri alına bilmədi.' });
+  }
+});
+
+router.put('/api/business-alerts/preferences', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const preferences = await businessAlerts.saveAlertPreferences({ userId, body: req.body });
+    return res.json({ preferences });
+  } catch {
+    return res.status(500).json({ error: 'Bildiriş tənzimləmələri saxlanıla bilmədi.' });
+  }
+});
+
+router.get('/api/business-alerts', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const alerts = await businessAlerts.listBusinessAlerts({
+      userId,
+      status: req.query && req.query.status,
+    });
+    return res.json({ contract_version: businessAlerts.BUSINESS_ALERTS_CONTRACT_VERSION, alerts });
+  } catch {
+    return res.status(500).json({ error: 'Xəbərdarlıqlar alına bilmədi.' });
+  }
+});
+
+router.post('/api/business-alerts/evaluate', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const prefs = await businessAlerts.getAlertPreferences({ userId });
+    const signalType = String(body.signal_type || 'traffic_anomaly').toLowerCase();
+    const campaignId = body.campaign_id ? Number.parseInt(body.campaign_id, 10) || null : null;
+
+    if (signalType === 'traffic_anomaly') {
+      const evaluation = businessAlerts.evaluateTrafficSignal({
+        baselineClicks: body.baseline_clicks,
+        currentClicks: body.current_clicks,
+        minSampleSize: prefs.min_sample_size,
+        dropThresholdPercent: prefs.drop_threshold_percent,
+        spikeThresholdPercent: prefs.spike_threshold_percent,
+      });
+      if (!evaluation.triggered) {
+        return res.json({ triggered: false, evaluation });
+      }
+      const emitted = await businessAlerts.emitBusinessAlert({
+        userId,
+        campaignId,
+        signalType: 'traffic_anomaly',
+        severity: evaluation.severity,
+        confidence: evaluation.confidence,
+        sourceName: 'ovlink_analytics',
+        title: evaluation.label === 'suspicious' ? 'Şübhəli trafik dəyişikliyi (az data)' : `Trafik anomaliyası (${evaluation.direction})`,
+        summary: evaluation.summary,
+        actionUrl: campaignId ? `/campaigns?id=${campaignId}` : '/campaigns',
+        direction: evaluation.direction,
+        metadata: { delta_percent: evaluation.delta_percent, baseline_clicks: body.baseline_clicks, current_clicks: body.current_clicks },
+        dedupeWindowMinutes: prefs.dedupe_window_minutes,
+      });
+      return res.status(emitted.deduplicated ? 200 : 201).json({ triggered: true, ...emitted });
+    }
+
+    const emitted = await businessAlerts.emitBusinessAlert({
+      userId,
+      campaignId,
+      signalType,
+      severity: body.severity || 'critical',
+      confidence: body.confidence || 'high',
+      sourceName: body.source_name || 'ovlink_monitor',
+      title: body.title || signalType,
+      summary: body.summary || `${signalType} detected`,
+      actionUrl: body.action_url || (campaignId ? `/campaigns?id=${campaignId}` : '/dashboard'),
+      metadata: body.metadata || {},
+      dedupeWindowMinutes: prefs.dedupe_window_minutes,
+    });
+    return res.status(emitted.deduplicated ? 200 : 201).json({ triggered: true, ...emitted });
+  } catch {
+    return res.status(500).json({ error: 'Siqnal qiymətləndirilə bilmədi.' });
+  }
+});
+
+router.patch('/api/business-alerts/:id', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await businessAlerts.updateBusinessAlertStatus({
+      userId,
+      alertId: req.params.id,
+      status: req.body && req.body.status,
+    });
+    if (result.error) return res.status(result.statusCode || 400).json(result);
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'Xəbərdarlıq statusu yenilənmədi.' });
   }
 });
 
