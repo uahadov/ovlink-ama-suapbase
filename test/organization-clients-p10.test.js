@@ -17,6 +17,9 @@ test('P10 real agency portfolio: cross-tenant isolation, 20 campaigns, archive s
   const env={ENABLE_ORGANIZATION_MODEL:'1',ENABLE_ORGANIZATION_RBAC_V2:'1',ENABLE_ORGANIZATION_TEAM_V1:'1',ENABLE_ORGANIZATION_CLIENTS_V1:'1'};
   await migrateOrganizationModel();await migrateOrganizationRoles({env});await migrateOrganizationTeam({env});await migrateOrganizationClients({env});await migrateOrganizationClients({env});
   Object.assign(process.env,env);
+  const mcp=require('../src/lib/mcp/tools');
+  assert.ok(mcp.TOOL_DEFINITIONS.some(x=>x.name==='ovlink_list_agency_clients'));
+  assert.ok(mcp.TOOL_DEFINITIONS.some(x=>x.name==='ovlink_get_agency_client_report'));
   const unique=crypto.randomBytes(6).toString('hex');
   async function user(name){const email=`p10-${name}-${unique}@example.invalid`,row=(await db.query("INSERT INTO users(email,email_hash,email_verified,plan_tier,plan_status) VALUES($1,$2,1,'pro','active') RETURNING id",[encryptAES256GCM(email),blindIndex(email)])).rows[0];users.push(row.id);return row.id}
   const owner=await user('owner'),manager=await user('manager'),analyst=await user('analyst'),viewer=await user('viewer'),outsider=await user('outsider');
@@ -39,6 +42,15 @@ test('P10 real agency portfolio: cross-tenant isolation, 20 campaigns, archive s
   assert.equal((await call(viewer,'GET',path)).body.clients.length,0,'viewer sees no unassigned client');
   assert.equal((await call(manager,'POST',path+'/'+ids[0]+'/assign',{user_id:viewer})).status,200);
   assert.equal((await call(viewer,'GET',path)).body.clients.length,1,'viewer only assigned client');
+  const mcpOwner=await mcp.executeTool('ovlink_list_agency_clients',{organization_id:alpha},{userId:owner});
+  assert.equal(mcpOwner.clients.length,3,'MCP owner sees agency clients');
+  const mcpViewer=await mcp.executeTool('ovlink_list_agency_clients',{organization_id:alpha},{userId:viewer});
+  assert.equal(mcpViewer.clients.length,1,'MCP client viewer sees assigned client only');
+  const mcpManager=await mcp.executeTool('ovlink_list_agency_clients',{organization_id:alpha},{userId:manager});
+  assert.equal(mcpManager.clients.length,3,'MCP manager sees agency clients');
+  await assert.rejects(mcp.executeTool('ovlink_list_agency_clients',{organization_id:alpha},{userId:outsider}),e=>e.code===-32004,'MCP cross-org IDOR refused');
+  await assert.rejects(mcp.executeTool('ovlink_list_agency_clients',{organization_id:alpha},{userId:owner,apiKey:{scopes:['shorten:write']}}),e=>e.code===-32003,'MCP API-key scope enforced');
+
   assert.equal((await call(viewer,'POST',path+'/'+ids[0]+'/campaigns',{name:'Private'})).status,404,'viewer cannot create campaign');
   assert.equal((await call(manager,'POST',path,{name:'X',unknown:'massassign'})).status,400,'mass-assignment denied');
   const first=ids[0],second=ids[1];
@@ -51,6 +63,19 @@ test('P10 real agency portfolio: cross-tenant isolation, 20 campaigns, archive s
   assert.equal((await call(viewer,'GET',path+'/'+second+'/campaigns')).status,404,'client viewer cannot inspect unassigned client');
   assert.equal((await call(viewer,'GET',path+'/'+first+'/campaigns')).body.campaigns.length,20,'assigned viewer read-only');
   assert.equal((await call(outsider,'GET',path+'/'+first+'/campaigns')).status,404);
+  const mcpReport=await mcp.executeTool('ovlink_get_agency_client_report',{organization_id:alpha,client_id:first,days:30},{userId:owner});
+  assert.equal(mcpReport.campaigns,20,'MCP client campaign totals');
+  const mcpViewerReport=await mcp.executeTool('ovlink_get_agency_client_report',{organization_id:alpha,client_id:first},{userId:viewer});
+  assert.equal(mcpViewerReport.campaigns,20,'MCP assigned client report');
+  await assert.rejects(mcp.executeTool('ovlink_get_agency_client_report',{organization_id:alpha,client_id:second},{userId:viewer}),e=>e.code===-32004,'MCP unassigned client denied');
+  await assert.rejects(mcp.executeTool('ovlink_get_agency_client_report',{organization_id:alpha,client_id:first},{userId:outsider}),e=>e.code===-32004,'MCP outsider cannot query report');
+  await db.query('DELETE FROM organization_client_members WHERE client_id=$1 AND user_id=$2',[first,viewer]);
+  await assert.rejects(mcp.executeTool('ovlink_get_agency_client_report',{organization_id:alpha,client_id:first},{userId:viewer}),e=>e.code===-32004,'MCP immediate client assignment revocation');
+  await db.query('INSERT INTO organization_client_members(client_id,user_id) VALUES($1,$2)',[first,viewer]);
+  await db.query('DELETE FROM organization_members WHERE organization_id=$1 AND user_id=$2',[alpha,manager]);
+  await assert.rejects(mcp.executeTool('ovlink_list_agency_clients',{organization_id:alpha},{userId:manager}),e=>e.code===-32004,'MCP immediate organization role revocation');
+  await db.query("INSERT INTO organization_members(organization_id,user_id,role) VALUES($1,$2,'manager')",[alpha,manager]);
+
   const urlShort=`p10-${unique}`;
   const link=(await db.query('INSERT INTO urls(original,short,created_at,user_id,campaign_id) VALUES($1,$2,$3,$4,$5) RETURNING id',[`https://example.invalid/${unique}`,urlShort,new Date().toISOString(),owner,campaigns[0]])).rows[0];urls.push(link.id);
   const unassignedShort=`p10-private-${unique}`;

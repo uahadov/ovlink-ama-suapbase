@@ -16,6 +16,8 @@ const {
 } = require('../url-helpers');
 const { appendUtmParams } = require('../utm');
 const campaignLib = require('../campaigns');
+const { organizationClientsEnabled } = require('../../db/organization-model');
+const { checkAccess,loadContext } = require('../organization-access-context');
 const { getMcpQuotaStatus } = require('./quota');
 const {
   validateDestinationUrlSafe,
@@ -301,6 +303,23 @@ const TOOL_DEFINITIONS = [
     }
   }
 ];
+
+// P08/P10 feature-gated MCP surface: capabilities are not advertised when
+// the organization/client schema is OFF. Account scopes are necessary but not
+// sufficient: each call loads CURRENT DB role and client assignment.
+if (organizationClientsEnabled()) {
+  TOOL_DEFINITIONS.push({
+    name:'ovlink_list_agency_clients',
+    description:'List active agency client portfolios visible to the authenticated organization member. Uses the same DB role and client assignment policy as the app.',
+    requiredScope:'account:read',rateLimitTier:'read',
+    inputSchema:{type:'object',properties:{organization_id:{type:'string',description:'Agency organization UUID'},include_archived:{type:'boolean'}},required:['organization_id'],additionalProperties:false}
+  },{
+    name:'ovlink_get_agency_client_report',
+    description:'Read daily aggregate counts for a specific agency client portfolio; scope limited to the member and client assignment in the current database.',
+    requiredScope:'account:read',rateLimitTier:'read',
+    inputSchema:{type:'object',properties:{organization_id:{type:'string'},client_id:{type:'string'},days:{type:'integer',enum:[7,30,90,365]}},required:['organization_id','client_id'],additionalProperties:false}
+  });
+}
 
 /**
  * Encodes cursor for list pagination
@@ -983,6 +1002,56 @@ const TOOL_HANDLERS = {
     });
   }
 };
+
+// Role-aware MCP portfolio views (read-only). Mutations belong to the
+// transactional API and are not available through this MCP interface.
+const ORG_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function maskedMcpDenied(){const e=new Error('Resource not found');e.code=-32004;e.jsonRpcCode=-32004;return e}
+async function mcpOrgScope(tx,args,context,action){
+ if(!organizationClientsEnabled()||!ORG_UUID.test(args?.organization_id||'')||
+   (args?.client_id&&!ORG_UUID.test(args.client_id)))throw maskedMcpDenied();
+ const user=Number(context?.userId);
+ if(!Number.isSafeInteger(user)||user<1)throw maskedMcpDenied();
+ const allowed=await checkAccess({tx,organizationId:args.organization_id,userId:user,mutation:true},action);
+ if(!allowed)throw maskedMcpDenied();
+ const org=await tx.get("SELECT legacy_workspace_id FROM organizations WHERE id=? AND state='active'",[args.organization_id]);
+ if(!org||org.legacy_workspace_id!==null)throw maskedMcpDenied();
+ const ctx=await loadContext({tx,organizationId:args.organization_id,userId:user,mutation:true});
+ const privileged=['owner','admin','manager'].includes(ctx?.role);
+ if(args.client_id){
+   const client=await tx.get('SELECT id,display_name,status FROM organization_client_spaces WHERE id=? AND organization_id=?',[args.client_id,args.organization_id]);
+   if(!client)throw maskedMcpDenied();
+   if(!privileged&&!await tx.get('SELECT user_id FROM organization_client_members WHERE client_id=? AND user_id=?',[client.id,user]))throw maskedMcpDenied();
+   return {user,client,privileged};
+ }
+ return {user,privileged};
+}
+if(organizationClientsEnabled()) {
+  TOOL_HANDLERS.ovlink_list_agency_clients=async(args,context)=>withTransaction(async tx=>{
+    const s=await mcpOrgScope(tx,args,context,'workspace.read');
+    const rows=await tx.all(`SELECT c.id,c.display_name,c.status,
+      (SELECT COUNT(*)::int FROM organization_client_campaigns cc WHERE cc.client_id=c.id) AS campaigns
+      FROM organization_client_spaces c WHERE c.organization_id=?
+      ${args.include_archived?'':"AND c.status='active'"}
+      ${s.privileged?'':'AND EXISTS(SELECT 1 FROM organization_client_members cm WHERE cm.client_id=c.id AND cm.user_id=?)'}
+      ORDER BY c.created_at,c.id LIMIT 100`,s.privileged?[args.organization_id]:[args.organization_id,s.user]);
+    return sanitizePayload({clients:rows});
+  });
+  TOOL_HANDLERS.ovlink_get_agency_client_report=async(args,context)=>withTransaction(async tx=>{
+    const s=await mcpOrgScope(tx,args,context,'report.read');
+    const days=[7,30,90,365].includes(Number(args.days))?Number(args.days):30;
+    const date=new Date();date.setUTCHours(0,0,0,0);date.setUTCDate(date.getUTCDate()-(days-1));
+    const start=date.toISOString().slice(0,10);
+    const totals=await tx.get(`SELECT COUNT(DISTINCT c.id)::int AS campaigns,COUNT(DISTINCT u.id)::int AS links,
+      COALESCE(SUM(d.clicks),0) AS clicks,COALESCE(SUM(d.uniques),0) AS uniques,COALESCE(SUM(d.conversions),0) AS conversions
+      FROM organization_client_campaigns cc JOIN campaigns c ON c.id=cc.campaign_id
+      LEFT JOIN urls u ON u.campaign_id=c.id LEFT JOIN link_stats_daily d ON d.url_id=u.id AND d.day>=?
+      WHERE cc.client_id=?`,[start,s.client.id]);
+    return sanitizePayload({client:{id:s.client.id,name:s.client.display_name},range:{days,from:start},
+      campaigns:Number(totals.campaigns||0),links:Number(totals.links||0),clicks:Number(totals.clicks||0),
+      uniques:Number(totals.uniques||0),conversions:Number(totals.conversions||0),unique_definition:'per_link_not_global_distinct'});
+  });
+}
 
 async function executeTool(name, args, context) {
   const definition = TOOL_DEFINITIONS.find((t) => t.name === name);
