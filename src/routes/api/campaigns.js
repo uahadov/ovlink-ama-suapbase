@@ -21,6 +21,7 @@ const ga4Connector = require('../../lib/ga4-connector');
 const webhookReliability = require('../../lib/webhook-reliability');
 const orgBilling = require('../../lib/org-billing');
 const planEntitlements = require('../../lib/plan-entitlements');
+const checkoutDunning = require('../../lib/checkout-dunning');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -2018,6 +2019,89 @@ router.post('/api/entitlements/:workspaceId/check', async (req, res) => {
     return res.json(check);
   } catch {
     return res.status(500).json({ error: 'Limit yoxlaması alınmadı.' });
+  }
+});
+
+// ===== P36: Self-Serve Checkout, Trial Auto-Renew, Dunning, Grace Period & Billing Portal =====
+
+router.post('/api/checkout/sessions', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const wsId = Number.parseInt(body.workspace_id, 10);
+    if (!Number.isInteger(wsId) || wsId <= 0) return res.status(400).json({ error: ERROR_MESSAGES.invalid_workspace });
+    const result = await checkoutDunning.createCheckoutSession({
+      workspaceId: wsId,
+      ownerUserId: userId,
+      planCode: body.plan_code || 'business',
+      trialDays: body.trial_days || 0,
+      currencyDisplay: body.currency_display || 'AZN',
+    });
+    if (result.error) return res.status(result.statusCode || 400).json(result);
+    return res.status(201).json(result);
+  } catch {
+    return res.status(500).json({ error: 'Checkout sessiyası yaradıla bilmədi.' });
+  }
+});
+
+router.post('/api/checkout/sessions/:checkoutId/sandbox-complete', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await checkoutDunning.completeSandboxCheckout({
+      checkoutId: req.params.checkoutId,
+      ownerUserId: userId,
+      providerEventId: req.body && req.body.provider_event_id,
+    });
+    if (result.error) return res.status(result.statusCode || 400).json(result);
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'Checkout tamamlanmadı.' });
+  }
+});
+
+router.post('/api/billing-portal/:workspaceId/payment-failed', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await checkoutDunning.recordPaymentFailure({
+      workspaceId: req.params.workspaceId,
+      ownerUserId: userId,
+    });
+    if (result.error) return res.status(result.statusCode || 404).json(result);
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'Ödəniş uğursuzluğu emal edilə bilmədi.' });
+  }
+});
+
+router.get('/api/billing-portal/:workspaceId', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const summary = await checkoutDunning.getBillingPortalSummary({
+      workspaceId: req.params.workspaceId,
+      ownerUserId: userId,
+    });
+    return res.json(summary);
+  } catch {
+    return res.status(500).json({ error: 'Ödəniş portalı yüklənmədi.' });
+  }
+});
+
+router.post('/api/billing-portal/:workspaceId/cancel', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await checkoutDunning.cancelSelfServe({
+      workspaceId: req.params.workspaceId,
+      ownerUserId: userId,
+    });
+    if (result.error) return res.status(result.statusCode || 404).json(result);
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'Abunəlik ləğv edilə bilmədi.' });
   }
 });
 

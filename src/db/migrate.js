@@ -580,6 +580,26 @@ function ensureDbTables() {
       created_at TEXT NOT NULL
     )`, () => {});
 
+    // P36: self-serve checkout sessions, dunning attempts, grace period & receipts.
+    db.run(`CREATE TABLE IF NOT EXISTS billing_checkout_sessions (
+      id SERIAL PRIMARY KEY,
+      checkout_id TEXT NOT NULL UNIQUE,
+      workspace_id INTEGER NOT NULL,
+      owner_user_id INTEGER NOT NULL,
+      plan_code TEXT NOT NULL,
+      trial_days INTEGER NOT NULL DEFAULT 0,
+      currency_display TEXT NOT NULL DEFAULT 'AZN',
+      status TEXT NOT NULL DEFAULT 'pending',
+      dunning_attempts INTEGER NOT NULL DEFAULT 0,
+      grace_period_ends_at TEXT,
+      receipt_number TEXT,
+      amount_usd REAL NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_checkout_ws ON billing_checkout_sessions(workspace_id, id DESC)', () => {});
+    });
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});
