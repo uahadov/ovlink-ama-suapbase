@@ -8,6 +8,7 @@ const { API_KEY_SCOPES } = require('../../lib/security');
 const { authenticateProApiKey, trackProApiUsage, requireApiScope } = require('../../middleware/auth');
 const { proReadLimiter, proWriteLimiter } = require('../../middleware/rate-limiter');
 const conversionEvents = require('../../lib/conversion-events');
+const decisionAnalytics = require('../../lib/decision-analytics');
 const { isoDay, addDays, parseRange } = require('../../lib/link-stats');
 const analyticsAudit = require('../../lib/analytics-audit');
 
@@ -218,6 +219,26 @@ router.get('/api/pro/v1/campaigns/:id/attribution', ...API_STACK, async (req, re
       query: req.query && typeof req.query === 'object' ? req.query : {},
     });
     return res.json(report.conversion_attribution || { campaign_id: Number(campaign.id), summary: null });
+  } catch {
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// GET /api/pro/v1/campaigns/:id/decision?days=30&bots=exclude&window_days=7&model=last_touch (P23)
+router.get('/api/pro/v1/campaigns/:id/decision', ...API_STACK, async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  const userId = req.apiAuth && Number.isInteger(req.apiAuth.userId) ? req.apiAuth.userId : 0;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized.' });
+
+  const campaign = await campaignLib.getCampaignForUser({ userId, campaignId: req.params.id });
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found.' });
+
+  try {
+    const report = await decisionAnalytics.loadCampaignDecisionAnalytics({
+      campaign,
+      query: req.query && typeof req.query === 'object' ? req.query : {},
+    });
+    return res.json(report);
   } catch {
     return res.status(500).json({ error: 'Server error.' });
   }

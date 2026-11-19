@@ -8,6 +8,7 @@ const campaignWizard = require('../../lib/campaign-wizard');
 const utmPresets = require('../../lib/utm-presets');
 const bulkImport = require('../../lib/bulk-import');
 const metricsContract = require('../../lib/metrics-contract');
+const decisionAnalytics = require('../../lib/decision-analytics');
 const {
   normalizeCampaignStatus,
   resolveEffectiveStatus,
@@ -711,6 +712,51 @@ router.get('/api/campaigns/:id/reconcile', async (req, res) => {
     return res.json(report);
   } catch {
     return res.status(500).json({ error: 'Metrika yoxlaması alınmadı.' });
+  }
+});
+
+// ===== P23: Decision Analytics (5 Core KPIs + Channel Comparison + Matching CSV) =====
+
+router.get('/api/campaigns/:id/decision', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+
+  const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: req.params.id });
+  if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+
+  try {
+    const report = await decisionAnalytics.loadCampaignDecisionAnalytics({
+      campaign,
+      query: req.query && typeof req.query === 'object' ? req.query : {},
+    });
+    return res.json(report);
+  } catch {
+    return res.status(500).json({ error: 'Qərar analitikası yüklənmədi.' });
+  }
+});
+
+router.get('/api/campaigns/:id/decision.csv', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+
+  const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: req.params.id });
+  if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+
+  try {
+    const report = await decisionAnalytics.loadCampaignDecisionAnalytics({
+      campaign,
+      query: req.query && typeof req.query === 'object' ? req.query : {},
+    });
+    const csv = decisionAnalytics.buildDecisionCsv(report);
+    const safeSlug = String(campaign.slug || campaign.id).replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 60);
+    return res
+      .set('Cache-Control', 'private, no-store, max-age=0')
+      .set('X-Content-Type-Options', 'nosniff')
+      .set('Content-Type', 'text/csv; charset=utf-8')
+      .set('Content-Disposition', `attachment; filename="ovlink-decision-${safeSlug}.csv"`)
+      .send(csv);
+  } catch {
+    return res.status(500).json({ error: 'CSV hesabatı yaradılmadı.' });
   }
 });
 
