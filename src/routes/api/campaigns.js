@@ -13,6 +13,7 @@ const reportProvenance = require('../../lib/report-provenance');
 const reportTemplates = require('../../lib/report-templates');
 const clientPortal = require('../../lib/client-portal');
 const pdfReport = require('../../lib/pdf-report');
+const scheduledReports = require('../../lib/scheduled-reports');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -1427,6 +1428,130 @@ router.get('/api/campaigns/:id/export-jobs/:jobKey', async (req, res) => {
     return res.json({ job });
   } catch {
     return res.status(503).json({ error: 'Tapşırıq statusu alına bilmədi.' });
+  }
+});
+
+// ===== P28: Managed Scheduled Reporting v1 =====
+
+router.get('/api/report-schedules', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const schedules = await scheduledReports.listReportSchedules({ ownerUserId: userId });
+    return res.json({ contract_version: scheduledReports.SCHEDULED_REPORTS_CONTRACT_VERSION, schedules });
+  } catch {
+    return res.status(500).json({ error: 'Planlaşdırılmış hesabatlar alına bilmədi.' });
+  }
+});
+
+router.post('/api/report-schedules', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: body.campaign_id });
+    if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+    const result = await scheduledReports.createReportSchedule({
+      ownerUserId: userId,
+      campaignId: campaign.id,
+      workspaceId: campaign.workspace_id || null,
+      body,
+    });
+    if (result.error) {
+      return res.status(result.statusCode || 400).json({ error: result.message || result.error, code: result.error });
+    }
+    return res.status(201).json(result);
+  } catch {
+    return res.status(500).json({ error: 'Hesabat cədvəli yaradıla bilmədi.' });
+  }
+});
+
+router.post('/api/report-schedules/:id/preview', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const schedule = await scheduledReports.getReportScheduleForActor({ ownerUserId: userId, scheduleId: req.params.id });
+    if (!schedule) return res.status(404).json({ error: 'Hesabat cədvəli tapılmadı.' });
+    const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: schedule.campaign_id });
+    if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+    const stats = await campaignLib.loadCampaignStats({ campaign, query: { days: schedule.cadence === 'monthly' ? 30 : 7, bots: 'exclude' } });
+    return res.json({
+      preview: true,
+      schedule_id: schedule.id,
+      recipients: schedule.recipients,
+      next_run_at: schedule.next_run_at,
+      summary: { clicks: stats.clicks, uniques: stats.uniques, conversions: stats.conversions, conversion_rate: stats.conversion_rate },
+    });
+  } catch {
+    return res.status(503).json({ error: 'Önbaxış hazırlana bilmədi.' });
+  }
+});
+
+router.post('/api/report-schedules/:id/test-send', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const schedule = await scheduledReports.getReportScheduleForActor({ ownerUserId: userId, scheduleId: req.params.id });
+    if (!schedule) return res.status(404).json({ error: 'Hesabat cədvəli tapılmadı.' });
+    const result = await scheduledReports.dispatchScheduledReport({ schedule, isTest: true });
+    return res.json(result);
+  } catch {
+    return res.status(503).json({ error: 'Test göndərişi alınmadı.' });
+  }
+});
+
+router.post('/api/report-schedules/:id/dispatch', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const schedule = await scheduledReports.getReportScheduleForActor({ ownerUserId: userId, scheduleId: req.params.id });
+    if (!schedule) return res.status(404).json({ error: 'Hesabat cədvəli tapılmadı.' });
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const result = await scheduledReports.dispatchScheduledReport({
+      schedule,
+      isTest: false,
+      scheduledForIso: body.scheduled_for || null,
+      snapshotId: body.snapshot_id || null,
+    });
+    if (result.error) return res.status(result.statusCode || 409).json(result);
+    return res.json(result);
+  } catch {
+    return res.status(503).json({ error: 'Göndəriş icra edilə bilmədi.' });
+  }
+});
+
+router.post('/api/report-schedules/:id/bounce', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const detail = req.body && req.body.detail ? String(req.body.detail).slice(0, 120) : 'bounce_detected';
+    const result = await scheduledReports.pauseOrCancelSchedule({
+      ownerUserId: userId,
+      scheduleId: req.params.id,
+      status: 'paused',
+      reason: `recipient_bounced: ${detail}`,
+    });
+    if (result.error) return res.status(result.statusCode || 404).json({ error: 'Hesabat cədvəli tapılmadı.' });
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'Bounce qeydə alına bilmədi.' });
+  }
+});
+
+router.post('/api/report-schedules/:id/cancel', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await scheduledReports.pauseOrCancelSchedule({
+      ownerUserId: userId,
+      scheduleId: req.params.id,
+      status: 'cancelled',
+      reason: 'owner_cancelled',
+    });
+    if (result.error) return res.status(result.statusCode || 404).json({ error: 'Hesabat cədvəli tapılmadı.' });
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'Cədvəl ləğv edilə bilmədi.' });
   }
 });
 

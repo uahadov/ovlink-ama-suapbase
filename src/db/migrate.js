@@ -392,6 +392,46 @@ function ensureDbTables() {
       db.run('CREATE INDEX IF NOT EXISTS idx_report_export_jobs_user ON report_export_jobs(user_id, campaign_id, id DESC)', () => {});
     });
 
+    // P28: opt-in scheduled reports + idempotent delivery ledger.
+    db.run(`CREATE TABLE IF NOT EXISTS report_schedules (
+      id SERIAL PRIMARY KEY,
+      owner_user_id INTEGER NOT NULL,
+      workspace_id INTEGER,
+      campaign_id INTEGER NOT NULL,
+      template_id INTEGER,
+      recipients_json TEXT NOT NULL,
+      consent_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+      timezone TEXT NOT NULL DEFAULT 'UTC',
+      cadence TEXT NOT NULL DEFAULT 'weekly',
+      day_of_week INTEGER NOT NULL DEFAULT 1,
+      day_of_month INTEGER NOT NULL DEFAULT 1,
+      hour_utc INTEGER NOT NULL DEFAULT 9,
+      status TEXT NOT NULL DEFAULT 'active',
+      paused_reason TEXT,
+      next_run_at TEXT NOT NULL,
+      last_run_at TEXT,
+      last_status TEXT,
+      lease_until TEXT,
+      locked_by TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_report_schedules_owner ON report_schedules(owner_user_id, status, next_run_at)', () => {});
+    });
+    db.run(`CREATE TABLE IF NOT EXISTS report_schedule_deliveries (
+      id SERIAL PRIMARY KEY,
+      schedule_id INTEGER NOT NULL,
+      delivery_key TEXT NOT NULL UNIQUE,
+      is_test BOOLEAN NOT NULL DEFAULT FALSE,
+      status TEXT NOT NULL DEFAULT 'sent',
+      recipients_count INTEGER NOT NULL DEFAULT 0,
+      snapshot_id TEXT,
+      error_message TEXT,
+      created_at TEXT NOT NULL
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_report_deliveries_schedule ON report_schedule_deliveries(schedule_id, id DESC)', () => {});
+    });
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});
