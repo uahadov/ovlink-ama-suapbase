@@ -12,7 +12,7 @@ test('P36 unit: trial auto-renew disclosures (AZ/EN, USD/AZN) and 7-day dunning 
   assert.equal(terms.trial_days, 14);
   assert.equal(terms.auto_renews, true);
   assert.equal(terms.cancel_anytime_before_charge, true);
-  assert.equal(terms.monthly_price_usd, 49);
+  assert.equal(terms.monthly_price_usd, 19);
   assert.ok(terms.indicative_price_azn > 0);
   assert.match(terms.disclosure_az, /14 günlük sınaq/);
 

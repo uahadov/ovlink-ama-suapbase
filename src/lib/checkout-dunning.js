@@ -23,10 +23,10 @@ const MAX_DUNNING_ATTEMPTS = 3;
 const INDICATIVE_USD_TO_AZN = 1.7;
 const ALLOWED_TRIAL_DAYS = new Set([0, 7, 14]);
 const PLAN_MONTHLY_USD = Object.freeze({
-  starter: 19,
-  business: 49,
-  agency: 129,
-  enterprise: 349,
+  starter: 7,
+  business: 19,
+  agency: 49,
+  enterprise: 129,
 });
 
 const SELLER_ONBOARDING_NOTE = 'Polar acts as Merchant of Record for global sales tax/VAT; Azerbaijan seller payout eligibility must still be verified directly in the live Polar seller dashboard before enabling production charges.';
@@ -35,7 +35,7 @@ let checkoutTablesReady = false;
 
 function buildTrialTerms(trialDays = 0, planCode = 'business') {
   const days = ALLOWED_TRIAL_DAYS.has(Number(trialDays)) ? Number(trialDays) : 0;
-  const usd = PLAN_MONTHLY_USD[planCode] || 49;
+  const usd = PLAN_MONTHLY_USD[planCode] || 19;
   const azn = Math.round(usd * INDICATIVE_USD_TO_AZN * 100) / 100;
   return {
     trial_days: days,

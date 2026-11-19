@@ -35,16 +35,16 @@ const UNIT_COSTS_USD = Object.freeze({
 const PLAN_MONTHLY_REVENUE_USD = Object.freeze({
   free: 0,
   legacy_pro: 4.99,
-  starter: 19,
-  business: 49,
-  agency: 129,
-  enterprise: 349,
+  starter: 7,
+  business: 19,
+  agency: 49,
+  enterprise: 129,
 });
 
-// Worst-case monthly capacity ceilings per plan (calibrated for safe gross margins)
+// Worst-case monthly capacity ceilings per plan (calibrated for >=65% worst-case gross margin)
 const PLAN_WORST_CASE_CAPS = Object.freeze({
   free: Object.freeze({
-    redirects: 50000,
+    redirects: 25000,
     pdf_exports: PLAN_ENTITLEMENT_MATRIX.free.monthly_reports,
     emails_sent: 10,
     ai_tokens_k: 5,
@@ -60,36 +60,36 @@ const PLAN_WORST_CASE_CAPS = Object.freeze({
     support_tickets: 0.25,
   }),
   starter: Object.freeze({
-    redirects: 500000,
+    redirects: 300000,
     pdf_exports: PLAN_ENTITLEMENT_MATRIX.starter.monthly_reports,
     emails_sent: 250,
-    ai_tokens_k: 100,
-    db_storage_gb: 1,
-    support_tickets: 1,
+    ai_tokens_k: 50,
+    db_storage_gb: 0.5,
+    support_tickets: 0.25,
   }),
   business: Object.freeze({
-    redirects: 2500000,
+    redirects: 2000000,
     pdf_exports: PLAN_ENTITLEMENT_MATRIX.business.monthly_reports,
     emails_sent: 1500,
-    ai_tokens_k: 400,
-    db_storage_gb: 5,
-    support_tickets: 2,
+    ai_tokens_k: 200,
+    db_storage_gb: 3,
+    support_tickets: 0.5,
   }),
   agency: Object.freeze({
-    redirects: 10000000,
+    redirects: 5000000,
     pdf_exports: PLAN_ENTITLEMENT_MATRIX.agency.monthly_reports,
-    emails_sent: 6000,
-    ai_tokens_k: 1200,
-    db_storage_gb: 20,
-    support_tickets: 4,
+    emails_sent: 2500,
+    ai_tokens_k: 500,
+    db_storage_gb: 10,
+    support_tickets: 2,
   }),
   enterprise: Object.freeze({
-    redirects: 40000000,
+    redirects: 20000000,
     pdf_exports: PLAN_ENTITLEMENT_MATRIX.enterprise.monthly_reports,
-    emails_sent: 25000,
-    ai_tokens_k: 4000,
-    db_storage_gb: 80,
-    support_tickets: 8,
+    emails_sent: 8000,
+    ai_tokens_k: 1500,
+    db_storage_gb: 30,
+    support_tickets: 4,
   }),
 });
 

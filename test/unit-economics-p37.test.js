@@ -65,12 +65,12 @@ test('P37 unit: usage forecast alerts and high-traffic stress quota check work d
   const fa = unitEconomics.evaluateUsageForecastAndAlerts({
     planCode: 'starter',
     usage: {
-      redirects: 480000, // 96% -> critical_95pct
+      redirects: 290000, // 96.7% -> critical_95pct
       pdf_exports: 25,   // 83.3% -> warning_80pct
       emails_sent: 100,
       ai_tokens_k: 20,
       db_storage_mb: 200,
-      support_tickets: 1,
+      support_tickets: 0.25,
     },
     now: new Date('2026-11-10T12:00:00Z'),
   });
@@ -141,7 +141,7 @@ test('P37 DB + HTTP: monthly usage rollup, cost allocation, and auth guard work 
     // 1) Plans matrix endpoint
     const plansRes = await requestJson(baseUrl, 'GET', '/api/unit-economics/plans');
     assert.equal(plansRes.status, 200);
-    assert.equal(plansRes.body.plans.business.monthly_revenue_usd, 49);
+    assert.equal(plansRes.body.plans.business.monthly_revenue_usd, 19);
     assert.equal(plansRes.body.ltv_usd, null);
 
     // 2) Record metered usage increments
@@ -179,7 +179,7 @@ test('P37 DB + HTTP: monthly usage rollup, cost allocation, and auth guard work 
       emails_sent: 1000,
       ai_tokens_k: 200,
       db_storage_gb: 3,
-      support_tickets: 1,
+      support_tickets: 0.5,
     });
     assert.equal(stressRes.status, 200);
     assert.equal(stressRes.body.margin_healthy_under_stress, true);
