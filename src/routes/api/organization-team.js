@@ -70,15 +70,12 @@ router.post('/api/organizations/:id/invitations',auth,mutationLimiter,requireSig
 });
 // A pending invitation is bound to the currently verified account's email_hash;
 // future signups can accept after verifying that address. No self-selected role.
-router.post('/api/organizations/invitations/accept',auth,mutationLimiter,requireSignedIn,async(req,res)=>{
- const token=req.body?.token;
- if(typeof token!=='string'||token.length<20||token.length>200)return res.status(400).json({error:'Invalid invitation'});
- try{
+async function acceptTeamInvite(token,userId){
   const hash=crypto.createHash('sha256').update(token).digest('hex');
-  const state=await withTransaction(async tx=>{
+  return withTransaction(async tx=>{
    const invitation=await tx.get('SELECT * FROM organization_invitations WHERE token_hash=? FOR UPDATE',[hash]);
    if(!invitation||invitation.revoked_at||invitation.accepted_at||new Date(invitation.expires_at).getTime()<=Date.now())return null;
-   const person=await tx.get('SELECT id,email_hash,email_verified FROM users WHERE id=? FOR SHARE',[uid(req)]);
+   const person=await tx.get('SELECT id,email_hash,email_verified FROM users WHERE id=? FOR SHARE',[userId]);
    if(!person||Number(person.email_verified)!==1||person.email_hash!==invitation.email_hash)return null;
    const organization=await tx.get("SELECT id,legacy_workspace_id FROM organizations WHERE id=? AND state='active' FOR SHARE",[invitation.organization_id]);
    if(!organization||organization.legacy_workspace_id!==null)return null;
@@ -91,8 +88,23 @@ router.post('/api/organizations/invitations/accept',auth,mutationLimiter,require
    await audit(tx,organization.id,person.id,'organization.invitation.accepted',{invitation_id:invitation.id,role:invitation.role});
    return {organization_id:organization.id,role:invitation.role};
   });
+}
+router.post('/api/organizations/invitations/accept',auth,mutationLimiter,requireSignedIn,async(req,res)=>{
+ const token=req.body?.token;
+ if(typeof token!=='string'||token.length<20||token.length>200)return res.status(400).json({error:'Invalid invitation'});
+ try{
+  const state=await acceptTeamInvite(token,uid(req));
   if(!state)return res.status(404).json({error:'Not found'});
   res.set('Cache-Control','no-store');return res.status(200).json(state);
+ }catch(e){return handle(res,e)}
+});
+router.post('/workspaces/accept-organization',auth,mutationLimiter,requireSignedIn,async(req,res)=>{
+ const token=req.body?.token;
+ if(typeof token!=='string'||token.length<20||token.length>200)return res.status(400).json({error:'Invalid invitation'});
+ try{
+  await acceptTeamInvite(token,uid(req));
+  // A consumed token is only displayed as accepted to its verified recipient.
+  res.set('Cache-Control','no-store');return res.redirect(303,'/workspaces/accept-organization?token='+encodeURIComponent(token));
  }catch(e){return handle(res,e)}
 });
 router.delete('/api/organizations/:id/invitations/:invite',auth,mutationLimiter,requireSignedIn,async(req,res)=>{

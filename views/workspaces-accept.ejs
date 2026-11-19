@@ -182,18 +182,18 @@
         <i class="fa-solid fa-users"></i>
       </div>
 
-      <h1 class="m-accept-h1" data-i18n="ws_accept_title">Workspace dəvəti</h1>
+      <h1 class="m-accept-h1" <%- (typeof teamInvite !== 'undefined' && teamInvite) ? '' : 'data-i18n="ws_accept_title"' %>><%= (typeof teamInvite !== 'undefined' && teamInvite) ? teamTitle : 'Workspace dəvəti' %></h1>
 
       <% if (state === 'ready') { %>
-        <p class="m-accept-sub" data-i18n="ws_accept_desc">Siz workspace-ə dəvət olundunuz:</p>
+        <p class="m-accept-sub" <%- (typeof teamInvite !== 'undefined' && teamInvite) ? '' : 'data-i18n="ws_accept_desc"' %>><%= (typeof teamInvite !== 'undefined' && teamInvite) ? teamDesc : 'Siz workspace-ə dəvət olundunuz:' %></p>
         
         <div class="m-ws-name-box"><%= workspaceName %></div>
         
-        <form method="POST" action="/workspaces/accept">
+        <form method="POST" action="<%= (typeof teamInvite !== 'undefined' && teamInvite) ? '/workspaces/accept-organization' : '/workspaces/accept' %>">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <input type="hidden" name="token" value="<%= token %>">
           <div class="m-accept-actions">
-            <button type="submit" class="m-cta m-cta--white" data-i18n="ws_accept_btn">Dəvəti qəbul et</button>
+            <button type="submit" class="m-cta m-cta--white" <%- (typeof teamInvite !== 'undefined' && teamInvite) ? '' : 'data-i18n="ws_accept_btn"' %>><%= (typeof teamInvite !== 'undefined' && teamInvite) ? teamAccept : 'Dəvəti qəbul et' %></button>
             <a href="/dashboard" class="m-cta m-cta--outline" data-i18n="ws_accept_decline">İmtina et</a>
           </div>
         </form>
@@ -216,7 +216,7 @@
       <% } else if (state === 'already_member' || state === 'accepted') { %>
         <div class="m-alert m-alert--success" data-i18n="ws_accept_already">
           <i class="fa-solid fa-circle-check"></i>
-          <span>Siz bu workspace-in üzvüsünüz.</span>
+          <span><%= (typeof teamInvite !== 'undefined' && teamInvite) ? teamAccepted : 'Siz bu workspace-in üzvüsünüz.' %></span>
         </div>
         <div class="m-accept-actions">
           <a href="/dashboard" class="m-cta m-cta--white" data-i18n="ws_open_dashboard">Linklər</a>

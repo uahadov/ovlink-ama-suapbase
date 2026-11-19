@@ -11,6 +11,7 @@ const { getEffectivePlanForUser, isProAccessActive, isIsoTimeExpired } = require
 const { sensitiveActionLimiter } = require('../middleware/rate-limiter');
 const { logSecurityEvent } = require('../lib/security');
 const { createBotShared } = require('../../bots/shared');
+const { organizationTeamEnabled } = require('../db/organization-model');
 
 const router = express.Router();
 
@@ -420,6 +421,34 @@ function maskEmailForDisplay(email) {
   const visible = local.slice(0, 2);
   return `${visible}${'*'.repeat(Math.max(1, local.length - 2))}@${domain}`;
 }
+
+router.get('/workspaces/accept-organization',async(req,res)=>{
+ if(!organizationTeamEnabled())return res.status(404).json({error:'Not found'});
+ res.set('Cache-Control','no-store');res.set('Referrer-Policy','no-referrer');
+ const token=typeof req.query?.token==='string'?req.query.token:'';
+ const lang=normalizeLang(req.query?.lang,'az');
+ const content={teamInvite:true,csrfToken:res.locals._csrf,token,workspaceName:'',invitedEmailMasked:'',
+   teamTitle:pickLang(lang,'Təşkilata dəvət','Kuruluş Daveti','Organization Invitation'),
+   teamDesc:pickLang(lang,'Siz təşkilata dəvət olunmusunuz:','Bir kuruluşa davet edildiniz:','You have been invited to the organization:'),
+   teamAccept:pickLang(lang,'Dəvəti qəbul et','Daveti kabul et','Accept invitation'),
+   teamAccepted:pickLang(lang,'Siz bu təşkilatın üzvüsünüz.','Bu kuruluşun üyesisiniz.','You are a member of this organization.')};
+ const show=(state,extra={})=>res.render('workspaces-accept',{...content,...extra,state});
+ if(!req.session?.userId)return show('login_required');
+ if(token.length<20||token.length>200)return show('invalid');
+ try{
+  const row=await dbGetAsync(`SELECT i.email_hash,i.email_encrypted,i.accepted_at,i.revoked_at,i.expires_at,o.display_name,o.id AS org_id,o.state AS org_state
+   FROM organization_invitations i JOIN organizations o ON o.id=i.organization_id WHERE i.token_hash=?`,[crypto.createHash('sha256').update(token).digest('hex')]);
+  if(!row||row.revoked_at||row.org_state!=='active'||new Date(row.expires_at).getTime()<=Date.now()&&!row.accepted_at)return show('invalid');
+  const me=await dbGetAsync('SELECT id,email_hash,email_verified FROM users WHERE id=?',[req.session.userId]);
+  if(!me||Number(me.email_verified)!==1||me.email_hash!==row.email_hash)return show('wrong_email',{workspaceName:row.display_name});
+  if(row.accepted_at){
+   const member=await dbGetAsync('SELECT user_id FROM organization_members WHERE organization_id=? AND user_id=?',[row.org_id,me.id]);
+   return show(member?'accepted':'invalid',{workspaceName:row.display_name});
+  }
+  const already=await dbGetAsync('SELECT user_id FROM organization_members WHERE organization_id=? AND user_id=?',[row.org_id,me.id]);
+  return show(already?'already_member':'ready',{workspaceName:row.display_name});
+ }catch(_e){return show('invalid')}
+});
 
 router.get('/workspaces/accept', async (req, res) => {
   const uiLang = normalizeLang(req.query && req.query.lang, 'az');
