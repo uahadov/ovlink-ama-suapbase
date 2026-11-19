@@ -404,7 +404,7 @@ router.get('/organizations/:id/clients',async(req,res)=>{
 router.get('/workspaces', async (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
   const plan = await getEffectivePlanForUser(req.session.userId).catch(() => null);
-  return res.render('workspaces', { csrfToken: res.locals._csrf, plan: plan || {}, enableAgencyPortfolio:organizationClientsEnabled() });
+  return res.render('workspaces', { csrfToken: res.locals._csrf, plan: plan || {}, enableAgencyPortfolio:organizationClientsEnabled(), enableOrganizationTeam:organizationTeamEnabled() });
 });
 
 router.get('/campaigns', (req, res) => {

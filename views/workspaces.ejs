@@ -550,9 +550,14 @@
         <h1 class="m-page-title" data-i18n="ws_title">Workspace</h1>
         <p class="m-page-sub" data-i18n="ws_subtitle">Komandanız üçün ümumi link workspace-i</p>
       </header>
-      <% if (typeof enableAgencyPortfolio !== 'undefined' && enableAgencyPortfolio) { %>
-        <div style="margin-bottom:20px;">
-          <a id="agencyPortfolioLink" class="m-cta m-cta--outline" href="/workspaces" hidden aria-label="Agency client portfolio">Müştəri portfeli / Client portfolio</a>
+      <% if ((typeof enableOrganizationTeam !== 'undefined' && enableOrganizationTeam) || (typeof enableAgencyPortfolio !== 'undefined' && enableAgencyPortfolio)) { %>
+        <div style="margin-bottom:20px;display:flex;flex-wrap:wrap;gap:12px;">
+          <% if (typeof enableOrganizationTeam !== 'undefined' && enableOrganizationTeam) { %>
+            <a id="teamManagementLink" class="m-cta m-cta--outline" href="/workspaces" hidden aria-label="Organization team management">Komanda / Team management</a>
+          <% } %>
+          <% if (typeof enableAgencyPortfolio !== 'undefined' && enableAgencyPortfolio) { %>
+            <a id="agencyPortfolioLink" class="m-cta m-cta--outline" href="/workspaces" hidden aria-label="Agency client portfolio">Müştəri portfeli / Client portfolio</a>
+          <% } %>
         </div>
         <script nonce="<%= nonce %>">
         (async function(){
@@ -560,15 +565,16 @@
             const response=await fetch('/api/organizations',{credentials:'same-origin',cache:'no-store'});
             if(!response.ok)return;
             const data=await response.json();
-            const org=data.organizations&&data.organizations[0];
+            const org=data.organizations&&data.organizations.find(function(o){return o.state==='active'});
             if(!org)return;
-            const a=document.getElementById('agencyPortfolioLink');
-            a.href='/organizations/'+encodeURIComponent(org.id)+'/clients';a.hidden=false;
+            const team=document.getElementById('teamManagementLink');
+            if(team){team.href='/organizations/'+encodeURIComponent(org.id)+'/team';team.hidden=false}
+            const portfolio=document.getElementById('agencyPortfolioLink');
+            if(portfolio){portfolio.href='/organizations/'+encodeURIComponent(org.id)+'/clients';portfolio.hidden=false}
           }catch(_e){}
         })();
         </script>
       <% } %>
-
 
       <% const isPro = !!(plan && (plan.tier === 'pro' || plan.is_active || (typeof user !== 'undefined' && user && (user.is_admin || user.role === 'admin')))); %>
 
