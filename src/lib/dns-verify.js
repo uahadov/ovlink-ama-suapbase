@@ -90,26 +90,59 @@ async function resolveAddressValues(hostname) {
   return Array.from(values);
 }
 
-async function verifyCustomDomainDns(domain, verificationToken) {
+async function verifyCustomDomainDns(domain, verificationToken, options = {}) {
   const txtHost = customDomain.getCustomDomainTxtHost(domain);
   const token = sanitizeDnsTxtValue(verificationToken);
+  const customResolver = options && typeof options.resolver === 'object' ? options.resolver : null;
+  const tlsProbe = options && typeof options.tlsProbe === 'function' ? options.tlsProbe : null;
 
-  const txtValues = await resolveTxtValues(txtHost);
+  const txtValues = customResolver && typeof customResolver.resolveTxt === 'function'
+    ? (await customResolver.resolveTxt(txtHost)).map((v) => sanitizeDnsTxtValue(v)).filter(Boolean)
+    : await resolveTxtValues(txtHost);
   const ownershipVerified = !!token && txtValues.some((v) => {
     if (typeof v !== 'string') return false;
     return tsscmp(v, token) || tsscmp(v, `ovlink-verify=${token}`);
   });
 
-  const cnameValues = await resolveCnameValues(domain);
-  const domainAddresses = await resolveAddressValues(domain);
-  const expectedTarget = customDomain.getCustomDomainTargetHost();
-  const expectedTargetAddresses = expectedTarget ? await resolveAddressValues(expectedTarget) : [];
+  const cnameValues = customResolver && typeof customResolver.resolveCname === 'function'
+    ? (await customResolver.resolveCname(domain)).map((v) => normalizeHostName(v)).filter(Boolean)
+    : await resolveCnameValues(domain);
+  const domainAddresses = customResolver && typeof customResolver.resolveAddresses === 'function'
+    ? (await customResolver.resolveAddresses(domain)).map((v) => String(v || '').trim()).filter(Boolean)
+    : await resolveAddressValues(domain);
+  const expectedTarget = (options && options.expectedTarget !== undefined)
+    ? normalizeHostName(options.expectedTarget)
+    : customDomain.getCustomDomainTargetHost();
+  const expectedTargetAddresses = expectedTarget
+    ? (customResolver && typeof customResolver.resolveAddresses === 'function'
+      ? (await customResolver.resolveAddresses(expectedTarget)).map((v) => String(v || '').trim()).filter(Boolean)
+      : await resolveAddressValues(expectedTarget))
+    : [];
 
   const cnameReady = expectedTarget ? cnameValues.some((v) => v === expectedTarget) : cnameValues.length > 0;
   const addressReady = expectedTarget
     ? domainAddresses.some((ip) => expectedTargetAddresses.includes(ip))
     : domainAddresses.length > 0;
   const routingReady = cnameReady || addressReady;
+
+  let tlsOk = null;
+  if (tlsProbe && ownershipVerified && routingReady) {
+    try {
+      const probe = await tlsProbe(domain);
+      tlsOk = !!(probe && probe.ok !== false);
+    } catch {
+      tlsOk = false;
+    }
+  }
+
+  let reasonCode = 'ok';
+  if (!ownershipVerified) {
+    reasonCode = txtValues.length ? 'txt_mismatch' : 'txt_missing';
+  } else if (!routingReady) {
+    reasonCode = 'routing_missing';
+  } else if (tlsOk === false) {
+    reasonCode = 'tls_failed';
+  }
 
   return {
     txtHost,
@@ -120,11 +153,58 @@ async function verifyCustomDomainDns(domain, verificationToken) {
     expectedTargetAddresses,
     ownershipVerified,
     routingReady,
+    tlsOk,
+    reasonCode,
   };
+}
+
+function classifyDomainVerification(result, { previousStatus = '' } = {}) {
+  const wasActive = previousStatus === 'active' || previousStatus === 'degraded';
+  if (!result || !result.ownershipVerified) {
+    return { status: wasActive ? 'degraded' : 'pending_verification', degraded: wasActive };
+  }
+  if (!result.routingReady || result.tlsOk === false) {
+    return { status: wasActive ? 'degraded' : 'pending_routing', degraded: wasActive };
+  }
+  return { status: 'active', degraded: false };
+}
+
+function describeDomainStatus(reasonCode, lang = 'az', { degraded = false } = {}) {
+  const l = ['az', 'tr', 'en'].includes(lang) ? lang : 'az';
+  const copy = {
+    ok: {
+      az: 'Domen aktiv edildi. Artıq qısa linklərdə istifadə edə bilərsiniz.',
+      tr: 'Alan adı aktif edildi. Artık kısa linklerde kullanabilirsiniz.',
+      en: 'Domain is active and ready to use for short links.',
+    },
+    txt_missing: {
+      az: degraded ? 'Domenin TXT doğrulama qeydi silinib — yönləndirmə müvəqqəti dayandırıldı.' : 'TXT qeydi tapılmadı. Doğrulama tokenini DNS-ə əlavə edin.',
+      tr: degraded ? 'Alan adının TXT doğrulama kaydı silindi — yönlendirme geçici olarak durduruldu.' : 'TXT kaydı bulunamadı. Doğrulama tokenini DNS’e ekleyin.',
+      en: degraded ? 'Domain TXT verification record is missing — routing paused until restored.' : 'TXT record not found. Add the verification token to DNS.',
+    },
+    txt_mismatch: {
+      az: 'TXT qeydi tapıldı, amma token uyğun gəlmir. Dəqiq doğrulama dəyərini yoxlayın.',
+      tr: 'TXT kaydı bulundu ancak token eşleşmiyor. Doğrulama değerini kontrol edin.',
+      en: 'TXT record found, but token does not match. Check the exact verification value.',
+    },
+    routing_missing: {
+      az: degraded ? 'Domenin CNAME/A yönləndirməsi pozulub — DNS qeydlərini yeniləyin.' : 'Mülkiyyət doğrulandı, amma domen hələ yönləndirməyə hazır deyil. CNAME və ya A/AAAA qeydlərini yoxlayın.',
+      tr: degraded ? 'Alan adının CNAME/A yönlendirmesi bozuldu — DNS kayıtlarını güncelleyin.' : 'Sahiplik doğrulandı ancak alan adı henüz yönlendirmeye hazır değil. CNAME veya A/AAAA kayıtlarını kontrol edin.',
+      en: degraded ? 'Domain CNAME/A routing is broken — update DNS records to restore.' : 'Ownership verified but routing is not ready yet. Check your CNAME or A/AAAA records.',
+    },
+    tls_failed: {
+      az: 'DNS hazırdır, amma SSL/TLS sertifikatı doğrulanmadı. Sertifikat yenilənməsini gözləyin və ya yoxlayın.',
+      tr: 'DNS hazır ancak SSL/TLS sertifikatı doğrulanamadı. Sertifika yenilenmesini bekleyin veya kontrol edin.',
+      en: 'DNS is ready, but SSL/TLS certificate check failed. Wait for certificate issuance or inspect TLS.',
+    },
+  };
+  return (copy[reasonCode] || copy.routing_missing)[l];
 }
 
 module.exports = {
   verifyCustomDomainDns,
+  classifyDomainVerification,
+  describeDomainStatus,
   resolveTxtValues,
   resolveCnameValues,
   resolveAddressValues,

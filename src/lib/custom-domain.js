@@ -3,6 +3,7 @@ const { normalizeHostName, getRequestHostName } = require('./url-helpers');
 const { getConfiguredBaseHost } = require('./security');
 
 const ACTIVE_CUSTOM_DOMAIN_HOSTS = new Set();
+let customDomainCacheLoaded = false;
 
 function isActiveCustomDomainHost(rawHost) {
   const host = normalizeHostName(rawHost);
@@ -11,11 +12,18 @@ function isActiveCustomDomainHost(rawHost) {
 
 function replaceCustomDomainCache(domains) {
   ACTIVE_CUSTOM_DOMAIN_HOSTS.clear();
-  if (!Array.isArray(domains)) return;
-  for (const item of domains) {
-    const host = normalizeHostName(item);
-    if (host) ACTIVE_CUSTOM_DOMAIN_HOSTS.add(host);
+  if (Array.isArray(domains)) {
+    for (const item of domains) {
+      const host = normalizeHostName(item);
+      if (host) ACTIVE_CUSTOM_DOMAIN_HOSTS.add(host);
+    }
+    customDomainCacheLoaded = true;
   }
+}
+
+function resetCustomDomainCacheState() {
+  ACTIVE_CUSTOM_DOMAIN_HOSTS.clear();
+  customDomainCacheLoaded = false;
 }
 
 async function refreshCustomDomainCache() {
@@ -116,6 +124,11 @@ function getShortHostAccess(row, reqHost) {
   }
 
   // If short link is assigned to a custom domain:
+  // Never redirect visitors to a misconfigured/degraded/unverified custom domain.
+  if (customDomainCacheLoaded && !isActiveCustomDomainHost(customDomain)) {
+    return { allowed: false, redirectHost: null, reason: 'domain_inactive' };
+  }
+
   if (normalizedReqHost === customDomain) {
     return { allowed: true, redirectHost: null };
   }
@@ -125,6 +138,8 @@ function getShortHostAccess(row, reqHost) {
 
 module.exports = {
   isActiveCustomDomainHost,
+  replaceCustomDomainCache,
+  resetCustomDomainCacheState,
   refreshCustomDomainCache,
   getCustomDomainTargetHost,
   getCustomDomainTxtHost,

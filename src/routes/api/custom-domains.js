@@ -6,7 +6,7 @@ const { dbGetAsync, dbRunAsync } = require('../../db/helpers');
 const { requireSignedIn } = require('../../middleware/auth');
 const { pickLang, normalizeLang } = require('../../lib/i18n');
 const { normalizeCustomDomainInput, normalizeHostName } = require('../../lib/url-helpers');
-const { verifyCustomDomainDns } = require('../../lib/dns-verify');
+const dnsVerify = require('../../lib/dns-verify');
 const { getCustomDomainTargetHost, getCustomDomainTxtHost, refreshCustomDomainCache } = require('../../lib/custom-domain');
 const { isProAccessActive, getEffectivePlanForUser, PLAN_TIERS } = require('../../lib/plans');
 const { db } = require('../../db/index');
@@ -165,13 +165,12 @@ router.post('/api/domains/verify', (req, res) => {
 
       (async () => {
         try {
-          const result = await verifyCustomDomainDns(row.domain, decryptVerificationToken(row.verification_token));
+          const result = await dnsVerify.verifyCustomDomainDns(row.domain, decryptVerificationToken(row.verification_token));
           const now = new Date().toISOString();
-          const status = !result.ownershipVerified
-            ? 'pending_verification'
-            : (result.routingReady ? 'active' : 'pending_routing');
+          const classified = dnsVerify.classifyDomainVerification(result, { previousStatus: row.status });
+          const status = classified.status;
           const verifiedAt = result.ownershipVerified ? (row.verified_at || now) : null;
-          const routingOk = result.routingReady ? 1 : 0;
+          const routingOk = (result.routingReady && result.tlsOk !== false) ? 1 : 0;
 
           db.run(
             'UPDATE custom_domains SET status = ?, verified_at = ?, last_checked_at = ?, routing_ok = ? WHERE id = ? AND user_id = ?',
@@ -191,18 +190,17 @@ router.post('/api/domains/verify', (req, res) => {
                     return res.status(500).json({ error: pickLang(uiLang, 'Doğrulama tamamlandı, amma nəticə oxuna bilmədi.', 'Doğrulama tamamlandı ancak sonuç okunamadı.', 'Verification completed but result could not be loaded.') });
                   }
 
-                  let message = '';
-                  if (!result.ownershipVerified) {
-                    message = pickLang(uiLang, 'TXT qeydi tapılmadı. Doğrulama tokenini DNS-ə əlavə edin.', 'TXT kaydı bulunamadı. Doğrulama tokenini DNS’e ekleyin.', 'TXT record not found. Add the verification token to DNS.');
-                  } else if (!result.routingReady) {
-                    message = pickLang(uiLang, 'Mülkiyyət doğrulandı, amma domen hələ yönləndirməyə hazır deyil. CNAME və ya A/AAAA qeydlərini yoxlayın.', 'Sahiplik doğrulandı ancak alan adı henüz yönlendirmeye hazır değil. CNAME veya A/AAAA kayıtlarını kontrol edin.', 'Ownership verified but routing is not ready yet. Check your CNAME or A/AAAA records.');
-                  } else {
-                    message = pickLang(uiLang, 'Domen aktiv edildi. Artıq qısa linklərdə istifadə edə bilərsiniz.', 'Alan adı aktif edildi. Artık kısa linklerde kullanabilirsiniz.', 'Domain is active and ready to use for short links.');
-                  }
+                  const reasonCode = result.reasonCode || (!result.ownershipVerified ? 'txt_missing' : (!result.routingReady ? 'routing_missing' : 'ok'));
+                  const message = dnsVerify.describeDomainStatus(reasonCode, uiLang, { degraded: classified.degraded });
 
                   return res.json({
                     message,
                     domain: buildCustomDomainPayload(updatedRow),
+                    diagnostics: {
+                      reason_code: reasonCode,
+                      degraded: classified.degraded,
+                      tls_ok: result.tlsOk ?? null,
+                    },
                     dns: {
                       txt_host: result.txtHost,
                       txt_values: result.txtValues,
@@ -222,6 +220,38 @@ router.post('/api/domains/verify', (req, res) => {
       })();
     }
   );
+});
+
+// Safe detach: moves all user links on this domain back to the default host
+// without deleting the links or the domain record.
+router.post('/api/domains/detach', (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const uiLang = normalizeLang(req.body && req.body.lang, 'az');
+  const domainId = Number.parseInt((req.body && req.body.domain_id) || '', 10);
+  if (!Number.isInteger(domainId) || domainId <= 0) {
+    return res.status(400).json({ error: pickLang(uiLang, 'Yanlış domen ID.', 'Geçersiz alan adı ID.', 'Invalid domain ID.') });
+  }
+
+  db.get('SELECT id, domain, status, verification_token, created_at, verified_at, last_checked_at, routing_ok FROM custom_domains WHERE id = ? AND user_id = ?', [domainId, req.session.userId], (err, row) => {
+    if (err || !row) {
+      return res.status(404).json({ error: pickLang(uiLang, 'Domen tapılmadı.', 'Alan adı bulunamadı.', 'Domain not found.') });
+    }
+
+    const domainHost = normalizeHostName(row.domain);
+    db.run('UPDATE urls SET domain_host = NULL WHERE user_id = ? AND domain_host = ?', [req.session.userId, domainHost], function (updateErr) {
+      if (updateErr) {
+        return res.status(500).json({ error: pickLang(uiLang, 'Linklər domendən ayrıla bilmədi.', 'Linkler alan adından ayrılamadı.', 'Could not detach links from domain.') });
+      }
+      return res.json({
+        message: pickLang(uiLang, 'Linklər əsas domenə qaytarıldı.', 'Linkler ana alan adına döndürüldü.', 'Links detached back to the default domain.'),
+        detached_links: this.changes || 0,
+        domain: buildCustomDomainPayload(row),
+      });
+    });
+  });
 });
 
 router.post('/api/domains/delete', (req, res) => {
