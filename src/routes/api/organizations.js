@@ -4,6 +4,8 @@ const { withTransaction, dbAllAsync, dbGetAsync } = require('../../db/helpers');
 const { requireSignedIn, requireProAccess } = require('../../middleware/auth');
 const { generalLimiter, mutationLimiter } = require('../../middleware/rate-limiter');
 const { organizationFeatureEnabled } = require('../../db/organization-model');
+const { can } = require('../../lib/organization-permissions');
+const { checkAccess } = require('../../lib/organization-access-context');
 const router = express.Router();
 
 function guard(req, res, next) {
@@ -19,7 +21,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 router.get('/api/organizations', guard, generalLimiter, requireSignedIn, async (req, res) => {
   try {
     const rows = await dbAllAsync(
-      `SELECT o.id,o.display_name,o.state,
+      `SELECT o.id,o.display_name,o.state,o.legacy_workspace_id,
               CASE WHEN o.legacy_workspace_id IS NOT NULL THEN wm.role ELSE om.role END AS role,
               o.created_at,ob.billing_mode,
               (SELECT count(*)::integer FROM organization_workspaces ow
@@ -34,7 +36,10 @@ router.get('/api/organizations', guard, generalLimiter, requireSignedIn, async (
         ORDER BY o.created_at ASC, o.id ASC`, [userId(req),userId(req)]
     );
     res.set('Cache-Control', 'no-store');
-    return res.json({ organizations: rows });
+    // The SQL membership join limits candidates; the same centralized P08
+    // policy additionally denies unknown roles (and client_viewer metadata).
+    const readable = rows.filter(row => can(row.role, 'organization.read', {legacy: row.legacy_workspace_id !== null})).map(({legacy_workspace_id, ...row})=>row);
+    return res.json({ organizations: readable });
   } catch (error) {
     return res.status(500).json({ error: 'Could not list organizations' });
   }
@@ -43,31 +48,37 @@ router.get('/api/organizations', guard, generalLimiter, requireSignedIn, async (
 router.get('/api/organizations/:id', guard, generalLimiter, requireSignedIn, async (req, res) => {
   if (!uuid.test(req.params.id)) return res.status(404).json({ error: 'Not found' });
   try {
-    const row = await dbGetAsync(
-      `SELECT o.id,o.display_name,o.state,
-              CASE WHEN o.legacy_workspace_id IS NOT NULL THEN wm.role ELSE om.role END AS role,
-              o.created_at,ob.billing_mode
-         FROM organizations o
-         LEFT JOIN organization_members om ON om.organization_id=o.id AND om.user_id=?
-         LEFT JOIN workspace_members wm ON wm.workspace_id=o.legacy_workspace_id AND wm.user_id=?
-         JOIN organization_billing ob ON ob.organization_id=o.id
-        WHERE o.id=? AND o.state='active' AND
-          ((o.legacy_workspace_id IS NULL AND om.user_id IS NOT NULL)
-           OR (o.legacy_workspace_id IS NOT NULL AND wm.user_id IS NOT NULL))`,
-      [userId(req), userId(req), req.params.id]
-    );
-    if (!row) return res.status(404).json({ error: 'Not found' });
-    const workspaces = await dbAllAsync(
-      `SELECT w.id,w.name,wm.role
-         FROM organization_workspaces ow
-         JOIN workspaces w ON w.id=ow.workspace_id
-         JOIN workspace_members wm ON wm.workspace_id=w.id
-        WHERE ow.organization_id=? AND wm.user_id=?
-        ORDER BY w.id ASC`,
-      [row.id, userId(req)]
-    );
+    // Keep authorization and response reads on one DB transaction. Lock the
+    // membership row to prevent a concurrent revocation before data is read.
+    const result = await withTransaction(async tx => {
+      const allowed = await checkAccess({tx,organizationId:req.params.id,userId:userId(req),mutation:true},'organization.read');
+      if (!allowed) return null;
+      const row = await tx.get(
+        `SELECT o.id,o.display_name,o.state,
+                CASE WHEN o.legacy_workspace_id IS NOT NULL THEN wm.role ELSE om.role END AS role,
+                o.created_at,ob.billing_mode
+           FROM organizations o
+           LEFT JOIN organization_members om ON om.organization_id=o.id AND om.user_id=?
+           LEFT JOIN workspace_members wm ON wm.workspace_id=o.legacy_workspace_id AND wm.user_id=?
+           JOIN organization_billing ob ON ob.organization_id=o.id
+          WHERE o.id=? AND o.state='active'`,
+        [userId(req),userId(req),req.params.id]
+      );
+      if (!row) return null;
+      const workspaces = await tx.all(
+        `SELECT w.id,w.name,wm.role
+           FROM organization_workspaces ow
+           JOIN workspaces w ON w.id=ow.workspace_id
+           JOIN workspace_members wm ON wm.workspace_id=w.id
+          WHERE ow.organization_id=? AND wm.user_id=?
+          ORDER BY w.id ASC`,
+        [row.id,userId(req)]
+      );
+      return {organization:row,workspaces};
+    });
+    if (!result) return res.status(404).json({ error: 'Not found' });
     res.set('Cache-Control', 'no-store');
-    return res.json({ organization: row, workspaces });
+    return res.json(result);
   } catch (error) {
     return res.status(500).json({ error: 'Could not load organization' });
   }
