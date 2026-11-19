@@ -461,10 +461,12 @@ router.get('/workspaces/accept-organization',async(req,res)=>{
  const token=typeof req.query?.token==='string'?req.query.token:'';
  const lang=normalizeLang(req.query?.lang,'az');
  const content={teamInvite:true,csrfToken:res.locals._csrf,token,workspaceName:'',invitedEmailMasked:'',
+   nextUrl:token?'/workspaces/accept-organization?token='+encodeURIComponent(token):'/workspaces/accept-organization',
    teamTitle:pickLang(lang,'Təşkilata dəvət','Kuruluş Daveti','Organization Invitation'),
    teamDesc:pickLang(lang,'Siz təşkilata dəvət olunmusunuz:','Bir kuruluşa davet edildiniz:','You have been invited to the organization:'),
    teamAccept:pickLang(lang,'Dəvəti qəbul et','Daveti kabul et','Accept invitation'),
-   teamAccepted:pickLang(lang,'Siz bu təşkilatın üzvüsünüz.','Bu kuruluşun üyesisiniz.','You are a member of this organization.')};
+   teamAccepted:pickLang(lang,'Siz bu təşkilatın üzvüsünüz.','Bu kuruluşun üyesisiniz.','You are a member of this organization.'),
+   teamRegister:pickLang(lang,'Yeni hesab yarat','Yeni hesap oluştur','Create account')};
  const show=(state,extra={})=>res.render('workspaces-accept',{...content,...extra,state});
  if(!req.session?.userId)return show('login_required');
  if(token.length<20||token.length>200)return show('invalid');
@@ -473,7 +475,9 @@ router.get('/workspaces/accept-organization',async(req,res)=>{
    FROM organization_invitations i JOIN organizations o ON o.id=i.organization_id WHERE i.token_hash=?`,[crypto.createHash('sha256').update(token).digest('hex')]);
   if(!row||row.revoked_at||row.org_state!=='active'||new Date(row.expires_at).getTime()<=Date.now()&&!row.accepted_at)return show('invalid');
   const me=await dbGetAsync('SELECT id,email_hash,email_verified FROM users WHERE id=?',[req.session.userId]);
-  if(!me||Number(me.email_verified)!==1||me.email_hash!==row.email_hash)return show('wrong_email',{workspaceName:row.display_name});
+  let masked='';
+  if(row.email_encrypted){try{masked=maskEmailForDisplay(decryptAES256GCM(row.email_encrypted));}catch(_e){masked='';}}
+  if(!me||Number(me.email_verified)!==1||me.email_hash!==row.email_hash)return show('wrong_email',{workspaceName:row.display_name,invitedEmailMasked:masked});
   if(row.accepted_at){
    const member=await dbGetAsync('SELECT user_id FROM organization_members WHERE organization_id=? AND user_id=?',[row.org_id,me.id]);
    return show(member?'accepted':'invalid',{workspaceName:row.display_name});

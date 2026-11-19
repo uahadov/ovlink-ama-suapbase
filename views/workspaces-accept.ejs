@@ -200,7 +200,10 @@
       <% } else if (state === 'login_required') { %>
         <p class="m-accept-sub" style="margin-bottom:28px;" data-i18n="ws_accept_login_first">Dəvəti qəbul etmək üçün əvvəlcə hesabınıza daxil olun, sonra bu linki yenidən açın.</p>
         <div class="m-accept-actions">
-          <a href="/login" class="m-cta m-cta--white" data-i18n="nav_login">Giriş</a>
+          <a href="/login<%= (typeof nextUrl !== 'undefined' && nextUrl) ? ('?next=' + encodeURIComponent(nextUrl)) : '' %>" class="m-cta m-cta--white" data-i18n="nav_login">Giriş</a>
+          <% if (typeof teamInvite !== 'undefined' && teamInvite) { %>
+          <a href="/register<%= (typeof nextUrl !== 'undefined' && nextUrl) ? ('?next=' + encodeURIComponent(nextUrl)) : '' %>" class="m-cta m-cta--outline"><%= (typeof teamRegister !== 'undefined' && teamRegister) ? teamRegister : 'Yeni hesab yarat' %></a>
+          <% } %>
         </div>
       <% } else if (state === 'wrong_email') { %>
         <div class="m-alert m-alert--warning" data-i18n="ws_accept_wrong_email">
@@ -214,7 +217,7 @@
           <a href="/login" class="m-cta m-cta--white" data-i18n="nav_login">Fərqli hesabla daxil ol</a>
         </div>
       <% } else if (state === 'already_member' || state === 'accepted') { %>
-        <div class="m-alert m-alert--success" data-i18n="ws_accept_already">
+        <div class="m-alert m-alert--success" <%- (typeof teamInvite !== 'undefined' && teamInvite) ? '' : 'data-i18n="ws_accept_already"' %>>
           <i class="fa-solid fa-circle-check"></i>
           <span><%= (typeof teamInvite !== 'undefined' && teamInvite) ? teamAccepted : 'Siz bu workspace-in üzvüsünüz.' %></span>
         </div>

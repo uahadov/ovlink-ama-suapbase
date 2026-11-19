@@ -9,12 +9,31 @@ const {organizationTeamEnabled}=require('../../db/organization-model');
 const {checkAccess}=require('../../lib/organization-access-context');
 const {can}=require('../../lib/organization-permissions');
 const {blindIndex,encryptAES256GCM,decryptAES256GCM}=require('../../../utils/crypto');
-const {sendMail}=require('../../lib/email');
+const emailLib=require('../../lib/email');
+const {normalizeLang,pickLang}=require('../../lib/i18n');
 const {buildAbsoluteUrl}=require('../../lib/security');
 const router=express.Router();
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ROLES=new Set(['admin','manager','analyst','client_viewer']);
 const LIMIT=25;
+function escHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function buildInviteEmail({orgName,role,url,lang='az',renewed=false}){
+ const l=normalizeLang(lang,'az'),safeOrg=escHtml(orgName),safeRole=escHtml(role),safeUrl=escHtml(url);
+ const subject=renewed
+  ? pickLang(l,`Ovlink yenilənmiş təşkilat dəvəti: ${orgName}`,`Ovlink yenilenen kuruluş daveti: ${orgName}`,`Ovlink renewed invitation: ${orgName}`)
+  : pickLang(l,`Ovlink təşkilat dəvəti: ${orgName}`,`Ovlink kuruluş daveti: ${orgName}`,`Ovlink organization invitation: ${orgName}`);
+ const text=renewed
+  ? pickLang(l,`${orgName} təşkilatına (${role}) dəvətiniz yeniləndi. Bu e-poçt ünvanı ilə daxil olun və linki açın: ${url}\nDəvət 7 gün ərzində etibarlıdır.`,
+      `${orgName} kuruluşuna (${role}) davetiniz yenilendi. Bu e-posta ile giriş yapın ve bağlantıyı açın: ${url}\nDavet 7 gün geçerlidir.`,
+      `Your invitation to ${orgName} as ${role} was renewed. Sign in with this email and open: ${url}\nExpires in 7 days.`)
+  : pickLang(l,`${orgName} təşkilatına (${role}) dəvət olundunuz. Bu e-poçt ünvanı ilə daxil olun və linki açın: ${url}\nDəvət 7 gün ərzində etibarlıdır.`,
+      `${orgName} kuruluşuna (${role}) davet edildiniz. Bu e-posta ile giriş yapın ve bağlantıyı açın: ${url}\nDavet 7 gün geçerlidir.`,
+      `You were invited to join ${orgName} as ${role}. Sign in using this exact email and open: ${url}\nThis invitation expires in 7 days.`);
+ const btn=pickLang(l,'Dəvəti qəbul et','Daveti kabul et','Accept invitation');
+ const foot=pickLang(l,'Bu dəvət 7 gün ərzində etibarlıdır və yalnız ünvanlanmış təsdiqli e-poçt hesabı ilə qəbul edilə bilər.','Bu davet 7 gün geçerlidir ve yalnızca hedeflenen doğrulanmış e-posta hesabı ile kabul edilebilir.','This invitation expires in 7 days and can only be accepted by the invited verified email account.');
+ const html=`<!doctype html><html><body style="margin:0;padding:24px;background:#101114;color:#f4f4f5;font-family:Inter,system-ui,sans-serif"><div style="max-width:520px;margin:0 auto;background:#18191d;border:1px solid #303136;border-radius:16px;padding:28px"><p style="margin:0 0 8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#a1a1aa">OVLINK</p><h1 style="margin:0 0 12px;font-size:22px;color:#ffffff">${safeOrg}</h1><p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#d4d4d8">${escHtml(text.split('\n')[0])}</p><p style="margin:0 0 20px"><a href="${safeUrl}" style="display:inline-block;background:#f4f4f5;color:#101114;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:10px">${escHtml(btn)}</a></p><p style="margin:0;font-size:12px;color:#a1a1aa;line-height:1.5">${escHtml(foot)}</p></div></body></html>`;
+ return {subject,text,html};
+}
 function auth(req,res,next){if(!organizationTeamEnabled())return res.status(404).json({error:'Not found'});return next()}
 function uid(req){const n=Number(req.session?.userId);return Number.isSafeInteger(n)&&n>0?n:null}
 const audit=(tx,org,user,kind,details={})=>tx.run('INSERT INTO organization_audit_log(organization_id,event_key,actor_user_id,metadata_json) VALUES (?,?,?,?::jsonb)',[org,kind+'.'+crypto.randomUUID(),user,JSON.stringify({kind,...details})]);
@@ -37,7 +56,7 @@ router.get('/api/organizations/:id/team',auth,generalLimiter,requireSignedIn,asy
    const role=membership.role;
    const members=await tx.all('SELECT user_id,role,created_at FROM organization_members WHERE organization_id=? ORDER BY created_at,user_id',[req.params.id]);
    const invites=await tx.all("SELECT id,role,expires_at,accepted_at,revoked_at,created_at FROM organization_invitations WHERE organization_id=? ORDER BY created_at DESC LIMIT 100",[req.params.id]);
-   return {members,invites,current_user_id:uid(req),owner_user_id:organization.owner_user_id,
+   return {members,invites,current_user_id:uid(req),owner_user_id:organization.owner_user_id,member_limit:LIMIT,
      capabilities:{invite:can(role,'member.invite'),invite_admin:uid(req)===organization.owner_user_id,
        change_role:can(role,'member.change_role'),remove:can(role,'member.remove'),
        transfer_owner:uid(req)===organization.owner_user_id}};
@@ -72,7 +91,8 @@ router.post('/api/organizations/:id/invitations',auth,mutationLimiter,requireSig
   const url=buildAbsoluteUrl(req,'/workspaces/accept-organization?token='+encodeURIComponent(raw));
   // Delivery can fail; never claim sent without transport acknowledgement.
   let sent=false;
-  try{await sendMail({to:email,subject:'Ovlink organization invitation: '+outcome.orgName,text:`You were invited to join ${outcome.orgName} as ${role}. Sign in using this exact email and open: ${url}\nThis invitation expires in 7 days.`,html:null});sent=true;}catch(_e){}
+  const mailPayload=buildInviteEmail({orgName:outcome.orgName,role,url,lang:req.query?.lang||'az',renewed:false});
+  try{await emailLib.sendMail({to:email,...mailPayload});sent=true;}catch(_e){}
   res.set('Cache-Control','no-store');return res.status(sent?201:202).json({invitation:{id:outcome.invite.id,role,expires_at:outcome.invite.expires_at},email_sent:sent,delivery_confirmed:false});
  }catch(e){return handle(res,e)}
 });
@@ -145,8 +165,8 @@ router.post('/api/organizations/:id/invitations/:invite/reissue',auth,mutationLi
   if(!result)return res.status(404).json({error:'Not found'});
   const url=buildAbsoluteUrl(req,'/workspaces/accept-organization?token='+encodeURIComponent(raw));
   let sent=false;
-  try{await sendMail({to:result.email,subject:'Ovlink renewed invitation: '+result.name,text:`Your invitation to ${result.name} as ${result.role} was renewed. Sign in with this email and open: ${url}
-Expires in seven days.`,html:null});sent=true;}catch(_e){}
+  const mailPayload=buildInviteEmail({orgName:result.name,role:result.role,url,lang:req.query?.lang||'az',renewed:true});
+  try{await emailLib.sendMail({to:result.email,...mailPayload});sent=true;}catch(_e){}
   res.set('Cache-Control','no-store');return res.status(sent?200:202).json({reissued:true,email_sent:sent,delivery_confirmed:false});
  }catch(e){return handle(res,e)}
 });
@@ -204,7 +224,12 @@ router.delete('/api/organizations/:id/members/:userId',auth,mutationLimiter,requ
    if(!row||row.role==='owner')return 404;
    if(!self&&row.role==='admin'&&actor!==o.owner_user_id)return 403;
    await tx.run('DELETE FROM organization_members WHERE organization_id=? AND user_id=?',[org,target]);
-   await audit(tx,org,actor,'organization.member.removed',{target_user_id:target});return 200;
+   // Revoke any per-client access in this organization while preserving all clients, campaigns, and short links.
+   const hasClientMembers=await tx.get("SELECT to_regclass('public.organization_client_members') AS tbl");
+   if(hasClientMembers&&hasClientMembers.tbl){
+    await tx.run('DELETE FROM organization_client_members WHERE user_id=? AND client_id IN (SELECT id FROM organization_client_spaces WHERE organization_id=?)',[target,org]);
+   }
+   await audit(tx,org,actor,'organization.member.removed',{target_user_id:target,assets_preserved:true});return 200;
   });
   return outcome===200?res.json({removed:true}):res.status(outcome).json({error:outcome===403?'Owner cannot be removed':'Not found'});
  }catch(e){return handle(res,e)}

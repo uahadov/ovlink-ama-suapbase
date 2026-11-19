@@ -6,6 +6,7 @@ const {requireSignedIn}=require('../../middleware/auth');
 const {mutationLimiter,generalLimiter}=require('../../middleware/rate-limiter');
 const {organizationClientsEnabled}=require('../../db/organization-model');
 const {checkAccess,loadContext}=require('../../lib/organization-access-context');
+const {can}=require('../../lib/organization-permissions');
 const {encryptAES256GCM,blindIndex}=require('../../../utils/crypto');
 const router=express.Router();
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -41,14 +42,27 @@ router.get('/api/organizations/:id/clients',gate,generalLimiter,requireSignedIn,
   const payload=await withTransaction(async tx=>{
    const s=await scoped(tx,req,'workspace.read',{includeArchived:true});if(!s)return null;
    const archived=['1','true'].includes(String(req.query?.include_archived||''));
-   return tx.all(`SELECT c.id,c.display_name,c.logo_url,c.status,c.report_settings,c.created_at,
+   const rows=await tx.all(`SELECT c.id,c.display_name,c.logo_url,c.status,c.report_settings,c.created_at,
       (SELECT COUNT(*)::int FROM organization_client_campaigns occ WHERE occ.client_id=c.id) AS campaign_count,
       (SELECT COUNT(*)::int FROM organization_client_campaigns occ JOIN urls u ON u.campaign_id=occ.campaign_id WHERE occ.client_id=c.id) AS link_count
      FROM organization_client_spaces c WHERE c.organization_id=? ${archived?'':"AND c.status='active'"}
      ${WRITE_ROLES.has(s.ctx.role)?'':'AND EXISTS(SELECT 1 FROM organization_client_members cm WHERE cm.client_id=c.id AND cm.user_id=?)'}
      ORDER BY c.created_at,c.id`,WRITE_ROLES.has(s.ctx.role)?[req.params.id]:[req.params.id,s.actor]);
+   const role=s.ctx.role;
+   return {
+     clients:rows,
+     role,
+     capabilities:{
+       create:can(role,'workspace.create'),
+       update:can(role,'workspace.update'),
+       create_campaign:can(role,'campaign.create'),
+       export_csv:can(role,'analytics.export'),
+       assign_members:can(role,'workspace.update'),
+       attach_links:can(role,'link.update')&&s.actor===s.org.owner_user_id
+     }
+   };
   });
-  if(!payload)return res.status(404).json({error:'Not found'});res.set('Cache-Control','no-store');return res.json({clients:payload});
+  if(!payload)return res.status(404).json({error:'Not found'});res.set('Cache-Control','no-store');return res.json(payload);
  }catch(_e){return fault(res)}
 });
 router.post('/api/organizations/:id/clients',gate,mutationLimiter,requireSignedIn,async(req,res)=>{
@@ -98,6 +112,16 @@ for(const action of ['archive','restore'])router.post(`/api/organizations/:id/cl
   });if(!c)return res.status(404).json({error:'Not found'});return res.json({client:c,links_preserved:true});
  }catch(_e){return fault(res)}
 });
+router.get('/api/organizations/:id/clients/:clientId/members',gate,generalLimiter,requireSignedIn,async(req,res)=>{
+ if(!ids(req))return res.status(404).json({error:'Not found'});
+ try{const rows=await withTransaction(async tx=>{
+  const s=await scoped(tx,req,'workspace.update',{includeArchived:true});if(!s)return null;
+  return tx.all(`SELECT cm.user_id,om.role,cm.created_at
+    FROM organization_client_members cm
+    JOIN organization_members om ON om.organization_id=? AND om.user_id=cm.user_id
+    WHERE cm.client_id=? ORDER BY cm.created_at,cm.user_id`,[req.params.id,s.client.id]);
+ });if(!rows)return res.status(404).json({error:'Not found'});res.set('Cache-Control','no-store');return res.json({members:rows});}catch(_e){return fault(res)}
+});
 router.post('/api/organizations/:id/clients/:clientId/assign',gate,mutationLimiter,requireSignedIn,async(req,res)=>{
  if(!ids(req)||!Number.isSafeInteger(Number(req.body?.user_id))||Number(req.body.user_id)<1)return res.status(400).json({error:'Invalid assignment'});
  try{const ok=await withTransaction(async tx=>{
@@ -105,6 +129,16 @@ router.post('/api/organizations/:id/clients/:clientId/assign',gate,mutationLimit
   const user=Number(req.body.user_id),m=await tx.get('SELECT user_id FROM organization_members WHERE organization_id=? AND user_id=?',[req.params.id,user]);if(!m)return false;
   await tx.run('INSERT INTO organization_client_members(client_id,user_id) VALUES(?,?) ON CONFLICT DO NOTHING',[s.client.id,user]);await audit(tx,req.params.id,s.actor,'organization.client.member_assigned',{client_id:s.client.id,user_id:user});return true;
  });return ok?res.json({assigned:true}):res.status(404).json({error:'Not found'});}catch(_e){return fault(res)}
+});
+router.delete('/api/organizations/:id/clients/:clientId/assign/:userId',gate,mutationLimiter,requireSignedIn,async(req,res)=>{
+ const target=Number(req.params.userId);
+ if(!ids(req)||!Number.isSafeInteger(target)||target<1)return res.status(404).json({error:'Not found'});
+ try{const ok=await withTransaction(async tx=>{
+  const s=await scoped(tx,req,'workspace.update',{includeArchived:true});if(!s)return false;
+  const removed=await tx.get('DELETE FROM organization_client_members WHERE client_id=? AND user_id=? RETURNING user_id',[s.client.id,target]);
+  if(!removed)return false;
+  await audit(tx,req.params.id,s.actor,'organization.client.member_unassigned',{client_id:s.client.id,user_id:target});return true;
+ });return ok?res.json({unassigned:true}):res.status(404).json({error:'Not found'});}catch(_e){return fault(res)}
 });
 router.get('/api/organizations/:id/clients/:clientId/campaigns',gate,generalLimiter,requireSignedIn,async(req,res)=>{
  if(!ids(req))return res.status(404).json({error:'Not found'});

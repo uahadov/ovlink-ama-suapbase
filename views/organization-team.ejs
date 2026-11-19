@@ -35,7 +35,7 @@ const roles=['admin','manager','analyst','client_viewer'];
 function dropdown(value){const select=document.createElement('select');for(const role of roles){const o=document.createElement('option');o.value=role;o.textContent=role;if(value===role)o.selected=true;select.append(o)}return select}
 function render(){const caps=data.capabilities||{},owner=data.owner_user_id,me=data.current_user_id;
  el('invitePanel').hidden=!caps.invite;el('inviteAdmin').disabled=!caps.invite_admin;el('transferPanel').hidden=!caps.transfer_owner;
- const members=el('membersList');members.replaceChildren();el('memberCount').textContent=String(data.members.length);
+ const members=el('membersList');members.replaceChildren();el('memberCount').textContent=data.member_limit?`${data.members.length} / ${data.member_limit}`:String(data.members.length);
  for(const m of data.members){const row=document.createElement('div');row.className='person';const left=document.createElement('div'),strong=document.createElement('strong'),desc=document.createElement('small');strong.textContent=t.id+' #'+m.user_id+(m.user_id===owner?' · '+t.owner:'');desc.textContent=m.role;left.append(strong,desc);row.append(left);const right=document.createElement('div');right.className='right';
   if(caps.change_role&&m.user_id!==owner&&m.role!=='owner'){const sel=dropdown(m.role);right.append(sel,button(t.change,()=>operation(async()=>{if(!confirm(t.confirm))return;await api(root+'/members/'+m.user_id,'PATCH',{role:sel.value});await refresh()})))}
   if(m.user_id!==owner&&(m.user_id===me||caps.remove))right.append(button(m.user_id===me?t.leave:t.remove,()=>operation(async()=>{if(!confirm(t.confirm))return;await api(root+'/members/'+(m.user_id===me?'me':m.user_id),'DELETE');await refresh()}),'btn danger'));
@@ -48,7 +48,7 @@ function render(){const caps=data.capabilities||{},owner=data.owner_user_id,me=d
  const select=el('transferTarget');select.replaceChildren();for(const m of data.members){if(m.user_id===owner)continue;const option=document.createElement('option');option.value=String(m.user_id);option.textContent=t.id+' #'+m.user_id+' ('+m.role+')';select.append(option)}el('transferButton').disabled=!select.options.length;
 }
 el('reload').addEventListener('click',()=>operation(refresh));
-el('inviteForm').addEventListener('submit',e=>{e.preventDefault();operation(async()=>{const email=el('inviteEmail').value.trim(),role=el('inviteRole').value;const res=await api(root+'/invitations','POST',{email,role});el('inviteForm').reset();await refresh();note(res.email_sent?t.sent:t.queued)})});
+el('inviteForm').addEventListener('submit',e=>{e.preventDefault();operation(async()=>{const email=el('inviteEmail').value.trim(),role=el('inviteRole').value;const res=await api(root+'/invitations?lang='+encodeURIComponent(lang),'POST',{email,role});el('inviteForm').reset();await refresh();note(res.email_sent?t.sent:t.queued)})});
 el('transferForm').addEventListener('submit',e=>{e.preventDefault();operation(async()=>{if(!confirm(t.confirmTransfer))return;await api(root+'/transfer-owner','POST',{target_user_id:Number(el('transferTarget').value)});await refresh()})});
 refresh();
 })();

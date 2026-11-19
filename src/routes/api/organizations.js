@@ -1,13 +1,23 @@
 'use strict';
 const express = require('express');
-const { randomUUID } = require('node:crypto');
+const crypto = require('node:crypto');
+const { randomUUID } = crypto;
 const { withTransaction, dbAllAsync } = require('../../db/helpers');
 const { requireSignedIn, requireProAccess } = require('../../middleware/auth');
 const { generalLimiter, mutationLimiter } = require('../../middleware/rate-limiter');
-const { organizationFeatureEnabled } = require('../../db/organization-model');
+const { organizationFeatureEnabled, organizationRbacV2Enabled } = require('../../db/organization-model');
 const { can } = require('../../lib/organization-permissions');
 const { checkAccess } = require('../../lib/organization-access-context');
+const { hashWebhookSecretValueV2, buildWebhookSignatureV2Key } = require('../../lib/security');
+const { normalizeWebhookEvents, normalizeWebhookMessageLocale } = require('../../lib/webhook');
+const { validateOutboundWebhookUrl } = require('../../lib/url-validator');
 const router = express.Router();
+
+const ORG_WEBHOOK_MAX = 10;
+function rbacV2Guard(req, res, next) {
+  if (!organizationRbacV2Enabled()) return res.status(404).json({ error: 'Not found' });
+  return next();
+}
 
 function guard(req, res, next) {
   if (!organizationFeatureEnabled()) return res.status(404).json({ error: 'Not found' });
@@ -162,5 +172,110 @@ router.post('/api/organizations',
     }
   }
 );
+
+// P08 RBAC-unified organization webhooks: Owner/Admin manage (integration.manage),
+// Manager reads (integration.read), Analyst/Client Viewer/Outsider denied (404).
+router.get('/api/organizations/:id/webhooks', rbacV2Guard, generalLimiter, requireSignedIn, async (req, res) => {
+  if (!uuid.test(req.params.id)) return res.status(404).json({ error: 'Not found' });
+  try {
+    const rows = await withTransaction(async tx => {
+      const allowed = await checkAccess({ tx, organizationId: req.params.id, userId: userId(req), mutation: true }, 'integration.read');
+      if (!allowed) return null;
+      const org = await tx.get("SELECT legacy_workspace_id FROM organizations WHERE id=? AND state='active' FOR SHARE", [req.params.id]);
+      if (!org || org.legacy_workspace_id !== null) return null;
+      return tx.all(
+        `SELECT w.id, w.url, w.events, w.message_locale, w.is_active, w.created_at, w.updated_at
+           FROM organization_webhooks ow
+           JOIN webhooks w ON w.id = ow.webhook_id
+          WHERE ow.organization_id = ?
+          ORDER BY ow.created_at DESC, w.id DESC`,
+        [req.params.id]
+      );
+    });
+    if (!rows) return res.status(404).json({ error: 'Not found' });
+    res.set('Cache-Control', 'no-store');
+    return res.json({ webhooks: rows });
+  } catch (_e) {
+    return res.status(500).json({ error: 'Could not load organization webhooks' });
+  }
+});
+
+router.post('/api/organizations/:id/webhooks', rbacV2Guard, mutationLimiter, requireSignedIn, async (req, res) => {
+  if (!uuid.test(req.params.id)) return res.status(404).json({ error: 'Not found' });
+  const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : null;
+  if (!body || !body.url || Object.keys(body).some(k => !['url', 'events', 'message_locale'].includes(k))) {
+    return res.status(400).json({ error: 'Invalid webhook payload' });
+  }
+  try {
+    const validation = await validateOutboundWebhookUrl(body.url);
+    if (!validation || !validation.ok) return res.status(400).json({ error: 'Invalid webhook URL' });
+    const events = normalizeWebhookEvents(body.events || '');
+    const messageLocale = normalizeWebhookMessageLocale(body.message_locale, 'auto');
+    const rawSecret = `whsec_${crypto.randomBytes(32).toString('base64url')}`;
+    const secretHash = hashWebhookSecretValueV2(`wh|${rawSecret}`);
+    const signatureV2Key = buildWebhookSignatureV2Key(rawSecret);
+    const now = new Date().toISOString();
+
+    const outcome = await withTransaction(async tx => {
+      const actor = userId(req);
+      const allowed = await checkAccess({ tx, organizationId: req.params.id, userId: actor, mutation: true }, 'integration.manage');
+      if (!allowed) return { status: 404 };
+      const org = await tx.get("SELECT owner_user_id, legacy_workspace_id FROM organizations WHERE id=? AND state='active' FOR UPDATE", [req.params.id]);
+      if (!org || org.legacy_workspace_id !== null) return { status: 404 };
+      const cnt = await tx.get('SELECT COUNT(*)::int AS c FROM organization_webhooks WHERE organization_id=?', [req.params.id]);
+      if (Number(cnt.c) >= ORG_WEBHOOK_MAX) return { status: 409 };
+      const inserted = await tx.get(
+        `INSERT INTO webhooks (user_id, url, secret_hash, secret_hash_version, signature_v2_key, signature_v2_enabled, events, message_locale, message_template, is_active, created_at, updated_at)
+         VALUES (?, ?, ?, 2, ?, 1, ?, ?, NULL, 1, ?, ?)
+         RETURNING id, url, events, message_locale, is_active, created_at`,
+        [org.owner_user_id, validation.normalizedUrl, secretHash, signatureV2Key, events.join(','), messageLocale, now, now]
+      );
+      await tx.run(
+        'INSERT INTO organization_webhooks (organization_id, webhook_id, created_by_user_id) VALUES (?, ?, ?)',
+        [req.params.id, inserted.id, actor]
+      );
+      await tx.run(
+        'INSERT INTO organization_audit_log(organization_id,event_key,actor_user_id,metadata_json) VALUES (?,?,?,?::jsonb)',
+        [req.params.id, 'organization.webhook.created.' + randomUUID(), actor, JSON.stringify({ kind: 'organization.webhook.created', webhook_id: inserted.id })]
+      );
+      return { status: 201, webhook: inserted };
+    });
+    res.set('Cache-Control', 'no-store');
+    if (outcome.status === 404) return res.status(404).json({ error: 'Not found' });
+    if (outcome.status === 409) return res.status(409).json({ error: 'Webhook limit reached' });
+    return res.status(201).json({ webhook: outcome.webhook, webhook_secret: rawSecret });
+  } catch (_e) {
+    return res.status(500).json({ error: 'Could not create organization webhook' });
+  }
+});
+
+router.delete('/api/organizations/:id/webhooks/:webhookId', rbacV2Guard, mutationLimiter, requireSignedIn, async (req, res) => {
+  const webhookId = Number(req.params.webhookId);
+  if (!uuid.test(req.params.id) || !Number.isSafeInteger(webhookId) || webhookId < 1) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  try {
+    const deleted = await withTransaction(async tx => {
+      const actor = userId(req);
+      const allowed = await checkAccess({ tx, organizationId: req.params.id, userId: actor, mutation: true }, 'integration.manage');
+      if (!allowed) return false;
+      const org = await tx.get("SELECT legacy_workspace_id FROM organizations WHERE id=? AND state='active' FOR SHARE", [req.params.id]);
+      if (!org || org.legacy_workspace_id !== null) return false;
+      const link = await tx.get('DELETE FROM organization_webhooks WHERE organization_id=? AND webhook_id=? RETURNING webhook_id', [req.params.id, webhookId]);
+      if (!link) return false;
+      await tx.run('DELETE FROM webhooks WHERE id=?', [webhookId]);
+      await tx.run("UPDATE webhook_deliveries SET status='cancelled', updated_at=? WHERE webhook_id=? AND status IN ('queued','retry_scheduled')", [new Date().toISOString(), webhookId]).catch(() => {});
+      await tx.run(
+        'INSERT INTO organization_audit_log(organization_id,event_key,actor_user_id,metadata_json) VALUES (?,?,?,?::jsonb)',
+        [req.params.id, 'organization.webhook.deleted.' + randomUUID(), actor, JSON.stringify({ kind: 'organization.webhook.deleted', webhook_id: webhookId })]
+      );
+      return true;
+    });
+    res.set('Cache-Control', 'no-store');
+    return deleted ? res.json({ deleted: true }) : res.status(404).json({ error: 'Not found' });
+  } catch (_e) {
+    return res.status(500).json({ error: 'Could not delete organization webhook' });
+  }
+});
 
 module.exports = router;

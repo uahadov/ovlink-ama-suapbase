@@ -7,6 +7,7 @@
 
 const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../db/helpers');
 const { getWorkspaceMemberRole, isWorkspaceProActive, getWorkspaceById } = require('../routes/api/workspaces');
+const { canWorkspaceRole } = require('./link-access');
 const {
   parseRange,
   parseBotsFilter,
@@ -135,7 +136,7 @@ async function createCampaign({ userId, name, goal, goalClicks, goalConversions,
     const workspace = await getWorkspaceById(requestedWorkspace);
     if (!workspace) return { error: 'workspace_not_found' };
     const role = await getWorkspaceMemberRole(ownerId, requestedWorkspace);
-    if (!['owner', 'admin'].includes(role)) return { error: 'workspace_forbidden' };
+    if (!canWorkspaceRole(role, 'campaign.create')) return { error: 'workspace_forbidden' };
     if (!await isWorkspaceProActive(workspace)) return { error: 'workspace_inactive' };
     ownerIdForCampaign = Number(workspace.owner_user_id);
     scopedWorkspaceId = requestedWorkspace;

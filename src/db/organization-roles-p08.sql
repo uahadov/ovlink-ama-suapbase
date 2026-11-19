@@ -25,6 +25,18 @@ BEGIN
   ALTER TABLE public.organization_members DROP CONSTRAINT organization_members_role_check;
   ALTER TABLE public.organization_members ADD CONSTRAINT organization_members_role_check
     CHECK (role IN ('owner','admin','manager','analyst','client_viewer','member'));
+  IF to_regclass('public.webhooks') IS NOT NULL THEN
+    CREATE TABLE IF NOT EXISTS public.organization_webhooks (
+      organization_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+      webhook_id INTEGER NOT NULL REFERENCES public.webhooks(id) ON DELETE CASCADE,
+      created_by_user_id INTEGER NOT NULL REFERENCES public.users(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (organization_id, webhook_id),
+      UNIQUE (webhook_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_organization_webhooks_org
+      ON public.organization_webhooks(organization_id, created_at DESC);
+  END IF;
 END
 $role_upgrade$;
 

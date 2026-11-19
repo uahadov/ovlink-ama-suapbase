@@ -17,7 +17,8 @@ const {
 const { appendUtmParams } = require('../utm');
 const campaignLib = require('../campaigns');
 const { organizationClientsEnabled } = require('../../db/organization-model');
-const { checkAccess,loadContext } = require('../organization-access-context');
+const { loadContext } = require('../organization-access-context');
+const { authorize, can } = require('../organization-permissions');
 const { getMcpQuotaStatus } = require('./quota');
 const {
   validateDestinationUrlSafe,
@@ -309,6 +310,11 @@ const TOOL_DEFINITIONS = [
 // sufficient: each call loads CURRENT DB role and client assignment.
 if (organizationClientsEnabled()) {
   TOOL_DEFINITIONS.push({
+    name:'ovlink_list_organizations',
+    description:'List active organizations visible to the authenticated member under the centralized DB-sourced RBAC policy.',
+    requiredScope:'account:read',rateLimitTier:'read',
+    inputSchema:{type:'object',properties:{},additionalProperties:false}
+  },{
     name:'ovlink_list_agency_clients',
     description:'List active agency client portfolios visible to the authenticated organization member. Uses the same DB role and client assignment policy as the app.',
     requiredScope:'account:read',rateLimitTier:'read',
@@ -1012,12 +1018,11 @@ async function mcpOrgScope(tx,args,context,action){
    (args?.client_id&&!ORG_UUID.test(args.client_id)))throw maskedMcpDenied();
  const user=Number(context?.userId);
  if(!Number.isSafeInteger(user)||user<1)throw maskedMcpDenied();
- const allowed=await checkAccess({tx,organizationId:args.organization_id,userId:user,mutation:true},action);
- if(!allowed)throw maskedMcpDenied();
+ const ctx=await loadContext({tx,organizationId:args.organization_id,userId:user,mutation:true});
+ if(!ctx||!authorize(ctx,action))throw maskedMcpDenied();
  const org=await tx.get("SELECT legacy_workspace_id FROM organizations WHERE id=? AND state='active'",[args.organization_id]);
  if(!org||org.legacy_workspace_id!==null)throw maskedMcpDenied();
- const ctx=await loadContext({tx,organizationId:args.organization_id,userId:user,mutation:true});
- const privileged=['owner','admin','manager'].includes(ctx?.role);
+ const privileged=['owner','admin','manager'].includes(ctx.role);
  if(args.client_id){
    const client=await tx.get('SELECT id,display_name,status FROM organization_client_spaces WHERE id=? AND organization_id=?',[args.client_id,args.organization_id]);
    if(!client)throw maskedMcpDenied();
@@ -1027,6 +1032,26 @@ async function mcpOrgScope(tx,args,context,action){
  return {user,privileged};
 }
 if(organizationClientsEnabled()) {
+  TOOL_HANDLERS.ovlink_list_organizations=async(_args,context)=>{
+    const user=Number(context?.userId);
+    if(!Number.isSafeInteger(user)||user<1)throw maskedMcpDenied();
+    const rows=await dbAllAsync(
+      `SELECT o.id,o.display_name,o.state,o.legacy_workspace_id,
+              CASE WHEN o.legacy_workspace_id IS NOT NULL THEN wm.role ELSE om.role END AS role,
+              o.created_at
+         FROM organizations o
+         LEFT JOIN organization_members om ON om.organization_id=o.id AND om.user_id=?
+         LEFT JOIN workspace_members wm ON wm.workspace_id=o.legacy_workspace_id AND wm.user_id=?
+        WHERE o.state='active' AND
+          ((o.legacy_workspace_id IS NULL AND om.user_id IS NOT NULL)
+           OR (o.legacy_workspace_id IS NOT NULL AND wm.user_id IS NOT NULL))
+        ORDER BY o.created_at ASC, o.id ASC`,
+      [user,user]
+    );
+    const readable=rows.filter(r=>can(r.role,'organization.read',{legacy:r.legacy_workspace_id!==null}))
+      .map(({legacy_workspace_id,...rest})=>rest);
+    return sanitizePayload({organizations:readable});
+  };
   TOOL_HANDLERS.ovlink_list_agency_clients=async(args,context)=>withTransaction(async tx=>{
     const s=await mcpOrgScope(tx,args,context,'workspace.read');
     const rows=await tx.all(`SELECT c.id,c.display_name,c.status,

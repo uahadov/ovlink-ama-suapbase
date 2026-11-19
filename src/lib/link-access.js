@@ -7,6 +7,12 @@ const {
   isWorkspaceProActive,
   getWorkspaceMemberRole,
 } = require('../routes/api/workspaces');
+const { can } = require('./organization-permissions');
+
+// Unified P08 policy adapter for legacy 3-role workspaces (owner/admin/member).
+function canWorkspaceRole(role, action) {
+  return can(role, action, { legacy: true });
+}
 
 // Read scope: anything in the user's own or a joined workspace.
 const WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL = '(user_id = ? OR workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = ?))';
@@ -18,6 +24,7 @@ module.exports = {
   WORKSPACE_ROLES,
   WORKSPACE_SCOPED_LINK_OWNERSHIP_SQL,
   WORKSPACE_LINK_MUTATION_SQL,
+  canWorkspaceRole,
   getWorkspaceById,
   isWorkspaceProActive,
   getWorkspaceMemberRole,
