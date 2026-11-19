@@ -4,6 +4,14 @@ const router = express.Router();
 const { dbGetAsync, dbRunAsync, withTransaction } = require('../../db/helpers');
 const { normalizeShortCode } = require('../../lib/url-helpers');
 const campaignLib = require('../../lib/campaigns');
+const {
+  normalizeCampaignStatus,
+  resolveEffectiveStatus,
+  evaluateStatusTransition,
+  validateUtcInterval,
+  normalizeBudget,
+  recordCampaignAudit,
+} = require('../../lib/campaign-model');
 const campaignReport = require('../../../public/campaign-report');
 
 const {
@@ -31,6 +39,12 @@ const ERROR_MESSAGES = {
   workspace_inactive: 'Workspace üçün aktiv Pro tələb olunur.',
   invalid_workspace: 'Yanlış workspace ID.',
   workspace_not_found: 'Workspace tapılmadı.',
+  invalid_status: 'Kampaniya statusu düzgün deyil (draft, active, paused, completed, archived).',
+  invalid_status_transition: 'Bu status keçidinə icazə verilmir.',
+  invalid_datetime: 'Tarix formatı düzgün deyil (ISO UTC tələb olunur).',
+  invalid_interval: 'Bitiş tarixi başlanğıc tarixindən əvvəl ola bilməz.',
+  invalid_budget: 'Büdcə məbləği 0 və ya müsbət real rəqəm olmalıdır.',
+  invalid_currency: 'Büdcə valyutası dəstəklənmir (AZN, USD, EUR, TRY, GBP).',
 };
 
 function currentUserId(req) {
@@ -39,45 +53,99 @@ function currentUserId(req) {
   return Number.isInteger(id) && id > 0 ? id : 0;
 }
 
-// GET /api/campaigns?days=30 -> campaigns with aggregated counters
+// GET /api/campaigns?days=30&status= -> campaigns with aggregated counters
 router.get('/api/campaigns', async (req, res) => {
   const userId = currentUserId(req);
   if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
 
   const query = req.query && typeof req.query === 'object' ? req.query : {};
   const includeArchived = ['1', 'true', 'yes'].includes(String(query.include_archived || '').toLowerCase());
+  const rawStatus = query.status;
+  let statusFilter = null;
+  if (rawStatus !== undefined && rawStatus !== '') {
+    statusFilter = normalizeCampaignStatus(rawStatus);
+    if (!statusFilter) return res.status(400).json({ error: ERROR_MESSAGES.invalid_status });
+  }
 
   try {
-    const rows = await campaignLib.listCampaigns({ userId, days: query.days, includeArchived });
+    const rows = await campaignLib.listCampaigns({
+      userId,
+      days: query.days,
+      includeArchived,
+      status: statusFilter,
+    });
     return res.json({ campaigns: rows });
   } catch {
     return res.status(500).json({ error: 'Veri alınamadı.' });
   }
 });
 
-// POST /api/campaigns { name, goal }
+// POST /api/campaigns { name, goal, status?, starts_at?, ends_at?, budget_amount?, budget_currency? }
 router.post('/api/campaigns', async (req, res) => {
   const userId = currentUserId(req);
   if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
 
-  const name = (req.body && req.body.name) || '';
-  const goal = (req.body && req.body.goal) || '';
-  const goalClicks = req.body ? req.body.goal_clicks : null;
-  const goalConversions = req.body ? req.body.goal_conversions : null;
-  const workspaceId = req.body ? req.body.workspace_id : null;
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const name = body.name || '';
+  const goal = body.goal || '';
+  const goalClicks = body.goal_clicks;
+  const goalConversions = body.goal_conversions;
+  const workspaceId = body.workspace_id;
+  const status = body.status;
+  const startsAt = body.starts_at;
+  const endsAt = body.ends_at;
+  const budgetAmount = body.budget_amount;
+  const budgetCurrency = body.budget_currency;
 
   try {
-    const result = await campaignLib.createCampaign({ userId, name, goal, goalClicks, goalConversions, workspaceId });
+    const result = await campaignLib.createCampaign({
+      userId,
+      name,
+      goal,
+      goalClicks,
+      goalConversions,
+      workspaceId,
+      status,
+      startsAt,
+      endsAt,
+      budgetAmount,
+      budgetCurrency,
+    });
     if (result.error) {
-      const status = result.error === 'duplicate' ? 409 :
-        (['invalid_name', 'invalid_workspace'].includes(result.error) ? 400 :
+      const badRequestErrors = [
+        'invalid_name',
+        'invalid_workspace',
+        'invalid_status',
+        'invalid_datetime',
+        'invalid_interval',
+        'invalid_budget',
+        'invalid_currency',
+      ];
+      const statusCode = result.error === 'duplicate' ? 409 :
+        (badRequestErrors.includes(result.error) ? 400 :
         (result.error === 'workspace_forbidden' ? 403 : (result.error === 'workspace_not_found' ? 404 :
         (result.error === 'workspace_inactive' ? 403 : 500))));
-      return res.status(status).json({ error: ERROR_MESSAGES[result.error] || 'Kampaniya yaradıla bilmədi.' });
+      return res.status(statusCode).json({ error: ERROR_MESSAGES[result.error] || 'Kampaniya yaradıla bilmədi.' });
     }
     return res.status(201).json({ campaign: result.campaign });
   } catch {
     return res.status(500).json({ error: 'Kampaniya yaradıla bilmədi.' });
+  }
+});
+
+// GET /api/campaigns/:id/assets -> unified links, QR codes, and client assets for a campaign
+router.get('/api/campaigns/:id/assets', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+
+  const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: req.params.id });
+  if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+
+  try {
+    const payload = await campaignLib.loadCampaignAssets({ campaign });
+    return res.json(payload);
+  } catch {
+    return res.status(500).json({ error: 'Veri alınamadı.' });
   }
 });
 
@@ -147,7 +215,7 @@ router.get('/api/campaigns/:id/export.csv', async (req, res) => {
   }
 });
 
-// PATCH /api/campaigns/:id { name?, goal?, archived? }
+// PATCH /api/campaigns/:id { name?, goal?, archived?, status?, starts_at?, ends_at?, budget_amount?, budget_currency? }
 router.patch('/api/campaigns/:id', async (req, res) => {
   const userId = currentUserId(req);
   if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
@@ -159,13 +227,24 @@ router.patch('/api/campaigns/:id', async (req, res) => {
   const hasName = Object.prototype.hasOwnProperty.call(body, 'name');
   const hasGoal = Object.prototype.hasOwnProperty.call(body, 'goal');
   const hasArchived = Object.prototype.hasOwnProperty.call(body, 'archived');
+  const hasStatus = Object.prototype.hasOwnProperty.call(body, 'status');
+  const hasStartsAt = Object.prototype.hasOwnProperty.call(body, 'starts_at');
+  const hasEndsAt = Object.prototype.hasOwnProperty.call(body, 'ends_at');
+  const hasBudgetAmount = Object.prototype.hasOwnProperty.call(body, 'budget_amount');
+  const hasBudgetCurrency = Object.prototype.hasOwnProperty.call(body, 'budget_currency');
   const hasGoalClicks = Object.prototype.hasOwnProperty.call(body, 'goal_clicks');
   const hasGoalConversions = Object.prototype.hasOwnProperty.call(body, 'goal_conversions');
 
+  const currentStatus = resolveEffectiveStatus(campaign);
   let nextName = campaign.name;
   let nextSlug = campaign.slug;
   let nextGoal = campaign.goal;
+  let nextStatus = currentStatus;
   let nextArchivedAt = campaign.archived_at;
+  let nextStartsAt = campaign.starts_at || null;
+  let nextEndsAt = campaign.ends_at || null;
+  let nextBudgetAmount = campaign.budget_amount === undefined || campaign.budget_amount === null ? null : Number(campaign.budget_amount);
+  let nextBudgetCurrency = nextBudgetAmount === null ? null : (campaign.budget_currency || 'AZN');
   let nextGoalClicks = campaign.goal_clicks === undefined ? null : campaign.goal_clicks;
   let nextGoalConversions = campaign.goal_conversions === undefined ? null : campaign.goal_conversions;
 
@@ -188,30 +267,105 @@ router.patch('/api/campaigns/:id', async (req, res) => {
   }
 
   if (hasGoal) nextGoal = campaignLib.normalizeCampaignName(body.goal) || null;
-
   if (hasGoalClicks) nextGoalClicks = campaignLib.normalizeGoalTarget(body.goal_clicks);
   if (hasGoalConversions) nextGoalConversions = campaignLib.normalizeGoalTarget(body.goal_conversions);
 
-  if (hasArchived) {
+  if (hasStartsAt || hasEndsAt) {
+    const interval = validateUtcInterval(
+      hasStartsAt ? body.starts_at : nextStartsAt,
+      hasEndsAt ? body.ends_at : nextEndsAt
+    );
+    if (interval.error) {
+      return res.status(400).json({ error: ERROR_MESSAGES[interval.error] || ERROR_MESSAGES.invalid_interval });
+    }
+    nextStartsAt = interval.starts_at;
+    nextEndsAt = interval.ends_at;
+  }
+
+  if (hasBudgetAmount || hasBudgetCurrency) {
+    const budget = normalizeBudget(
+      hasBudgetAmount ? body.budget_amount : nextBudgetAmount,
+      hasBudgetCurrency ? body.budget_currency : nextBudgetCurrency
+    );
+    if (budget.error) {
+      return res.status(400).json({ error: ERROR_MESSAGES[budget.error] || ERROR_MESSAGES.invalid_budget });
+    }
+    nextBudgetAmount = budget.budget_amount;
+    nextBudgetCurrency = budget.budget_currency;
+  }
+
+  let statusChanged = false;
+  if (hasStatus) {
+    const transition = evaluateStatusTransition(currentStatus, body.status);
+    if (!transition.allowed) {
+      const statusCode = transition.code === 'invalid_status' ? 400 : 409;
+      return res.status(statusCode).json({
+        error: ERROR_MESSAGES[transition.code] || ERROR_MESSAGES.invalid_status_transition,
+        code: transition.code,
+        from: transition.from,
+        allowed_next: transition.allowed_next,
+      });
+    }
+    nextStatus = transition.status;
+    statusChanged = transition.changed;
+    nextArchivedAt = nextStatus === 'archived' ? (campaign.archived_at || new Date().toISOString()) : null;
+  } else if (hasArchived) {
     const archive = ['1', 'true', 'yes', 'on'].includes(String(body.archived).toLowerCase());
     nextArchivedAt = archive ? (campaign.archived_at || new Date().toISOString()) : null;
+    nextStatus = archive ? 'archived' : (currentStatus === 'archived' ? 'active' : currentStatus);
+    statusChanged = nextStatus !== currentStatus;
   }
 
   try {
     const updated = await dbRunAsync(
-      'UPDATE campaigns SET name = ?, slug = ?, goal = ?, archived_at = ?, goal_clicks = ?, goal_conversions = ? WHERE id = ? AND (' +
+      'UPDATE campaigns SET name = ?, slug = ?, goal = ?, status = ?, archived_at = ?, starts_at = ?, ends_at = ?, budget_amount = ?, budget_currency = ?, goal_clicks = ?, goal_conversions = ? WHERE id = ? AND (' +
       ' (workspace_id IS NULL AND user_id = ?) OR ' +
       " (workspace_id IS NOT NULL AND EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = campaigns.workspace_id AND wm.user_id = ? AND wm.role IN ('owner','admin'))))",
-      [nextName, nextSlug, nextGoal, nextArchivedAt, nextGoalClicks, nextGoalConversions, campaign.id, userId, userId]
+      [
+        nextName,
+        nextSlug,
+        nextGoal,
+        nextStatus,
+        nextArchivedAt,
+        nextStartsAt,
+        nextEndsAt,
+        nextBudgetAmount,
+        nextBudgetCurrency,
+        nextGoalClicks,
+        nextGoalConversions,
+        campaign.id,
+        userId,
+        userId,
+      ]
     );
     if (!updated || !updated.changes) {
       return res.status(409).json({ error: 'Kampaniya yenilənə bilmədi. İcazəni və vəziyyəti yeniləyin.' });
     }
+
+    await recordCampaignAudit(dbRunAsync, {
+      userId,
+      action: statusChanged ? 'campaign.status_changed' : 'campaign.updated',
+      campaignId: campaign.id,
+      metadata: {
+        event_id: campaign.event_id || null,
+        from_status: currentStatus,
+        to_status: nextStatus,
+        budget_amount: nextBudgetAmount,
+        budget_currency: nextBudgetCurrency,
+      },
+    });
+
     return res.json({
       campaign: {
         id: Number(campaign.id),
         name: nextName,
         slug: nextSlug,
+        status: nextStatus,
+        event_id: campaign.event_id || null,
+        starts_at: nextStartsAt,
+        ends_at: nextEndsAt,
+        budget_amount: nextBudgetAmount,
+        budget_currency: nextBudgetCurrency,
         goal: nextGoal || '',
         goal_clicks: nextGoalClicks === null || nextGoalClicks === undefined ? null : Number(nextGoalClicks),
         goal_conversions: nextGoalConversions === null || nextGoalConversions === undefined ? null : Number(nextGoalConversions),
@@ -243,6 +397,15 @@ router.delete('/api/campaigns/:id', async (req, res) => {
         [campaign.id, userId, userId]);
       if (!result || !result.changes) throw new Error('Campaign changed during deletion');
       return result;
+    });
+    await recordCampaignAudit(dbRunAsync, {
+      userId,
+      action: 'campaign.deleted',
+      campaignId: campaign.id,
+      metadata: {
+        event_id: campaign.event_id || null,
+        previous_status: resolveEffectiveStatus(campaign),
+      },
     });
     return res.json({ deleted: !!deleted.changes });
   } catch {

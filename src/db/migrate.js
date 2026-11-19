@@ -167,6 +167,15 @@ function ensureDbTables() {
     // F4: campaign goals (target vs actual).
     db.run('ALTER TABLE campaigns ADD COLUMN goal_clicks INTEGER', () => {});
     db.run('ALTER TABLE campaigns ADD COLUMN goal_conversions INTEGER', () => {});
+    // P15: structured business campaign model (additive, lossless for legacy campaigns).
+    db.run("ALTER TABLE campaigns ADD COLUMN status TEXT DEFAULT 'active'", () => {});
+    db.run('ALTER TABLE campaigns ADD COLUMN starts_at TEXT', () => {});
+    db.run('ALTER TABLE campaigns ADD COLUMN ends_at TEXT', () => {});
+    db.run('ALTER TABLE campaigns ADD COLUMN budget_amount REAL', () => {});
+    db.run('ALTER TABLE campaigns ADD COLUMN budget_currency TEXT', () => {});
+    db.run('ALTER TABLE campaigns ADD COLUMN event_id TEXT', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_campaigns_status ON campaigns(status)', () => {});
+    db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_campaigns_event_id ON campaigns(event_id) WHERE event_id IS NOT NULL', () => {});
 
     // F3: per-user alert thresholds. NULL means "inherit the env default".
     db.run('ALTER TABLE users ADD COLUMN alert_spike_multiplier REAL', () => {});

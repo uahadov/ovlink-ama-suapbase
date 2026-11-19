@@ -9,6 +9,17 @@ const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../db/helpers');
 const { getWorkspaceMemberRole, isWorkspaceProActive, getWorkspaceById } = require('../routes/api/workspaces');
 const { canWorkspaceRole } = require('./link-access');
 const {
+  CAMPAIGN_STATUSES,
+  generateCampaignEventId,
+  normalizeCampaignStatus,
+  resolveEffectiveStatus,
+  evaluateStatusTransition,
+  validateUtcInterval,
+  normalizeBudget,
+  ensureCampaignModelColumns,
+  recordCampaignAudit,
+} = require('./campaign-model');
+const {
   parseRange,
   parseBotsFilter,
   buildDaySeries,
@@ -100,10 +111,19 @@ function mapCampaignRow(row) {
   const goalConversions = normalizeGoalTarget(row.goal_conversions);
   const clicks = Number(row.clicks || 0);
   const conversions = Number(row.conversions || 0);
+  const budgetAmount = row.budget_amount === null || row.budget_amount === undefined
+    ? null
+    : Number(row.budget_amount);
   return {
     id: Number(row.id),
     name: row.name || '',
     slug: row.slug || '',
+    status: resolveEffectiveStatus(row),
+    event_id: row.event_id || null,
+    starts_at: row.starts_at || null,
+    ends_at: row.ends_at || null,
+    budget_amount: Number.isFinite(budgetAmount) ? budgetAmount : null,
+    budget_currency: Number.isFinite(budgetAmount) ? (row.budget_currency || 'AZN') : null,
     workspace_id: row.workspace_id ? Number(row.workspace_id) : null,
     can_manage: row.can_manage === undefined ? true : !!Number(row.can_manage),
     goal: row.goal || '',
@@ -124,9 +144,36 @@ function mapCampaignRow(row) {
 }
 
 /** Creates a campaign, returning `{ error }` for validation/duplicate cases. */
-async function createCampaign({ userId, name, goal, goalClicks, goalConversions, workspaceId = null }) {
+async function createCampaign({
+  userId,
+  name,
+  goal,
+  goalClicks,
+  goalConversions,
+  workspaceId = null,
+  status = 'active',
+  startsAt = null,
+  endsAt = null,
+  budgetAmount = null,
+  budgetCurrency = null,
+}) {
   const ownerId = Number.parseInt(userId, 10);
   if (!Number.isInteger(ownerId) || ownerId <= 0) return { error: 'unauthorized' };
+
+  await ensureCampaignModelColumns(dbRunAsync, dbGetAsync);
+
+  const initialStatus = status === undefined || status === null || status === ''
+    ? 'active'
+    : normalizeCampaignStatus(status);
+  if (!initialStatus || !['draft', 'active'].includes(initialStatus)) {
+    return { error: 'invalid_status' };
+  }
+
+  const interval = validateUtcInterval(startsAt, endsAt);
+  if (interval.error) return { error: interval.error };
+
+  const budget = normalizeBudget(budgetAmount, budgetCurrency);
+  if (budget.error) return { error: budget.error };
 
   let ownerIdForCampaign = ownerId;
   let scopedWorkspaceId = null;
@@ -156,22 +203,63 @@ async function createCampaign({ userId, name, goal, goalClicks, goalConversions,
 
   const targetClicks = normalizeGoalTarget(goalClicks);
   const targetConversions = normalizeGoalTarget(goalConversions);
+  const eventId = generateCampaignEventId();
+  const createdAt = new Date().toISOString();
 
   const inserted = await dbRunAsync(
-    'INSERT INTO campaigns (user_id, workspace_id, name, slug, goal, goal_clicks, goal_conversions, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [ownerIdForCampaign, scopedWorkspaceId, cleanName, slug, normalizeCampaignName(goal) || null, targetClicks, targetConversions, new Date().toISOString()]
+    `INSERT INTO campaigns
+       (user_id, workspace_id, name, slug, goal, goal_clicks, goal_conversions, status, starts_at, ends_at, budget_amount, budget_currency, event_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      ownerIdForCampaign,
+      scopedWorkspaceId,
+      cleanName,
+      slug,
+      normalizeCampaignName(goal) || null,
+      targetClicks,
+      targetConversions,
+      initialStatus,
+      interval.starts_at,
+      interval.ends_at,
+      budget.budget_amount,
+      budget.budget_currency,
+      eventId,
+      createdAt,
+    ]
   ).catch(() => null);
 
   if (!inserted) return { error: 'db_error' };
+  const campaignId = Number(inserted.lastID);
+  await recordCampaignAudit(dbRunAsync, {
+    userId: ownerId,
+    action: 'campaign.created',
+    campaignId,
+    metadata: {
+      event_id: eventId,
+      status: initialStatus,
+      workspace_id: scopedWorkspaceId,
+      budget_amount: budget.budget_amount,
+      budget_currency: budget.budget_currency,
+    },
+  });
+
   return {
     campaign: {
-      id: Number(inserted.lastID),
+      id: campaignId,
       workspace_id: scopedWorkspaceId,
       name: cleanName,
       slug,
+      status: initialStatus,
+      event_id: eventId,
+      starts_at: interval.starts_at,
+      ends_at: interval.ends_at,
+      budget_amount: budget.budget_amount,
+      budget_currency: budget.budget_currency,
       goal: normalizeCampaignName(goal) || '',
       goal_clicks: targetClicks,
       goal_conversions: targetConversions,
+      created_at: createdAt,
+      archived_at: null,
     },
   };
 }
@@ -187,6 +275,7 @@ async function getCampaignForActor({ userId, campaignId, write = false }) {
   const uid = Number(userId);
   const id = Number(campaignId);
   if (!Number.isSafeInteger(uid) || uid <= 0 || !Number.isSafeInteger(id) || id <= 0) return null;
+  await ensureCampaignModelColumns(dbRunAsync, dbGetAsync);
   const roles = write ? " AND wm.role IN ('owner', 'admin')" : '';
   return dbGetAsync(
     'SELECT c.*, CASE WHEN c.workspace_id IS NULL THEN 1 WHEN EXISTS ' +
@@ -200,18 +289,32 @@ async function getCampaignForActor({ userId, campaignId, write = false }) {
   );
 }
 
-async function listCampaigns({ userId, days, includeArchived = false } = {}) {
+async function listCampaigns({ userId, days, includeArchived = false, status = null } = {}) {
   const ownerId = Number.parseInt(userId, 10);
   if (!Number.isInteger(ownerId) || ownerId <= 0) return [];
 
+  await ensureCampaignModelColumns(dbRunAsync, dbGetAsync);
+
+  const normalizedStatus = normalizeCampaignStatus(status);
   const range = parseRange(days);
   const dayClause = range.all ? '' : ' AND d.day >= ?';
   const params = [ownerId];
   if (!range.all) params.push(isoDay(addDays(new Date(), -range.days)));
   params.push(ownerId, ownerId);
 
+  let statusClause = '';
+  if (normalizedStatus === 'archived') {
+    statusClause = " AND (c.archived_at IS NOT NULL OR c.status = 'archived')";
+  } else if (normalizedStatus) {
+    statusClause = " AND c.archived_at IS NULL AND COALESCE(c.status, 'active') = ?";
+    params.push(normalizedStatus);
+  } else if (!includeArchived) {
+    statusClause = ' AND c.archived_at IS NULL';
+  }
+
   const sql =
     'SELECT c.id, c.name, c.slug, c.goal, c.goal_clicks, c.goal_conversions, ' +
+    'c.status, c.starts_at, c.ends_at, c.budget_amount, c.budget_currency, c.event_id, ' +
     'c.created_at, c.archived_at, c.workspace_id, ' +
     'CASE WHEN c.workspace_id IS NULL THEN 1 WHEN EXISTS ' +
     "(SELECT 1 FROM workspace_members wm2 WHERE wm2.workspace_id = c.workspace_id AND wm2.user_id = ? AND wm2.role IN ('owner','admin')) THEN 1 ELSE 0 END AS can_manage, " +
@@ -225,8 +328,8 @@ async function listCampaigns({ userId, days, includeArchived = false } = {}) {
     'LEFT JOIN link_stats_daily d ON d.url_id = u.id' + dayClause + ' ' +
     'WHERE ((c.workspace_id IS NULL AND c.user_id = ?) OR ' +
     ' (c.workspace_id IS NOT NULL AND EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = c.workspace_id AND wm.user_id = ?)))' +
-    (includeArchived ? '' : ' AND c.archived_at IS NULL') + ' ' +
-    'GROUP BY c.id, c.name, c.slug, c.goal, c.goal_clicks, c.goal_conversions, c.created_at, c.archived_at, c.workspace_id ' +
+    statusClause + ' ' +
+    'GROUP BY c.id, c.name, c.slug, c.goal, c.goal_clicks, c.goal_conversions, c.status, c.starts_at, c.ends_at, c.budget_amount, c.budget_currency, c.event_id, c.created_at, c.archived_at, c.workspace_id ' +
     'ORDER BY clicks DESC, c.id DESC ' +
     `LIMIT ${CAMPAIGN_LIST_LIMIT}`;
 
@@ -305,6 +408,10 @@ function formatCampaignStats({ campaign, range, includeBots, now, rangeStartIso,
   });
   const seriesStart = rangeStartDay || Object.keys(dayCounts).sort()[0] || endDay;
 
+  const budgetAmount = campaign.budget_amount === null || campaign.budget_amount === undefined
+    ? null
+    : Number(campaign.budget_amount);
+
   return {
     campaign: {
       id: campaignId,
@@ -312,6 +419,12 @@ function formatCampaignStats({ campaign, range, includeBots, now, rangeStartIso,
       can_manage: campaign.can_manage === undefined ? true : !!Number(campaign.can_manage),
       name: campaign.name || '',
       slug: campaign.slug || '',
+      status: resolveEffectiveStatus(campaign),
+      event_id: campaign.event_id || null,
+      starts_at: campaign.starts_at || null,
+      ends_at: campaign.ends_at || null,
+      budget_amount: Number.isFinite(budgetAmount) ? budgetAmount : null,
+      budget_currency: Number.isFinite(budgetAmount) ? (campaign.budget_currency || 'AZN') : null,
       goal: campaign.goal || '',
       goal_clicks: normalizeGoalTarget(campaign.goal_clicks),
       goal_conversions: normalizeGoalTarget(campaign.goal_conversions),
@@ -425,6 +538,85 @@ async function loadCampaignStats({ campaign, query } = {}) {
     rangeStartDay, endDay, totalsRow, linksRow, dailyRow, sourcesRow, goalsRow, linksCountRow });
 }
 
+/** Loads all assets (links, active QR codes, optional client space) linked to a campaign. */
+async function loadCampaignAssets({ campaign } = {}) {
+  if (!campaign || !campaign.id) throw new Error('loadCampaignAssets requires a campaign row');
+  const campaignId = Number(campaign.id);
+
+  const [links, qrCodes] = await Promise.all([
+    dbAllAsync(
+      `SELECT u.id, u.short, u.original, u.created_at,
+              COALESCE((SELECT COUNT(*) FROM clicks cl WHERE cl.url_id = u.id), 0) AS clicks
+         FROM urls u
+        WHERE u.campaign_id = ?
+        ORDER BY u.id DESC
+        LIMIT 200`,
+      [campaignId]
+    ),
+    dbAllAsync(
+      `SELECT q.id, q.url_id, q.short, q.slug, q.label, q.scans, q.created_at
+         FROM qr_codes q
+         JOIN urls u ON u.id = q.url_id
+        WHERE u.campaign_id = ? AND q.deleted_at IS NULL
+        ORDER BY q.id DESC
+        LIMIT 200`,
+      [campaignId]
+    ).catch(() => []),
+  ]);
+
+  let clientSpace = null;
+  try {
+    const clientRow = await dbGetAsync(
+      `SELECT cs.id, cs.name, cs.slug, cs.status
+         FROM organization_client_campaigns occ
+         JOIN organization_client_spaces cs ON cs.id = occ.client_id
+        WHERE occ.campaign_id = ?
+        LIMIT 1`,
+      [campaignId]
+    );
+    if (clientRow) {
+      clientSpace = {
+        id: clientRow.id,
+        name: clientRow.name,
+        slug: clientRow.slug,
+        status: clientRow.status,
+      };
+    }
+  } catch {
+    // Client portfolio tables are opt-in (P10); gracefully omit when disabled.
+  }
+
+  const normalizedLinks = (links || []).map((row) => ({
+    id: Number(row.id),
+    short: row.short,
+    original: row.original,
+    clicks: Number(row.clicks || 0),
+    created_at: row.created_at || null,
+  }));
+  const normalizedQrs = (qrCodes || []).map((row) => ({
+    id: Number(row.id),
+    url_id: Number(row.url_id),
+    short: row.short,
+    slug: row.slug,
+    label: row.label || '',
+    scans: Number(row.scans || 0),
+    created_at: row.created_at || null,
+  }));
+
+  return {
+    campaign: mapCampaignRow(campaign),
+    client: clientSpace,
+    links: normalizedLinks,
+    qr_codes: normalizedQrs,
+    summary: {
+      links_count: normalizedLinks.length,
+      qr_codes_count: normalizedQrs.length,
+      total_link_clicks: normalizedLinks.reduce((acc, item) => acc + item.clicks, 0),
+      total_qr_scans: normalizedQrs.reduce((acc, item) => acc + item.scans, 0),
+    },
+  };
+}
+
 /** Verifies that a campaign belongs to the caller before assigning links to it. */
 async function assertCampaignOwnership({ userId, campaignId }) {
   const id = Number.parseInt(campaignId, 10);
@@ -438,6 +630,7 @@ module.exports = {
   CAMPAIGN_LIST_LIMIT,
   TOP_LINKS_LIMIT,
   MAX_GOAL_TARGET,
+  CAMPAIGN_STATUSES,
   normalizeGoalTarget,
   computeGoalProgress,
   normalizeCampaignName,
@@ -448,6 +641,11 @@ module.exports = {
   getCampaignForActor,
   listCampaigns,
   loadCampaignStats,
+  loadCampaignAssets,
   assertCampaignOwnership,
+  evaluateStatusTransition,
+  resolveEffectiveStatus,
+  validateUtcInterval,
+  normalizeBudget,
   toInt,
 };
