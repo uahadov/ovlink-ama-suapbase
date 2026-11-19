@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const { db } = require('../db/index');
-const { dbGetAsync } = require('../db/helpers');
+const { dbGetAsync, withTransaction } = require('../db/helpers');
 const { buildSeoMeta: buildSeo } = require('../lib/seo');
 const { normalizeLang, pickLang } = require('../lib/i18n');
 const { decryptAES256GCM } = require('../../utils/crypto');
@@ -11,7 +11,8 @@ const { getEffectivePlanForUser, isProAccessActive, isIsoTimeExpired } = require
 const { sensitiveActionLimiter } = require('../middleware/rate-limiter');
 const { logSecurityEvent } = require('../lib/security');
 const { createBotShared } = require('../../bots/shared');
-const { organizationTeamEnabled } = require('../db/organization-model');
+const { organizationTeamEnabled, organizationClientsEnabled } = require('../db/organization-model');
+const { checkAccess } = require('../lib/organization-access-context');
 
 const router = express.Router();
 
@@ -385,10 +386,25 @@ router.get('/reset-password', (req, res) => {
   res.render('reset-password', { csrfToken: res.locals._csrf, token: req.query.token || '' });
 });
 
+router.get('/organizations/:id/clients',async(req,res)=>{
+ if(!organizationClientsEnabled())return res.status(404).json({error:'Not found'});
+ const orgId=req.params.id;
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orgId))return res.status(404).json({error:'Not found'});
+ const userId=Number(req.session?.userId);
+ if(!Number.isSafeInteger(userId)||userId<1)return res.redirect('/login');
+ try{
+  const allowed=await withTransaction(async tx=>checkAccess({tx,organizationId:orgId,userId,mutation:true},'workspace.read'));
+  if(!allowed)return res.status(404).json({error:'Not found'});
+  const lang=normalizeLang(req.query?.lang,'az');
+  res.set('Cache-Control','no-store');res.set('Referrer-Policy','no-referrer');
+  return res.render('organization-clients',{csrfToken:res.locals._csrf,orgId,lang});
+ }catch(_e){return res.status(500).json({error:'Portfolio unavailable'})}
+});
+
 router.get('/workspaces', async (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
   const plan = await getEffectivePlanForUser(req.session.userId).catch(() => null);
-  return res.render('workspaces', { csrfToken: res.locals._csrf, plan: plan || {} });
+  return res.render('workspaces', { csrfToken: res.locals._csrf, plan: plan || {}, enableAgencyPortfolio:organizationClientsEnabled() });
 });
 
 router.get('/campaigns', (req, res) => {

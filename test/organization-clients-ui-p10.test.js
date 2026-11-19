@@ -1,0 +1,32 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),path=require('node:path'),ejs=require('ejs'),fs=require('node:fs'),vm=require('node:vm');
+const file=path.join(__dirname,'../views/organization-clients.ejs');
+const source=fs.readFileSync(file,'utf8');
+for(const lang of ['az','tr','en'])test('P10 portfolio UI: EJS rendered '+lang+' and inline JavaScript syntax',async()=>{
+ const html=await ejs.renderFile(file,{orgId:'3c90fa09-30cc-4779-8dfb-5ab4f98b843e',lang,nonce:'qa-nonce',csrfToken:'qa-token'});
+ assert.match(html,/<meta name="csrf-token" content="qa-token">/);
+ assert.match(html,/<nav[^>]+id="clientList"/);
+ assert.match(html,/<main[^>]+id="mainContent"/);
+ assert.match(html,/id="campaignList"/);
+ assert.match(html,/id="showArchived"/);
+ assert.match(html,/id="createForm"/);
+ assert.match(html,/id="toggleArchive"/);
+ assert.match(html,/prefers-reduced-motion/);
+ assert.match(html,/@media\(max-width:760px\)/);
+ assert.match(html,/nonce="qa-nonce"/);
+ assert.ok(!html.includes('email_encrypted'));
+ const scripts=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)];assert.equal(scripts.length,1);
+ assert.doesNotThrow(()=>new vm.Script(scripts[0][1]),'generated client UI JS syntax');
+ const expected={az:'Müştəri portfeli',tr:'Müşteri portföyü',en:'Client portfolio'};
+ assert.match(html,new RegExp(expected[lang]));
+});
+test('P10 portfolio UI: link actions are client-scoped and role-gated backend',()=>{
+ const api=fs.readFileSync(path.join(__dirname,'../src/routes/api/organization-clients.js'),'utf8');
+ assert.match(api,/checkAccess/);
+ assert.match(api,/organization_client_members/);
+ assert.match(api,/organization_id=\?/);
+ assert.match(api,/workspace\.update/);
+ assert.match(api,/campaign\.create/);
+ assert.doesNotMatch(api,/DELETE FROM urls/);
+ assert.match(source,/x-csrf-token/);
+});

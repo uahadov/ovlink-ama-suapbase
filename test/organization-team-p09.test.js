@@ -25,7 +25,7 @@ test('P09 real HTTP invitation recipient binding, revocation, role lifecycle and
   const alpha=await o('P09 team alpha',owner),beta=await o('P09 team beta',outsider);
   for(const [u0,role] of [[admin,'admin'],[manager,'manager'],[analyst,'analyst'],[viewer,'client_viewer']])await db.query('INSERT INTO organization_members(organization_id,user_id,role) VALUES($1,$2,$3)',[alpha,u0.id,role]);
   const mail=require('../src/lib/email'),sentMails=[];mail.sendMail=async options=>{sentMails.push(options);return {messageId:'qa-only'}};
-  const app=express();app.use(express.json());app.use((req,_res,next)=>{req.session={userId:Number(req.get('x-test-user')||0)};next()});app.use(require('../src/routes/api/organization-team'));
+  const app=express();app.use(express.json());app.use((req,_res,next)=>{req.session={userId:Number(req.get('x-test-user')||0)};next()});app.use(require('../src/routes/api/organization-team'));app.use((_req,res,next)=>{res.locals._csrf='qa-csrf';res.render=(view,locals)=>res.status(200).json({view,state:locals.state,teamInvite:locals.teamInvite,workspaceName:locals.workspaceName});next()});app.use(require('../src/routes/public'));
   server=app.listen(0,'127.0.0.1');await new Promise(done=>server.once('listening',done));const base=`http://127.0.0.1:${server.address().port}`;
   async function call(actor,method,route,body){const response=await fetch(base+route,{method,headers:{'x-test-user':String(actor.id),'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});return {status:response.status,body:await response.json()}}
   const inviteRoute=`/api/organizations/${alpha}/invitations`;
@@ -36,10 +36,18 @@ test('P09 real HTTP invitation recipient binding, revocation, role lifecycle and
   assert.equal((await call(outsider,'POST',inviteRoute,{email:wrong.email,role:'analyst'})).status,404,'other org no invite');
   const existing=(await db.query('SELECT id FROM organization_invitations WHERE organization_id=$1 AND email_hash=$2',[alpha,blindIndex(invitee.email)])).rows[0];
   assert.ok(existing?.id);
+  const invalidPage=await call(invitee,'GET','/workspaces/accept-organization?token=invalid');
+  assert.equal(invalidPage.status,200);assert.equal(invalidPage.body.state,'invalid');
   const key=crypto.randomBytes(32).toString('base64url');const hash=crypto.createHash('sha256').update(key).digest('hex');
   await db.query('UPDATE organization_invitations SET token_hash=$1 WHERE id=$2',[hash,existing.id]);
+  const deepLink='/workspaces/accept-organization?token='+encodeURIComponent(key);
+  const preview=await call(invitee,'GET',deepLink);
+  assert.equal(preview.status,200);assert.equal(preview.body.view,'workspaces-accept');assert.equal(preview.body.teamInvite,true);assert.equal(preview.body.state,'ready');
+  assert.equal((await call(wrong,'GET',deepLink)).body.state,'wrong_email');
   assert.equal((await call(wrong,'POST','/api/organizations/invitations/accept',{token:key})).status,404,'token must match verified account');
-  assert.equal((await call(invitee,'POST','/api/organizations/invitations/accept',{token:key})).status,200,'target can accept');
+  const accepted=await call(invitee,'POST','/workspaces/accept-organization',{token:key});
+  assert.equal(accepted.status,200,'browser POST follows 303 to accepted page');
+  assert.equal(accepted.body.state,'accepted');
   assert.equal((await call(invitee,'POST','/api/organizations/invitations/accept',{token:key})).status,404,'token one-time');
   assert.equal((await db.query('SELECT role FROM organization_members WHERE organization_id=$1 AND user_id=$2',[alpha,invitee.id])).rows[0].role,'analyst');
   assert.equal((await call(owner,'PATCH',`/api/organizations/${alpha}/members/${invitee.id}`,{role:'manager'})).status,200,'owner changes role');
