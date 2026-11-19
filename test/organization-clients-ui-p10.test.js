@@ -11,6 +11,9 @@ for(const lang of ['az','tr','en'])test('P10 portfolio UI: EJS rendered '+lang+'
  assert.match(html,/id="showArchived"/);
  assert.match(html,/id="createForm"/);
  assert.match(html,/id="toggleArchive"/);
+ assert.match(html,/id="loadReport"/);
+ assert.match(html,/id="downloadReport"/);
+ assert.match(html,/id="reportSummary"/);
  assert.match(html,/prefers-reduced-motion/);
  assert.match(html,/@media\(max-width:760px\)/);
  assert.match(html,/nonce="qa-nonce"/);

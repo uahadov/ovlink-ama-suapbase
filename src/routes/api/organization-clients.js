@@ -127,6 +127,117 @@ router.post('/api/organizations/:id/clients/:clientId/campaigns',gate,mutationLi
   });if(!row)return res.status(404).json({error:'Not found'});return res.status(201).json({campaign:row});
  }catch(_e){return fault(res)}
 });
+// Existing personal short URLs can only be moved into a client campaign by
+// their ACTUAL owner. An agency manager must not claim its owner's private URLs.
+router.post('/api/organizations/:id/clients/:clientId/campaigns/:campaignId/attach-link',gate,mutationLimiter,requireSignedIn,async(req,res)=>{
+ if(!ids(req))return res.status(404).json({error:'Not found'});
+ const campaignId=Number(req.params.campaignId),short=req.body?.short;
+ if(!Number.isSafeInteger(campaignId)||campaignId<1||typeof short!=='string'||
+   !/^[A-Za-z0-9_-]{1,64}$/.test(short)||Object.keys(req.body||{}).length!==1)return res.status(400).json({error:'Invalid link assignment'});
+ try{
+  const result=await withTransaction(async tx=>{
+   const scope=await scoped(tx,req,'link.update');if(!scope||scope.actor!==scope.org.owner_user_id)return null;
+   const campaign=await tx.get(`SELECT c.id FROM organization_client_campaigns cc
+    JOIN campaigns c ON c.id=cc.campaign_id WHERE cc.client_id=? AND c.id=? AND c.user_id=? AND c.workspace_id IS NULL`,[scope.client.id,campaignId,scope.actor]);
+   if(!campaign)return null;
+   const row=await tx.get('UPDATE urls SET campaign_id=? WHERE short=? AND user_id=? AND workspace_id IS NULL AND campaign_id IS NULL RETURNING id,short',[campaignId,short,scope.actor]);
+   if(!row)return null;
+   await audit(tx,req.params.id,scope.actor,'organization.client.link_attached',{client_id:scope.client.id,campaign_id:campaignId,link_id:row.id});
+   return row;
+  });
+  return result?res.json({attached:true,short:result.short}):res.status(404).json({error:'Not found'});
+ }catch(_e){return fault(res)}
+});
+router.post('/api/organizations/:id/clients/:clientId/campaigns/:campaignId/detach-link',gate,mutationLimiter,requireSignedIn,async(req,res)=>{
+ if(!ids(req))return res.status(404).json({error:'Not found'});
+ const campaignId=Number(req.params.campaignId),short=req.body?.short;
+ if(!Number.isSafeInteger(campaignId)||campaignId<1||typeof short!=='string'||
+  !/^[A-Za-z0-9_-]{1,64}$/.test(short)||Object.keys(req.body||{}).length!==1)return res.status(400).json({error:'Invalid link assignment'});
+ try{
+  const result=await withTransaction(async tx=>{
+   const scope=await scoped(tx,req,'link.update');if(!scope||scope.actor!==scope.org.owner_user_id)return null;
+   const row=await tx.get(`UPDATE urls SET campaign_id=NULL WHERE short=? AND user_id=? AND workspace_id IS NULL AND campaign_id=?
+    AND EXISTS(SELECT 1 FROM organization_client_campaigns WHERE client_id=? AND campaign_id=?) RETURNING id,short`,
+    [short,scope.actor,campaignId,scope.client.id,campaignId]);
+   if(!row)return null;
+   await audit(tx,req.params.id,scope.actor,'organization.client.link_detached',{client_id:scope.client.id,campaign_id:campaignId,link_id:row.id});
+   return row;
+  });
+  return result?res.json({detached:true,short:result.short,redirect_preserved:true}):res.status(404).json({error:'Not found'});
+ }catch(_e){return fault(res)}
+});
+
+// Reports are scoped through the same transaction and client membership
+// checks as portfolio reads; no legacy /api/campaigns?user_id escape hatch.
+async function clientReport(tx, clientId, days) {
+ const d=Number(days);const window=[7,30,90,365].includes(d)?d:30;
+ const start=new Date();start.setUTCHours(0,0,0,0);start.setUTCDate(start.getUTCDate()-(window-1));
+ const from=start.toISOString().slice(0,10);
+ const totals=await tx.get(`SELECT COUNT(DISTINCT c.id)::int AS campaigns,
+  COUNT(DISTINCT u.id)::int AS links,COALESCE(SUM(st.clicks),0) AS clicks,
+  COALESCE(SUM(st.uniques),0) AS uniques,COALESCE(SUM(st.conversions),0) AS conversions
+  FROM organization_client_campaigns occ
+  JOIN campaigns c ON c.id=occ.campaign_id
+  LEFT JOIN urls u ON u.campaign_id=c.id
+  LEFT JOIN link_stats_daily st ON st.url_id=u.id AND st.day>=?
+  WHERE occ.client_id=?`,[from,clientId]);
+ const daily=await tx.all(`SELECT st.day,COALESCE(SUM(st.clicks),0) AS clicks,
+  COALESCE(SUM(st.uniques),0) AS uniques,COALESCE(SUM(st.conversions),0) AS conversions
+  FROM organization_client_campaigns occ
+  JOIN urls u ON u.campaign_id=occ.campaign_id
+  JOIN link_stats_daily st ON st.url_id=u.id WHERE occ.client_id=? AND st.day>=?
+  GROUP BY st.day ORDER BY st.day LIMIT 365`,[clientId,from]);
+ return {range:{days:window,from,to:new Date().toISOString().slice(0,10)},
+   totals:{campaigns:Number(totals.campaigns||0),links:Number(totals.links||0),
+     clicks:Number(totals.clicks||0),uniques:Number(totals.uniques||0),conversions:Number(totals.conversions||0)},
+   daily:daily.map(d=>({day:d.day,clicks:Number(d.clicks||0),uniques:Number(d.uniques||0),conversions:Number(d.conversions||0)})),
+   attribution:'daily_rollups',unique_definition:'per_link_not_global_distinct'};
+}
+router.get('/api/organizations/:id/clients/:clientId/report',gate,generalLimiter,requireSignedIn,async(req,res)=>{
+ if(!ids(req))return res.status(404).json({error:'Not found'});
+ try {
+  const payload=await withTransaction(async tx=>{
+   const s=await scoped(tx,req,'report.read',{includeArchived:true});
+   return s?{client:{id:s.client.id,name:s.client.display_name},...await clientReport(tx,s.client.id,req.query?.days)}:null;
+  });
+  if(!payload)return res.status(404).json({error:'Not found'});
+  res.set('Cache-Control','no-store');return res.json(payload);
+ }catch(_e){return fault(res)}
+});
+function csvCell(v){const raw=String(v??'');const safe=/^[\s\uFEFF\u200B]*[=+@-]/.test(raw)?"'"+raw:raw;return '"'+safe.replace(/"/g,'""')+'"'}
+router.get('/api/organizations/:id/clients/:clientId/report.csv',gate,generalLimiter,requireSignedIn,async(req,res)=>{
+ if(!ids(req))return res.status(404).json({error:'Not found'});
+ try {
+  const payload=await withTransaction(async tx=>{
+   const s=await scoped(tx,req,'analytics.export',{includeArchived:true});
+   return s?{client:{id:s.client.id,name:s.client.display_name},...await clientReport(tx,s.client.id,req.query?.days)}:null;
+  });
+  if(!payload)return res.status(404).json({error:'Not found'});
+  const lines=[['Ovlink client report','v1'],['Client',payload.client.name],['Start UTC',payload.range.from],['End UTC',payload.range.to],
+   ['Attribution',payload.attribution],['Unique definition',payload.unique_definition],['Metric','Value'],
+   ...Object.entries(payload.totals),[],['Day (UTC)','Clicks','Uniques','Conversions'],
+   ...payload.daily.map(d=>[d.day,d.clicks,d.uniques,d.conversions])];
+  res.set('Cache-Control','private, no-store');res.set('Content-Type','text/csv; charset=utf-8');
+  res.set('Content-Disposition','attachment; filename="ovlink-client-report.csv"');
+  return res.send('\uFEFF'+lines.map(row=>row.map(csvCell).join(',')).join('\r\n')+'\r\n');
+ }catch(_e){return fault(res)}
+});
+router.get('/api/organizations/:id/clients/:clientId/links',gate,generalLimiter,requireSignedIn,async(req,res)=>{
+ if(!ids(req))return res.status(404).json({error:'Not found'});
+ try{
+  const links=await withTransaction(async tx=>{
+   const s=await scoped(tx,req,'link.read',{includeArchived:true});
+   if(!s)return null;
+   return tx.all(`SELECT u.id,u.short,u.original,u.title,c.id AS campaign_id,c.name AS campaign_name
+     FROM organization_client_campaigns occ
+     JOIN campaigns c ON c.id=occ.campaign_id JOIN urls u ON u.campaign_id=c.id
+     WHERE occ.client_id=? ORDER BY u.id DESC LIMIT 500`,[s.client.id]);
+  });
+  if(!links)return res.status(404).json({error:'Not found'});
+  res.set('Cache-Control','no-store');return res.json({links});
+ }catch(_e){return fault(res)}
+});
+
 router.post('/api/organizations/:id/clients/:clientId/transfer',gate,mutationLimiter,requireSignedIn,async(req,res)=>{
  if(!ids(req)||!UUID.test(req.body?.target_organization_id||''))return res.status(400).json({error:'Invalid transfer'});
  try{
