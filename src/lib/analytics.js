@@ -14,48 +14,10 @@ const { hashIpForStorage, getRequestIp, getRequestGeoMeta } = require('./geo');
 const { REDIRECT_CONSENT_MARKER, REDIRECT_CONSENT_MODES, normalizeConsentMode } = require('./consent');
 const { getRequestHostName } = require('./url-helpers');
 const { normalizeStep, recordFunnelStep } = require('./funnel');
+const { classifyUserAgent, isBotUserAgent, getBotClassifierSpec } = require('./bot-classifier');
 
 const MAX_LABEL_LENGTH = 120;
 const UTM_LENGTH = 80;
-
-// Link-preview bots and automation are flagged instead of being dropped so the
-// dashboard can show a "human vs bot" split (and let owners filter them out).
-const BOT_UA_PATTERN = new RegExp(
-  [
-    'bot\\b',
-    'crawler',
-    'spider',
-    'crawl',
-    'slurp',
-    'facebookexternalhit',
-    'embedly',
-    'pinterest',
-    'slackbot',
-    'telegrambot',
-    'discordbot',
-    'whatsapp',
-    'skypeuripreview',
-    'vkshare',
-    'w3c_validator',
-    'headlesschrome',
-    'phantomjs',
-    'lighthouse',
-    'pingdom',
-    'uptimerobot',
-    'gtmetrix',
-    'curl/',
-    'wget/',
-    'python-requests',
-    'python-urllib',
-    'go-http-client',
-    'java/',
-    'okhttp',
-    'axios/',
-    'node-fetch',
-    'postmanruntime',
-  ].join('|'),
-  'i'
-);
 
 function cleanLabel(raw, maxLength = MAX_LABEL_LENGTH) {
   const value = (raw === null || raw === undefined ? '' : raw)
@@ -95,13 +57,6 @@ function detectDeviceType(userAgentRaw) {
   if (/android/i.test(ua) && !/mobile/i.test(ua)) return 'tablet';
   if (/mobi|iphone|ipod|windows phone|iemobile|blackberry|opera mini|opera mobi/i.test(ua)) return 'mobile';
   return 'desktop';
-}
-
-function isBotUserAgent(userAgentRaw) {
-  const ua = (userAgentRaw || '').toString().slice(0, 512).trim();
-  // A real browser always sends a User-Agent; an empty one means automation.
-  if (!ua) return true;
-  return BOT_UA_PATTERN.test(ua);
 }
 
 function normalizeHostForCompare(rawHost) {
@@ -399,7 +354,9 @@ module.exports = {
   cleanLabel,
   parseUserAgentInfo,
   detectDeviceType,
+  classifyUserAgent,
   isBotUserAgent,
+  getBotClassifierSpec,
   getReferrerHost,
   getUtmParams,
   buildClickRecord,

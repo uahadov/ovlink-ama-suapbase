@@ -655,6 +655,16 @@ function ensureDbTables() {
     // Range queries (link + date window) are the hot path for every stats view.
     db.run('CREATE INDEX IF NOT EXISTS idx_clicks_url_time ON clicks(url_id, click_time)', () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_clicks_url_bot ON clicks(url_id, is_bot)', () => {});
+    // P20: partial composite indexes for fast human-only campaign & attribution queries.
+    db.run(
+      'CREATE INDEX IF NOT EXISTS idx_clicks_url_human_time ON clicks(url_id, click_time) WHERE COALESCE(is_bot, 0) = 0',
+      () => {}
+    );
+    db.run(
+      'CREATE INDEX IF NOT EXISTS idx_clicks_url_ip_human_time ON clicks(url_id, ip_hash, click_time) WHERE COALESCE(is_bot, 0) = 0',
+      () => {}
+    );
+    db.run('CREATE INDEX IF NOT EXISTS idx_link_conversions_url_created ON link_conversions(url_id, created_at)', () => {});
 
     // One-time rollup backfill from historical clicks. Guarded so it only runs
     // while the rollup table is still empty (idempotent startup migrations).

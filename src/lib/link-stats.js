@@ -267,7 +267,7 @@ async function loadLinkStats({ urlRow, query } = {}) {
     ).catch(() => null),
     dbAllAsync(
       "SELECT variant AS name, COUNT(*) AS count FROM clicks WHERE url_id = ?" +
-        `${rangeClause} AND variant IN ('a', 'b') GROUP BY variant`,
+        `${rangeClause}${botClause} AND variant IN ('a', 'b') GROUP BY variant`,
       [urlId, ...rangeParams]
     ).catch(() => []),
     dbAllAsync(

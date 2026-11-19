@@ -6,6 +6,7 @@
  */
 
 const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../db/helpers');
+const { REDIRECT_CONSENT_MARKER } = require('./consent');
 const { getWorkspaceMemberRole, isWorkspaceProActive, getWorkspaceById } = require('../routes/api/workspaces');
 const { canWorkspaceRole } = require('./link-access');
 const {
@@ -359,8 +360,11 @@ async function loadHumanCampaignStats({ campaign, range, now, rangeStartIso, ran
     ' AND EXISTS (SELECT 1 FROM clicks c WHERE c.url_id = v.url_id AND c.ip_hash = v.ip_hash ' +
     ' AND c.click_time <= v.created_at AND COALESCE(c.is_bot, 0) = 0)';
   const [totals, links, daily, sources, conversionGroups, linkCount] = await Promise.all([
-    dbGetAsync('SELECT COUNT(c.id) AS clicks, ' + uniqueByVisit + ' AS uniques, MAX(c.click_time) AS last_click_at ' +
-      'FROM clicks c JOIN urls u ON u.id=c.url_id WHERE u.campaign_id = ?' + clickPeriod + humans, clickArgs),
+    dbGetAsync('SELECT COUNT(c.id) AS clicks, ' + uniqueByVisit + ' AS uniques, ' +
+      'COUNT(c.id) FILTER (WHERE c.browser = ?) AS essential_clicks, ' +
+      'MAX(c.click_time) AS last_click_at ' +
+      'FROM clicks c JOIN urls u ON u.id=c.url_id WHERE u.campaign_id = ?' + clickPeriod + humans,
+      [REDIRECT_CONSENT_MARKER, ...clickArgs]),
     dbAllAsync('SELECT u.id, u.short, u.original, u.created_at, COUNT(c.id) AS clicks, ' +
       uniqueByVisit + ' AS uniques FROM urls u LEFT JOIN clicks c ON c.url_id=u.id' +
       (rangeStartIso ? ' AND c.click_time >= ?' : '') + humans +
@@ -469,7 +473,14 @@ function formatCampaignStats({ campaign, range, includeBots, now, rangeStartIso,
     metric_method: includeBots ? 'daily_rollup' : 'raw_nonbot_events',
     unique_method: includeBots ? 'daily_unique_rollup' : 'per_link_per_day_hashed_visitor',
     conversion_method: includeBots ? 'all_recorded_conversions' : 'conversions_with_prior_nonbot_click_match',
-    data_contract: buildMetricsContractMeta({ includeBots, conversionsCount: conversions, revenueAvailable: false }),
+    data_contract: buildMetricsContractMeta({
+      includeBots,
+      conversionsCount: conversions,
+      revenueAvailable: false,
+      essentialClicksCount: includeBots
+        ? null
+        : (totalsRow && totalsRow.essential_clicks !== undefined ? Number(totalsRow.essential_clicks || 0) : 0),
+    }),
   };
 }
 

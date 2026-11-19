@@ -9,6 +9,12 @@
  * and MCP.
  */
 
+const {
+  BOT_CLASSIFIER_VERSION,
+  BOT_CLASSIFICATION_LIMITATIONS,
+  getBotClassifierSpec,
+} = require('./bot-classifier');
+
 const CONTRACT_VERSION = 'v1';
 const CANONICAL_TIMEZONE = 'UTC';
 
@@ -123,7 +129,12 @@ function reconcileRawVsRollup({ raw = {}, rollup = {} } = {}) {
   };
 }
 
-function buildMetricsContractMeta({ includeBots = true, conversionsCount = 0, revenueAvailable = false } = {}) {
+function buildMetricsContractMeta({
+  includeBots = true,
+  conversionsCount = 0,
+  revenueAvailable = false,
+  essentialClicksCount = null,
+} = {}) {
   return {
     version: CONTRACT_VERSION,
     timezone: CANONICAL_TIMEZONE,
@@ -137,6 +148,15 @@ function buildMetricsContractMeta({ includeBots = true, conversionsCount = 0, re
       lead: Number(conversionsCount) > 0 ? ACCURACY_LEVELS.EXACT : ACCURACY_LEVELS.UNKNOWN,
       revenue: revenueAvailable ? ACCURACY_LEVELS.EXACT : ACCURACY_LEVELS.UNKNOWN,
     },
+    bot_filter: {
+      classifier_version: BOT_CLASSIFIER_VERSION,
+      mode: includeBots ? 'include' : 'exclude',
+      essential_consent_clicks_unfiltered:
+        essentialClicksCount === null || essentialClicksCount === undefined
+          ? null
+          : Number(essentialClicksCount || 0),
+      unfilterable_measurements: BOT_CLASSIFICATION_LIMITATIONS.unfilterable_measurements,
+    },
   };
 }
 
@@ -148,6 +168,7 @@ function getFullAnalyticsContract() {
     accuracy_levels: Object.values(ACCURACY_LEVELS),
     metrics: METRIC_DEFINITIONS,
     event_handling: EVENT_HANDLING_RULES,
+    bot_classifier: getBotClassifierSpec(),
     reconciliation_policy: {
       raw_table: 'clicks',
       rollup_table: 'link_stats_daily',
