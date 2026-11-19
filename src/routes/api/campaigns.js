@@ -707,7 +707,7 @@ router.get('/api/campaigns/:id/reconcile', async (req, res) => {
   if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
 
   try {
-    const report = await campaignLib.reconcileCampaignMetrics({ campaign });
+    const report = await campaignLib.reconcileCampaignMetrics({ campaign, query: req.query || {} });
     return res.json(report);
   } catch {
     return res.status(500).json({ error: 'Metrika yoxlaması alınmadı.' });

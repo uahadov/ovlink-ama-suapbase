@@ -182,6 +182,20 @@
         }
       }
     },
+    "/api/pro/v1/campaigns/{id}/attribution": {
+      "get": {
+        "summary": "Attributed vs unattributed conversion reconciliation for one campaign (P22)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "window_days", "in": "query", "schema": { "type": "integer", "enum": [1, 7, 14, 30], "default": 7 } },
+          { "name": "model", "in": "query", "schema": { "type": "string", "enum": ["last_touch", "first_touch"], "default": "last_touch" } }
+        ],
+        "responses": {
+          "200": { "description": "Explainable attribution & multi-currency reconciliation report" },
+          "404": { "description": "Campaign not found" }
+        }
+      }
+    },
     "/api/pro/v1/conversions": {
       "post": {
         "summary": "Ingest a server-to-server conversion event (lead, purchase, signup)",

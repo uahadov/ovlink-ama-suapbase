@@ -14,6 +14,7 @@ const {
   BOT_CLASSIFICATION_LIMITATIONS,
   getBotClassifierSpec,
 } = require('./bot-classifier');
+const { getAttributionContractSpec } = require('./conversion-attribution');
 
 const CONTRACT_VERSION = 'v1';
 const CANONICAL_TIMEZONE = 'UTC';
@@ -169,6 +170,7 @@ function getFullAnalyticsContract() {
     metrics: METRIC_DEFINITIONS,
     event_handling: EVENT_HANDLING_RULES,
     bot_classifier: getBotClassifierSpec(),
+    attribution: getAttributionContractSpec(),
     reconciliation_policy: {
       raw_table: 'clicks',
       rollup_table: 'link_stats_daily',

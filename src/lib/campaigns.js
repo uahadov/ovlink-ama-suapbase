@@ -13,6 +13,7 @@ const {
   buildMetricsContractMeta,
   reconcileRawVsRollup,
 } = require('./metrics-contract');
+const { reconcileCampaignAttribution } = require('./conversion-attribution');
 const {
   CAMPAIGN_STATUSES,
   generateCampaignEventId,
@@ -633,11 +634,12 @@ async function loadCampaignAssets({ campaign } = {}) {
   };
 }
 
-/** Compares raw clicks vs link_stats_daily rollup for one campaign (P19 reconciliation). */
-async function reconcileCampaignMetrics({ campaign } = {}) {
+/** Compares raw clicks vs link_stats_daily rollup + P22 conversion attribution for one campaign. */
+async function reconcileCampaignMetrics({ campaign, query } = {}) {
   if (!campaign || !campaign.id) throw new Error('reconcileCampaignMetrics requires a campaign row');
   const campaignId = Number(campaign.id);
-  const [rawRow, rollupRow] = await Promise.all([
+  const q = query && typeof query === 'object' ? query : {};
+  const [rawRow, rollupRow, attributionReport] = await Promise.all([
     dbGetAsync(
       'SELECT COUNT(c.id) AS clicks, COALESCE(SUM(CASE WHEN COALESCE(c.is_bot, 0) = 1 THEN 1 ELSE 0 END), 0) AS bots ' +
         'FROM clicks c JOIN urls u ON u.id = c.url_id WHERE u.campaign_id = ?',
@@ -648,10 +650,16 @@ async function reconcileCampaignMetrics({ campaign } = {}) {
         'FROM link_stats_daily d JOIN urls u ON u.id = d.url_id WHERE u.campaign_id = ?',
       [campaignId]
     ),
+    reconcileCampaignAttribution({
+      campaignId,
+      windowDays: q.window_days || q.window,
+      model: q.model,
+    }).catch(() => null),
   ]);
   return {
     campaign_id: campaignId,
     ...reconcileRawVsRollup({ raw: rawRow || {}, rollup: rollupRow || {} }),
+    conversion_attribution: attributionReport,
   };
 }
 

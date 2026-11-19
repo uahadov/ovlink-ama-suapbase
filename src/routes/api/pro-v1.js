@@ -203,6 +203,26 @@ router.get('/api/pro/v1/campaigns/:id', ...API_STACK, async (req, res) => {
   }
 });
 
+// GET /api/pro/v1/campaigns/:id/attribution?window_days=7&model=last_touch (P22)
+router.get('/api/pro/v1/campaigns/:id/attribution', ...API_STACK, async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  const userId = req.apiAuth && Number.isInteger(req.apiAuth.userId) ? req.apiAuth.userId : 0;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized.' });
+
+  const campaign = await campaignLib.getCampaignForUser({ userId, campaignId: req.params.id });
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found.' });
+
+  try {
+    const report = await campaignLib.reconcileCampaignMetrics({
+      campaign,
+      query: req.query && typeof req.query === 'object' ? req.query : {},
+    });
+    return res.json(report.conversion_attribution || { campaign_id: Number(campaign.id), summary: null });
+  } catch {
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 // POST /api/pro/v1/conversions -> signed server-to-server conversion event ingestion (P21)
 router.post(
   '/api/pro/v1/conversions',
