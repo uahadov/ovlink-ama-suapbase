@@ -12,6 +12,7 @@ const decisionAnalytics = require('../../lib/decision-analytics');
 const reportProvenance = require('../../lib/report-provenance');
 const reportTemplates = require('../../lib/report-templates');
 const clientPortal = require('../../lib/client-portal');
+const pdfReport = require('../../lib/pdf-report');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -1273,6 +1274,159 @@ router.post('/api/portal/view/:token/feedback', async (req, res) => {
     return res.status(201).json(result);
   } catch {
     return res.status(500).json({ error: 'Rəy saxlanıla bilmədi.' });
+  }
+});
+
+// ===== P27: Audited Low-RAM PDF Export & Async Export Jobs =====
+
+router.get('/api/campaigns/:id/export.pdf', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+
+  try {
+    const campaignId = Number(req.params.id);
+    if (!Number.isSafeInteger(campaignId) || campaignId <= 0) {
+      return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+    }
+    const campaign = await campaignLib.getCampaignForActor({ userId, campaignId });
+    if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+
+    const query = req.query && typeof req.query === 'object' ? req.query : {};
+    const payload = await campaignLib.loadCampaignStats({ campaign, query });
+    const staleThresholdSeconds = reportProvenance.parseStaleThresholdSeconds(query.stale_after_minutes);
+    const strictFreshness = reportProvenance.parseBooleanFlag(query.strict_freshness);
+
+    const provenance = await reportProvenance.createAndPersistReportSnapshot({
+      campaign,
+      actorUserId: userId,
+      surface: 'pdf',
+      reportType: 'campaign_stats',
+      dateRange: payload.range,
+      filters: { bots: payload.range.bots },
+      metricMethod: payload.metric_method,
+      uniqueMethod: payload.unique_method,
+      conversionMethod: payload.conversion_method,
+      lastDataAt: payload.last_recorded_click_at,
+      generatedAt: payload.generated_at,
+      payloadForHash: {
+        links_count: payload.links_count,
+        clicks: payload.clicks,
+        uniques: payload.uniques,
+        bots: payload.bots,
+        conversions: payload.conversions,
+        conversion_rate: payload.conversion_rate,
+        clicks_by_day: payload.clicks_by_day,
+        top_links: payload.top_links,
+        top_sources: payload.top_sources,
+        top_goals: payload.top_goals,
+      },
+      summaryData: {
+        campaign: { id: payload.campaign.id, name: payload.campaign.name, slug: payload.campaign.slug },
+        clicks: payload.clicks,
+        uniques: payload.uniques,
+        conversions: payload.conversions,
+        conversion_rate: payload.conversion_rate,
+      },
+      auditAction: 'campaign.pdf.export',
+      staleThresholdSeconds,
+    });
+
+    const headers = reportProvenance.buildProvenanceHeaders(provenance);
+    if (strictFreshness && provenance.freshness && provenance.freshness.is_stale) {
+      return res.status(503).set(headers).json({ error: 'PDF hesabatı köhnəlib (stale).', stale: true, provenance });
+    }
+
+    const pdf = pdfReport.buildCampaignPdfReport({
+      payload,
+      provenance,
+      officialStatus: query.status || 'FINAL',
+      explanationNote: query.note || '',
+    });
+    const filename = pdfReport.pdfFilename(payload);
+
+    return res
+      .set('Cache-Control', 'private, no-store, max-age=0')
+      .set('X-Content-Type-Options', 'nosniff')
+      .set('X-Ovlink-Pdf-Engine', pdf.engine)
+      .set('X-Ovlink-Render-Ms', String(pdf.render_ms))
+      .set(headers)
+      .set('Content-Type', 'application/pdf')
+      .set('Content-Disposition', `attachment; filename="${filename}"`)
+      .send(pdf.buffer);
+  } catch {
+    return res.status(503).json({ error: 'PDF hesabatı hazırlana bilmədi. Yenidən cəhd edin.' });
+  }
+});
+
+router.post('/api/campaigns/:id/export-jobs', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+
+  const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: req.params.id });
+  if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const job = await pdfReport.createReportExportJob({
+      userId,
+      campaignId: campaign.id,
+      format: body.format || 'pdf',
+    });
+
+    const payload = await campaignLib.loadCampaignStats({
+      campaign,
+      query: { days: body.days || 30, bots: body.bots || 'exclude' },
+    });
+    const provenance = await reportProvenance.createAndPersistReportSnapshot({
+      campaign,
+      actorUserId: userId,
+      surface: job.format,
+      reportType: 'campaign_stats',
+      dateRange: payload.range,
+      filters: { bots: payload.range.bots },
+      lastDataAt: payload.last_recorded_click_at,
+      generatedAt: payload.generated_at,
+      payloadForHash: { clicks: payload.clicks, uniques: payload.uniques, conversions: payload.conversions },
+      summaryData: { clicks: payload.clicks, uniques: payload.uniques, conversions: payload.conversions },
+      auditAction: `campaign.${job.format}.export_job`,
+    });
+
+    const renderRes = job.format === 'pdf'
+      ? pdfReport.buildCampaignPdfReport({ payload, provenance })
+      : { render_ms: 0 };
+
+    const completed = await pdfReport.completeReportExportJob({
+      jobKey: job.job_key,
+      status: 'completed',
+      snapshotId: provenance.snapshot_id,
+      contentHash: provenance.content_hash,
+      renderMs: renderRes.render_ms,
+    });
+
+    return res.status(202).json({
+      job: { ...job, ...completed },
+      download_url: `/api/campaigns/${campaign.id}/export.${job.format}`,
+    });
+  } catch {
+    return res.status(503).json({ error: 'İxrac tapşırığı yaradıla bilmədi.' });
+  }
+});
+
+router.get('/api/campaigns/:id/export-jobs/:jobKey', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: req.params.id });
+  if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+  try {
+    const job = await pdfReport.getReportExportJob({
+      userId,
+      campaignId: campaign.id,
+      jobKey: req.params.jobKey,
+    });
+    if (!job) return res.status(404).json({ error: 'İxrac tapşırığı tapılmadı.' });
+    return res.json({ job });
+  } catch {
+    return res.status(503).json({ error: 'Tapşırıq statusu alına bilmədi.' });
   }
 });
 

@@ -374,6 +374,24 @@ function ensureDbTables() {
       db.run('CREATE INDEX IF NOT EXISTS idx_client_portal_feedback_share ON client_portal_feedback(share_id, id DESC)', () => {});
     });
 
+    // P27: async report export jobs for low-RAM PDF/CSV generation.
+    db.run(`CREATE TABLE IF NOT EXISTS report_export_jobs (
+      id SERIAL PRIMARY KEY,
+      job_key TEXT NOT NULL UNIQUE,
+      user_id INTEGER NOT NULL,
+      campaign_id INTEGER NOT NULL,
+      format TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'queued',
+      snapshot_id TEXT,
+      content_hash TEXT,
+      render_ms INTEGER,
+      error_message TEXT,
+      created_at TEXT NOT NULL,
+      completed_at TEXT
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_report_export_jobs_user ON report_export_jobs(user_id, campaign_id, id DESC)', () => {});
+    });
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});
