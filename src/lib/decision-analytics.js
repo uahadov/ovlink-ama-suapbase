@@ -290,7 +290,17 @@ function buildDecisionCsv(report) {
   add('Bot filter', report.badges && report.badges.bot_filter);
   add('Freshness', report.badges && report.badges.freshness && report.badges.freshness.status);
   add('Attribution model', `${report.badges.attribution_model} (${report.badges.attribution_window_days}d)`);
+  add('Last recorded data (UTC)', (report.provenance && report.provenance.timestamps && report.provenance.timestamps.last_data_at) || (report.badges && report.badges.freshness && report.badges.freshness.last_recorded_click_at) || '');
   add('Generated at (UTC)', report.range && report.range.generated_at);
+  if (report.provenance && report.provenance.snapshot_id) {
+    add('Provenance contract', report.provenance.contract_version || 'report-provenance-v1');
+    add('Report snapshot ID', report.provenance.snapshot_id);
+    add('Snapshot revision', `v${report.provenance.revision || 1}`);
+    add('Previous snapshot ID', report.provenance.previous_snapshot_id || '');
+    add('Content hash (SHA-256)', report.provenance.content_hash || '');
+    add('Audit entry ID', (report.provenance.audit && report.provenance.audit.audit_entry_id) || '');
+    add('Report owner ID', (report.provenance.owner && report.provenance.owner.user_id) || '');
+  }
   lines.push('');
 
   add('Core KPI', 'Current', 'Previous', 'Delta (%)', 'Accuracy');

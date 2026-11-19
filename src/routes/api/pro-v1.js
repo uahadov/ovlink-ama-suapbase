@@ -9,6 +9,7 @@ const { authenticateProApiKey, trackProApiUsage, requireApiScope } = require('..
 const { proReadLimiter, proWriteLimiter } = require('../../middleware/rate-limiter');
 const conversionEvents = require('../../lib/conversion-events');
 const decisionAnalytics = require('../../lib/decision-analytics');
+const reportProvenance = require('../../lib/report-provenance');
 const { isoDay, addDays, parseRange } = require('../../lib/link-stats');
 const analyticsAudit = require('../../lib/analytics-audit');
 
@@ -224,7 +225,7 @@ router.get('/api/pro/v1/campaigns/:id/attribution', ...API_STACK, async (req, re
   }
 });
 
-// GET /api/pro/v1/campaigns/:id/decision?days=30&bots=exclude&window_days=7&model=last_touch (P23)
+// GET /api/pro/v1/campaigns/:id/decision?days=30&bots=exclude&window_days=7&model=last_touch (P23 + P24)
 router.get('/api/pro/v1/campaigns/:id/decision', ...API_STACK, async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   const userId = req.apiAuth && Number.isInteger(req.apiAuth.userId) ? req.apiAuth.userId : 0;
@@ -234,13 +235,118 @@ router.get('/api/pro/v1/campaigns/:id/decision', ...API_STACK, async (req, res) 
   if (!campaign) return res.status(404).json({ error: 'Campaign not found.' });
 
   try {
-    const report = await decisionAnalytics.loadCampaignDecisionAnalytics({
-      campaign,
-      query: req.query && typeof req.query === 'object' ? req.query : {},
-    });
-    return res.json(report);
+    const query = req.query && typeof req.query === 'object' ? req.query : {};
+    const report = await decisionAnalytics.loadCampaignDecisionAnalytics({ campaign, query });
+    const staleThresholdSeconds = reportProvenance.parseStaleThresholdSeconds(query.stale_after_minutes);
+    const strictFreshness = reportProvenance.parseBooleanFlag(query.strict_freshness);
+    const persist = reportProvenance.parseBooleanFlag(query.persist);
+    const surface = reportProvenance.normalizeSurface(query.surface, 'json');
+    const lastDataAt = report.badges && report.badges.freshness ? report.badges.freshness.last_recorded_click_at : null;
+    const payloadForHash = {
+      core_kpis: report.core_kpis,
+      channel_comparison: report.channel_comparison,
+      goal_breakdown: report.goal_breakdown,
+      revenue_by_currency: report.revenue_by_currency,
+    };
+    const provenance = persist
+      ? await reportProvenance.createAndPersistReportSnapshot({
+          campaign,
+          actorUserId: userId,
+          surface,
+          reportType: 'campaign_decision',
+          dateRange: report.range,
+          filters: {
+            bots: report.badges.bot_filter,
+            window_days: report.badges.attribution_window_days,
+            model: report.badges.attribution_model,
+          },
+          metricMethod: report.badges.source_method,
+          dataSources: ['clicks', 'conversion_events', 'link_conversions'],
+          lastDataAt,
+          generatedAt: report.range.generated_at,
+          payloadForHash,
+          summaryData: {
+            campaign: report.campaign,
+            core_kpis: report.core_kpis,
+            decision_summary: report.decision_summary,
+          },
+          auditAction: 'pro_v1.campaign.decision.snapshot',
+          staleThresholdSeconds,
+        })
+      : reportProvenance.buildReportProvenance({
+          campaign,
+          actorUserId: userId,
+          surface,
+          reportType: 'campaign_decision',
+          dateRange: report.range,
+          filters: {
+            bots: report.badges.bot_filter,
+            window_days: report.badges.attribution_window_days,
+            model: report.badges.attribution_model,
+          },
+          metricMethod: report.badges.source_method,
+          dataSources: ['clicks', 'conversion_events', 'link_conversions'],
+          lastDataAt,
+          generatedAt: report.range.generated_at,
+          payloadForHash,
+          staleThresholdSeconds,
+        });
+
+    report.provenance = provenance;
+    const headers = reportProvenance.buildProvenanceHeaders(provenance);
+    if (strictFreshness && provenance.freshness && provenance.freshness.is_stale) {
+      return res.status(503).set(headers).json({ error: 'Report data is stale.', stale: true, provenance });
+    }
+    return res.set(headers).json(report);
   } catch {
-    return res.status(500).json({ error: 'Server error.' });
+    return res.status(503).json({ error: 'Report temporarily unavailable.' });
+  }
+});
+
+// GET /api/pro/v1/campaigns/:id/snapshots (P24)
+router.get('/api/pro/v1/campaigns/:id/snapshots', ...API_STACK, async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  const userId = req.apiAuth && Number.isInteger(req.apiAuth.userId) ? req.apiAuth.userId : 0;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized.' });
+
+  const campaign = await campaignLib.getCampaignForUser({ userId, campaignId: req.params.id });
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found.' });
+
+  try {
+    const snapshots = await reportProvenance.listCampaignReportSnapshots({
+      campaignId: campaign.id,
+      limit: req.query && req.query.limit,
+    });
+    return res.json({
+      campaign_id: Number(campaign.id),
+      contract_version: reportProvenance.PROVENANCE_CONTRACT_VERSION,
+      snapshots,
+    });
+  } catch {
+    return res.status(503).json({ error: 'Snapshots temporarily unavailable.' });
+  }
+});
+
+// GET /api/pro/v1/campaigns/:id/snapshots/:snapshotId (P24)
+router.get('/api/pro/v1/campaigns/:id/snapshots/:snapshotId', ...API_STACK, async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  const userId = req.apiAuth && Number.isInteger(req.apiAuth.userId) ? req.apiAuth.userId : 0;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized.' });
+
+  const campaign = await campaignLib.getCampaignForUser({ userId, campaignId: req.params.id });
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found.' });
+
+  try {
+    const targetSurface = req.query && req.query.surface ? req.query.surface : null;
+    const snapshot = await reportProvenance.getCampaignReportSnapshot({
+      campaignId: campaign.id,
+      snapshotId: req.params.snapshotId,
+      targetSurface,
+    });
+    if (!snapshot) return res.status(404).json({ error: 'Snapshot not found.' });
+    return res.set(reportProvenance.buildProvenanceHeaders(snapshot.provenance)).json(snapshot);
+  } catch {
+    return res.status(503).json({ error: 'Snapshot temporarily unavailable.' });
   }
 });
 

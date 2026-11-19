@@ -37,6 +37,20 @@
       add('Uniques accuracy', (data.data_contract.accuracy && data.data_contract.accuracy.uniques) || 'estimated');
       add('Revenue status', (data.data_contract.accuracy && data.data_contract.accuracy.revenue) || 'unknown');
     }
+    if (data.provenance && data.provenance.snapshot_id) {
+      var prov = data.provenance;
+      add('Provenance contract', prov.contract_version || 'report-provenance-v1');
+      add('Report snapshot ID', prov.snapshot_id);
+      add('Snapshot revision', 'v' + String(prov.revision || 1));
+      add('Previous snapshot ID', prov.previous_snapshot_id || '');
+      add('Data changed since previous', prov.data_changed_since_previous === null ? 'initial' : (prov.data_changed_since_previous ? 'yes' : 'no'));
+      add('Content hash (SHA-256)', prov.content_hash || '');
+      add('Audit entry ID', (prov.audit && prov.audit.audit_entry_id) || '');
+      add('Report owner ID', (prov.owner && prov.owner.user_id) || '');
+      add('Report surface', prov.surface || 'csv');
+      add('Data freshness', (prov.freshness && prov.freshness.status) || 'unknown');
+      add('Last data at (UTC)', (prov.timestamps && prov.timestamps.last_data_at) || '');
+    }
     add('Last recorded click (UTC)', data.last_recorded_click_at || '');
     add('Generated at (UTC)', data.generated_at);
     blank();

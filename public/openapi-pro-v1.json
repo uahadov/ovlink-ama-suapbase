@@ -212,6 +212,33 @@
         }
       }
     },
+    "/api/pro/v1/campaigns/{id}/snapshots": {
+      "get": {
+        "summary": "List persisted report provenance snapshots for a campaign (P24)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 25 } }
+        ],
+        "responses": {
+          "200": { "description": "Snapshot revision history with content hashes and audit entry IDs" },
+          "404": { "description": "Campaign not found" }
+        }
+      }
+    },
+    "/api/pro/v1/campaigns/{id}/snapshots/{snapshotId}": {
+      "get": {
+        "summary": "Retrieve a specific report provenance snapshot by snapshot ID (P24)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "snapshotId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "surface", "in": "query", "schema": { "type": "string", "enum": ["json", "csv", "pdf", "portal"] } }
+        ],
+        "responses": {
+          "200": { "description": "Persisted report snapshot with provenance contract" },
+          "404": { "description": "Campaign or snapshot not found" }
+        }
+      }
+    },
     "/api/pro/v1/conversions": {
       "post": {
         "summary": "Ingest a server-to-server conversion event (lead, purchase, signup)",

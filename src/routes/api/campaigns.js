@@ -9,6 +9,8 @@ const utmPresets = require('../../lib/utm-presets');
 const bulkImport = require('../../lib/bulk-import');
 const metricsContract = require('../../lib/metrics-contract');
 const decisionAnalytics = require('../../lib/decision-analytics');
+const reportProvenance = require('../../lib/report-provenance');
+const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
   resolveEffectiveStatus,
@@ -201,7 +203,7 @@ router.get('/api/campaigns/:id', async (req, res) => {
   }
 });
 
-// GET /api/campaigns/:id/export.csv — audited, server-generated report.
+// GET /api/campaigns/:id/export.csv — audited, server-generated report with P24 provenance.
 // The same aggregate model powers both the dashboard and the export, avoiding
 // client/browser-dependent report generation for business workflows.
 router.get('/api/campaigns/:id/export.csv', async (req, res) => {
@@ -213,33 +215,108 @@ router.get('/api/campaigns/:id/export.csv', async (req, res) => {
     if (!Number.isSafeInteger(campaignId) || campaignId <= 0) {
       return res.status(404).json({ error: ERROR_MESSAGES.not_found });
     }
+    const query = req.query && typeof req.query === 'object' ? req.query : {};
     // Preserve the difference between missing campaign (404) and database
     // failure (503): getCampaignForUser intentionally tolerates DB errors for
     // older UI callers, which is inappropriate for an audited business export.
     const campaign = await campaignLib.getCampaignForActor({ userId, campaignId });
     if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
 
-    const payload = await campaignLib.loadCampaignStats({
+    const requestedRawPii = reportProvenance.parseBooleanFlag(query.include_raw_pii || query.raw_pii);
+    const requestedSurface = reportProvenance.normalizeSurface(query.surface, 'csv');
+    if (requestedRawPii) {
+      const workspaceRole = campaign.workspace_id
+        ? await getWorkspaceMemberRole(userId, campaign.workspace_id).catch(() => null)
+        : null;
+      const access = reportProvenance.canExportRawPersonalData({
+        actorUserId: userId,
+        ownerUserId: campaign.user_id,
+        workspaceId: campaign.workspace_id,
+        workspaceRole,
+        isAdmin: Boolean(req.session && req.session.isAdmin),
+        surface: requestedSurface,
+      });
+      if (!access.allowed) {
+        await dbRunAsync(
+          'INSERT INTO analytics_audit_log (created_at, user_id, url_id, short, action, metadata_json) VALUES (?, ?, NULL, NULL, ?, ?)',
+          [new Date().toISOString(), userId, 'campaign.raw_pii_export.denied', JSON.stringify({
+            campaign_id: Number(campaign.id),
+            surface: requestedSurface,
+            reason: access.reason,
+          })]
+        ).catch(() => {});
+        return res.status(403).json({
+          error: 'Şəxsi məlumatların (raw PII) ixracına icazəniz yoxdur.',
+          code: access.code,
+          reason: access.reason,
+        });
+      }
+    }
+
+    const payload = await campaignLib.loadCampaignStats({ campaign, query });
+    const staleThresholdSeconds = reportProvenance.parseStaleThresholdSeconds(query.stale_after_minutes);
+    const strictFreshness = reportProvenance.parseBooleanFlag(query.strict_freshness);
+
+    const payloadForHash = {
+      links_count: payload.links_count,
+      clicks: payload.clicks,
+      uniques: payload.uniques,
+      bots: payload.bots,
+      conversions: payload.conversions,
+      conversion_rate: payload.conversion_rate,
+      clicks_by_day: payload.clicks_by_day,
+      top_links: payload.top_links,
+      top_sources: payload.top_sources,
+      top_goals: payload.top_goals,
+    };
+
+    // Fail-closed: persist durable provenance snapshot + linked analytics_audit_log entry.
+    const provenance = await reportProvenance.createAndPersistReportSnapshot({
       campaign,
-      query: req.query && typeof req.query === 'object' ? req.query : {},
+      actorUserId: userId,
+      surface: requestedSurface,
+      reportType: 'campaign_stats',
+      dateRange: payload.range,
+      filters: { bots: payload.range.bots },
+      metricMethod: payload.metric_method,
+      uniqueMethod: payload.unique_method,
+      conversionMethod: payload.conversion_method,
+      lastDataAt: payload.last_recorded_click_at,
+      generatedAt: payload.generated_at,
+      payloadForHash,
+      summaryData: {
+        campaign: { id: payload.campaign.id, name: payload.campaign.name, slug: payload.campaign.slug },
+        clicks: payload.clicks,
+        uniques: payload.uniques,
+        conversions: payload.conversions,
+        conversion_rate: payload.conversion_rate,
+      },
+      auditAction: 'campaign.csv.export',
+      staleThresholdSeconds,
+      rawPiiRequested: requestedRawPii,
     });
+
+    payload.provenance = provenance;
+    const headers = reportProvenance.buildProvenanceHeaders(provenance);
+
+    if (strictFreshness && provenance.freshness && provenance.freshness.is_stale) {
+      return res
+        .status(503)
+        .set(headers)
+        .json({
+          error: 'Hesabat məlumatı köhnəlib (stale).',
+          stale: true,
+          provenance,
+        });
+    }
+
     const csv = campaignReport.toCsv(payload);
     const filename = campaignReport.filename(payload);
-
-    // Keep a durable, low-PII export receipt. If audit persistence fails,
-    // fail closed rather than silently delivering an untraceable report.
-    await dbRunAsync(
-      'INSERT INTO analytics_audit_log (created_at, user_id, url_id, short, action, metadata_json) VALUES (?, ?, NULL, NULL, ?, ?)',
-      [new Date().toISOString(), userId, 'campaign.csv.export', JSON.stringify({
-        campaign_id: Number(campaign.id),
-        days: payload.range.days,
-        bots: payload.range.bots,
-      })]
-    );
 
     return res
       .set('Cache-Control', 'private, no-store, max-age=0')
       .set('X-Content-Type-Options', 'nosniff')
+      .set(headers)
       .set('Content-Type', 'text/csv; charset=utf-8')
       .set('Content-Disposition', `attachment; filename="${filename}"`)
       .send(csv);
@@ -715,7 +792,7 @@ router.get('/api/campaigns/:id/reconcile', async (req, res) => {
   }
 });
 
-// ===== P23: Decision Analytics (5 Core KPIs + Channel Comparison + Matching CSV) =====
+// ===== P23 + P24: Decision Analytics & Report Provenance =====
 
 router.get('/api/campaigns/:id/decision', async (req, res) => {
   const userId = currentUserId(req);
@@ -725,13 +802,76 @@ router.get('/api/campaigns/:id/decision', async (req, res) => {
   if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
 
   try {
-    const report = await decisionAnalytics.loadCampaignDecisionAnalytics({
-      campaign,
-      query: req.query && typeof req.query === 'object' ? req.query : {},
-    });
-    return res.json(report);
+    const query = req.query && typeof req.query === 'object' ? req.query : {};
+    const report = await decisionAnalytics.loadCampaignDecisionAnalytics({ campaign, query });
+    const staleThresholdSeconds = reportProvenance.parseStaleThresholdSeconds(query.stale_after_minutes);
+    const strictFreshness = reportProvenance.parseBooleanFlag(query.strict_freshness);
+    const persist = reportProvenance.parseBooleanFlag(query.persist);
+    const surface = reportProvenance.normalizeSurface(query.surface, 'json');
+    const lastDataAt = report.badges && report.badges.freshness ? report.badges.freshness.last_recorded_click_at : null;
+    const payloadForHash = {
+      core_kpis: report.core_kpis,
+      channel_comparison: report.channel_comparison,
+      goal_breakdown: report.goal_breakdown,
+      revenue_by_currency: report.revenue_by_currency,
+    };
+
+    const provenance = persist
+      ? await reportProvenance.createAndPersistReportSnapshot({
+          campaign,
+          actorUserId: userId,
+          surface,
+          reportType: 'campaign_decision',
+          dateRange: report.range,
+          filters: {
+            bots: report.badges.bot_filter,
+            window_days: report.badges.attribution_window_days,
+            model: report.badges.attribution_model,
+          },
+          metricMethod: report.badges.source_method,
+          dataSources: ['clicks', 'conversion_events', 'link_conversions'],
+          lastDataAt,
+          generatedAt: report.range.generated_at,
+          payloadForHash,
+          summaryData: {
+            campaign: report.campaign,
+            core_kpis: report.core_kpis,
+            decision_summary: report.decision_summary,
+          },
+          auditAction: 'campaign.decision.snapshot',
+          staleThresholdSeconds,
+        })
+      : reportProvenance.buildReportProvenance({
+          campaign,
+          actorUserId: userId,
+          surface,
+          reportType: 'campaign_decision',
+          dateRange: report.range,
+          filters: {
+            bots: report.badges.bot_filter,
+            window_days: report.badges.attribution_window_days,
+            model: report.badges.attribution_model,
+          },
+          metricMethod: report.badges.source_method,
+          dataSources: ['clicks', 'conversion_events', 'link_conversions'],
+          lastDataAt,
+          generatedAt: report.range.generated_at,
+          payloadForHash,
+          staleThresholdSeconds,
+        });
+
+    report.provenance = provenance;
+    const headers = reportProvenance.buildProvenanceHeaders(provenance);
+    if (strictFreshness && provenance.freshness && provenance.freshness.is_stale) {
+      return res.status(503).set(headers).json({
+        error: 'Hesabat məlumatı köhnəlib (stale).',
+        stale: true,
+        provenance,
+      });
+    }
+    return res.set(headers).json(report);
   } catch {
-    return res.status(500).json({ error: 'Qərar analitikası yüklənmədi.' });
+    return res.status(503).json({ error: 'Qərar analitikası hazır deyil. Yenidən cəhd edin.' });
   }
 });
 
@@ -743,20 +883,133 @@ router.get('/api/campaigns/:id/decision.csv', async (req, res) => {
   if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
 
   try {
-    const report = await decisionAnalytics.loadCampaignDecisionAnalytics({
+    const query = req.query && typeof req.query === 'object' ? req.query : {};
+    const requestedRawPii = reportProvenance.parseBooleanFlag(query.include_raw_pii || query.raw_pii);
+    const requestedSurface = reportProvenance.normalizeSurface(query.surface, 'csv');
+    if (requestedRawPii) {
+      const workspaceRole = campaign.workspace_id
+        ? await getWorkspaceMemberRole(userId, campaign.workspace_id).catch(() => null)
+        : null;
+      const access = reportProvenance.canExportRawPersonalData({
+        actorUserId: userId,
+        ownerUserId: campaign.user_id,
+        workspaceId: campaign.workspace_id,
+        workspaceRole,
+        isAdmin: Boolean(req.session && req.session.isAdmin),
+        surface: requestedSurface,
+      });
+      if (!access.allowed) {
+        return res.status(403).json({
+          error: 'Şəxsi məlumatların (raw PII) ixracına icazəniz yoxdur.',
+          code: access.code,
+          reason: access.reason,
+        });
+      }
+    }
+
+    const report = await decisionAnalytics.loadCampaignDecisionAnalytics({ campaign, query });
+    const staleThresholdSeconds = reportProvenance.parseStaleThresholdSeconds(query.stale_after_minutes);
+    const strictFreshness = reportProvenance.parseBooleanFlag(query.strict_freshness);
+    const lastDataAt = report.badges && report.badges.freshness ? report.badges.freshness.last_recorded_click_at : null;
+    const payloadForHash = {
+      core_kpis: report.core_kpis,
+      channel_comparison: report.channel_comparison,
+      goal_breakdown: report.goal_breakdown,
+      revenue_by_currency: report.revenue_by_currency,
+    };
+
+    const provenance = await reportProvenance.createAndPersistReportSnapshot({
       campaign,
-      query: req.query && typeof req.query === 'object' ? req.query : {},
+      actorUserId: userId,
+      surface: requestedSurface,
+      reportType: 'campaign_decision',
+      dateRange: report.range,
+      filters: {
+        bots: report.badges.bot_filter,
+        window_days: report.badges.attribution_window_days,
+        model: report.badges.attribution_model,
+      },
+      metricMethod: report.badges.source_method,
+      dataSources: ['clicks', 'conversion_events', 'link_conversions'],
+      lastDataAt,
+      generatedAt: report.range.generated_at,
+      payloadForHash,
+      summaryData: {
+        campaign: report.campaign,
+        core_kpis: report.core_kpis,
+        decision_summary: report.decision_summary,
+      },
+      auditAction: 'campaign.decision.csv.export',
+      staleThresholdSeconds,
+      rawPiiRequested: requestedRawPii,
     });
+
+    report.provenance = provenance;
+    const headers = reportProvenance.buildProvenanceHeaders(provenance);
+    if (strictFreshness && provenance.freshness && provenance.freshness.is_stale) {
+      return res.status(503).set(headers).json({
+        error: 'Hesabat məlumatı köhnəlib (stale).',
+        stale: true,
+        provenance,
+      });
+    }
+
     const csv = decisionAnalytics.buildDecisionCsv(report);
     const safeSlug = String(campaign.slug || campaign.id).replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 60);
     return res
       .set('Cache-Control', 'private, no-store, max-age=0')
       .set('X-Content-Type-Options', 'nosniff')
+      .set(headers)
       .set('Content-Type', 'text/csv; charset=utf-8')
       .set('Content-Disposition', `attachment; filename="ovlink-decision-${safeSlug}.csv"`)
       .send(csv);
   } catch {
-    return res.status(500).json({ error: 'CSV hesabatı yaradılmadı.' });
+    return res.status(503).json({ error: 'CSV hesabatı hazır deyil. Yenidən cəhd edin.' });
+  }
+});
+
+// GET /api/campaigns/:id/snapshots — list historical report snapshots for provenance verification
+router.get('/api/campaigns/:id/snapshots', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+
+  const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: req.params.id });
+  if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+
+  try {
+    const snapshots = await reportProvenance.listCampaignReportSnapshots({
+      campaignId: campaign.id,
+      limit: req.query && req.query.limit,
+    });
+    return res.json({
+      campaign_id: Number(campaign.id),
+      contract_version: reportProvenance.PROVENANCE_CONTRACT_VERSION,
+      snapshots,
+    });
+  } catch {
+    return res.status(503).json({ error: 'Hesabat arxivinə çıxış müvəqqəti əlçatan deyil.' });
+  }
+});
+
+// GET /api/campaigns/:id/snapshots/:snapshotId — retrieve a previous snapshot document (same contract for JSON/CSV/PDF/Portal)
+router.get('/api/campaigns/:id/snapshots/:snapshotId', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+
+  const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: req.params.id });
+  if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+
+  try {
+    const targetSurface = req.query && req.query.surface ? req.query.surface : null;
+    const snapshot = await reportProvenance.getCampaignReportSnapshot({
+      campaignId: campaign.id,
+      snapshotId: req.params.snapshotId,
+      targetSurface,
+    });
+    if (!snapshot) return res.status(404).json({ error: 'Hesabat snapshot-u tapılmadı.' });
+    return res.set(reportProvenance.buildProvenanceHeaders(snapshot.provenance)).json(snapshot);
+  } catch {
+    return res.status(503).json({ error: 'Hesabat snapshot-u yüklənmədi.' });
   }
 });
 

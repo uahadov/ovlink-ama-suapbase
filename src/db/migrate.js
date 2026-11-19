@@ -296,6 +296,31 @@ function ensureDbTables() {
     db.run('CREATE INDEX IF NOT EXISTS idx_analytics_audit_user_created ON analytics_audit_log(user_id, created_at DESC)', () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_analytics_audit_url_created ON analytics_audit_log(url_id, created_at DESC)', () => {});
 
+    // P24: durable report provenance snapshots linked to analytics_audit_log.
+    db.run(`CREATE TABLE IF NOT EXISTS report_snapshots (
+      id SERIAL PRIMARY KEY,
+      snapshot_id TEXT NOT NULL UNIQUE,
+      campaign_id INTEGER NOT NULL,
+      owner_user_id INTEGER NOT NULL,
+      actor_user_id INTEGER NOT NULL,
+      workspace_id INTEGER,
+      report_type TEXT NOT NULL,
+      surface TEXT NOT NULL,
+      scope_hash TEXT NOT NULL,
+      content_hash TEXT NOT NULL,
+      revision INTEGER NOT NULL DEFAULT 1,
+      previous_snapshot_id TEXT,
+      data_changed BOOLEAN NOT NULL DEFAULT FALSE,
+      generated_at TEXT NOT NULL,
+      last_data_at TEXT,
+      freshness_status TEXT NOT NULL DEFAULT 'fresh',
+      audit_entry_id INTEGER,
+      provenance_json TEXT NOT NULL,
+      summary_json TEXT NOT NULL
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_report_snapshots_campaign_scope ON report_snapshots(campaign_id, report_type, scope_hash, id DESC)', () => {});
+    });
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});
