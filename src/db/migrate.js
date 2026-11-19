@@ -531,6 +531,29 @@ function ensureDbTables() {
       db.run('CREATE INDEX IF NOT EXISTS idx_ga4_conn_owner ON ga4_connections(owner_user_id, campaign_id, id DESC)', () => {});
     });
 
+    // P33: commercial webhook delivery ledger with retry & manual replay.
+    db.run(`CREATE TABLE IF NOT EXISTS integration_webhook_deliveries (
+      id SERIAL PRIMARY KEY,
+      owner_user_id INTEGER NOT NULL,
+      workspace_id INTEGER,
+      event_id TEXT NOT NULL,
+      request_id TEXT NOT NULL UNIQUE,
+      event_type TEXT NOT NULL,
+      target_url TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      http_status INTEGER,
+      attempts INTEGER NOT NULL DEFAULT 1,
+      max_attempts INTEGER NOT NULL DEFAULT 5,
+      next_retry_at TEXT,
+      last_error TEXT,
+      replayed_from_id INTEGER,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_int_wh_deliv_owner ON integration_webhook_deliveries(owner_user_id, id DESC)', () => {});
+    });
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});

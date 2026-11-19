@@ -18,6 +18,7 @@ const businessAlerts = require('../../lib/business-alerts');
 const backgroundJobs = require('../../lib/background-jobs');
 const mcpWorkflows = require('../../lib/mcp/workflows');
 const ga4Connector = require('../../lib/ga4-connector');
+const webhookReliability = require('../../lib/webhook-reliability');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -1855,6 +1856,59 @@ router.delete('/api/integrations/ga4/:id', async (req, res) => {
     return res.json(result);
   } catch {
     return res.status(500).json({ error: 'GA4 bağlantısı kəsilə bilmədi.' });
+  }
+});
+
+// ===== P33: Commercial Webhook Delivery, Logs & Manual Replay =====
+
+router.post('/api/integrations/webhooks/test-delivery', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const result = await webhookReliability.deliverTrackedWebhook({
+      ownerUserId: userId,
+      workspaceId: body.workspace_id || null,
+      targetUrl: body.target_url,
+      eventType: body.event_type || 'webhook.test',
+      data: body.data || { test: true },
+      simulateStatus: body.simulate_status !== undefined ? body.simulate_status : 200,
+    });
+    if (result.error) return res.status(result.statusCode || 400).json(result);
+    return res.json(result);
+  } catch {
+    return res.status(503).json({ error: 'Webhook test göndərişi alınmadı.' });
+  }
+});
+
+router.get('/api/integrations/webhooks/deliveries', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const deliveries = await webhookReliability.listWebhookDeliveries({
+      ownerUserId: userId,
+      limit: req.query && req.query.limit,
+    });
+    return res.json({ schema_version: webhookReliability.WEBHOOK_SCHEMA_VERSION, deliveries });
+  } catch {
+    return res.status(500).json({ error: 'Webhook qeydləri alına bilmədi.' });
+  }
+});
+
+router.post('/api/integrations/webhooks/deliveries/:id/replay', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const result = await webhookReliability.replayWebhookDelivery({
+      ownerUserId: userId,
+      deliveryId: req.params.id,
+      simulateStatus: body.simulate_status !== undefined ? body.simulate_status : 200,
+    });
+    if (result.error) return res.status(result.statusCode || 404).json(result);
+    return res.json(result);
+  } catch {
+    return res.status(503).json({ error: 'Webhook təkrar göndərilə bilmədi.' });
   }
 });
 
