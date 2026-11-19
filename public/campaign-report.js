@@ -32,6 +32,11 @@
     add('Metric source', data.metric_method || 'unspecified');
     add('Unique definition', data.unique_method || 'unspecified');
     add('Conversion attribution', data.conversion_method || 'unspecified');
+    if (data.data_contract && data.data_contract.version) {
+      add('Analytics contract', data.data_contract.version + ' (' + (data.data_contract.timezone || 'UTC') + ')');
+      add('Uniques accuracy', (data.data_contract.accuracy && data.data_contract.accuracy.uniques) || 'estimated');
+      add('Revenue status', (data.data_contract.accuracy && data.data_contract.accuracy.revenue) || 'unknown');
+    }
     add('Last recorded click (UTC)', data.last_recorded_click_at || '');
     add('Generated at (UTC)', data.generated_at);
     blank();

@@ -7,6 +7,7 @@ const campaignLib = require('../../lib/campaigns');
 const campaignWizard = require('../../lib/campaign-wizard');
 const utmPresets = require('../../lib/utm-presets');
 const bulkImport = require('../../lib/bulk-import');
+const metricsContract = require('../../lib/metrics-contract');
 const {
   normalizeCampaignStatus,
   resolveEffectiveStatus,
@@ -689,6 +690,27 @@ router.get('/api/links/bulk/jobs/:id/report.csv', async (req, res) => {
       .send(report.csv);
   } catch {
     return res.status(500).json({ error: 'Hesabat endirilə bilmədi.' });
+  }
+});
+
+// ===== P19: Analytics Data Contract v1 & Reconciliation =====
+
+router.get('/api/analytics/methodology', (_req, res) => {
+  return res.json(metricsContract.getFullAnalyticsContract());
+});
+
+router.get('/api/campaigns/:id/reconcile', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+
+  const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: req.params.id });
+  if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+
+  try {
+    const report = await campaignLib.reconcileCampaignMetrics({ campaign });
+    return res.json(report);
+  } catch {
+    return res.status(500).json({ error: 'Metrika yoxlaması alınmadı.' });
   }
 });
 

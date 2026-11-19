@@ -9,6 +9,10 @@ const { dbGetAsync, dbRunAsync, dbAllAsync } = require('../db/helpers');
 const { getWorkspaceMemberRole, isWorkspaceProActive, getWorkspaceById } = require('../routes/api/workspaces');
 const { canWorkspaceRole } = require('./link-access');
 const {
+  buildMetricsContractMeta,
+  reconcileRawVsRollup,
+} = require('./metrics-contract');
+const {
   CAMPAIGN_STATUSES,
   generateCampaignEventId,
   normalizeCampaignStatus,
@@ -465,6 +469,7 @@ function formatCampaignStats({ campaign, range, includeBots, now, rangeStartIso,
     metric_method: includeBots ? 'daily_rollup' : 'raw_nonbot_events',
     unique_method: includeBots ? 'daily_unique_rollup' : 'per_link_per_day_hashed_visitor',
     conversion_method: includeBots ? 'all_recorded_conversions' : 'conversions_with_prior_nonbot_click_match',
+    data_contract: buildMetricsContractMeta({ includeBots, conversionsCount: conversions, revenueAvailable: false }),
   };
 }
 
@@ -617,6 +622,28 @@ async function loadCampaignAssets({ campaign } = {}) {
   };
 }
 
+/** Compares raw clicks vs link_stats_daily rollup for one campaign (P19 reconciliation). */
+async function reconcileCampaignMetrics({ campaign } = {}) {
+  if (!campaign || !campaign.id) throw new Error('reconcileCampaignMetrics requires a campaign row');
+  const campaignId = Number(campaign.id);
+  const [rawRow, rollupRow] = await Promise.all([
+    dbGetAsync(
+      'SELECT COUNT(c.id) AS clicks, COALESCE(SUM(CASE WHEN COALESCE(c.is_bot, 0) = 1 THEN 1 ELSE 0 END), 0) AS bots ' +
+        'FROM clicks c JOIN urls u ON u.id = c.url_id WHERE u.campaign_id = ?',
+      [campaignId]
+    ),
+    dbGetAsync(
+      'SELECT COALESCE(SUM(d.clicks), 0) AS clicks, COALESCE(SUM(d.bots), 0) AS bots ' +
+        'FROM link_stats_daily d JOIN urls u ON u.id = d.url_id WHERE u.campaign_id = ?',
+      [campaignId]
+    ),
+  ]);
+  return {
+    campaign_id: campaignId,
+    ...reconcileRawVsRollup({ raw: rawRow || {}, rollup: rollupRow || {} }),
+  };
+}
+
 /** Verifies that a campaign belongs to the caller before assigning links to it. */
 async function assertCampaignOwnership({ userId, campaignId }) {
   const id = Number.parseInt(campaignId, 10);
@@ -642,6 +669,7 @@ module.exports = {
   listCampaigns,
   loadCampaignStats,
   loadCampaignAssets,
+  reconcileCampaignMetrics,
   assertCampaignOwnership,
   evaluateStatusTransition,
   resolveEffectiveStatus,
