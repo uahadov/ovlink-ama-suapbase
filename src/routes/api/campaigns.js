@@ -20,6 +20,7 @@ const mcpWorkflows = require('../../lib/mcp/workflows');
 const ga4Connector = require('../../lib/ga4-connector');
 const webhookReliability = require('../../lib/webhook-reliability');
 const orgBilling = require('../../lib/org-billing');
+const planEntitlements = require('../../lib/plan-entitlements');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -1971,6 +1972,52 @@ router.post('/api/org-billing/sandbox-webhook', async (req, res) => {
     return res.json(result);
   } catch {
     return res.status(500).json({ error: 'Billing webhook emal edilə bilmədi.' });
+  }
+});
+
+// ===== P35: Unified Plan & Usage Entitlement Engine =====
+
+router.get('/api/entitlements/:workspaceId', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const entrypoint = String((req.query && req.query.entrypoint) || 'api').toLowerCase();
+    const model = await planEntitlements.loadWorkspaceEntitlements({
+      workspaceId: req.params.workspaceId,
+      ownerUserId: userId,
+      entrypoint,
+    });
+    return res.json(model);
+  } catch {
+    return res.status(500).json({ error: 'Paket səlahiyyətləri yüklənmədi.' });
+  }
+});
+
+router.post('/api/entitlements/:workspaceId/check', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const entrypoint = String(body.entrypoint || 'api').toLowerCase();
+    const model = await planEntitlements.loadWorkspaceEntitlements({
+      workspaceId: req.params.workspaceId,
+      ownerUserId: userId,
+      entrypoint,
+    });
+    const metric = String(body.metric || '').trim().toLowerCase();
+    const currentUsage = model.meters[metric] ? model.meters[metric].used : 0;
+    const check = planEntitlements.evaluateEntitlementCheck({
+      planCode: model.plan_code,
+      status: model.billing_status,
+      metric,
+      currentUsage,
+      increment: body.increment !== undefined ? body.increment : 1,
+      entrypoint,
+    });
+    if (check.error) return res.status(check.statusCode || 400).json(check);
+    return res.json(check);
+  } catch {
+    return res.status(500).json({ error: 'Limit yoxlaması alınmadı.' });
   }
 });
 
