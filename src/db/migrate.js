@@ -341,6 +341,39 @@ function ensureDbTables() {
       db.run('CREATE INDEX IF NOT EXISTS idx_report_templates_user ON report_templates(user_id, client_id, id DESC)', () => {});
     });
 
+    // P26: revocable, hashed-token Client Portal shares & feedback.
+    db.run(`CREATE TABLE IF NOT EXISTS client_portal_shares (
+      id SERIAL PRIMARY KEY,
+      owner_user_id INTEGER NOT NULL,
+      workspace_id INTEGER,
+      client_name TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      token_prefix TEXT NOT NULL,
+      allowed_campaign_ids_json TEXT NOT NULL,
+      allowed_metrics_json TEXT NOT NULL,
+      template_id INTEGER,
+      locale TEXT NOT NULL DEFAULT 'az',
+      expires_at TEXT NOT NULL,
+      revoked_at TEXT,
+      view_count INTEGER NOT NULL DEFAULT 0,
+      last_viewed_at TEXT,
+      created_at TEXT NOT NULL
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_client_portal_owner ON client_portal_shares(owner_user_id, id DESC)', () => {});
+    });
+    db.run(`CREATE TABLE IF NOT EXISTS client_portal_feedback (
+      id SERIAL PRIMARY KEY,
+      share_id INTEGER NOT NULL,
+      campaign_id INTEGER,
+      author_name TEXT NOT NULL,
+      section TEXT,
+      sentiment TEXT NOT NULL DEFAULT 'note',
+      note TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_client_portal_feedback_share ON client_portal_feedback(share_id, id DESC)', () => {});
+    });
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});

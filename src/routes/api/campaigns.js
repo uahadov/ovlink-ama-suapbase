@@ -11,6 +11,7 @@ const metricsContract = require('../../lib/metrics-contract');
 const decisionAnalytics = require('../../lib/decision-analytics');
 const reportProvenance = require('../../lib/report-provenance');
 const reportTemplates = require('../../lib/report-templates');
+const clientPortal = require('../../lib/client-portal');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -1129,6 +1130,149 @@ router.get('/api/campaigns/:id/template-report', async (req, res) => {
     return res.set(reportProvenance.buildProvenanceHeaders(provenance)).json(rendered);
   } catch {
     return res.status(503).json({ error: 'Şablon hesabatı hazırlana bilmədi.' });
+  }
+});
+
+// ===== P26: Client Portal v1 (Revocable Hashed-Token Scoped Viewer + Feedback) =====
+
+router.post('/api/client-portal/shares', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const requestedIds = Array.isArray(body.campaign_ids) ? body.campaign_ids : [];
+    const verifiedIds = [];
+    for (const rawId of requestedIds) {
+      const owned = await campaignLib.getCampaignForActor({ userId, campaignId: rawId });
+      if (!owned) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+      verifiedIds.push(Number(owned.id));
+    }
+    const result = await clientPortal.createPortalShare({
+      ownerUserId: userId,
+      workspaceId: body.workspace_id || null,
+      clientName: body.client_name,
+      campaignIds: verifiedIds,
+      allowedMetrics: body.allowed_metrics,
+      templateId: body.template_id || null,
+      locale: body.locale || 'az',
+      expiresAt: body.expires_at || null,
+      expiresInDays: body.expires_in_days,
+    });
+    if (result.error) {
+      return res.status(result.statusCode || 400).json({ error: result.message || result.error, code: result.error });
+    }
+    return res.status(201).json(result);
+  } catch {
+    return res.status(500).json({ error: 'Portal paylaşımı yaradıla bilmədi.' });
+  }
+});
+
+router.get('/api/client-portal/shares', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const shares = await clientPortal.listPortalShares({ ownerUserId: userId });
+    return res.json({ contract_version: clientPortal.CLIENT_PORTAL_CONTRACT_VERSION, shares });
+  } catch {
+    return res.status(500).json({ error: 'Portal paylaşımları alına bilmədi.' });
+  }
+});
+
+router.post('/api/client-portal/shares/:id/revoke', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await clientPortal.revokePortalShare({ ownerUserId: userId, shareId: req.params.id });
+    if (result.error) return res.status(result.statusCode || 404).json({ error: 'Paylaşım tapılmadı.', code: result.error });
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'Paylaşım ləğv edilə bilmədi.' });
+  }
+});
+
+router.get('/api/client-portal/shares/:id/feedback', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const feedback = await clientPortal.listPortalFeedback({ ownerUserId: userId, shareId: req.params.id });
+    if (!feedback) return res.status(404).json({ error: 'Paylaşım tapılmadı.' });
+    return res.json({ share_id: Number(req.params.id), feedback });
+  } catch {
+    return res.status(500).json({ error: 'Müştəri rəyləri alına bilmədi.' });
+  }
+});
+
+router.get('/api/portal/view/:token', async (req, res) => {
+  res
+    .set('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0')
+    .set('X-Robots-Tag', 'noindex, nofollow');
+  try {
+    const resolved = await clientPortal.resolvePortalShareByToken({ rawToken: req.params.token });
+    if (resolved.error) {
+      return res.status(resolved.statusCode || 404).json({ error: 'Portal linki etibarsızdır və ya ləğv edilib.', code: resolved.error });
+    }
+    const share = resolved.share;
+    const query = req.query && typeof req.query === 'object' ? req.query : {};
+
+    let targetIds = [...share.allowed_campaign_ids];
+    if (query.campaign_id !== undefined && query.campaign_id !== '') {
+      const requestedId = Number.parseInt(query.campaign_id, 10);
+      if (!share.allowed_campaign_ids.includes(requestedId)) {
+        return res.status(403).json({
+          error: 'Bu kampaniya sizin portal icazənizə daxil deyil.',
+          code: 'campaign_not_in_portal_scope',
+        });
+      }
+      targetIds = [requestedId];
+    }
+
+    const campaignsData = [];
+    for (const cid of targetIds) {
+      const campaign = await campaignLib.getCampaignForActor({ userId: share.owner_user_id, campaignId: cid });
+      if (!campaign) continue;
+      const stats = await campaignLib.loadCampaignStats({
+        campaign,
+        query: { days: query.days || 30, bots: 'exclude' },
+      });
+      campaignsData.push(clientPortal.filterMetricsForPortal(stats, share.allowed_metrics));
+    }
+
+    await clientPortal.recordPortalView({ share, campaignIdsViewed: targetIds });
+
+    return res.json({
+      contract_version: clientPortal.CLIENT_PORTAL_CONTRACT_VERSION,
+      role: 'client_viewer',
+      client_name: share.client_name,
+      locale: share.locale,
+      expires_at: share.expires_at,
+      ui_capabilities: {
+        can_edit: false,
+        can_delete: false,
+        can_manage_billing: false,
+        can_export_raw_pii: false,
+        can_submit_feedback: true,
+      },
+      campaigns: campaignsData,
+    });
+  } catch {
+    return res.status(503).json({ error: 'Portal müvəqqəti əlçatan deyil.' });
+  }
+});
+
+router.post('/api/portal/view/:token/feedback', async (req, res) => {
+  res.set('Cache-Control', 'private, no-store, max-age=0');
+  try {
+    const resolved = await clientPortal.resolvePortalShareByToken({ rawToken: req.params.token });
+    if (resolved.error) {
+      return res.status(resolved.statusCode || 404).json({ error: 'Portal linki etibarsızdır.', code: resolved.error });
+    }
+    const result = await clientPortal.addPortalFeedback({ share: resolved.share, body: req.body });
+    if (result.error) {
+      return res.status(result.statusCode || 400).json({ error: result.message || result.error, code: result.error });
+    }
+    return res.status(201).json(result);
+  } catch {
+    return res.status(500).json({ error: 'Rəy saxlanıla bilmədi.' });
   }
 });
 
