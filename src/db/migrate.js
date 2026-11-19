@@ -511,6 +511,26 @@ function ensureDbTables() {
       db.run('CREATE INDEX IF NOT EXISTS idx_mcp_workflow_owner ON mcp_workflow_runs(owner_user_id, id DESC)', () => {});
     });
 
+    // P32: GA4 read-only pilot connector & cached healthy snapshot.
+    db.run(`CREATE TABLE IF NOT EXISTS ga4_connections (
+      id SERIAL PRIMARY KEY,
+      owner_user_id INTEGER NOT NULL,
+      campaign_id INTEGER NOT NULL,
+      property_id TEXT NOT NULL,
+      oauth_scope TEXT NOT NULL,
+      token_hash TEXT,
+      token_version INTEGER NOT NULL DEFAULT 1,
+      consent_granted BOOLEAN NOT NULL DEFAULT FALSE,
+      status TEXT NOT NULL DEFAULT 'connected',
+      quota_status TEXT NOT NULL DEFAULT 'ok',
+      last_synced_at TEXT,
+      last_healthy_snapshot_json TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_ga4_conn_owner ON ga4_connections(owner_user_id, campaign_id, id DESC)', () => {});
+    });
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});

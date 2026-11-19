@@ -17,6 +17,7 @@ const scheduledReports = require('../../lib/scheduled-reports');
 const businessAlerts = require('../../lib/business-alerts');
 const backgroundJobs = require('../../lib/background-jobs');
 const mcpWorkflows = require('../../lib/mcp/workflows');
+const ga4Connector = require('../../lib/ga4-connector');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -1773,6 +1774,87 @@ router.get('/api/mcp/workflows/summarize-report/:id', async (req, res) => {
     return res.json(result);
   } catch {
     return res.status(503).json({ error: 'Hesabat xülasəsi hazırlana bilmədi.' });
+  }
+});
+
+// ===== P32: GA4 Read-Only Pilot Connector & Measurement Reconciliation =====
+
+router.post('/api/integrations/ga4/connect', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: body.campaign_id });
+    if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+    const result = await ga4Connector.connectGa4Property({
+      ownerUserId: userId,
+      campaignId: campaign.id,
+      propertyId: body.property_id,
+      oauthToken: body.oauth_token,
+      oauthScope: body.oauth_scope || ga4Connector.GA4_READONLY_SCOPE,
+      consentGranted: body.consent_granted === true,
+    });
+    if (result.error) return res.status(result.statusCode || 400).json(result);
+    return res.status(201).json(result);
+  } catch {
+    return res.status(500).json({ error: 'GA4 bağlantısı yaradıla bilmədi.' });
+  }
+});
+
+router.post('/api/integrations/ga4/:id/sync', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const result = await ga4Connector.syncGa4Snapshot({
+      ownerUserId: userId,
+      connectionId: req.params.id,
+      sandboxRows: body.sandbox_rows || [],
+      simulateQuota429: Boolean(body.simulate_quota_429),
+    });
+    if (result.error) return res.status(result.statusCode || 400).json(result);
+    return res.status(result.statusCode || 200).json(result);
+  } catch {
+    return res.status(503).json({ error: 'GA4 sinxronizasiyası alınmadı.' });
+  }
+});
+
+router.get('/api/integrations/ga4/:id/reconcile', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    await ga4Connector.ensureGa4ConnectionsTable();
+    const row = await dbGetAsync(
+      'SELECT * FROM ga4_connections WHERE id = ? AND owner_user_id = ? LIMIT 1',
+      [Number(req.params.id), userId]
+    );
+    if (!row) return res.status(404).json({ error: 'GA4 bağlantısı tapılmadı.' });
+    if (row.status !== 'connected') return res.status(403).json({ error: 'GA4 bağlantısı aktiv deyil.' });
+    const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: row.campaign_id });
+    if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+    const stats = await campaignLib.loadCampaignStats({ campaign, query: { days: 30, bots: 'exclude' } });
+    const snapshot = row.last_healthy_snapshot_json ? JSON.parse(row.last_healthy_snapshot_json) : { channels: [] };
+    const report = ga4Connector.reconcileOvlinkVsGa4({
+      ovlinkSources: stats.top_sources || [],
+      ga4Channels: snapshot.channels || [],
+      lastHealthySyncedAt: row.last_synced_at || null,
+      isStale: row.quota_status === 'quota_429',
+    });
+    return res.json(report);
+  } catch {
+    return res.status(503).json({ error: 'GA4 uzlaşdırması alınmadı.' });
+  }
+});
+
+router.delete('/api/integrations/ga4/:id', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await ga4Connector.disconnectGa4Connection({ ownerUserId: userId, connectionId: req.params.id });
+    if (result.error) return res.status(result.statusCode || 404).json(result);
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'GA4 bağlantısı kəsilə bilmədi.' });
   }
 });
 
