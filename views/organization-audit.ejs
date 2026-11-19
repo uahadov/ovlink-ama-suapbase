@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="<%= lang %>" dir="<%= lang === 'ar' ? 'rtl' : 'ltr' %>">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="csrf-token" content="<%= csrfToken %>"><meta name="robots" content="noindex,nofollow">
+<title><%= lang==='tr'?'Denetim Günlüğü':lang==='en'?'Audit Log':'Audit jurnalı' %> · Ovlink</title>
+<link rel="stylesheet" href="/home.css">
+<style nonce="<%= nonce %>">
+:root{color-scheme:dark}[hidden]{display:none!important}body{margin:0;background:var(--c-bg,#101114);color:var(--c-text,#f4f4f5);font-family:Inter,system-ui,sans-serif}.shell{width:min(1100px,calc(100% - 32px));margin:0 auto;padding:34px 0 80px;box-sizing:border-box}.top,.actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}.actions{justify-content:flex-start}.title{font-size:clamp(26px,3.8vw,40px);letter-spacing:-.05em;margin:6px 0}.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--c-muted,#a1a1aa);margin:0}.muted{color:var(--c-muted,#a1a1aa);font-size:14px}.card{background:var(--c-surface,#18191d);border:1px solid var(--c-border,#36383e);border-radius:16px;padding:20px;margin-top:18px}.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end}.field{display:grid;gap:6px;min-width:0}.field label{font-size:12px;color:#cfcfd2}select,input{color:inherit;background:#222328;border:1px solid #4c4d55;padding:10px 12px;border-radius:10px;font:inherit;width:100%;box-sizing:border-box}select:focus-visible,input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid #fff;outline-offset:3px}.btn{border:1px solid #55565e;background:transparent;color:inherit;padding:10px 14px;border-radius:10px;cursor:pointer;font:600 13px/1.4 Inter,system-ui,sans-serif;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.btn.primary{background:#eee;color:#141418;border-color:#eee}.btn:disabled{opacity:.48;cursor:not-allowed}.status{min-height:20px;margin:12px 0 0;color:#c8c8ce;font-size:13px}.event{border:1px solid #32333a;border-radius:12px;padding:14px;margin-top:10px;display:grid;gap:6px;min-width:0;overflow-wrap:anywhere}.event-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.badge{font-size:11px;border:1px solid #484952;border-radius:999px;padding:3px 9px;text-transform:uppercase}.badge.success{border-color:#2e6f56;color:#9de8c8}.badge.denied{border-color:#8a6a33;color:#f7d694}.badge.failed{border-color:#864b52;color:#f5b4ba}.meta{font-size:12px;color:#a1a1aa;display:flex;gap:12px;flex-wrap:wrap}.summary-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#d4d4d8;background:#121316;border:1px solid #2b2c32;border-radius:8px;padding:8px 10px;overflow-x:auto;margin:4px 0 0}.skip{position:absolute;left:-9999px;z-index:30}.skip:focus{left:12px;top:12px;padding:10px 12px;background:#fff;color:#000}@media(max-width:760px){.shell{padding-top:20px}.card{padding:15px}.actions .btn{flex:1 1 auto}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<a class="m-skip-link skip" href="#mainContent">Skip to content</a>
+<main class="shell" id="mainContent">
+  <div class="top">
+    <div>
+      <a href="/workspaces" class="muted" id="backLink">Ovlink / Workspaces</a>
+      <p class="eyebrow">OVLINK · AUDIT</p>
+      <h1 class="title" id="pageTitle">Audit jurnalı</h1>
+    </div>
+    <div class="actions">
+      <a class="btn" id="exportCsv" href="#" rel="nofollow" download="ovlink-organization-audit.csv">CSV yüklə</a>
+      <button class="btn" id="reload" type="button">Yenilə</button>
+    </div>
+  </div>
+  <p class="muted" id="intro">Təşkilat daxilindəki bütün kritik əməliyyatların xronoloji jurnalı.</p>
+  <p class="status" id="notice" role="status" aria-live="polite"></p>
+
+  <section class="card" aria-labelledby="filterTitle">
+    <h2 id="filterTitle" style="margin:0 0 12px;font-size:16px">Filtrlər</h2>
+    <form id="filterForm" class="filters">
+      <div class="field">
+        <label for="actionFilter" id="lblAction">Əməliyyat</label>
+        <select id="actionFilter"><option value="">All</option></select>
+      </div>
+      <div class="field">
+        <label for="resultFilter" id="lblResult">Nəticə</label>
+        <select id="resultFilter">
+          <option value="">All</option>
+          <option value="success">success</option>
+          <option value="denied">denied</option>
+          <option value="failed">failed</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button class="btn primary" type="submit" id="applyFilter">Tətbiq et</button>
+        <button class="btn" type="button" id="resetFilter">Sıfırla</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="feedTitle">
+    <div class="top">
+      <h2 id="feedTitle" style="margin:0;font-size:18px">Hadisələr</h2>
+      <span class="badge" id="retentionTag">365d</span>
+    </div>
+    <div id="eventsList" aria-live="polite"></div>
+    <div class="actions" style="margin-top:16px">
+      <button class="btn" id="loadMore" type="button" hidden>Daha çox</button>
+    </div>
+  </section>
+</main>
+<script nonce="<%= nonce %>">
+(()=>{'use strict';
+const orgId=<%- JSON.stringify(orgId) %>,lang=<%- JSON.stringify(lang) %>;
+const root='/api/organizations/'+encodeURIComponent(orgId)+'/audit-log';
+const dict={
+ az:{title:'Audit jurnalı',intro:'Təşkilat daxilindəki bütün kritik əməliyyatların xronoloji jurnalı.',exportCsv:'CSV yüklə',reload:'Yenilə',filters:'Filtrlər',action:'Əməliyyat',result:'Nəticə',apply:'Tətbiq et',reset:'Sıfırla',all:'Hamısı',events:'Hadisələr',more:'Daha çox yüklə',empty:'Seçilmiş filtrə uyğun audit qeydi yoxdur.',actor:'İstifadəçi',resource:'Resurs',req:'Sorğu',retention:'Saxlama: {d} gün',failed:'Audit jurnalı yüklənmədi'},
+ tr:{title:'Denetim günlüğü',intro:'Kuruluş içindeki tüm kritik işlemlerin kronolojik kaydı.',exportCsv:'CSV indir',reload:'Yenile',filters:'Filtreler',action:'İşlem',result:'Sonuç',apply:'Uygula',reset:'Sıfırla',all:'Tümü',events:'Olaylar',more:'Daha fazla yükle',empty:'Seçilen filtreye uygun kayıt yok.',actor:'Kullanıcı',resource:'Kaynak',req:'İstek',retention:'Saklama: {d} gün',failed:'Denetim günlüğü yüklenemedi'},
+ en:{title:'Audit log',intro:'Chronological record of sensitive organization operations.',exportCsv:'Export CSV',reload:'Refresh',filters:'Filters',action:'Action',result:'Result',apply:'Apply',reset:'Reset',all:'All',events:'Events',more:'Load more',empty:'No audit events match this filter.',actor:'User',resource:'Resource',req:'Request',retention:'Retention: {d} days',failed:'Could not load audit log'}
+};
+const t=dict[lang]||dict.az,el=id=>document.getElementById(id);
+const set=(id,v)=>{const n=el(id);if(n)n.textContent=v};
+set('pageTitle',t.title);set('intro',t.intro);set('exportCsv',t.exportCsv);set('reload',t.reload);
+set('filterTitle',t.filters);set('lblAction',t.action);set('lblResult',t.result);
+set('applyFilter',t.apply);set('resetFilter',t.reset);set('feedTitle',t.events);set('loadMore',t.more);
+el('actionFilter').options[0].textContent=t.all;el('resultFilter').options[0].textContent=t.all;
+
+let nextBefore=null,catalogLoaded=false;
+const notice=msg=>set('notice',msg||'');
+
+function buildQuery(beforeId){
+ const p=new URLSearchParams();
+ const act=el('actionFilter').value,res=el('resultFilter').value;
+ if(act)p.set('action',act);
+ if(res)p.set('result',res);
+ if(beforeId)p.set('before_id',String(beforeId));
+ return p.toString();
+}
+function updateExportLink(){
+ const q=buildQuery(null);
+ el('exportCsv').href=root+'.csv'+(q?'?'+q:'');
+}
+function renderEvents(items,append){
+ const list=el('eventsList');
+ if(!append)list.replaceChildren();
+ if(!append&&!items.length){
+  const p=document.createElement('p');p.className='muted';p.textContent=t.empty;list.append(p);return;
+ }
+ for(const ev of items){
+  const row=document.createElement('article');row.className='event';
+  const head=document.createElement('div');head.className='event-head';
+  const strong=document.createElement('strong');strong.textContent=ev.action;
+  const badge=document.createElement('span');badge.className='badge '+(ev.result||'success');badge.textContent=ev.result||'success';
+  head.append(strong,badge);
+  const meta=document.createElement('div');meta.className='meta';
+  const parts=[String(ev.created_at||'')];
+  if(ev.actor_user_id)parts.push(t.actor+' #'+ev.actor_user_id);
+  if(ev.resource_type)parts.push(t.resource+': '+ev.resource_type+(ev.resource_id?'/'+ev.resource_id:''));
+  if(ev.request_id)parts.push(t.req+': '+ev.request_id.slice(0,12));
+  for(const text of parts){const s=document.createElement('span');s.textContent=text;meta.append(s)}
+  row.append(head,meta);
+  if(ev.summary&&Object.keys(ev.summary).length){
+   const pre=document.createElement('pre');pre.className='summary-code';pre.textContent=JSON.stringify(ev.summary);row.append(pre);
+  }
+  list.append(row);
+ }
+}
+async function load(append=false){
+ notice('');updateExportLink();
+ const q=buildQuery(append?nextBefore:null);
+ try{
+  const r=await fetch(root+(q?'?'+q:''),{credentials:'same-origin',cache:'no-store'});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(data.error||t.failed);
+  if(!catalogLoaded&&Array.isArray(data.actions_catalog)){
+   catalogLoaded=true;
+   for(const a of data.actions_catalog){const o=document.createElement('option');o.value=a;o.textContent=a;el('actionFilter').append(o)}
+  }
+  set('retentionTag',t.retention.replace('{d}',String(data.retention_days||365)));
+  nextBefore=data.next_before_id||null;
+  el('loadMore').hidden=!nextBefore;
+  renderEvents(data.events||[],append);
+ }catch(err){notice(err.message||t.failed)}
+}
+el('filterForm').addEventListener('submit',e=>{e.preventDefault();load(false)});
+el('resetFilter').addEventListener('click',()=>{el('actionFilter').value='';el('resultFilter').value='';load(false)});
+el('reload').addEventListener('click',()=>load(false));
+el('loadMore').addEventListener('click',()=>load(true));
+load(false);
+})();
+</script>
+</body></html>

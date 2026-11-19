@@ -5,7 +5,7 @@ const { app } = require('./src/app');
 // Import startup helpers
 const { ensureRedisConnected } = require('./src/config/redis');
 const { ensureDbTables } = require('./src/db/migrate');
-const { migrateOrganizationModel, migrateOrganizationRoles, organizationFeatureEnabled, organizationRbacV2Enabled, organizationTeamEnabled, migrateOrganizationTeam, organizationClientsEnabled, migrateOrganizationClients } = require('./src/db/organization-model');
+const { migrateOrganizationModel, migrateOrganizationRoles, organizationFeatureEnabled, organizationRbacV2Enabled, organizationTeamEnabled, migrateOrganizationTeam, organizationClientsEnabled, migrateOrganizationClients, organizationAuditEnabled, migrateOrganizationAudit } = require('./src/db/organization-model');
 const { db } = require('./src/db/index');
 const { syncThreatIntelligenceFeed, scheduleWeeklySafetyScan, THREAT_FEED_SYNC_INTERVAL_MS } = require('./src/lib/safety');
 const { scheduleWebhookRecoveryWorker } = require('./src/lib/webhook');
@@ -73,6 +73,10 @@ if (require.main === module) {
           if (organizationClientsEnabled()) {
             await migrateOrganizationClients();
             console.log('[organization-model] P10 client portfolio migration verified');
+            if (organizationAuditEnabled()) {
+              await migrateOrganizationAudit();
+              console.log('[organization-model] P11 business audit migration verified');
+            }
           }
         }
       }

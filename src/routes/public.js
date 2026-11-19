@@ -11,7 +11,7 @@ const { getEffectivePlanForUser, isProAccessActive, isIsoTimeExpired } = require
 const { sensitiveActionLimiter } = require('../middleware/rate-limiter');
 const { logSecurityEvent } = require('../lib/security');
 const { createBotShared } = require('../../bots/shared');
-const { organizationTeamEnabled, organizationClientsEnabled } = require('../db/organization-model');
+const { organizationTeamEnabled, organizationClientsEnabled, organizationAuditEnabled } = require('../db/organization-model');
 const { checkAccess } = require('../lib/organization-access-context');
 
 const router = express.Router();
@@ -437,6 +437,21 @@ function maskEmailForDisplay(email) {
   const visible = local.slice(0, 2);
   return `${visible}${'*'.repeat(Math.max(1, local.length - 2))}@${domain}`;
 }
+
+router.get('/organizations/:id/audit',async(req,res)=>{
+ if(!organizationAuditEnabled())return res.status(404).json({error:'Not found'});
+ const orgId=req.params.id;
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orgId))return res.status(404).json({error:'Not found'});
+ const userId=Number(req.session?.userId);
+ if(!Number.isSafeInteger(userId)||userId<1)return res.redirect('/login');
+ try{
+  const allowed=await withTransaction(async tx=>checkAccess({tx,organizationId:orgId,userId,mutation:true},'audit.read'));
+  if(!allowed)return res.status(404).json({error:'Not found'});
+  res.set('Cache-Control','no-store');res.set('Referrer-Policy','no-referrer');
+  const lang=normalizeLang(req.query?.lang,'az');
+  return res.render('organization-audit',{csrfToken:res.locals._csrf,orgId,lang});
+ }catch(_e){return res.status(500).json({error:'Audit page unavailable'})}
+});
 
 // P09 scoped management UI. No member list or recipient PII is sent before
 // fresh database authorization of the signed-in user.

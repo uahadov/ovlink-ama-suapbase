@@ -4,9 +4,10 @@ const express=require('express'),crypto=require('node:crypto');
 const {withTransaction}=require('../../db/helpers');
 const {requireSignedIn}=require('../../middleware/auth');
 const {mutationLimiter,generalLimiter}=require('../../middleware/rate-limiter');
-const {organizationClientsEnabled}=require('../../db/organization-model');
+const {organizationClientsEnabled,organizationAuditEnabled}=require('../../db/organization-model');
 const {checkAccess,loadContext}=require('../../lib/organization-access-context');
 const {can}=require('../../lib/organization-permissions');
+const {recordBusinessAudit,extractRequestId}=require('../../lib/organization-audit');
 const {encryptAES256GCM,blindIndex}=require('../../../utils/crypto');
 const router=express.Router();
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -244,7 +245,17 @@ router.get('/api/organizations/:id/clients/:clientId/report.csv',gate,generalLim
  try {
   const payload=await withTransaction(async tx=>{
    const s=await scoped(tx,req,'analytics.export',{includeArchived:true});
-   return s?{client:{id:s.client.id,name:s.client.display_name},...await clientReport(tx,s.client.id,req.query?.days)}:null;
+   if(!s)return null;
+   const rep={client:{id:s.client.id,name:s.client.display_name},...await clientReport(tx,s.client.id,req.query?.days)};
+   // P11 fail-closed export audit: if audit persistence fails, transaction aborts and CSV is NOT sent.
+   if(organizationAuditEnabled()){
+    await recordBusinessAudit(tx,{
+     organizationId:req.params.id,actorUserId:s.actor,action:'organization.client.report_exported',
+     resourceType:'client_report',resourceId:s.client.id,requestId:extractRequestId(req),
+     result:'success',summary:{days:rep.range.days,campaigns:rep.totals.campaigns,links:rep.totals.links}
+    });
+   }
+   return rep;
   });
   if(!payload)return res.status(404).json({error:'Not found'});
   const lines=[['Ovlink client report','v1'],['Client',payload.client.name],['Start UTC',payload.range.from],['End UTC',payload.range.to],
@@ -254,7 +265,7 @@ router.get('/api/organizations/:id/clients/:clientId/report.csv',gate,generalLim
   res.set('Cache-Control','private, no-store');res.set('Content-Type','text/csv; charset=utf-8');
   res.set('Content-Disposition','attachment; filename="ovlink-client-report.csv"');
   return res.send('\uFEFF'+lines.map(row=>row.map(csvCell).join(',')).join('\r\n')+'\r\n');
- }catch(_e){return fault(res)}
+ }catch(_e){return res.status(503).json({error:'Client report export unavailable'})}
 });
 router.get('/api/organizations/:id/clients/:clientId/links',gate,generalLimiter,requireSignedIn,async(req,res)=>{
  if(!ids(req))return res.status(404).json({error:'Not found'});
