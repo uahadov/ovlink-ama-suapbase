@@ -7,6 +7,8 @@ const path=require('node:path');
 const {randomBytes}=require('node:crypto');
 const {ACTIONS,can}=require('../src/lib/organization-permissions');
 const {checkAccess}=require('../src/lib/organization-access-context');
+const {migrateOrganizationRoles}=require('../src/db/organization-model');
+const {pool}=require('../src/db/pool');
 const target=process.env.DATABASE_URL || '';
 const safe=/^postgresql:\/\/ovlinkqa:[^@]+@localhost:55491\/ovlink_p02_qa$/.test(target)
   && process.env.NODE_ENV==='test' && process.env.ENABLE_ORGANIZATION_MODEL==='1';
@@ -26,8 +28,9 @@ test('P08: live PG migration twice and 2-tenant x 5-role permission matrix',
     try{
       const existing=await db.query("SELECT count(*)::int AS n FROM organization_members WHERE role='member'");
       const migration=fs.readFileSync(path.join(__dirname,'../src/db/organization-roles-p08.sql'),'utf8');
-      await db.query(migration);
-      await db.query(migration);
+      const env={ENABLE_ORGANIZATION_MODEL:'1',ENABLE_ORGANIZATION_RBAC_V2:'1'};
+      assert.equal((await migrateOrganizationRoles({env})).ok,true);
+      assert.equal((await migrateOrganizationRoles({env})).ok,true);
       const after=await db.query("SELECT count(*)::int AS n FROM organization_members WHERE role='member'");
       assert.equal(after.rows[0].n,existing.rows[0].n,'legacy member backfill must be preserved');
       for(let tenant=0;tenant<2;tenant++){
@@ -62,5 +65,6 @@ test('P08: live PG migration twice and 2-tenant x 5-role permission matrix',
       for(const id of orgs.reverse())await db.query('DELETE FROM organizations WHERE id=$1',[id]).catch(()=>{});
       for(const id of ids.reverse())await db.query('DELETE FROM users WHERE id=$1',[id]).catch(()=>{});
       await db.end();
+      await pool.end(); // Ensure the temporary migration connection never keeps the test process alive.
     }
   });

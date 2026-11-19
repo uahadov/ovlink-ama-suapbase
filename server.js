@@ -5,7 +5,7 @@ const { app } = require('./src/app');
 // Import startup helpers
 const { ensureRedisConnected } = require('./src/config/redis');
 const { ensureDbTables } = require('./src/db/migrate');
-const { migrateOrganizationModel, organizationFeatureEnabled } = require('./src/db/organization-model');
+const { migrateOrganizationModel, migrateOrganizationRoles, organizationFeatureEnabled, organizationRbacV2Enabled } = require('./src/db/organization-model');
 const { db } = require('./src/db/index');
 const { syncThreatIntelligenceFeed, scheduleWeeklySafetyScan, THREAT_FEED_SYNC_INTERVAL_MS } = require('./src/lib/safety');
 const { scheduleWebhookRecoveryWorker } = require('./src/lib/webhook');
@@ -49,11 +49,19 @@ if (require.main === module) {
       check();
     });
 
+    if (String(process.env.ENABLE_ORGANIZATION_RBAC_V2 || '').trim()==='1' && !organizationFeatureEnabled()) {
+      throw new Error('P08 RBAC v2 requires P07 organization feature; refusing startup');
+    }
+
     // P07 opt-in shadow organization schema; complete legacy migrations first.
     // Fail startup rather than serve half-migrated tenants when explicitly enabled.
     if (organizationFeatureEnabled()) {
       await migrateOrganizationModel();
       console.log('[organization-model] additive migration verified');
+      if (organizationRbacV2Enabled()) {
+        await migrateOrganizationRoles();
+        console.log('[organization-model] P08 five-role upgrade verified');
+      }
     }
 
     await initGoogleOidc();

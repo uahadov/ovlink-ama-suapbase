@@ -37,6 +37,34 @@ async function migrateOrganizationModel({ clientPool = pool } = {}) {
 }
 
 /**
+ * P08 five-role upgrade requires TWO explicit opt-ins and a completed P07
+ * additive migration. Defaults OFF, including when P07 alone is enabled.
+ * This worktree is experimental; production release requires separate gates.
+ */
+function organizationRbacV2Enabled(env = process.env) {
+  return organizationFeatureEnabled(env) && String(env.ENABLE_ORGANIZATION_RBAC_V2 || '').trim() === '1';
+}
+
+async function migrateOrganizationRoles({ clientPool = pool, env = process.env } = {}) {
+  if (!organizationRbacV2Enabled(env)) throw new Error('P08 role migration requires both organization feature opt-in flags');
+  const sql = fs.readFileSync(path.join(__dirname,'organization-roles-p08.sql'),'utf8');
+  const client = await clientPool.connect();
+  try {
+    await client.query('BEGIN');
+    // Lock order agrees with P07 migration to prevent concurrent instances
+    // racing the P07 replay/backfill and P08 role DDL.
+    await client.query('SELECT pg_advisory_xact_lock($1,$2)',[2026,7007]);
+    const body=sql.replace(/^\s*BEGIN;\s*/i,'').replace(/\s*COMMIT;\s*$/i,'');
+    await client.query(body);
+    await client.query('COMMIT');
+    return {ok:true};
+  } catch(err) {
+    await client.query('ROLLBACK').catch(()=>{});
+    throw err;
+  } finally { client.release(); }
+}
+
+/**
  * Link a newly created legacy workspace in the SAME transaction as its
  * workspace/member rows. This avoids waiting until the next server restart.
  * Only runs with opt-in feature enabled; no existing access/plan changes.
@@ -72,4 +100,4 @@ async function linkLegacyWorkspace(tx, workspaceId) {
   return row.id;
 }
 
-module.exports = { migrateOrganizationModel, organizationFeatureEnabled, linkLegacyWorkspace };
+module.exports = { migrateOrganizationModel, migrateOrganizationRoles, organizationFeatureEnabled, organizationRbacV2Enabled, linkLegacyWorkspace };
