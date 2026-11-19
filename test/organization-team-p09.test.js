@@ -1,0 +1,86 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),crypto=require('node:crypto'),express=require('express');
+const {pool}=require('../src/db/pool');
+const {migrateOrganizationModel,migrateOrganizationRoles,migrateOrganizationTeam,organizationTeamEnabled}=require('../src/db/organization-model');
+const {blindIndex,encryptAES256GCM}=require('../utils/crypto');
+const safe=/^postgresql:\/\/ovlinkqa:[^@]+@localhost:55491\/ovlink_p02_qa$/.test(process.env.DATABASE_URL||'') && process.env.NODE_ENV==='test';
+test('P09 triple opt-in fail closed before connecting',()=>{
+ assert.equal(organizationTeamEnabled({}),false);
+ assert.equal(organizationTeamEnabled({ENABLE_ORGANIZATION_MODEL:'1',ENABLE_ORGANIZATION_RBAC_V2:'1'}),false);
+ assert.equal(organizationTeamEnabled({ENABLE_ORGANIZATION_MODEL:'1',ENABLE_ORGANIZATION_RBAC_V2:'1',ENABLE_ORGANIZATION_TEAM_V1:'1'}),true);
+});
+test('P09 real HTTP invitation recipient binding, revocation, role lifecycle and isolation',{skip:!safe&&'Disposable PG only',timeout:50000},async()=>{
+ const {Client}=require('pg'),db=new Client({connectionString:process.env.DATABASE_URL});
+ const users=[],orgs=[];let server,prev=process.env.ENABLE_ORGANIZATION_TEAM_V1,prevRbac=process.env.ENABLE_ORGANIZATION_RBAC_V2;
+ await db.connect();
+ try{
+  const env={ENABLE_ORGANIZATION_MODEL:'1',ENABLE_ORGANIZATION_RBAC_V2:'1',ENABLE_ORGANIZATION_TEAM_V1:'1'};
+  await migrateOrganizationModel();await migrateOrganizationRoles({env});await migrateOrganizationTeam({env});await migrateOrganizationTeam({env});
+  process.env.ENABLE_ORGANIZATION_RBAC_V2='1';
+  process.env.ENABLE_ORGANIZATION_TEAM_V1='1';
+  const suffix=crypto.randomBytes(6).toString('hex');
+  async function u(label,verified=true){const email=`p09-${label}-${suffix}@example.invalid`,row=(await db.query('INSERT INTO users(email,email_hash,email_verified,plan_tier,plan_status) VALUES($1,$2,$3,\'pro\',\'active\') RETURNING id',[encryptAES256GCM(email),blindIndex(email),verified?1:0])).rows[0];users.push(row.id);return{id:row.id,email};}
+  const owner=await u('owner'),admin=await u('admin'),manager=await u('manager'),analyst=await u('analyst'),viewer=await u('viewer'),outsider=await u('outsider'),invitee=await u('invitee'),wrong=await u('wrong'),unverified=await u('unverified',false);
+  async function o(name,owned){const row=(await db.query('INSERT INTO organizations(display_name,owner_user_id) VALUES($1,$2) RETURNING id',[name,owned.id])).rows[0];orgs.push(row.id);await db.query("INSERT INTO organization_members(organization_id,user_id,role) VALUES($1,$2,'owner')",[row.id,owned.id]);return row.id}
+  const alpha=await o('P09 team alpha',owner),beta=await o('P09 team beta',outsider);
+  for(const [u0,role] of [[admin,'admin'],[manager,'manager'],[analyst,'analyst'],[viewer,'client_viewer']])await db.query('INSERT INTO organization_members(organization_id,user_id,role) VALUES($1,$2,$3)',[alpha,u0.id,role]);
+  const mail=require('../src/lib/email'),sentMails=[];mail.sendMail=async options=>{sentMails.push(options);return {messageId:'qa-only'}};
+  const app=express();app.use(express.json());app.use((req,_res,next)=>{req.session={userId:Number(req.get('x-test-user')||0)};next()});app.use(require('../src/routes/api/organization-team'));
+  server=app.listen(0,'127.0.0.1');await new Promise(done=>server.once('listening',done));const base=`http://127.0.0.1:${server.address().port}`;
+  async function call(actor,method,route,body){const response=await fetch(base+route,{method,headers:{'x-test-user':String(actor.id),'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});return {status:response.status,body:await response.json()}}
+  const inviteRoute=`/api/organizations/${alpha}/invitations`;
+  assert.equal((await call(manager,'POST',inviteRoute,{email:invitee.email,role:'analyst'})).status,201,'manager invites member');
+  assert.equal((await call(manager,'POST',inviteRoute,{email:invitee.email,role:'analyst'})).status,409,'duplicate pending invite rejected');
+  assert.equal((await call(manager,'POST',inviteRoute,{email:wrong.email,role:'admin'})).status,403,'only owner invites admins');
+  assert.equal((await call(viewer,'POST',inviteRoute,{email:wrong.email,role:'analyst'})).status,404,'client view no invite');
+  assert.equal((await call(outsider,'POST',inviteRoute,{email:wrong.email,role:'analyst'})).status,404,'other org no invite');
+  const existing=(await db.query('SELECT id FROM organization_invitations WHERE organization_id=$1 AND email_hash=$2',[alpha,blindIndex(invitee.email)])).rows[0];
+  assert.ok(existing?.id);
+  const key=crypto.randomBytes(32).toString('base64url');const hash=crypto.createHash('sha256').update(key).digest('hex');
+  await db.query('UPDATE organization_invitations SET token_hash=$1 WHERE id=$2',[hash,existing.id]);
+  assert.equal((await call(wrong,'POST','/api/organizations/invitations/accept',{token:key})).status,404,'token must match verified account');
+  assert.equal((await call(invitee,'POST','/api/organizations/invitations/accept',{token:key})).status,200,'target can accept');
+  assert.equal((await call(invitee,'POST','/api/organizations/invitations/accept',{token:key})).status,404,'token one-time');
+  assert.equal((await db.query('SELECT role FROM organization_members WHERE organization_id=$1 AND user_id=$2',[alpha,invitee.id])).rows[0].role,'analyst');
+  assert.equal((await call(owner,'PATCH',`/api/organizations/${alpha}/members/${invitee.id}`,{role:'manager'})).status,200,'owner changes role');
+  assert.equal((await call(admin,'PATCH',`/api/organizations/${alpha}/members/${invitee.id}`,{role:'client_viewer'})).status,404,'admin no role changes');
+  assert.equal((await call(owner,'PATCH',`/api/organizations/${alpha}/members/${owner.id}`,{role:'analyst'})).status,404,'owner role immutable');
+  assert.equal((await call(owner,'DELETE',`/api/organizations/${alpha}/members/${owner.id}`)).status,403,'owner cannot be removed');
+  assert.equal((await call(admin,'DELETE',`/api/organizations/${alpha}/members/${owner.id}`)).status,403,'admin cannot remove owner');
+  assert.equal((await call(invitee,'DELETE',`/api/organizations/${alpha}/members/me`)).status,200,'member self-leave');
+  assert.equal((await call(invitee,'GET',`/api/organizations/${alpha}/team`)).status,404,'immediate revocation');
+  assert.equal((await call(owner,'GET',`/api/organizations/${alpha}/team`)).body.members.length,5,'others retained');
+  assert.equal((await call(owner,'GET',`/api/organizations/${beta}/team`)).status,404,'tenant scoped');
+  const revoked=crypto.randomBytes(32).toString('base64url');const revokedHash=crypto.createHash('sha256').update(revoked).digest('hex');
+  const row=(await db.query("INSERT INTO organization_invitations(organization_id,email_hash,email_encrypted,token_hash,role,invited_by_user_id,expires_at) VALUES($1,$2,$3,$4,'analyst',$5,now()+interval '7 days') RETURNING id",[alpha,blindIndex(wrong.email),encryptAES256GCM(wrong.email),revokedHash,owner.id])).rows[0];
+  assert.equal((await call(owner,'POST',`/api/organizations/${alpha}/invitations/${row.id}/reissue`,{})).status,200,'owner may renew a pending invitation');
+  const renewedText=sentMails.at(-1).text,match=/token=([A-Za-z0-9_-]+)/.exec(renewedText);
+  assert.ok(match,'renewed invitation must send new token via mock transport');
+  assert.notEqual(match[1],revoked,'renew must rotate token');
+  assert.equal((await call(wrong,'POST','/api/organizations/invitations/accept',{token:revoked})).status,404,'old bearer token invalid after reissue');
+  assert.equal((await call(owner,'DELETE',`/api/organizations/${alpha}/invitations/${row.id}`)).status,200);
+  assert.equal((await call(wrong,'POST','/api/organizations/invitations/accept',{token:revoked})).status,404,'revoked cannot accept');
+  const expired=crypto.randomBytes(32).toString('base64url');
+  await db.query("INSERT INTO organization_invitations(organization_id,email_hash,email_encrypted,token_hash,role,invited_by_user_id,expires_at) VALUES($1,$2,$3,$4,'analyst',$5,now()-interval '1 day')",[alpha,blindIndex(unverified.email),encryptAES256GCM(unverified.email),crypto.createHash('sha256').update(expired).digest('hex'),owner.id]);
+  assert.equal((await call(unverified,'POST','/api/organizations/invitations/accept',{token:expired})).status,404,'expired token cannot accept');
+  assert.equal((await db.query("SELECT count(*)::int AS c FROM organization_audit_log WHERE organization_id=$1 AND metadata_json->>'kind' IN ('organization.invitation.accepted','organization.member.role_changed','organization.member.removed','organization.invitation.revoked')",[alpha])).rows[0].c,4,'audited lifecycle');
+  assert.equal((await call(admin,'POST',`/api/organizations/${alpha}/transfer-owner`,{target_user_id:manager.id})).status,404,'only current owner transfers');
+  const transfer=await call(owner,'POST',`/api/organizations/${alpha}/transfer-owner`,{target_user_id:admin.id});
+  assert.equal(transfer.status,200,'owner can transfer to verified member');
+  assert.equal(transfer.body.billing_owner_unchanged,true,'provider billing owner must not silently move');
+  assert.equal((await db.query('SELECT owner_user_id FROM organizations WHERE id=$1',[alpha])).rows[0].owner_user_id,admin.id);
+  assert.equal((await db.query('SELECT role FROM organization_members WHERE organization_id=$1 AND user_id=$2',[alpha,owner.id])).rows[0].role,'admin','former owner retained');
+  assert.equal((await db.query('SELECT role FROM organization_members WHERE organization_id=$1 AND user_id=$2',[alpha,admin.id])).rows[0].role,'owner','target promoted');
+  assert.equal((await call(owner,'POST',`/api/organizations/${alpha}/transfer-owner`,{target_user_id:manager.id})).status,404,'former owner no longer transfers');
+  assert.equal((await call(admin,'DELETE',`/api/organizations/${alpha}/members/me`)).status,403,'new owner cannot self-delete');
+  assert.equal((await call(owner,'PATCH',`/api/organizations/${alpha}/members/${manager.id}`,{role:'analyst'})).status,404,'former owner cannot assign roles');
+
+ }finally{
+  if(prev===undefined)delete process.env.ENABLE_ORGANIZATION_TEAM_V1;else process.env.ENABLE_ORGANIZATION_TEAM_V1=prev;
+  if(prevRbac===undefined)delete process.env.ENABLE_ORGANIZATION_RBAC_V2;else process.env.ENABLE_ORGANIZATION_RBAC_V2=prevRbac;
+  if(server)await new Promise(r=>server.close(r));
+  for(const id of orgs.reverse())await db.query('DELETE FROM organizations WHERE id=$1',[id]).catch(()=>{});
+  for(const id of users.reverse())await db.query('DELETE FROM users WHERE id=$1',[id]).catch(()=>{});
+  await db.end();await pool.end().catch(()=>{});
+ }
+});
