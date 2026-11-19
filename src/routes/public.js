@@ -438,6 +438,23 @@ function maskEmailForDisplay(email) {
   return `${visible}${'*'.repeat(Math.max(1, local.length - 2))}@${domain}`;
 }
 
+// P09 scoped management UI. No member list or recipient PII is sent before
+// fresh database authorization of the signed-in user.
+router.get('/organizations/:id/team',async(req,res)=>{
+ if(!organizationTeamEnabled())return res.status(404).json({error:'Not found'});
+ const orgId=req.params.id;
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orgId))return res.status(404).json({error:'Not found'});
+ const userId=Number(req.session?.userId);
+ if(!Number.isSafeInteger(userId)||userId<1)return res.redirect('/login');
+ try {
+  const allowed=await withTransaction(async tx=>checkAccess({tx,organizationId:orgId,userId,mutation:true},'member.read'));
+  if(!allowed)return res.status(404).json({error:'Not found'});
+  res.set('Cache-Control','no-store');res.set('Referrer-Policy','no-referrer');
+  const lang=normalizeLang(req.query?.lang,'az');
+  return res.render('organization-team',{csrfToken:res.locals._csrf,orgId,lang});
+ }catch(_e){return res.status(500).json({error:'Team page unavailable'})}
+});
+
 router.get('/workspaces/accept-organization',async(req,res)=>{
  if(!organizationTeamEnabled())return res.status(404).json({error:'Not found'});
  res.set('Cache-Control','no-store');res.set('Referrer-Policy','no-referrer');

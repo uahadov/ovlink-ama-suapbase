@@ -25,7 +25,7 @@ test('P09 real HTTP invitation recipient binding, revocation, role lifecycle and
   const alpha=await o('P09 team alpha',owner),beta=await o('P09 team beta',outsider);
   for(const [u0,role] of [[admin,'admin'],[manager,'manager'],[analyst,'analyst'],[viewer,'client_viewer']])await db.query('INSERT INTO organization_members(organization_id,user_id,role) VALUES($1,$2,$3)',[alpha,u0.id,role]);
   const mail=require('../src/lib/email'),sentMails=[];mail.sendMail=async options=>{sentMails.push(options);return {messageId:'qa-only'}};
-  const app=express();app.use(express.json());app.use((req,_res,next)=>{req.session={userId:Number(req.get('x-test-user')||0)};next()});app.use(require('../src/routes/api/organization-team'));app.use((_req,res,next)=>{res.locals._csrf='qa-csrf';res.render=(view,locals)=>res.status(200).json({view,state:locals.state,teamInvite:locals.teamInvite,workspaceName:locals.workspaceName});next()});app.use(require('../src/routes/public'));
+  const app=express();app.use(express.json());app.use((req,_res,next)=>{req.session={userId:Number(req.get('x-test-user')||0)};next()});app.use(require('../src/routes/api/organization-team'));app.use((_req,res,next)=>{res.locals._csrf='qa-csrf';res.render=(view,locals)=>res.status(200).json({view,state:locals.state,teamInvite:locals.teamInvite,workspaceName:locals.workspaceName,orgId:locals.orgId});next()});app.use(require('../src/routes/public'));
   server=app.listen(0,'127.0.0.1');await new Promise(done=>server.once('listening',done));const base=`http://127.0.0.1:${server.address().port}`;
   async function call(actor,method,route,body){const response=await fetch(base+route,{method,headers:{'x-test-user':String(actor.id),'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});return {status:response.status,body:await response.json()}}
   const inviteRoute=`/api/organizations/${alpha}/invitations`;
@@ -58,6 +58,23 @@ test('P09 real HTTP invitation recipient binding, revocation, role lifecycle and
   assert.equal((await call(invitee,'DELETE',`/api/organizations/${alpha}/members/me`)).status,200,'member self-leave');
   assert.equal((await call(invitee,'GET',`/api/organizations/${alpha}/team`)).status,404,'immediate revocation');
   assert.equal((await call(owner,'GET',`/api/organizations/${alpha}/team`)).body.members.length,5,'others retained');
+  const teamOwner=await call(owner,'GET',`/api/organizations/${alpha}/team`);
+  assert.equal(teamOwner.body.current_user_id,owner.id);
+  assert.equal(teamOwner.body.owner_user_id,owner.id);
+  assert.equal(teamOwner.body.capabilities.change_role,true);
+  assert.equal(teamOwner.body.capabilities.transfer_owner,true);
+  const teamManager=await call(manager,'GET',`/api/organizations/${alpha}/team`);
+  assert.equal(teamManager.body.capabilities.invite,true);
+  assert.equal(teamManager.body.capabilities.invite_admin,false);
+  assert.equal(teamManager.body.capabilities.change_role,false);
+  assert.equal((await call(viewer,'GET',`/api/organizations/${alpha}/team`)).status,404);
+  const page=await call(manager,'GET',`/organizations/${alpha}/team`);
+  assert.equal(page.status,200);
+  assert.equal(page.body.view,'organization-team');
+  assert.equal((await call(viewer,'GET',`/organizations/${alpha}/team`)).status,404);
+  assert.equal((await call(outsider,'GET',`/organizations/${alpha}/team`)).status,404);
+  assert.equal((await call(owner,'GET',`/organizations/${beta}/team`)).status,404);
+
   assert.equal((await call(owner,'GET',`/api/organizations/${beta}/team`)).status,404,'tenant scoped');
   const revoked=crypto.randomBytes(32).toString('base64url');const revokedHash=crypto.createHash('sha256').update(revoked).digest('hex');
   const row=(await db.query("INSERT INTO organization_invitations(organization_id,email_hash,email_encrypted,token_hash,role,invited_by_user_id,expires_at) VALUES($1,$2,$3,$4,'analyst',$5,now()+interval '7 days') RETURNING id",[alpha,blindIndex(wrong.email),encryptAES256GCM(wrong.email),revokedHash,owner.id])).rows[0];

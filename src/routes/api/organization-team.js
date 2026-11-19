@@ -7,6 +7,7 @@ const {requireSignedIn}=require('../../middleware/auth');
 const {mutationLimiter,generalLimiter}=require('../../middleware/rate-limiter');
 const {organizationTeamEnabled}=require('../../db/organization-model');
 const {checkAccess}=require('../../lib/organization-access-context');
+const {can}=require('../../lib/organization-permissions');
 const {blindIndex,encryptAES256GCM,decryptAES256GCM}=require('../../../utils/crypto');
 const {sendMail}=require('../../lib/email');
 const {buildAbsoluteUrl}=require('../../lib/security');
@@ -29,10 +30,17 @@ router.get('/api/organizations/:id/team',auth,generalLimiter,requireSignedIn,asy
  if(!UUID.test(req.params.id))return res.status(404).json({error:'Not found'});
  try{
   const data=await withTransaction(async tx=>{
-   if(!(await gate(tx,req.params.id,uid(req),'member.read')))return null;
+   const organization=await gate(tx,req.params.id,uid(req),'member.read');
+   if(!organization)return null;
+   const membership=await tx.get('SELECT role FROM organization_members WHERE organization_id=? AND user_id=?',[req.params.id,uid(req)]);
+   if(!membership)return null;
+   const role=membership.role;
    const members=await tx.all('SELECT user_id,role,created_at FROM organization_members WHERE organization_id=? ORDER BY created_at,user_id',[req.params.id]);
    const invites=await tx.all("SELECT id,role,expires_at,accepted_at,revoked_at,created_at FROM organization_invitations WHERE organization_id=? ORDER BY created_at DESC LIMIT 100",[req.params.id]);
-   return {members,invites};
+   return {members,invites,current_user_id:uid(req),owner_user_id:organization.owner_user_id,
+     capabilities:{invite:can(role,'member.invite'),invite_admin:uid(req)===organization.owner_user_id,
+       change_role:can(role,'member.change_role'),remove:can(role,'member.remove'),
+       transfer_owner:uid(req)===organization.owner_user_id}};
   });
   if(!data)return res.status(404).json({error:'Not found'});
   res.set('Cache-Control','no-store');return res.json(data);
