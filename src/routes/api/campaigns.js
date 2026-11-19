@@ -16,6 +16,7 @@ const pdfReport = require('../../lib/pdf-report');
 const scheduledReports = require('../../lib/scheduled-reports');
 const businessAlerts = require('../../lib/business-alerts');
 const backgroundJobs = require('../../lib/background-jobs');
+const mcpWorkflows = require('../../lib/mcp/workflows');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -1719,6 +1720,59 @@ router.post('/api/ops/jobs/:id/requeue', async (req, res) => {
     return res.json(result);
   } catch {
     return res.status(500).json({ error: 'Tapşırıq yenidən növbəyə salına bilmədi.' });
+  }
+});
+
+// ===== P31: MCP Agency Business Workflows (Human-Confirmed Dry-Run + Grounded Report Summary) =====
+
+router.post('/api/mcp/workflows/prepare-campaign', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const result = await mcpWorkflows.prepareCampaignWorkflow({
+      userId,
+      workspaceId: body.workspace_id || null,
+      payload: body,
+    });
+    if (result.error) return res.status(result.statusCode || 400).json(result);
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'Kampaniya hazırlığı (dry-run) alınmadı.' });
+  }
+});
+
+router.post('/api/mcp/workflows/launch-campaign', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const result = await mcpWorkflows.launchCampaignWorkflow({
+      userId,
+      traceId: body.trace_id,
+      confirmationToken: body.confirmation_token,
+      idempotencyKey: req.get('idempotency-key') || body.idempotency_key || null,
+    });
+    if (result.error) return res.status(result.statusCode || 400).json(result);
+    return res.status(result.deduplicated ? 200 : 201).json(result);
+  } catch {
+    return res.status(500).json({ error: 'Kampaniya işə salına bilmədi.' });
+  }
+});
+
+router.get('/api/mcp/workflows/summarize-report/:id', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await mcpWorkflows.summarizeCampaignReportWorkflow({
+      userId,
+      campaignId: req.params.id,
+      query: req.query || {},
+    });
+    if (result.error) return res.status(result.statusCode || 404).json(result);
+    return res.json(result);
+  } catch {
+    return res.status(503).json({ error: 'Hesabat xülasəsi hazırlana bilmədi.' });
   }
 });
 

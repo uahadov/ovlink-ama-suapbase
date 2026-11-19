@@ -492,6 +492,25 @@ function ensureDbTables() {
       db.run('CREATE INDEX IF NOT EXISTS idx_background_jobs_owner ON background_jobs(owner_user_id, id DESC)', () => {});
     });
 
+    // P31: traceable, human-confirmed MCP workflow runs.
+    db.run(`CREATE TABLE IF NOT EXISTS mcp_workflow_runs (
+      id SERIAL PRIMARY KEY,
+      trace_id TEXT NOT NULL UNIQUE,
+      workflow_name TEXT NOT NULL,
+      owner_user_id INTEGER NOT NULL,
+      workspace_id INTEGER,
+      idempotency_key TEXT UNIQUE,
+      confirmation_hash TEXT,
+      confirmation_expires_at TEXT,
+      status TEXT NOT NULL DEFAULT 'awaiting_confirmation',
+      preview_json TEXT NOT NULL,
+      result_json TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_mcp_workflow_owner ON mcp_workflow_runs(owner_user_id, id DESC)', () => {});
+    });
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});
