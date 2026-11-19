@@ -26,8 +26,12 @@
 | **Agency** | `$49` (~83 AZN) | 5,000,000 | `$15.4100` | `$33.59` (`68.55%`) | Yes |
 | **Enterprise** | `$129` (~219 AZN) | 20,000,000 | `$43.8600` | `$85.14` (`66.00%`) | Yes |
 
-## 3. Operational Guardrails
+## 3. Operational Guardrails & Post-Cancellation Protection (3 Golden Rules)
 
 - **Fail-Open Metering:** Any metering write failure (including legacy accounts without organization billing rows) fails open and **never interrupts short-link redirects**.
+- **Rule 1 — Lightweight Redirects Only After Cancellation:** When a paid subscription is cancelled, existing short links keep redirecting without ads, while heavy DB analytics writes, scheduled PDFs, webhooks, AI workflows, and team seats pause immediately.
+- **Rule 2 — 30-Day Custom Domain Grace Period:** Custom branded domains (`go.client.az`) remain active for 30 days after cancellation, then require an active paid subscription to continue routing (preventing free-rider enterprise domain abuse).
+- **Rule 3 — 100K Monthly Fair-Use Threshold on Cancelled Accounts:** Normal traffic (up to 100,000 clicks/month) on cancelled accounts never breaks; abnormal multi-million click spikes trigger a renewal notice and soft rate-limiting to protect server margins.
+- **Expansion Levers:** Annual billing (2 months free / ~17% off) improves cashflow and lowers payment fees; optional add-on (`+10 client portals` for `+$15/mo`) expands ARPU at ~95% margin without forcing premature tier jumps.
 - **Alert Thresholds:** Soft warnings trigger at `80%` of monthly capacity or `100%` projected end-of-month run-rate; critical alerts trigger at `95%`; margin compression alerts trigger if actual monthly gross margin drops below `65%`.
 - **Pricing Hypothesis:** Paid tiers stay 2×–6× cheaper than global competitors (Bitly, Rebrandly, Dub.co, Replug, Linkly, Cutt.ly, Switchy) while preserving `66%–73%` gross margin at 100% worst-case saturation and `~85%–90%` under typical customer load.

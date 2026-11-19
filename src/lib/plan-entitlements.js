@@ -22,7 +22,15 @@ const SOFT_WARNING_RATIO = 0.8;
 const EXISTING_LINKS_POLICY = Object.freeze({
   existing_links_redirect_normally: true,
   historical_data_deleted_on_downgrade: false,
-  summary: 'Existing short links continue redirecting normally and historical analytics are preserved. Only creating new resources above the active tier quota is restricted.',
+  post_cancel_heavy_features_paused: true,
+  custom_domain_grace_days: 30,
+  cancelled_fair_use_monthly_clicks: 100000,
+  churn_protection_rules: Object.freeze([
+    'After cancellation, existing short links keep redirecting from lightweight cache, while heavy analytics writes, PDF exports, webhooks, AI workflows, and team access pause immediately.',
+    'Custom branded domains receive a 30-day grace window after cancellation and require an active paid plan thereafter (standard ovlink.sbs links continue redirecting).',
+    'Cancelled accounts are protected up to a 100,000 monthly clicks fair-use threshold; sustained multi-million click spikes trigger a renewal notice and soft rate-limiting.',
+  ]),
+  summary: 'Existing short links continue redirecting normally within fair-use bounds and historical analytics are preserved. Heavy features pause on cancellation, custom domains have a 30-day grace window, and only creating new resources above the active tier quota is restricted.',
 });
 
 const TIER_ORDER = ['free', 'starter', 'business', 'agency', 'enterprise'];
