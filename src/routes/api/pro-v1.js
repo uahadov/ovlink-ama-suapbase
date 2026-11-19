@@ -6,7 +6,8 @@ const { dbAllAsync } = require('../../db/helpers');
 const campaignLib = require('../../lib/campaigns');
 const { API_KEY_SCOPES } = require('../../lib/security');
 const { authenticateProApiKey, trackProApiUsage, requireApiScope } = require('../../middleware/auth');
-const { proReadLimiter } = require('../../middleware/rate-limiter');
+const { proReadLimiter, proWriteLimiter } = require('../../middleware/rate-limiter');
+const conversionEvents = require('../../lib/conversion-events');
 const { isoDay, addDays, parseRange } = require('../../lib/link-stats');
 const analyticsAudit = require('../../lib/analytics-audit');
 
@@ -200,6 +201,76 @@ router.get('/api/pro/v1/campaigns/:id', ...API_STACK, async (req, res) => {
   } catch {
     return res.status(500).json({ error: 'Server error.' });
   }
+});
+
+// POST /api/pro/v1/conversions -> signed server-to-server conversion event ingestion (P21)
+router.post(
+  '/api/pro/v1/conversions',
+  authenticateProApiKey,
+  trackProApiUsage,
+  proWriteLimiter,
+  requireApiScope(API_KEY_SCOPES.SHORTEN_WRITE),
+  async (req, res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    const userId = req.apiAuth && Number.isInteger(req.apiAuth.userId) ? req.apiAuth.userId : 0;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized.' });
+
+    const headerKey = (req.headers['x-api-key'] || '').toString().trim();
+    const authHeader = (req.headers.authorization || '').toString().trim();
+    const bearerKey = /^bearer\s+/i.test(authHeader) ? authHeader.replace(/^bearer\s+/i, '').trim() : '';
+    const signingSecret = headerKey || bearerKey;
+    const rawBody = typeof req.rawBody === 'string' && req.rawBody.length
+      ? req.rawBody
+      : JSON.stringify(req.body || {});
+
+    const sigCheck = conversionEvents.verifyConversionSignature({
+      secret: signingSecret,
+      timestampHeader: req.headers['x-ovlink-timestamp'],
+      signatureHeader: req.headers['x-ovlink-signature'],
+      rawBody,
+    });
+    if (!sigCheck.valid) {
+      return res.status(401).json({ error: 'Invalid conversion signature.', reason: sigCheck.reason });
+    }
+
+    try {
+      const result = await conversionEvents.ingestConversionEvent({
+        userId,
+        body: req.body,
+        signatureVerified: sigCheck.present && sigCheck.valid,
+        auditMeta: { apiKeyId: req.apiAuth && req.apiAuth.keyId ? req.apiAuth.keyId : null },
+      });
+      return res.status(result.status).json(result.body);
+    } catch {
+      return res.status(500).json({ error: 'Server error.' });
+    }
+  }
+);
+
+// GET /api/pro/v1/conversions -> list recorded conversion events for the key owner (P21)
+router.get('/api/pro/v1/conversions', ...API_STACK, async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  const userId = req.apiAuth && Number.isInteger(req.apiAuth.userId) ? req.apiAuth.userId : 0;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized.' });
+
+  const q = req.query && typeof req.query === 'object' ? req.query : {};
+  try {
+    const events = await conversionEvents.listConversionEvents({
+      userId,
+      short: q.short,
+      campaignId: q.campaign_id,
+      goal: q.goal,
+      limit: q.limit,
+    });
+    return res.json({ events });
+  } catch {
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+router.all('/api/pro/v1/conversions', (req, res) => {
+  res.set('Allow', 'GET, POST');
+  return res.status(405).json({ error: 'Method not allowed. Use GET or POST.' });
 });
 
 // GET /api/pro/v1/openapi.json -> versioned description of this namespace

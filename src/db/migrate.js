@@ -124,6 +124,31 @@ function ensureDbTables() {
     )`);
     db.run('CREATE INDEX IF NOT EXISTS idx_link_conversions_url_day ON link_conversions(url_id, day)', () => {});
 
+    // P21: Authorized server-to-server & SDK conversion events with replay protection.
+    db.run(`CREATE TABLE IF NOT EXISTS conversion_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      event_id TEXT NOT NULL,
+      url_id INTEGER NOT NULL,
+      campaign_id INTEGER,
+      goal TEXT NOT NULL,
+      occurred_at TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'server_api',
+      consent_mode TEXT NOT NULL DEFAULT 'analytics',
+      value_amount REAL,
+      value_currency TEXT,
+      actor_hash TEXT,
+      signature_verified INTEGER NOT NULL DEFAULT 0,
+      payload_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(user_id, event_id),
+      FOREIGN KEY(user_id) REFERENCES users(id),
+      FOREIGN KEY(url_id) REFERENCES urls(id)
+    )`);
+    db.run('CREATE INDEX IF NOT EXISTS idx_conversion_events_user_created ON conversion_events(user_id, created_at DESC)', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_conversion_events_url_occurred ON conversion_events(url_id, occurred_at DESC)', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_conversion_events_campaign_occurred ON conversion_events(campaign_id, occurred_at DESC)', () => {});
+
     // Read-only statistics shares. Only the SHA-256 of the token is stored, and
     // every share is expiring + revocable, so a leaked link cannot expose data
     // forever.

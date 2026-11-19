@@ -15,6 +15,7 @@
  */
 
 const ANALYTICS_TABLES = Object.freeze([
+  'conversion_events',
   'link_funnel_steps',
   'link_conversions',
   'link_stats_daily',
