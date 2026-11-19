@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { withTransaction } = require('../db/helpers');
 
 const CAMPAIGN_STATUSES = Object.freeze(['draft', 'active', 'paused', 'completed', 'archived']);
 const VALID_BUDGET_CURRENCIES = Object.freeze(['AZN', 'USD', 'EUR', 'TRY', 'GBP']);
@@ -132,37 +133,30 @@ async function ensureCampaignModelColumns(dbRunAsync, dbGetAsync = null) {
       }
     }
 
-    let locked = false;
-    try {
-      await dbRunAsync('SELECT pg_advisory_lock(15152026)', []);
-      locked = true;
-    } catch {
-      // Non-PG or restricted environment; continue idempotently
-    }
-
     const statements = [
-      "ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'",
-      'ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS starts_at TEXT',
-      'ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS ends_at TEXT',
-      'ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS budget_amount DOUBLE PRECISION',
-      'ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS budget_currency TEXT',
-      'ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS event_id TEXT',
+      "ALTER TABLE campaigns ADD COLUMN status TEXT DEFAULT 'active'",
+      'ALTER TABLE campaigns ADD COLUMN starts_at TEXT',
+      'ALTER TABLE campaigns ADD COLUMN ends_at TEXT',
+      'ALTER TABLE campaigns ADD COLUMN budget_amount REAL',
+      'ALTER TABLE campaigns ADD COLUMN budget_currency TEXT',
+      'ALTER TABLE campaigns ADD COLUMN event_id TEXT',
       'CREATE INDEX IF NOT EXISTS idx_campaigns_status ON campaigns(status)',
       'CREATE UNIQUE INDEX IF NOT EXISTS idx_campaigns_event_id ON campaigns(event_id) WHERE event_id IS NOT NULL',
       "UPDATE campaigns SET status = CASE WHEN archived_at IS NOT NULL THEN 'archived' ELSE 'active' END WHERE status IS NULL",
     ];
+
     try {
+      await withTransaction(async (tx) => {
+        await tx.run('SELECT pg_advisory_xact_lock(15152026)', []);
+        for (const sql of statements) {
+          await tx.run(sql, []);
+        }
+      });
+    } catch {
+      // Fallback for non-transactional or non-PG test mocks
       for (const sql of statements) {
         try {
           await dbRunAsync(sql, []);
-        } catch {
-          // Ignore dialect differences; migrate.js also adds columns on startup.
-        }
-      }
-    } finally {
-      if (locked) {
-        try {
-          await dbRunAsync('SELECT pg_advisory_unlock(15152026)', []);
         } catch {}
       }
     }

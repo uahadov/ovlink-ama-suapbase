@@ -61,6 +61,22 @@
     .cp-detail-actions { margin-bottom:14px; display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; align-items:center; }
     .cp-filter-inline { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--c-muted); }
     .cp-filter-inline .cp-input { min-width:130px; flex:0 1 170px; padding:9px 10px; font-size:12px; }
+    [hidden] { display: none !important; }
+    .cp-head-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .cw-steps { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
+    .cw-step { font-size: 11px; padding: 5px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); color: var(--c-muted, #a1a1aa); }
+    .cw-step--active { background: #ffffff; color: #0a0a0a; border-color: #ffffff; font-weight: 700; }
+    .cw-step--done { border-color: rgba(52,211,153,0.45); color: #34d399; }
+    .cw-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .cw-chip { border: 1px solid rgba(255,255,255,0.14); background: transparent; color: inherit; border-radius: 999px; padding: 7px 13px; font: inherit; font-size: 12px; cursor: pointer; text-transform: capitalize; }
+    .cw-chip--on { background: #ffffff; color: #0a0a0a; border-color: #ffffff; font-weight: 700; }
+    .cw-link-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+    .cw-link-row select.cp-input { flex: 0 1 140px; min-width: 110px; }
+    .cw-link-row input.cp-input { flex: 1 1 220px; min-width: 160px; }
+    .cw-qr-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--c-muted, #a1a1aa); white-space: nowrap; }
+    .cw-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .cw-autosave { font-size: 11px; color: var(--c-faint, #737373); }
+    .cw-banner { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px dashed rgba(255,255,255,0.22); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 13px; }
     @media (max-width: 720px) {
       .cp-row { grid-template-columns: minmax(0, 1.5fr) minmax(36px, 0.6fr) minmax(36px, 0.6fr) auto; gap:6px; }
       .cp-row .cp-name,.cp-row .cp-slug { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -79,8 +95,75 @@
           <h1 class="cp-title" data-i18n="campaigns_title">Kampaniyalar</h1>
           <p class="cp-sub" data-i18n="campaigns_sub">Linkləri kampaniyalar üzrə qruplaşdırın və nəticəni bir ekranda görün.</p>
         </div>
-        <a class="cp-btn cp-btn--ghost" href="/dashboard" data-i18n="campaigns_back_dashboard">İdarə paneli</a>
+        <div class="cp-head-actions">
+          <button class="cp-btn" type="button" id="openWizardBtn">Kampaniya Wizard</button>
+          <a class="cp-btn cp-btn--ghost" href="/dashboard" data-i18n="campaigns_back_dashboard">İdarə paneli</a>
+        </div>
       </div>
+
+      <div id="wizardResumeBanner" class="cw-banner" hidden role="status">
+        <span id="cwResumeText">Yarımçıq kampaniya draft-ı tapıldı.</span>
+        <div class="cp-head-actions">
+          <button class="cp-btn" type="button" id="cwResumeBtn">Davam et</button>
+          <button class="cp-btn cp-btn--ghost" type="button" id="cwDiscardBtn">Təmizlə</button>
+        </div>
+      </div>
+
+      <section id="wizardSection" class="cp-card" hidden aria-label="Campaign Launch Wizard">
+        <div class="cp-list-head">
+          <div>
+            <h2 id="cwTitle">Kampaniya Başlatma Wizard-ı</h2>
+            <p id="cwSub">5 addımda səhvsiz kampaniya, UTM linklər və dinamik QR yaradın.</p>
+          </div>
+          <button class="cp-btn cp-btn--ghost" type="button" id="closeWizardBtn">Bağla</button>
+        </div>
+        <div id="cwSteps" class="cw-steps" aria-label="Wizard steps"></div>
+        <p id="cwHint" class="cp-sub" style="margin:6px 0 12px;"></p>
+
+        <div id="cwPanel1">
+          <div class="cp-form">
+            <input class="cp-input" id="cwName" type="text" maxlength="60" placeholder="Kampaniya adı (məs: Qış Kampaniyası)" />
+            <input class="cp-input" id="cwGoal" type="text" maxlength="40" placeholder="Hədəf (məs: leads)" />
+            <select class="cp-input" id="cwStatus" style="flex:0 1 130px;min-width:110px;">
+              <option value="active">active</option>
+              <option value="draft">draft</option>
+            </select>
+            <input class="cp-input" id="cwBudget" type="number" min="0" step="0.01" placeholder="Büdcə (opsional)" style="flex:0 1 150px;min-width:120px;" />
+            <select class="cp-input" id="cwCurrency" style="flex:0 1 95px;min-width:85px;">
+              <option value="AZN">AZN</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="TRY">TRY</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="cwPanel2" hidden>
+          <div id="cwChannelsBox" class="cw-chips"></div>
+        </div>
+
+        <div id="cwPanel3" hidden>
+          <div id="cwLinksBox"></div>
+          <button class="cp-btn cp-btn--ghost" type="button" id="cwAddLinkBtn">+ Link əlavə et</button>
+        </div>
+
+        <div id="cwPanel4" hidden>
+          <div id="cwPreviewBox"></div>
+        </div>
+
+        <div id="cwPanel5" hidden>
+          <div id="cwResultBox"></div>
+        </div>
+
+        <div class="cp-msg" id="cwMsg" role="alert"></div>
+        <div class="cw-footer">
+          <span class="cw-autosave" id="cwAutosave" aria-live="polite"></span>
+          <div class="cp-head-actions">
+            <button class="cp-btn cp-btn--ghost" type="button" id="cwPrevBtn" hidden>← Əvvəlki</button>
+            <button class="cp-btn" type="button" id="cwNextBtn">Növbəti addım →</button>
+          </div>
+        </div>
+      </section>
 
       <section class="cp-card" aria-label="New campaign">
         <form class="cp-form" id="createForm" autocomplete="off">
@@ -179,5 +262,6 @@
   </main>
 
   <script nonce="<%= nonce %>" src="/campaigns-page.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/campaigns-wizard.js?v=<%= assetVersion %>"></script>
 </body>
 </html>

@@ -4,6 +4,7 @@ const router = express.Router();
 const { dbGetAsync, dbRunAsync, withTransaction } = require('../../db/helpers');
 const { normalizeShortCode } = require('../../lib/url-helpers');
 const campaignLib = require('../../lib/campaigns');
+const campaignWizard = require('../../lib/campaign-wizard');
 const {
   normalizeCampaignStatus,
   resolveEffectiveStatus,
@@ -128,6 +129,34 @@ router.post('/api/campaigns', async (req, res) => {
       return res.status(statusCode).json({ error: ERROR_MESSAGES[result.error] || 'Kampaniya yaradıla bilmədi.' });
     }
     return res.status(201).json({ campaign: result.campaign });
+  } catch {
+    return res.status(500).json({ error: 'Kampaniya yaradıla bilmədi.' });
+  }
+});
+
+// POST /api/campaigns/wizard-preview -> validate draft & preview UTM-tagged links without writes
+router.post('/api/campaigns/wizard-preview', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+
+  const preview = campaignWizard.validateWizardDraft(req.body);
+  return res.json(preview);
+});
+
+// POST /api/campaigns/launch -> 5-step Campaign Launch Wizard orchestrator with partial-failure tracking
+router.post('/api/campaigns/launch', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+
+  try {
+    const result = await campaignWizard.launchCampaignWizard({ userId, payload: req.body });
+    if (result.error) {
+      return res.status(result.statusCode || 400).json({
+        error: ERROR_MESSAGES[result.error] || 'Kampaniya yaradıla bilmədi.',
+        code: result.error,
+      });
+    }
+    return res.status(result.statusCode || 201).json(result.body);
   } catch {
     return res.status(500).json({ error: 'Kampaniya yaradıla bilmədi.' });
   }
