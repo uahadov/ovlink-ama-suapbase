@@ -176,6 +176,24 @@ function ensureDbTables() {
     db.run('ALTER TABLE campaigns ADD COLUMN event_id TEXT', () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_campaigns_status ON campaigns(status)', () => {});
     db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_campaigns_event_id ON campaigns(event_id) WHERE event_id IS NOT NULL', () => {});
+    // P17: reusable agency/workspace/personal UTM presets
+    db.run(`CREATE TABLE IF NOT EXISTS utm_presets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      workspace_id INTEGER,
+      client_id TEXT,
+      name TEXT NOT NULL,
+      utm_source TEXT,
+      utm_medium TEXT,
+      utm_campaign TEXT,
+      utm_term TEXT,
+      utm_content TEXT,
+      convention_json TEXT,
+      created_at TEXT,
+      updated_at TEXT
+    )`, () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_utm_presets_user ON utm_presets(user_id)', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_utm_presets_workspace ON utm_presets(workspace_id, client_id)', () => {});
 
     // F3: per-user alert thresholds. NULL means "inherit the env default".
     db.run('ALTER TABLE users ADD COLUMN alert_spike_multiplier REAL', () => {});

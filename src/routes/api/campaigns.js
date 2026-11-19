@@ -5,6 +5,7 @@ const { dbGetAsync, dbRunAsync, withTransaction } = require('../../db/helpers');
 const { normalizeShortCode } = require('../../lib/url-helpers');
 const campaignLib = require('../../lib/campaigns');
 const campaignWizard = require('../../lib/campaign-wizard');
+const utmPresets = require('../../lib/utm-presets');
 const {
   normalizeCampaignStatus,
   resolveEffectiveStatus,
@@ -502,6 +503,97 @@ router.post('/api/links/:short/campaign', async (req, res) => {
   }
 
   return res.json({ short, campaign_id: campaignId });
+});
+
+// ===== P17: UTM Standards & Agency Presets =====
+
+router.get('/api/utm-presets', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const query = req.query && typeof req.query === 'object' ? req.query : {};
+    const presets = await utmPresets.listUtmPresets({
+      userId,
+      workspaceId: query.workspace_id,
+      clientId: query.client_id,
+    });
+    return res.json({ presets });
+  } catch {
+    return res.status(500).json({ error: 'UTM şablonları alına bilmədi.' });
+  }
+});
+
+router.post('/api/utm-presets', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await utmPresets.createUtmPreset({ userId, body: req.body });
+    if (result.error) {
+      return res.status(result.statusCode || 400).json({
+        error: ERROR_MESSAGES[result.error] || 'UTM şablonu yaradıla bilmədi.',
+        code: result.error,
+      });
+    }
+    return res.status(201).json({ preset: result.preset });
+  } catch {
+    return res.status(500).json({ error: 'UTM şablonu yaradıla bilmədi.' });
+  }
+});
+
+router.patch('/api/utm-presets/:id', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await utmPresets.updateUtmPreset({ userId, presetId: req.params.id, body: req.body });
+    if (result.error) {
+      return res.status(result.statusCode || 400).json({
+        error: ERROR_MESSAGES[result.error] || 'UTM şablonu yenilənə bilmədi.',
+        code: result.error,
+      });
+    }
+    return res.json({ preset: result.preset });
+  } catch {
+    return res.status(500).json({ error: 'UTM şablonu yenilənə bilmədi.' });
+  }
+});
+
+router.delete('/api/utm-presets/:id', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await utmPresets.deleteUtmPreset({ userId, presetId: req.params.id });
+    if (result.error) {
+      return res.status(result.statusCode || 404).json({ error: 'UTM şablonu tapılmadı.', code: result.error });
+    }
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'UTM şablonu silinmədi.' });
+  }
+});
+
+router.post('/api/utm-presets/preview', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const baseUrl = String(body.base_url || '').trim();
+  if (!/^https?:\/\//i.test(baseUrl)) {
+    return res.status(400).json({ error: 'Keçərli http/https URL daxil edin.' });
+  }
+
+  let preset = body.preset && typeof body.preset === 'object' ? body.preset : {};
+  if (body.preset_id) {
+    const saved = await utmPresets.getUtmPresetForActor({ userId, presetId: body.preset_id });
+    if (!saved) return res.status(404).json({ error: 'UTM şablonu tapılmadı.' });
+    preset = saved;
+  }
+
+  const preview = utmPresets.buildChannelUtmPreview({
+    baseUrl,
+    preset,
+    channels: Array.isArray(body.channels) ? body.channels : [],
+    campaignSlug: body.campaign_slug || '',
+  });
+  return res.json(preview);
 });
 
 module.exports = router;
