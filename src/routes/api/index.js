@@ -20,6 +20,7 @@ router.use(require('./api-keys'));
 router.use(require('./workspaces'));
 router.use(require('./organizations')); // P07 feature-off-by-default organization API
 router.use(require('./organization-team')); // P09 independently gated team lifecycle
+router.use(require('./organization-clients')); // P10 independently gated agency clients
 router.use(require('./custom-domains'));
 router.use(require('./billing'));
 

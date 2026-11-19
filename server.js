@@ -5,7 +5,7 @@ const { app } = require('./src/app');
 // Import startup helpers
 const { ensureRedisConnected } = require('./src/config/redis');
 const { ensureDbTables } = require('./src/db/migrate');
-const { migrateOrganizationModel, migrateOrganizationRoles, organizationFeatureEnabled, organizationRbacV2Enabled, organizationTeamEnabled, migrateOrganizationTeam } = require('./src/db/organization-model');
+const { migrateOrganizationModel, migrateOrganizationRoles, organizationFeatureEnabled, organizationRbacV2Enabled, organizationTeamEnabled, migrateOrganizationTeam, organizationClientsEnabled, migrateOrganizationClients } = require('./src/db/organization-model');
 const { db } = require('./src/db/index');
 const { syncThreatIntelligenceFeed, scheduleWeeklySafetyScan, THREAT_FEED_SYNC_INTERVAL_MS } = require('./src/lib/safety');
 const { scheduleWebhookRecoveryWorker } = require('./src/lib/webhook');
@@ -49,6 +49,9 @@ if (require.main === module) {
       check();
     });
 
+    if (String(process.env.ENABLE_ORGANIZATION_CLIENTS_V1 || '').trim()==='1' && !organizationTeamEnabled()) {
+      throw new Error('P10 client portfolio requires P07 P08 P09; refusing startup');
+    }
     if (String(process.env.ENABLE_ORGANIZATION_TEAM_V1 || '').trim()==='1' && !organizationRbacV2Enabled()) {
       throw new Error('P09 team lifecycle requires P07 and P08 features; refusing startup');
     }
@@ -67,6 +70,10 @@ if (require.main === module) {
         if (organizationTeamEnabled()) {
           await migrateOrganizationTeam();
           console.log('[organization-model] P09 team lifecycle migration verified');
+          if (organizationClientsEnabled()) {
+            await migrateOrganizationClients();
+            console.log('[organization-model] P10 client portfolio migration verified');
+          }
         }
       }
     }

@@ -84,6 +84,22 @@ async function migrateOrganizationTeam({ clientPool = pool, env = process.env } 
   } finally {client.release()}
 }
 
+function organizationClientsEnabled(env=process.env) {
+  return organizationTeamEnabled(env) && String(env.ENABLE_ORGANIZATION_CLIENTS_V1 || '').trim() === '1';
+}
+async function migrateOrganizationClients({clientPool=pool,env=process.env}={}) {
+  if(!organizationClientsEnabled(env))throw new Error('P10 client portfolio requires P07 P08 P09 P10 opt-ins');
+  const sql=fs.readFileSync(path.join(__dirname,'organization-clients-p10.sql'),'utf8');
+  const client=await clientPool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1,$2)',[2026,7007]);
+    await client.query(sql.replace(/^\s*BEGIN;\s*/i,'').replace(/\s*COMMIT;\s*$/i,''));
+    await client.query('COMMIT');return {ok:true};
+  }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e}
+  finally{client.release()}
+}
+
 /**
  * Link a newly created legacy workspace in the SAME transaction as its
  * workspace/member rows. This avoids waiting until the next server restart.
@@ -120,4 +136,4 @@ async function linkLegacyWorkspace(tx, workspaceId) {
   return row.id;
 }
 
-module.exports = { migrateOrganizationModel, migrateOrganizationRoles, organizationFeatureEnabled, organizationRbacV2Enabled, organizationTeamEnabled, migrateOrganizationTeam, linkLegacyWorkspace };
+module.exports = { migrateOrganizationModel, migrateOrganizationRoles, organizationFeatureEnabled, organizationRbacV2Enabled, organizationTeamEnabled, migrateOrganizationTeam, organizationClientsEnabled, migrateOrganizationClients, linkLegacyWorkspace };
