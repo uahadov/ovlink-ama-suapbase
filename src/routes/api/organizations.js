@@ -1,6 +1,7 @@
 'use strict';
 const express = require('express');
-const { withTransaction, dbAllAsync, dbGetAsync } = require('../../db/helpers');
+const { randomUUID } = require('node:crypto');
+const { withTransaction, dbAllAsync } = require('../../db/helpers');
 const { requireSignedIn, requireProAccess } = require('../../middleware/auth');
 const { generalLimiter, mutationLimiter } = require('../../middleware/rate-limiter');
 const { organizationFeatureEnabled } = require('../../db/organization-model');
@@ -17,6 +18,7 @@ function userId(req) {
   return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const validName = name => typeof name === 'string' && name.trim().length >= 3 && name.trim().length <= 100 && !/[\u0000-\u001f\u007f]/.test(name);
 
 router.get('/api/organizations', guard, generalLimiter, requireSignedIn, async (req, res) => {
   try {
@@ -84,17 +86,54 @@ router.get('/api/organizations/:id', guard, generalLimiter, requireSignedIn, asy
   }
 });
 
+// Only standalone (not legacy-shadow) organization display names are mutable.
+// The live workspace is the sole name authority for a legacy organization.
+// Authorization and mutation share the same transaction with DB membership locks.
+router.patch('/api/organizations/:id', guard, mutationLimiter, requireSignedIn, async (req, res) => {
+  if (!uuid.test(req.params.id)) return res.status(404).json({ error: 'Not found' });
+  if (!req.body || Array.isArray(req.body) || typeof req.body !== 'object' ||
+      Object.keys(req.body).length !== 1 || !Object.hasOwn(req.body, 'name') ||
+      !validName(req.body.name)) return res.status(400).json({ error: 'Invalid name' });
+  const name = req.body.name.trim();
+  try {
+    const outcome = await withTransaction(async tx => {
+      const user = userId(req);
+      const allowed = await checkAccess({tx, organizationId:req.params.id, userId:user, mutation:true}, 'organization.update');
+      if (!allowed) return {status:404};
+      const current = await tx.get('SELECT display_name,legacy_workspace_id FROM organizations WHERE id=? FOR SHARE', [req.params.id]);
+      if (!current) return {status:404};
+      // Do not create name drift between old workspaces and their shadow orgs.
+      if (current.legacy_workspace_id !== null) return {status:409};
+      if (current.display_name === name) return {status:200,name};
+      const changed = await tx.get(
+        "UPDATE organizations SET display_name=? WHERE id=? AND state='active' AND legacy_workspace_id IS NULL RETURNING display_name",
+        [name,req.params.id]
+      );
+      if (!changed) return {status:404};
+      await tx.run(
+        'INSERT INTO organization_audit_log(organization_id,event_key,actor_user_id,metadata_json) VALUES (?,?,?,?::jsonb)',
+        [req.params.id, 'organization.renamed.' + randomUUID(), user,
+          JSON.stringify({kind:'organization.display_name.changed', previous_name:current.display_name, new_name:name})]
+      );
+      return {status:200,name:changed.display_name};
+    });
+    res.set('Cache-Control', 'no-store');
+    if (outcome.status===404) return res.status(404).json({error:'Not found'});
+    if (outcome.status===409) return res.status(409).json({error:'Legacy workspace name must be changed using workspace settings'});
+    return res.json({organization:{id:req.params.id,display_name:outcome.name}});
+  } catch (error) {
+    return res.status(500).json({error:'Could not update organization'});
+  }
+});
+
 // Creating an organization does not alter any legacy workspace, link,
 // campaign or provider subscription. P08 will add more membership mutations.
 router.post('/api/organizations',
   guard, mutationLimiter, requireSignedIn, requireProAccess('workspaces'),
   async (req, res) => {
     const raw = req.body && req.body.name;
-    if (typeof raw !== 'string') return res.status(400).json({ error: 'Invalid name' });
+    if (!validName(raw)) return res.status(400).json({ error: 'Invalid name' });
     const name = raw.trim();
-    if (name.length < 3 || name.length > 100 || /[\u0000-\u001f\u007f]/.test(name)) {
-      return res.status(400).json({ error: 'Invalid name' });
-    }
     try {
       const id = await withTransaction(async tx => {
         const user = userId(req);

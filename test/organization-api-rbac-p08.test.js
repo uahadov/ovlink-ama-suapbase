@@ -52,6 +52,32 @@ test('P08: live org API policy, role downgrade, revoke, and cross-tenant hiding'
       assert.equal((await get(other,`/api/organizations/${org.id}`)).status,404,'cross org hidden');
       assert.equal((await get(owner,`/api/organizations/${beta.id}`)).status,404,'other org hidden');
       assert.equal((await get(owner,'/api/organizations/not-uuid')).status,404);
+      // Real mutation pathway: only owner/admin, authorized in same locked DB transaction.
+      async function patch(user, endpoint, body){
+        const res=await fetch(base+endpoint,{method:'PATCH',headers:{'x-test-user':String(user),'content-type':'application/json'},body:JSON.stringify(body)});
+        return {status:res.status,body:await res.json(),cache:res.headers.get('cache-control')};
+      }
+      assert.equal((await patch(owner,`/api/organizations/${org.id}`,{name:'  Alpha New  '})).status,200);
+      assert.equal((await get(owner,`/api/organizations/${org.id}`)).body.organization.display_name,'Alpha New');
+      assert.equal((await patch(admin,`/api/organizations/${org.id}`,{name:'Alpha Admin'})).status,200,'admin may update');
+      assert.equal((await patch(manager,`/api/organizations/${org.id}`,{name:'Manager Should Fail'})).status,404);
+      assert.equal((await patch(analyst,`/api/organizations/${org.id}`,{name:'Analyst Should Fail'})).status,404);
+      assert.equal((await patch(viewer,`/api/organizations/${org.id}`,{name:'Viewer Should Fail'})).status,404);
+      assert.equal((await patch(other,`/api/organizations/${org.id}`,{name:'Outsider Should Fail'})).status,404);
+      assert.equal((await patch(owner,`/api/organizations/${beta.id}`,{name:'Cross Org'})).status,404);
+      assert.equal((await patch(owner,'/api/organizations/invalid-uuid',{name:'Invalid'})).status,404);
+      assert.equal((await patch(owner,`/api/organizations/${org.id}`,{name:'ab'})).status,400);
+      assert.equal((await patch(owner,`/api/organizations/${org.id}`,{name:'OK Name',role:'owner'})).status,400,'block mass-assignment');
+      assert.equal((await patch(owner,`/api/organizations/${org.id}`,{name:'x'.repeat(101)})).status,400);
+      assert.equal((await patch(owner,`/api/organizations/${org.id}`,{name:'bad\nname'})).status,400);
+      assert.equal((await patch(owner,`/api/organizations/${org.id}`,{name:14})).status,400);
+      assert.equal((await get(owner,`/api/organizations/${org.id}`)).body.organization.display_name,'Alpha Admin','failed writes must not mutate');
+      const audits=async()=>Number((await db.query("SELECT COUNT(*) AS c FROM organization_audit_log WHERE organization_id=$1 AND metadata_json->>'kind'='organization.display_name.changed'",[org.id])).rows[0].c);
+      assert.equal(await audits(),2,'each successful rename must be auditable');
+      assert.equal((await patch(admin,`/api/organizations/${org.id}`,{name:'Alpha Admin'})).status,200,'idempotent same-name rename');
+      assert.equal(await audits(),2,'same-name retry must not duplicate audit');
+      const before=(await db.query('SELECT display_name FROM organizations WHERE id=$1',[beta.id])).rows[0].display_name;
+      assert.equal(before,'P08 HTTP Beta','cross-tenant mutation cannot succeed');
       await db.query("UPDATE organization_members SET role='client_viewer' WHERE organization_id=$1 AND user_id=$2",[org.id,manager]);
       assert.equal((await get(manager,`/api/organizations/${org.id}`)).status,404,'existing session role downgrade immediate');
       assert.ok(!(await get(manager,'/api/organizations')).body.organizations.some(x=>x.id===org.id));
