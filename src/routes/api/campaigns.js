@@ -15,6 +15,7 @@ const clientPortal = require('../../lib/client-portal');
 const pdfReport = require('../../lib/pdf-report');
 const scheduledReports = require('../../lib/scheduled-reports');
 const businessAlerts = require('../../lib/business-alerts');
+const backgroundJobs = require('../../lib/background-jobs');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -1663,6 +1664,61 @@ router.patch('/api/business-alerts/:id', async (req, res) => {
     return res.json(result);
   } catch {
     return res.status(500).json({ error: 'Xəbərdarlıq statusu yenilənmədi.' });
+  }
+});
+
+// ===== P30: Durable Background Job / Outbox Ops API =====
+
+router.post('/api/ops/jobs', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const result = await backgroundJobs.enqueueJob({
+      jobType: body.job_type,
+      idempotencyKey: req.get('idempotency-key') || body.idempotency_key,
+      ownerUserId: userId,
+      payload: body.payload || {},
+      maxAttempts: body.max_attempts,
+      timeoutMs: body.timeout_ms,
+      nextRunAt: body.next_run_at || null,
+    });
+    if (result.error) {
+      return res.status(result.statusCode || 400).json({ error: result.message || result.error, code: result.error });
+    }
+    return res.status(result.deduplicated ? 200 : 202).json(result);
+  } catch {
+    return res.status(500).json({ error: 'Arxa plan tapşırığı növbəyə salına bilmədi.' });
+  }
+});
+
+router.get('/api/ops/jobs', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const data = await backgroundJobs.listOpsJobs({
+      ownerUserId: userId,
+      status: req.query && req.query.status,
+      limit: req.query && req.query.limit,
+    });
+    return res.json({ contract_version: backgroundJobs.BACKGROUND_JOBS_CONTRACT_VERSION, ...data });
+  } catch {
+    return res.status(500).json({ error: 'Tapşırıq siyahısı alına bilmədi.' });
+  }
+});
+
+router.post('/api/ops/jobs/:id/requeue', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await backgroundJobs.requeueDeadLetterJob({
+      ownerUserId: userId,
+      jobId: req.params.id,
+    });
+    if (result.error) return res.status(result.statusCode || 404).json({ error: 'Dead-letter tapşırığı tapılmadı.' });
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'Tapşırıq yenidən növbəyə salına bilmədi.' });
   }
 });
 

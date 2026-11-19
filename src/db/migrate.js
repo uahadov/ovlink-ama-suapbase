@@ -468,6 +468,30 @@ function ensureDbTables() {
       updated_at TEXT NOT NULL
     )`, () => {});
 
+    // P30: durable PostgreSQL-backed background job & outbox queue.
+    db.run(`CREATE TABLE IF NOT EXISTS background_jobs (
+      id SERIAL PRIMARY KEY,
+      job_type TEXT NOT NULL,
+      idempotency_key TEXT NOT NULL UNIQUE,
+      owner_user_id INTEGER NOT NULL,
+      payload_json TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'queued',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      max_attempts INTEGER NOT NULL DEFAULT 3,
+      next_run_at TEXT NOT NULL,
+      lease_until TEXT,
+      locked_by TEXT,
+      timeout_ms INTEGER NOT NULL DEFAULT 30000,
+      last_error TEXT,
+      result_json TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      completed_at TEXT
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_background_jobs_claim ON background_jobs(status, next_run_at, lease_until)', () => {});
+      db.run('CREATE INDEX IF NOT EXISTS idx_background_jobs_owner ON background_jobs(owner_user_id, id DESC)', () => {});
+    });
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});
