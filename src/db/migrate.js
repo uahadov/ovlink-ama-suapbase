@@ -600,6 +600,23 @@ function ensureDbTables() {
       db.run('CREATE INDEX IF NOT EXISTS idx_checkout_ws ON billing_checkout_sessions(workspace_id, id DESC)', () => {});
     });
 
+    // P37: monthly usage rollup & organization cost allocation (fail-open metering).
+    db.run(`CREATE TABLE IF NOT EXISTS org_usage_monthly (
+      id SERIAL PRIMARY KEY,
+      workspace_id INTEGER NOT NULL,
+      billing_month TEXT NOT NULL,
+      redirects BIGINT NOT NULL DEFAULT 0,
+      pdf_exports INTEGER NOT NULL DEFAULT 0,
+      emails_sent INTEGER NOT NULL DEFAULT 0,
+      ai_tokens_k INTEGER NOT NULL DEFAULT 0,
+      db_storage_mb REAL NOT NULL DEFAULT 0,
+      support_tickets INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL,
+      UNIQUE(workspace_id, billing_month)
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_org_usage_monthly_ws ON org_usage_monthly(workspace_id, billing_month)', () => {});
+    });
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});

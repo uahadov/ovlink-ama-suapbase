@@ -22,6 +22,7 @@ const webhookReliability = require('../../lib/webhook-reliability');
 const orgBilling = require('../../lib/org-billing');
 const planEntitlements = require('../../lib/plan-entitlements');
 const checkoutDunning = require('../../lib/checkout-dunning');
+const unitEconomics = require('../../lib/unit-economics');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -2103,6 +2104,57 @@ router.post('/api/billing-portal/:workspaceId/cancel', async (req, res) => {
   } catch {
     return res.status(500).json({ error: 'Abunəlik ləğv edilə bilmədi.' });
   }
+});
+
+// ===== P37: Unit Economics, Usage Rollup & Capacity Metering =====
+
+router.get('/api/unit-economics/plans', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  return res.json(unitEconomics.listAllPlanUnitEconomics());
+});
+
+router.get('/api/unit-economics/workspaces/:workspaceId', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const data = await unitEconomics.getOrganizationCostAllocation({
+      workspaceId: req.params.workspaceId,
+      ownerUserId: userId,
+      billingMonth: req.query && req.query.month,
+    });
+    return res.json(data);
+  } catch {
+    return res.status(500).json({ error: 'Xərc və tutum məlumatı yüklənmədi.' });
+  }
+});
+
+router.post('/api/unit-economics/workspaces/:workspaceId/usage', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const result = await unitEconomics.recordUsageEventFailOpen({
+    workspaceId: req.params.workspaceId,
+    metric: body.metric,
+    delta: body.delta !== undefined ? body.delta : 1,
+    billingMonth: body.billing_month,
+  });
+  return res.json(result);
+});
+
+router.post('/api/unit-economics/stress-check', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  return res.json(unitEconomics.runStressQuotaCheck({
+    planCode: body.plan_code || 'business',
+    redirects: body.redirects,
+    pdfExports: body.pdf_exports,
+    emailsSent: body.emails_sent,
+    aiTokensK: body.ai_tokens_k,
+    dbStorageGb: body.db_storage_gb,
+    supportTickets: body.support_tickets,
+  }));
 });
 
 module.exports = router;
