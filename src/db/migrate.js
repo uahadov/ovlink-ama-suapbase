@@ -321,6 +321,26 @@ function ensureDbTables() {
       db.run('CREATE INDEX IF NOT EXISTS idx_report_snapshots_campaign_scope ON report_snapshots(campaign_id, report_type, scope_hash, id DESC)', () => {});
     });
 
+    // P25: reusable agency report templates.
+    db.run(`CREATE TABLE IF NOT EXISTS report_templates (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      workspace_id INTEGER,
+      client_id TEXT,
+      name TEXT NOT NULL,
+      client_name TEXT,
+      logo_url TEXT,
+      locale TEXT NOT NULL DEFAULT 'az',
+      default_period_days INTEGER NOT NULL DEFAULT 30,
+      sections_json TEXT NOT NULL,
+      explanation_note TEXT,
+      conclusion_note TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`, () => {
+      db.run('CREATE INDEX IF NOT EXISTS idx_report_templates_user ON report_templates(user_id, client_id, id DESC)', () => {});
+    });
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});

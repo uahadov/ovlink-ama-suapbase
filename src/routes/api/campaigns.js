@@ -10,6 +10,7 @@ const bulkImport = require('../../lib/bulk-import');
 const metricsContract = require('../../lib/metrics-contract');
 const decisionAnalytics = require('../../lib/decision-analytics');
 const reportProvenance = require('../../lib/report-provenance');
+const reportTemplates = require('../../lib/report-templates');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -1010,6 +1011,124 @@ router.get('/api/campaigns/:id/snapshots/:snapshotId', async (req, res) => {
     return res.set(reportProvenance.buildProvenanceHeaders(snapshot.provenance)).json(snapshot);
   } catch {
     return res.status(503).json({ error: 'Hesabat snapshot-u yüklənmədi.' });
+  }
+});
+
+// ===== P25: Reusable Agency Report Templates =====
+
+router.get('/api/report-templates', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const templates = await reportTemplates.listReportTemplates({
+      userId,
+      clientId: req.query && req.query.client_id,
+    });
+    return res.json({ contract_version: reportTemplates.REPORT_TEMPLATE_CONTRACT_VERSION, templates });
+  } catch {
+    return res.status(500).json({ error: 'Hesabat şablonları alına bilmədi.' });
+  }
+});
+
+router.post('/api/report-templates', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await reportTemplates.createReportTemplate({ userId, body: req.body });
+    if (result.error) {
+      return res.status(result.statusCode || 400).json({ error: result.message || result.error, code: result.error });
+    }
+    return res.status(201).json({ template: result.template });
+  } catch {
+    return res.status(500).json({ error: 'Hesabat şablonu yaradıla bilmədi.' });
+  }
+});
+
+router.patch('/api/report-templates/:id', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await reportTemplates.updateReportTemplate({ userId, templateId: req.params.id, body: req.body });
+    if (result.error) {
+      return res.status(result.statusCode || 400).json({ error: result.message || result.error, code: result.error });
+    }
+    return res.json({ template: result.template });
+  } catch {
+    return res.status(500).json({ error: 'Hesabat şablonu yenilənə bilmədi.' });
+  }
+});
+
+router.delete('/api/report-templates/:id', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const result = await reportTemplates.deleteReportTemplate({ userId, templateId: req.params.id });
+    if (result.error) return res.status(result.statusCode || 404).json({ error: 'Şablon tapılmadı.', code: result.error });
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'Hesabat şablonu silinmədi.' });
+  }
+});
+
+router.get('/api/campaigns/:id/template-report', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+
+  const campaign = await campaignLib.getCampaignForActor({ userId, campaignId: req.params.id });
+  if (!campaign) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+
+  try {
+    const query = req.query && typeof req.query === 'object' ? req.query : {};
+    let template = null;
+    if (query.template_id) {
+      template = await reportTemplates.getReportTemplateForActor({ userId, templateId: query.template_id });
+      if (!template) return res.status(404).json({ error: 'Hesabat şablonu tapılmadı.' });
+    }
+    const effectiveQuery = {
+      ...query,
+      days: query.days || (template && template.default_period_days) || 30,
+    };
+    const [campaignStats, decisionReport] = await Promise.all([
+      campaignLib.loadCampaignStats({ campaign, query: effectiveQuery }),
+      decisionAnalytics.loadCampaignDecisionAnalytics({ campaign, query: effectiveQuery }).catch(() => null),
+    ]);
+    const provenance = reportProvenance.buildReportProvenance({
+      campaign,
+      actorUserId: userId,
+      surface: query.format === 'html' ? 'pdf' : 'json',
+      reportType: 'campaign_template_report',
+      dateRange: campaignStats.range,
+      filters: { bots: campaignStats.range.bots },
+      lastDataAt: campaignStats.last_recorded_click_at,
+      generatedAt: campaignStats.generated_at,
+      payloadForHash: {
+        clicks: campaignStats.clicks,
+        uniques: campaignStats.uniques,
+        conversions: campaignStats.conversions,
+        conversion_rate: campaignStats.conversion_rate,
+      },
+    });
+
+    const rendered = reportTemplates.renderCampaignReportFromTemplate({
+      template,
+      campaignStats,
+      decisionReport,
+      provenance,
+      clientOverride: query.client_name ? { name: query.client_name, logo_url: query.logo_url } : null,
+      lang: query.lang,
+    });
+
+    if (String(query.format || '').toLowerCase() === 'html') {
+      return res
+        .set('Cache-Control', 'private, no-store, max-age=0')
+        .set('X-Content-Type-Options', 'nosniff')
+        .set(reportProvenance.buildProvenanceHeaders(provenance))
+        .set('Content-Type', 'text/html; charset=utf-8')
+        .send(reportTemplates.renderTemplatePrintHtml(rendered));
+    }
+    return res.set(reportProvenance.buildProvenanceHeaders(provenance)).json(rendered);
+  } catch {
+    return res.status(503).json({ error: 'Şablon hesabatı hazırlana bilmədi.' });
   }
 });
 
