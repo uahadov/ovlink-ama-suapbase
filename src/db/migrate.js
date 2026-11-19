@@ -194,6 +194,19 @@ function ensureDbTables() {
     )`, () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_utm_presets_user ON utm_presets(user_id)', () => {});
     db.run('CREATE INDEX IF NOT EXISTS idx_utm_presets_workspace ON utm_presets(workspace_id, client_id)', () => {});
+    // P18: idempotent bulk link import jobs & partial-success reports
+    db.run(`CREATE TABLE IF NOT EXISTS bulk_import_jobs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      idempotency_key TEXT NOT NULL,
+      request_hash TEXT NOT NULL,
+      status TEXT NOT NULL,
+      summary_json TEXT,
+      report_json TEXT,
+      created_at TEXT,
+      UNIQUE (user_id, idempotency_key)
+    )`, () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_bulk_import_jobs_user ON bulk_import_jobs(user_id, created_at)', () => {});
 
     // F3: per-user alert thresholds. NULL means "inherit the env default".
     db.run('ALTER TABLE users ADD COLUMN alert_spike_multiplier REAL', () => {});

@@ -6,6 +6,7 @@ const { normalizeShortCode } = require('../../lib/url-helpers');
 const campaignLib = require('../../lib/campaigns');
 const campaignWizard = require('../../lib/campaign-wizard');
 const utmPresets = require('../../lib/utm-presets');
+const bulkImport = require('../../lib/bulk-import');
 const {
   normalizeCampaignStatus,
   resolveEffectiveStatus,
@@ -594,6 +595,101 @@ router.post('/api/utm-presets/preview', async (req, res) => {
     campaignSlug: body.campaign_slug || '',
   });
   return res.json(preview);
+});
+
+// ===== P18: Bulk Link Dry-Run Preview, Idempotent Execution & Partial-Success Report =====
+
+router.post('/api/links/bulk/preview', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    let preset = null;
+    if (body.utm_preset_id) {
+      preset = await utmPresets.getUtmPresetForActor({ userId, presetId: body.utm_preset_id });
+      if (!preset) return res.status(404).json({ error: 'UTM şablonu tapılmadı.' });
+    }
+    const preview = bulkImport.previewBulkImport({
+      rows: body.rows,
+      csv: body.csv,
+      mapping: body.mapping,
+      utmPreset: preset,
+      windowLimit: body.window_limit,
+    });
+    return res.json({
+      total_input_rows: preview.total_input_rows,
+      processed_rows: preview.processed_rows,
+      truncated_input: preview.truncated_input,
+      max_rows_allowed: preview.max_rows_allowed,
+      valid_count: preview.valid_count,
+      invalid_count: preview.invalid_count,
+      duplicate_url_count: preview.duplicate_url_count,
+      window_limit: preview.window_limit,
+      rows: preview.rows_window,
+    });
+  } catch {
+    return res.status(500).json({ error: 'Önbaxış hazırlana bilmədi.' });
+  }
+});
+
+router.post('/api/links/bulk/execute', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const idempotencyKey = req.get('idempotency-key') || body.idempotency_key || '';
+
+    let campaignId = null;
+    if (body.campaign_id !== undefined && body.campaign_id !== null && body.campaign_id !== '') {
+      const owned = await campaignLib.getCampaignForActor({ userId, campaignId: body.campaign_id, write: true });
+      if (!owned) return res.status(404).json({ error: ERROR_MESSAGES.not_found });
+      campaignId = Number(owned.id);
+    }
+
+    let preset = null;
+    if (body.utm_preset_id) {
+      preset = await utmPresets.getUtmPresetForActor({ userId, presetId: body.utm_preset_id });
+      if (!preset) return res.status(404).json({ error: 'UTM şablonu tapılmadı.' });
+    }
+
+    const userRow = await dbGetAsync('SELECT plan_tier, plan_status FROM users WHERE id = ?', [userId]);
+    const isPro = Boolean(userRow && String(userRow.plan_tier || '').toLowerCase() === 'pro' && String(userRow.plan_status || '').toLowerCase() === 'active');
+
+    const result = await bulkImport.executeBulkImport({
+      userId,
+      rows: body.rows,
+      csv: body.csv,
+      mapping: body.mapping,
+      idempotencyKey,
+      campaignId,
+      utmPreset: preset,
+      isPro,
+    });
+
+    if (result.error) {
+      return res.status(result.statusCode || 400).json({ error: result.message || result.error, code: result.error });
+    }
+    return res.status(result.statusCode || 201).json(result.body);
+  } catch {
+    return res.status(500).json({ error: 'Toplu import icra edilə bilmədi.' });
+  }
+});
+
+router.get('/api/links/bulk/jobs/:id/report.csv', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const report = await bulkImport.getBulkJobReportCsv({ userId, jobId: req.params.id });
+    if (!report) return res.status(404).json({ error: 'Import hesabatı tapılmadı.' });
+    return res
+      .set('Cache-Control', 'private, no-store, max-age=0')
+      .set('X-Content-Type-Options', 'nosniff')
+      .set('Content-Type', 'text/csv; charset=utf-8')
+      .set('Content-Disposition', `attachment; filename="ovlink-bulk-report-${report.id}.csv"`)
+      .send(report.csv);
+  } catch {
+    return res.status(500).json({ error: 'Hesabat endirilə bilmədi.' });
+  }
 });
 
 module.exports = router;
