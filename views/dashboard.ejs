@@ -417,7 +417,9 @@
         line-height: 1 !important;
         text-align: left !important;
       }
-    </style>
+    
+    #bulkDeleteBtn:disabled { display: none !important; }
+  </style>
   </head>
   <body class="ovx">
   <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
@@ -436,10 +438,6 @@
 
         <!-- 1. Header & Hero Title -->
         <div class="m-dash-hero">
-          <div class="m-page-badge" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 12px; font-weight: 600; color: #a3a3a3; margin-bottom: 14px;">
-            <i class="fa-solid fa-chart-line" style="color: #60a5fa;"></i>
-            <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
-          </div>
           <h1 style="font-size: clamp(28px, 4vw, 36px); font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin: 0 0 8px 0; line-height: 1.2;" data-i18n="dashboard_title">Dashboard</h1>
           <p style="font-size: 15px; color: var(--c-muted, #a3a3a3); margin: 0; line-height: 1.5;" data-i18n="dashboard_subtitle">Bütün linklərinizi, analitikanızı və iş sahələrinizi idarə edin.</p>
         </div>
@@ -548,11 +546,6 @@
                   <% }); %>
                 <% } %>
               </select>
-
-              <a href="/workspaces" class="m-cta m-cta--outline m-cta--sm">
-                <i class="fa-solid fa-users-gear"></i>
-                <span data-i18n="ws_manage_btn">Workspace</span>
-              </a>
               <a href="/api/user/export?format=csv" class="m-cta m-cta--outline m-cta--sm">
                 <i class="fa-solid fa-file-csv"></i> <span data-i18n="dashboard_export_csv">CSV</span>
               </a>

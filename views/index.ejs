@@ -582,30 +582,29 @@
             </div>
           </article>
 
-          <!-- Report -->
-          <article class="m-duo-card m-reveal m-reveal-d1" id="reportSection">
-            <div class="m-duo-head">
-              <div class="m-duo-glyph m-duo-glyph--red"><i class="fa-solid fa-flag" aria-hidden="true"></i></div>
-              <h3 class="m-duo-h" data-i18n="report_title">Report Link</h3>
+          <!-- Ready to Start B2B Card -->
+          <article class="m-duo-card m-reveal m-reveal-d1" id="readyStartSection" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <div class="m-duo-head">
+                <div class="m-duo-glyph"><i class="fa-solid fa-rocket" aria-hidden="true"></i></div>
+                <h3 class="m-duo-h">Müştərilərinizə canlı hesabat verin</h3>
+              </div>
+              <p class="m-duo-p">Excel və ekran görüntülərini dayandırın. Hər müştəri üçün öz brendinizlə linklər, dinamik QR və bot-suz canlı hesabat portalı yaradın.</p>
+              <ul style="list-style:none;padding:0;margin:16px 0 24px;display:grid;gap:10px;font-size:14px;color:rgba(255,255,255,0.85);">
+                <li style="display:flex;gap:10px;align-items:center;"><i class="fa-solid fa-check" style="color:#4ade80;" aria-hidden="true"></i><span>14 gün pulsuz sınaq — kart tələb olunmur</span></li>
+                <li style="display:flex;gap:10px;align-items:center;"><i class="fa-solid fa-check" style="color:#4ade80;" aria-hidden="true"></i><span>Bot klikləri avtomatik təmizlənir</span></li>
+                <li style="display:flex;gap:10px;align-items:center;"><i class="fa-solid fa-check" style="color:#4ade80;" aria-hidden="true"></i><span>A4 PDF hesabat və canlı paylaşım linki</span></li>
+              </ul>
             </div>
-            <p class="m-duo-p" data-i18n="report_sub">Found a link that violates the rules? Tell us — moderation acts fast.</p>
-            <form id="reportForm" action="javascript:void(0);" novalidate>
-              <div class="m-adv-field" style="margin-bottom:12px;">
-                <label class="m-adv-label" for="reportLink"><span data-i18n="report_link_label">Short link to report</span></label>
-                <input class="m-adv-input" type="text" id="reportLink" placeholder="abc123" data-i18n-placeholder="report_link_placeholder" data-i18n-aria="aria_report_link" required aria-label="Report short link" />
-              </div>
-              <div class="m-adv-field" style="margin-bottom:16px;">
-                <label class="m-adv-label" for="reportReason"><span data-i18n="report_reason_label">Reason</span></label>
-                <textarea class="m-adv-input" id="reportReason" rows="3"
-                  placeholder="Reason for reporting…" data-i18n="report_reason" data-i18n-aria="aria_report_reason" aria-label="Report reason"></textarea>
-              </div>
-              <button type="submit" class="m-cta m-cta--white m-cta--sm" style="width:100%;justify-content:center;">
-                <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
-                <span data-i18n="report_btn">Submit Report</span>
-              </button>
-            </form>
-            <p id="reportLoginHint" class="m-adv-hint" style="text-align:center;margin-top:10px;font-size:12px;opacity:0.75;" data-i18n="report_login_hint">You must be logged in to submit a report.</p>
-            <p id="reportMessage" class="m-report-msg" role="status"></p>
+            <div style="display:grid;gap:10px;">
+              <a href="/register?intent=trial" class="m-cta m-cta--white m-cta--sm" style="width:100%;justify-content:center;">
+                <span>14 gün pulsuz başla</span>
+                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              </a>
+              <a href="/pricing" class="m-cta m-cta--outline m-cta--sm" style="width:100%;justify-content:center;">
+                <span>Paketlərə bax ($7/ay-dan)</span>
+              </a>
+            </div>
           </article>
         </div>
       </div>
