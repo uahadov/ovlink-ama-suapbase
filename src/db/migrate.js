@@ -691,6 +691,10 @@ function ensureDbTables() {
       created_at TEXT NOT NULL
     )`, () => {});
 
+    // P47: composite read-path performance indexes for workspace links & click scans.
+    db.run('CREATE INDEX IF NOT EXISTS idx_urls_workspace_created ON urls(workspace_id, created_at DESC)', () => {});
+    db.run('CREATE INDEX IF NOT EXISTS idx_clicks_url_time_bot ON clicks(url_id, click_time DESC)', () => {});
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});
