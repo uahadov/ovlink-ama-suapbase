@@ -420,6 +420,102 @@
     
     #bulkDeleteBtn:disabled { display: none !important; }
     #bulkSelectionStatus:has(+ #bulkDeleteBtn:disabled) { display: none !important; }
+
+    /* === Clean Calm Dashboard Redesign === */
+    .ovx .m-dash-container { max-width: 1120px !important; margin: 0 auto !important; }
+    .ovx .m-dash-head-row {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .ovx .m-dash-stat-pills {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .ovx .m-dash-stat-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border-radius: 999px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      font-size: 13px; color: rgba(255,255,255,0.75);
+    }
+    .ovx .m-dash-stat-pill strong { color: #fff; font-weight: 700; }
+    .ovx .m-dash-stat-pill--ok strong { color: #4ade80; }
+    .ovx .m-dash-stat-pill--warn { border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.08); }
+    .ovx .m-dash-stat-pill--warn strong { color: #f87171; }
+
+    /* Compact single-row quick nav */
+    .ovx .m-dash-actions {
+      display: flex !important; flex-wrap: wrap !important; gap: 8px !important;
+      margin: 0 0 20px 0 !important;
+    }
+    .ovx .m-dash-action {
+      padding: 7px 14px !important; font-size: 13px !important; border-radius: 9px !important;
+      background: rgba(255,255,255,0.03) !important; border: 1px solid rgba(255,255,255,0.1) !important;
+      color: rgba(255,255,255,0.82) !important;
+    }
+    .ovx .m-dash-action:hover { background: rgba(255,255,255,0.08) !important; color: #fff !important; }
+
+    /* Composer: 1-line URL + Submit, optional Alias/Tags collapsible */
+    .ovx .m-dash-quick {
+      padding: 18px 20px !important; border-radius: 14px !important;
+      background: rgba(255,255,255,0.03) !important; border: 1px solid rgba(255,255,255,0.12) !important;
+      margin-bottom: 24px !important;
+    }
+    .ovx .m-dash-quick-main {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap; width: 100%;
+    }
+    .ovx .m-dash-quick-main .m-dash-url-wrap { flex: 1; min-width: 240px; }
+    .ovx .m-dash-quick-extras {
+      display: none; grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px; width: 100%; margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .ovx .m-dash-quick-extras.is-open { display: grid; }
+    .ovx .m-dash-extras-toggle {
+      background: transparent; border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.72); border-radius: 9px; height: 38px;
+      padding: 0 12px; font-size: 12.5px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    }
+    .ovx .m-dash-extras-toggle:hover { color: #fff; border-color: rgba(255,255,255,0.28); }
+
+    /* Collapsible advanced filters drawer */
+    .ovx .m-dash-toolbar {
+      display: flex !important; flex-wrap: wrap !important; gap: 10px !important;
+      align-items: flex-end !important; padding: 14px 20px !important;
+    }
+    .ovx .m-dash-filter-field--search { flex: 1 1 260px !important; }
+    .ovx .m-dash-filter-field--adv { flex: 0 1 170px !important; }
+    .ovx .m-dash-panel:not(.filters-open) .m-dash-filter-field--adv,
+    .ovx .m-dash-panel:not(.filters-open) #dashboardMetaFilters {
+      display: none !important;
+    }
+    .ovx .m-dash-filter-feedback:has(#dashboardFilterStatus:empty) {
+      display: none !important;
+    }
+
+    /* Clean 5-column table: hide verbose Folder/Tags/Reports columns (shown inline under Link) */
+    .ovx table.m-table th.col-hide,
+    .ovx table.m-table td.col-hide { display: none !important; }
+    .ovx .m-link-stack { display: flex; flex-direction: column; gap: 4px; max-width: 440px; }
+    .ovx .m-link-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .ovx .m-link-orig {
+      font-size: 12.5px; color: rgba(255,255,255,0.52);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 420px;
+    }
+    .ovx .m-link-pills { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 2px; }
+    .ovx .m-table-actions { gap: 4px !important; }
+    .ovx .m-table-actions [data-meta-short] { display: none !important; }
+
+    /* Unified QR section */
+    .ovx #qrCodesSection {
+      margin-top: 24px !important; padding: 22px 24px !important;
+      border-radius: 14px !important; background: rgba(255,255,255,0.025) !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+    }
+    @media (max-width: 640px) {
+      .ovx .m-dash-quick-extras.is-open { grid-template-columns: 1fr; }
+      .ovx .m-link-orig { max-width: 210px; }
+    }
+
   </style>
   </head>
   <body class="ovx">
@@ -437,10 +533,30 @@
     <main class="m-page-shell m-dash-main" id="mainContent">
       <div class="m-dash-container">
 
-        <!-- 1. Header & Hero Title -->
-        <div class="m-dash-hero">
-          <h1 style="font-size: clamp(28px, 4vw, 36px); font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin: 0 0 8px 0; line-height: 1.2;" data-i18n="dashboard_title">Dashboard</h1>
-          <p style="font-size: 15px; color: var(--c-muted, #a3a3a3); margin: 0; line-height: 1.5;" data-i18n="dashboard_subtitle">Bütün linklərinizi, analitikanızı və iş sahələrinizi idarə edin.</p>
+        <!-- 1. Clean Header + Inline Stat Pills -->
+        <div class="m-dash-head-row">
+          <div>
+            <h1 style="font-size: clamp(24px, 3.2vw, 30px); font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin: 0 0 4px 0; line-height: 1.2;" data-i18n="dashboard_title">Dashboard</h1>
+            <p style="font-size: 14px; color: var(--c-muted, #a3a3a3); margin: 0;" data-i18n="dashboard_subtitle">Bütün linklərinizi, analitikanızı və iş sahələrinizi idarə edin.</p>
+          </div>
+          <div class="m-dash-stat-pills">
+            <span class="m-dash-stat-pill">
+              <i class="fa-solid fa-link" style="color:#60a5fa;" aria-hidden="true"></i>
+              <span data-i18n="dashboard_total_links">Ümumi Link</span>: <strong><%= totalLinks %></strong>
+            </span>
+            <span class="m-dash-stat-pill m-dash-stat-pill--ok">
+              <i class="fa-solid fa-circle-check" style="color:#4ade80;" aria-hidden="true"></i>
+              <strong>
+                <% if (activeWorkspace) { %><%= activeWorkspace.name %><% } else if (isPro) { %>Pro<% } else { %><span data-i18n="dashboard_active"><%= (typeof uiLang !== 'undefined' && uiLang === 'en') ? 'Active' : ((typeof uiLang !== 'undefined' && uiLang === 'tr') ? 'Aktif' : 'Aktiv') %></span><% } %>
+              </strong>
+            </span>
+            <% if (totalReports > 0) { %>
+            <span class="m-dash-stat-pill m-dash-stat-pill--warn">
+              <i class="fa-solid fa-triangle-exclamation" style="color:#f87171;" aria-hidden="true"></i>
+              <span data-i18n="dashboard_total_reports">Şikayət</span>: <strong><%= totalReports %></strong>
+            </span>
+            <% } %>
+          </div>
         </div>
 
         <nav class="m-dash-actions" aria-label="Dashboard quick navigation" data-i18n-aria="dash_actions_aria">
@@ -452,80 +568,38 @@
 
         <%- include('partials/onboarding-checklist') %>
 
-        <!-- 3. Quick Shorten Composer -->
+        <!-- 2. Clean 1-Line Quick Shorten Composer -->
         <div class="m-dash-quick">
-          <form id="dashboardQuickCreateForm" class="m-dash-quick-form" onsubmit="return false;" data-workspace-id="<%= activeWorkspace ? activeWorkspace.id : '' %>">
-            <div style="flex: 2; min-width: 260px;">
-              <label class="m-adv-label" for="dashboardQuickUrl" data-i18n="ws_quick_url_label">Hədəf URL</label>
-              <input id="dashboardQuickUrl" class="m-adv-input" type="url" placeholder="https://example.com" data-i18n-placeholder="ws_quick_url_placeholder" required />
-            </div>
-
-        <!-- 2. Bento Statistics Grid -->
-        <div class="m-dash-bento">
-          <!-- Total Links -->
-          <div class="m-bento-card">
-            <div>
-              <div class="m-bento-label" data-i18n="dashboard_total_links">Ümumi Link</div>
-              <div class="m-bento-val"><%= totalLinks %></div>
-            </div>
-            <div class="m-bento-icon" style="color: #60a5fa; border-color: rgba(96, 165, 250, 0.25);">
-              <i class="fa-solid fa-link"></i>
-            </div>
-          </div>
-
-          <!-- Total Reports (shown only when > 0) -->
-          <% if (totalReports > 0) { %>
-          <div class="m-bento-card">
-            <div>
-              <div class="m-bento-label" data-i18n="dashboard_total_reports">Ümumi Şikayət</div>
-              <div class="m-bento-val" style="<%= totalReports > 0 ? 'color: #ef4444;' : '' %>"><%= totalReports %></div>
-            </div>
-            <div class="m-bento-icon" style="<%= totalReports > 0 ? 'color: #ef4444; border-color: rgba(239, 68, 68, 0.25);' : '' %>">
-              <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-          </div>
-          <% } %>
-
-          <!-- Status / Workspace -->
-          <div class="m-bento-card">
-            <div>
-              <div class="m-bento-label" data-i18n="dashboard_account_status">Hesab Vəziyyəti</div>
-              <div class="m-bento-val" style="color: #10b981; font-size: 20px; text-transform: capitalize;">
-                <% if (activeWorkspace) { %>
-                  <%= activeWorkspace.name %>
-                <% } else if (isPro) { %>
-                  Pro
-                <% } else { %>
-                  <span data-i18n="dashboard_active"><%= (typeof uiLang !== 'undefined' && uiLang === 'en') ? 'Active' : ((typeof uiLang !== 'undefined' && uiLang === 'tr') ? 'Aktif' : 'Aktiv') %></span>
-                <% } %>
+          <form id="dashboardQuickCreateForm" class="m-dash-quick-form" onsubmit="return false;" data-workspace-id="<%= activeWorkspace ? activeWorkspace.id : '' %>" style="display:block;width:100%;">
+            <div class="m-dash-quick-main">
+              <div class="m-dash-url-wrap">
+                <input id="dashboardQuickUrl" class="m-adv-input" type="url" placeholder="Uzun linki bura yapışdırın (https://...)" data-i18n-placeholder="ws_quick_url_placeholder" aria-label="Hədəf URL" required />
               </div>
-            </div>
-            <div class="m-bento-icon" style="color: #10b981; border-color: rgba(16, 185, 129, 0.25);">
-              <i class="fa-solid fa-circle-check"></i>
-            </div>
-          </div>
-        </div>
-
-            <div style="flex: 1; min-width: 180px;">
-              <label class="m-adv-label" for="dashboardQuickAlias" data-i18n="ws_quick_alias_label">Xüsusi alias (istəyə bağlı)</label>
-              <input id="dashboardQuickAlias" class="m-adv-input" type="text" maxlength="50" placeholder="kampaniya-2026" data-i18n-placeholder="ws_quick_alias_placeholder" />
-            </div>
-            <div style="flex: 1; min-width: 170px;">
-              <label class="m-adv-label" for="dashboardQuickTags" data-i18n="dashboard_meta_tags_label">Teqlər</label>
-              <input id="dashboardQuickTags" class="m-adv-input" type="text" maxlength="120" placeholder="reklam, instagram" data-i18n-placeholder="dashboard_meta_tags_placeholder" />
-            </div>
-            <div style="min-width: 120px;">
-              <button type="submit" class="m-cta m-cta--white m-cta--sm" style="width: 100%; height: 38px; justify-content: center;">
-                <i class="fa-solid fa-bolt"></i>
+              <button type="button" id="dashExtrasToggleBtn" class="m-dash-extras-toggle" aria-expanded="false">
+                <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                <span>Alias &amp; Teq</span>
+              </button>
+              <button type="submit" class="m-cta m-cta--white m-cta--sm" style="height: 38px; padding: 0 20px; justify-content: center;">
+                <i class="fa-solid fa-bolt" aria-hidden="true"></i>
                 <span data-i18n="ws_quick_create_btn">Qısalt</span>
               </button>
             </div>
-            <div class="u-w-full" ><div id="dashboardQuickMsg" class="small"></div></div>
+            <div id="dashQuickExtras" class="m-dash-quick-extras">
+              <div>
+                <label class="m-adv-label" for="dashboardQuickAlias" data-i18n="ws_quick_alias_label">Xüsusi alias (istəyə bağlı)</label>
+                <input id="dashboardQuickAlias" class="m-adv-input" type="text" maxlength="50" placeholder="kampaniya-2026" data-i18n-placeholder="ws_quick_alias_placeholder" />
+              </div>
+              <div>
+                <label class="m-adv-label" for="dashboardQuickTags" data-i18n="dashboard_meta_tags_label">Teqlər</label>
+                <input id="dashboardQuickTags" class="m-adv-input" type="text" maxlength="120" placeholder="reklam, instagram" data-i18n-placeholder="dashboard_meta_tags_placeholder" />
+              </div>
+            </div>
+            <div class="u-w-full" style="margin-top:6px;"><div id="dashboardQuickMsg" class="small"></div></div>
           </form>
         </div>
 
         <!-- 4. Links Table & Toolbar Panel -->
-        <div class="m-dash-panel">
+        <div class="m-dash-panel" id="dashboardLinksPanel">
           <!-- Panel Header -->
           <div class="m-dash-panel-header">
             <h2 class="m-dash-panel-title">
@@ -569,7 +643,8 @@
               <label class="m-dash-filter-label" for="dashboardSearch" data-i18n="dashboard_search_label">Axtar</label>
               <input id="dashboardSearch" class="m-adv-input" type="search" maxlength="250" autocomplete="off" placeholder="Kısa / Orijinal Link" data-i18n-placeholder="dashboard_search_placeholder" value="<%= typeof q !== 'undefined' ? q : '' %>" />
             </div>
-            <div class="m-dash-filter-field">
+            <button type="button" id="dashFiltersToggleBtn" class="m-dash-extras-toggle" aria-expanded="false" style="margin-bottom:0;"><i class="fa-solid fa-filter" aria-hidden="true"></i><span>Filtrlər</span></button>
+            <div class="m-dash-filter-field m-dash-filter-field--adv">
               <label class="m-dash-filter-label" for="dashboardFilter" data-i18n="dashboard_filter_label">Filtr</label>
               <select id="dashboardFilter" class="m-adv-select u-w-full" >
                 <option value="all" <%= (typeof filter !== 'undefined' && filter === 'all') ? 'selected' : '' %> data-i18n="dashboard_filter_all">Hamısı</option>
@@ -578,7 +653,7 @@
                 <option value="disabled" <%= (typeof filter !== 'undefined' && filter === 'disabled') ? 'selected' : '' %> data-i18n="dashboard_filter_disabled">Deaktiv</option>
               </select>
             </div>
-            <div class="m-dash-filter-field">
+            <div class="m-dash-filter-field m-dash-filter-field--adv">
               <label class="m-dash-filter-label" for="dashboardSort" data-i18n="dashboard_sort_label">Sırala</label>
               <select id="dashboardSort" class="m-adv-select u-w-full" >
                 <option value="newest" <%= (typeof sort !== 'undefined' && sort === 'newest') ? 'selected' : '' %> data-i18n="dashboard_sort_newest">Yeni → Köhnə</option>
@@ -602,12 +677,12 @@
                     <input type="checkbox" id="bulkSelectAll" class="m-checkbox" aria-label="Select all" />
                   </th>
                   <th data-i18n="th_short">Qısa Link</th>
-                  <th data-i18n="th_original">Orijinal Link</th>
-                  <th data-i18n="th_folder">Qovluq</th>
-                  <th data-i18n="th_tags">Teqlər</th>
+                  <th class="col-hide" data-i18n="th_original">Orijinal Link</th>
+                  <th class="col-hide" data-i18n="th_folder">Qovluq</th>
+                  <th class="col-hide" data-i18n="th_tags">Teqlər</th>
                   <th data-i18n="th_date">Tarix</th>
-                  <th  data-i18n="th_report" class="u-text-center">Şikayət</th>
-                  <th style="text-align: right; padding-right: 24px; min-width: 220px; white-space: nowrap;" data-i18n="th_actions">Əməliyyatlar</th>
+                  <th class="col-hide u-text-center" data-i18n="th_report">Şikayət</th>
+                  <th style="text-align: right; padding-right: 24px; min-width: 150px; white-space: nowrap;" data-i18n="th_actions">Əməliyyatlar</th>
                 </tr>
               </thead>
               <tbody id="dashboardTableBody">
@@ -653,27 +728,41 @@
                         <input type="checkbox" class="m-checkbox bulk-select" value="<%= shortCode %>" aria-label="Select link" />
                       </td>
                       <td style="font-weight: 600;">
-                        <a href="<%= shortUrl %>" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: none;">
-                          <%= shortCode %>
-                        </a>
-                        <% if (row.disabled) { %>
-                          <span class="m-badge-quarantine ms-1" data-i18n="link_quarantined">Karantin</span>
-                        <% } %>
-                        <% if (row.link_password) { %>
-                          <i class="fa-solid fa-lock ms-1" style="font-size: 11px; color: #fcd34d;" title="Şifrəli"></i>
-                        <% } %>
+                        <div class="m-link-stack">
+                          <div class="m-link-top">
+                            <a href="<%= shortUrl %>" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: none; font-size: 14px;">
+                              /<%= shortCode %>
+                            </a>
+                            <% if (row.disabled) { %>
+                              <span class="m-badge-quarantine" data-i18n="link_quarantined">Karantin</span>
+                            <% } %>
+                            <% if (row.link_password) { %>
+                              <i class="fa-solid fa-lock" style="font-size: 11px; color: #fcd34d;" title="Şifrəli"></i>
+                            <% } %>
+                            <% if (reportsCount > 0) { %>
+                              <span class="m-badge-reports" title="Şikayət"><%= reportsCount %></span>
+                            <% } %>
+                          </div>
+                          <div class="m-link-orig" title="<%= originalUrl %>"><%= originalUrl %></div>
+                          <% if (folderName || tags.length > 0) { %>
+                            <div class="m-link-pills">
+                              <% if (folderName) { %><span class="m-tag-pill"><i class="fa-regular fa-folder me-1"></i><%= folderName %></span><% } %>
+                              <% tags.forEach(function(tag) { %><span class="m-tag-pill"><%= tag %></span><% }); %>
+                            </div>
+                          <% } %>
+                        </div>
                       </td>
-                      <td style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<%= originalUrl %>">
+                      <td class="col-hide" title="<%= originalUrl %>">
                         <%= originalUrl %>
                       </td>
-                      <td style="font-size: 12.5px;">
+                      <td class="col-hide">
                         <% if (folderName) { %>
                           <span class="m-tag-pill"><i class="fa-regular fa-folder me-1"></i><%= folderName %></span>
                         <% } else { %>
                           <span style="color: var(--c-faint, #737373);">-</span>
                         <% } %>
                       </td>
-                      <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      <td class="col-hide">
                         <% if (tags.length > 0) { %>
                           <% tags.forEach(function(tag) { %>
                             <span class="m-tag-pill"><%= tag %></span>
@@ -685,7 +774,7 @@
                       <td style="font-size: 12.5px; color: var(--c-muted, #a3a3a3); white-space: nowrap;">
                         <%= createdDate %>
                       </td>
-                      <td class="u-text-center" >
+                      <td class="col-hide u-text-center">
                         <% if (reportsCount > 0) { %>
                           <span class="m-badge-reports"><%= reportsCount %></span>
                         <% } else { %>
@@ -788,7 +877,7 @@
             <label class="u-text-xs" for="qrShortInput" data-i18n="qr_link_label" style="color:var(--c-muted,#a3a3a3);">Link</label>
             <input id="qrShortInput" name="short" list="qrShortOptions" required maxlength="64"
               placeholder="abc123" autocomplete="off"
-              style="min-width:160px;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);background:#141414;color:#fff;" />
+              class="m-adv-input" style="max-width:220px;" />
             <datalist id="qrShortOptions">
               <% (displayRows || []).forEach((row) => { %>
               <option value="<%= row.short %>"></option>
@@ -796,8 +885,8 @@
             </datalist>
             <input id="qrLabelInput" name="label" maxlength="80"
               placeholder="" data-i18n-placeholder="qr_label_placeholder" autocomplete="off"
-              style="min-width:140px;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);background:#141414;color:#fff;" />
-            <button type="submit" id="qrCreateBtn" class="m-btn-solid" style="padding:8px 14px;border-radius:10px;" data-i18n="qr_create">QR yarat</button>
+              class="m-adv-input" style="max-width:220px;" />
+            <button type="submit" id="qrCreateBtn" class="m-cta m-cta--white m-cta--sm" style="height:38px;" data-i18n="qr_create">QR yarat</button>
           </form>
           <p id="qrFormMsg" class="u-text-xs" style="margin:8px 0 0;color:#f87171;" role="status" aria-live="polite"></p>
 
@@ -1002,5 +1091,26 @@
     <!-- Application Scripts -->
     <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
     <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
-  </body>
+  
+  <script nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
+    (function () {
+      var exBtn = document.getElementById('dashExtrasToggleBtn');
+      var exBox = document.getElementById('dashQuickExtras');
+      if (exBtn && exBox) {
+        exBtn.addEventListener('click', function () {
+          var open = exBox.classList.toggle('is-open');
+          exBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+      }
+      var fBtn = document.getElementById('dashFiltersToggleBtn');
+      var fPanel = document.getElementById('dashboardLinksPanel');
+      if (fBtn && fPanel) {
+        fBtn.addEventListener('click', function () {
+          var open = fPanel.classList.toggle('filters-open');
+          fBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+      }
+    })();
+  </script>
+</body>
 </html>
