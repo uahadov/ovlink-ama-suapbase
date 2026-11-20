@@ -662,6 +662,35 @@ function ensureDbTables() {
       created_at TEXT NOT NULL
     )`, () => {});
 
+    // P42: support tickets, system incidents & data subject requests (export/deletion).
+    db.run(`CREATE TABLE IF NOT EXISTS support_tickets (
+      id SERIAL PRIMARY KEY,
+      ticket_ref TEXT NOT NULL UNIQUE,
+      user_id INTEGER NOT NULL,
+      category TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'open',
+      created_at TEXT NOT NULL
+    )`, () => {});
+    db.run(`CREATE TABLE IF NOT EXISTS system_incidents (
+      id SERIAL PRIMARY KEY,
+      incident_ref TEXT NOT NULL UNIQUE,
+      severity TEXT NOT NULL,
+      title TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'resolved',
+      started_at TEXT NOT NULL,
+      resolved_at TEXT
+    )`, () => {});
+    db.run(`CREATE TABLE IF NOT EXISTS data_subject_requests (
+      id SERIAL PRIMARY KEY,
+      request_ref TEXT NOT NULL UNIQUE,
+      user_id INTEGER NOT NULL,
+      request_type TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`, () => {});
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});

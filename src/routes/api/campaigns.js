@@ -24,6 +24,7 @@ const planEntitlements = require('../../lib/plan-entitlements');
 const checkoutDunning = require('../../lib/checkout-dunning');
 const unitEconomics = require('../../lib/unit-economics');
 const demoFunnel = require('../../lib/demo-funnel');
+const trustSupport = require('../../lib/trust-support');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -2200,6 +2201,74 @@ router.get('/api/funnel/summary', async (req, res) => {
     return res.json(summary);
   } catch {
     return res.status(500).json({ error: 'Funnel xülasəsi yüklənmədi.' });
+  }
+});
+
+// ===== P42: Trust, System Status, Support Tickets & Data Rights (Export / Deletion) =====
+
+router.get('/api/public/trust-status', async (req, res) => {
+  try {
+    const lang = req.query && req.query.lang ? String(req.query.lang).toLowerCase() : 'az';
+    return res.json(await trustSupport.getPublicStatusSummary(lang));
+  } catch {
+    return res.status(503).json({ overall_status: 'degraded', error: 'Status yoxlanıla bilmədi.' });
+  }
+});
+
+router.post('/api/support/tickets', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const result = await trustSupport.createSupportTicket({
+      userId,
+      category: body.category,
+      subject: body.subject,
+      message: body.message,
+    });
+    if (result.error) return res.status(result.statusCode || 400).json(result);
+    return res.status(201).json(result);
+  } catch {
+    return res.status(500).json({ error: 'Dəstək sorğusu yaradıla bilmədi.' });
+  }
+});
+
+router.get('/api/support/tickets', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const tickets = await trustSupport.listUserSupportTickets(userId);
+    return res.json({ tickets });
+  } catch {
+    return res.status(500).json({ error: 'Sorğular yüklənmədi.' });
+  }
+});
+
+router.get('/api/privacy/data-export', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const bundle = await trustSupport.exportUserDataBundle(userId);
+    if (bundle.error) return res.status(bundle.statusCode || 404).json(bundle);
+    return res.json(bundle);
+  } catch {
+    return res.status(500).json({ error: 'Məlumat ixracı alınmadı.' });
+  }
+});
+
+router.post('/api/privacy/data-delete', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const result = await trustSupport.deleteUserPersonalData({
+      userId,
+      confirmText: body.confirm_text,
+    });
+    if (result.error) return res.status(result.statusCode || 400).json(result);
+    return res.json(result);
+  } catch {
+    return res.status(500).json({ error: 'Məlumat silmə əməliyyatı alınmadı.' });
   }
 });
 
