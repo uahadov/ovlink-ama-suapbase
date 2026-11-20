@@ -7,16 +7,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>" />
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — Linklər, Dinamik QR və Müştəri Hesabatları' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — B2B Link İdarəçiliyi, Dinamik QR və Müştəri Portalları' %></title>
 
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
   <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
 
-  <meta name="description" content="<%= (seo && seo.description) ? seo.description : 'Agentliklər və bizneslər üçün özəl domenli qısa linklər, dinamik QR kodlar, bot filtri və canlı müştəri hesabatları.' %>" />
+  <meta name="description" content="<%= (seo && seo.description) ? seo.description : 'Agentliklər və marketinq komandaları üçün özəl domenli qısa linklər, dinamik QR kodlar, bot filtri və canlı müştəri hesabat portalları.' %>" />
   <meta name="keywords" content="<%= (seo && seo.keywords) ? seo.keywords : '' %>" />
   <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
   <link rel="alternate" hreflang="en" href="<%= (seo && seo.hreflangEn) ? seo.hreflangEn : '' %>" />
@@ -25,179 +25,431 @@
   <link rel="alternate" hreflang="x-default" href="<%= (seo && seo.hreflangXDefault) ? seo.hreflangXDefault : '' %>" />
 
   <style nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
-    body.ov-clean-home {
-      background: #0a0a0a !important;
-      color: #f4f4f5 !important;
+    /* === Crisp Light-Mode B2B Editorial System (Dub.co / Stripe Restraint) === */
+    body.ov-light-home {
+      background: #ffffff !important;
+      color: #0f172a !important;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      color-scheme: light !important;
     }
 
-    .ov-wrap {
-      max-width: 880px;
-      margin: 0 auto;
-      padding: 0 24px;
+    /* Cohesive Light Navbar on Homepage */
+    body.ov-light-home .m-nav {
+      background: rgba(255, 255, 255, 0.92) !important;
+      backdrop-filter: blur(14px) !important;
+      border-bottom: 1px solid #e2e8f0 !important;
     }
-
-    /* Calm, left-aligned editorial Hero — zero gradients, zero glow, zero eyebrow clutter */
-    .ov-hero {
-      padding: 132px 0 72px;
+    body.ov-light-home .m-nav a,
+    body.ov-light-home .m-nav .m-lang-btn,
+    body.ov-light-home .m-nav .m-btn-ghost,
+    body.ov-light-home .m-nav .m-user-btn,
+    body.ov-light-home .m-nav .m-burger {
+      color: #0f172a !important;
     }
-    .ov-clean-home .m-hero-h1 {
-      font-size: clamp(34px, 4.8vw, 54px) !important;
-      font-weight: 700 !important;
-      line-height: 1.12 !important;
-      letter-spacing: -0.03em !important;
+    body.ov-light-home .m-nav .m-nav-links a {
+      color: #475569 !important;
+    }
+    body.ov-light-home .m-nav .m-nav-links a:hover {
+      color: #0f172a !important;
+    }
+    body.ov-light-home .m-nav .m-btn-solid {
+      background: #0f172a !important;
       color: #ffffff !important;
-      margin: 0 0 20px !important;
-      max-width: 18ch;
-      text-align: left !important;
+      border-color: #0f172a !important;
     }
-    .ov-hero-lead {
-      font-size: clamp(16.5px, 1.7vw, 18.5px);
-      line-height: 1.65;
-      color: #a1a1aa;
-      max-width: 56ch;
-      margin: 0 0 32px;
+    body.ov-light-home .m-nav .m-btn-ghost {
+      border-color: #e2e8f0 !important;
+      background: #ffffff !important;
     }
-    .ov-actions {
+    body.ov-light-home .m-nav .m-lang-btn {
+      border-color: #e2e8f0 !important;
+      background: #f8fafc !important;
+    }
+    body.ov-light-home .m-lang-menu,
+    body.ov-light-home .m-user-menu {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1) !important;
+    }
+    body.ov-light-home .m-lang-item,
+    body.ov-light-home .m-user-item {
+      color: #0f172a !important;
+    }
+    body.ov-light-home .m-lang-item:hover,
+    body.ov-light-home .m-user-item:hover {
+      background: #f1f5f9 !important;
+    }
+
+    /* Cohesive Light Footer on Homepage */
+    body.ov-light-home .m-footer {
+      background: #f8fafc !important;
+      border-top: 1px solid #e2e8f0 !important;
+      color: #475569 !important;
+    }
+    body.ov-light-home .m-footer-col-title,
+    body.ov-light-home .m-footer-copy strong {
+      color: #0f172a !important;
+    }
+    body.ov-light-home .m-footer a {
+      color: #475569 !important;
+    }
+    body.ov-light-home .m-footer a:hover {
+      color: #0f172a !important;
+    }
+    body.ov-light-home .m-cookie {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0f172a !important;
+      box-shadow: 0 12px 36px rgba(15, 23, 42, 0.14) !important;
+    }
+    body.ov-light-home .m-cookie .m-cta--white {
+      background: #0f172a !important;
+      color: #ffffff !important;
+    }
+    body.ov-light-home .m-cookie .m-cta--outline {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    /* Architectural subtle grid hero */
+    .ov-l-hero {
+      padding: 124px 24px 72px;
+      background-color: #ffffff;
+      background-image:
+        linear-gradient(to right, #f1f5f9 1px, transparent 1px),
+        linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);
+      background-size: 64px 64px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .ov-l-shell {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+    .ov-l-hero-inner {
+      text-align: center;
+      max-width: 740px;
+      margin: 0 auto;
+    }
+    .ov-l-kicker {
+      display: inline-block;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #1d4ed8;
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+      padding: 5px 12px;
+      border-radius: 999px;
+      margin-bottom: 20px;
+    }
+    body.ov-light-home .m-hero-h1 {
+      font-size: clamp(36px, 5.2vw, 58px) !important;
+      font-weight: 800 !important;
+      line-height: 1.08 !important;
+      letter-spacing: -0.035em !important;
+      color: #0f172a !important;
+      margin: 0 0 18px !important;
+      text-wrap: balance;
+    }
+    .ov-l-sub {
+      font-size: clamp(16.5px, 1.8vw, 19px);
+      line-height: 1.6;
+      color: #475569;
+      max-width: 580px;
+      margin: 0 auto 28px;
+    }
+    .ov-l-ctas {
       display: flex;
       align-items: center;
-      gap: 20px;
+      justify-content: center;
+      gap: 12px;
       flex-wrap: wrap;
-      margin-bottom: 56px;
+      margin-bottom: 44px;
     }
-    .ov-btn {
+    .ov-l-btn-dark {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
+      gap: 8px;
       height: 44px;
       padding: 0 22px;
-      border-radius: 8px;
-      background: #ffffff;
-      color: #0a0a0a !important;
+      border-radius: 9px;
+      background: #0f172a;
+      color: #ffffff !important;
       font-size: 14.5px;
       font-weight: 600;
       text-decoration: none;
       transition: background 0.15s ease;
     }
-    .ov-btn:hover {
-      background: #e4e4e7;
-    }
-    .ov-text-link {
+    .ov-l-btn-dark:hover { background: #1e293b; }
+    .ov-l-btn-light {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 44px;
+      padding: 0 22px;
+      border-radius: 9px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #0f172a !important;
       font-size: 14.5px;
-      font-weight: 500;
-      color: #d4d4d8 !important;
+      font-weight: 600;
       text-decoration: none;
-      border-bottom: 1px solid #3f3f46;
-      padding-bottom: 2px;
-      transition: color 0.15s ease, border-color 0.15s ease;
+      transition: border-color 0.15s ease, background 0.15s ease;
     }
-    .ov-text-link:hover {
-      color: #ffffff !important;
-      border-color: #ffffff;
-    }
+    .ov-l-btn-light:hover { border-color: #94a3b8; background: #f8fafc; }
 
-    /* Flat, honest URL composer — zero glow, zero shadow */
-    .ov-tester-label {
-      font-size: 13px;
-      font-weight: 500;
-      color: #71717a;
-      margin: 0 0 10px;
+    /* Interactive 3-Tab Product Showcase (Clean White SaaS Frame) */
+    .ov-l-stage {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+      text-align: left;
     }
-    .ov-clean-home .m-composer {
-      border-radius: 10px !important;
-      border: 1px solid #27272a !important;
-      background: #111113 !important;
-      padding: 10px 12px !important;
+    .ov-l-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      overflow-x: auto;
+    }
+    .ov-l-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #475569;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .ov-l-tab:hover { color: #0f172a; background: rgba(15, 23, 42, 0.04); }
+    .ov-l-tab.is-active {
+      background: #ffffff;
+      color: #0f172a;
+      border-color: #e2e8f0;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    }
+    .ov-l-tab i { color: #2563eb; font-size: 13px; }
+    .ov-l-panel { display: none; padding: 28px; }
+    .ov-l-panel.is-active { display: block; }
+
+    /* Light Composer inside Tab 1 */
+    body.ov-light-home .m-composer {
+      background: #f8fafc !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 12px !important;
+      padding: 12px !important;
       box-shadow: none !important;
     }
-    .ov-clean-home .m-composer-meta {
-      margin-top: 10px;
-      font-size: 12.5px;
-      color: #71717a;
+    body.ov-light-home .m-composer-input {
+      color: #0f172a !important;
+      background: transparent !important;
     }
-    .ov-clean-home .m-composer-meta a {
-      color: #d4d4d8;
+    body.ov-light-home .m-composer-input::placeholder { color: #94a3b8 !important; }
+    body.ov-light-home .m-composer-icon { color: #64748b !important; }
+    body.ov-light-home .m-composer-submit {
+      background: #0f172a !important;
+      color: #ffffff !important;
     }
+    body.ov-light-home .m-composer-meta,
+    body.ov-light-home .m-adv-toggle {
+      color: #64748b !important;
+    }
+    body.ov-light-home .m-composer-meta a { color: #1d4ed8 !important; font-weight: 600; }
+    body.ov-light-home .m-adv-panel {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 10px !important;
+      padding: 14px !important;
+      margin-top: 10px !important;
+    }
+    body.ov-light-home .m-adv-label { color: #334155 !important; }
+    body.ov-light-home .m-adv-input {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    body.ov-light-home .m-adv-tab { color: #475569 !important; }
+    body.ov-light-home .m-adv-tab.active {
+      background: #0f172a !important;
+      color: #ffffff !important;
+    }
+    body.ov-light-home .m-result {
+      background: #f0fdf4 !important;
+      border: 1px solid #bbf7d0 !important;
+      color: #0f172a !important;
+    }
+    body.ov-light-home .m-result-url { color: #1d4ed8 !important; }
 
-    /* Clean hairline rows — ZERO boxes, ZERO icons-in-squares, ZERO card clutter */
-    .ov-list-sec {
-      padding: 64px 0;
-      border-top: 1px solid #1f1f23;
-    }
-    .ov-sec-title {
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: #71717a;
-      margin: 0 0 28px;
-    }
-    .ov-rows {
-      display: flex;
-      flex-direction: column;
-    }
-    .ov-row {
+    /* Sample rows inside Showcase Tabs */
+    .ov-demo-rows {
       display: grid;
-      grid-template-columns: 240px 1fr;
-      gap: 24px;
-      padding: 24px 0;
-      border-top: 1px solid #1f1f23;
-      align-items: baseline;
+      gap: 10px;
+      margin-top: 18px;
     }
-    .ov-row:first-child {
-      border-top: none;
-      padding-top: 0;
-    }
-    .ov-row h2 {
-      font-size: 16.5px;
-      font-weight: 600;
-      color: #ffffff;
-      margin: 0;
-      line-height: 1.4;
-    }
-    .ov-row p {
-      font-size: 15px;
-      line-height: 1.65;
-      color: #a1a1aa;
-      margin: 0;
-    }
-
-    /* Quiet closing CTA */
-    .ov-close {
-      padding: 64px 0 88px;
-      border-top: 1px solid #1f1f23;
+    .ov-demo-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 24px;
+      gap: 14px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
       flex-wrap: wrap;
     }
-    .ov-close h2 {
-      font-size: clamp(22px, 2.6vw, 28px);
-      font-weight: 700;
-      letter-spacing: -0.025em;
-      color: #ffffff;
-      margin: 0 0 6px;
-    }
-    .ov-close p {
+    .ov-demo-short {
       font-size: 14.5px;
-      color: #a1a1aa;
-      margin: 0;
+      font-weight: 700;
+      color: #0f172a;
     }
-    .ov-close-actions {
-      display: flex;
+    .ov-demo-dest {
+      font-size: 12.5px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .ov-demo-metric {
+      display: inline-flex;
       align-items: center;
-      gap: 18px;
-      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #0f172a;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 5px 11px;
+      border-radius: 8px;
+    }
+    .ov-demo-metric.ok {
+      color: #15803d;
+      background: #f0fdf4;
+      border-color: #bbf7d0;
     }
 
-    @media (max-width: 720px) {
-      .ov-hero { padding: 104px 0 56px; }
-      .ov-row { grid-template-columns: 1fr; gap: 8px; }
+    /* Clean Content Sections */
+    .ov-l-sec {
+      padding: 84px 24px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #ffffff;
+    }
+    .ov-l-sec--tint {
+      background: #f8fafc;
+    }
+    .ov-l-sec-head {
+      max-width: 620px;
+      margin-bottom: 44px;
+    }
+    .ov-l-sec-head h2 {
+      font-size: clamp(26px, 3.2vw, 36px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: #0f172a;
+      margin: 0 0 10px;
+    }
+    .ov-l-sec-head p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #475569;
+      margin: 0;
+    }
+
+    /* 3-Column Feature Grid (Clean Flat White Cards) */
+    .ov-l-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+    }
+    .ov-l-card {
+      padding: 26px;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+    }
+    .ov-l-card-ico {
+      width: 38px;
+      height: 38px;
+      border-radius: 9px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      margin-bottom: 16px;
+    }
+    .ov-l-card h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 8px;
+    }
+    .ov-l-card p {
+      font-size: 14.5px;
+      line-height: 1.6;
+      color: #475569;
+      margin: 0;
+    }
+
+    /* 3-Step Horizontal Workflow */
+    .ov-l-steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 28px;
+    }
+    .ov-l-step-num {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #1d4ed8;
+      margin-bottom: 8px;
+    }
+    .ov-l-steps h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 8px;
+    }
+    .ov-l-steps p {
+      font-size: 14.5px;
+      line-height: 1.6;
+      color: #475569;
+      margin: 0;
+    }
+
+    /* Final CTA Band */
+    .ov-l-final {
+      padding: 76px 24px;
+      text-align: center;
+      background: #ffffff;
+    }
+    .ov-l-final h2 {
+      font-size: clamp(26px, 3.4vw, 38px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #0f172a;
+      margin: 0 0 10px;
+    }
+    .ov-l-final p {
+      font-size: 16px;
+      color: #475569;
+      margin: 0 0 28px;
+    }
+
+    @media (max-width: 860px) {
+      .ov-l-grid-3, .ov-l-steps { grid-template-columns: 1fr; }
+      .ov-l-panel { padding: 18px; }
     }
   </style>
 </head>
-<body class="ovx home-page ov-clean-home">
+<body class="ovx home-page ov-light-home">
 
   <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
 
@@ -211,215 +463,318 @@
   <%- include('partials/home-navbar') %>
 
   <main id="mainContent">
-    <div class="ov-wrap">
 
-      <!-- 1. HERO -->
-      <section class="ov-hero" aria-labelledby="heroTitle">
-        <h1 class="m-hero-h1" id="heroTitle">
-          Kampaniya linkləri, dinamik QR və müştəri hesabatları.
-        </h1>
-        <p class="ov-hero-lead" data-i18n="hero_sub">
-          Agentliklər və bizneslər üçün sadə link idarəçiliyi. Bot klikləri avtomatik təmizlənir, müştəriniz isə nəticəni canlı hesabat linki və ya A4 PDF kimi görür.
-        </p>
-
-        <div class="ov-actions">
-          <a class="ov-btn" href="/register?intent=trial" data-i18n="hero_cta_trial">14 gün pulsuz başla</a>
-          <a class="ov-text-link" href="/contact?intent=demo" data-i18n="hero_cta_demo">Demo istə</a>
-          <a class="ov-text-link" href="/pricing">Qiymətlər ($7/ay-dan)</a>
+    <!-- 1. CRISP LIGHT HERO + INTERACTIVE 3-TAB PRODUCT FRAME -->
+    <section class="ov-l-hero" aria-labelledby="heroTitle">
+      <div class="ov-l-shell">
+        <div class="ov-l-hero-inner">
+          <span class="ov-l-kicker">Agentliklər və marketinq komandaları üçün</span>
+          <h1 class="m-hero-h1" id="heroTitle">
+            Brendli linklər, dinamik QR və canlı müştəri hesabatları.
+          </h1>
+          <p class="ov-l-sub" data-i18n="hero_sub">
+            Kampaniyalarınızı öz domeninizlə paylaşın, bot kliklərini avtomatik təmizləyin və müştərilərinizə Excel əvəzinə canlı hesabat linki verin.
+          </p>
+          <div class="ov-l-ctas">
+            <a class="ov-l-btn-dark" href="/register?intent=trial" data-i18n="hero_cta_trial">14 gün pulsuz başla</a>
+            <a class="ov-l-btn-light" href="/contact?intent=demo" data-i18n="hero_cta_demo">Demo istə</a>
+          </div>
         </div>
 
-        <p class="ov-tester-label">İndi sına — qeydiyyatsız 1 link qısalt</p>
-        <div class="m-composer">
-          <form id="shortenForm" action="javascript:void(0);">
-            <div class="m-composer-row">
-              <span class="m-composer-icon"><i class="fa-solid fa-link" aria-hidden="true"></i></span>
-              <input class="m-composer-input" type="url" id="originalUrl" name="originalUrl"
-                placeholder="https://saytiniz.az/kampaniya"
-                data-i18n="input_placeholder"
-                data-i18n-aria="aria_long_url"
-                autocomplete="off" spellcheck="false" required aria-label="Long URL to shorten" />
-              <button type="submit" class="m-composer-submit" id="shortenSubmitBtn" aria-label="Shorten" data-i18n-aria="shorten_btn" title="Shorten" data-i18n-title="shorten_btn">
-                <span data-i18n="shorten_btn">Qısalt</span>
-                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-              </button>
-            </div>
-
-            <div class="m-composer-meta">
-              <span id="composerGuestHint">
-                <span>Özəl domen, QR və hesabatlar üçün</span>
-                <a href="/register?intent=trial">pulsuz hesab açın</a>.
-              </span>
-              <span class="m-ws-wrap" id="homeWorkspaceTopWrapper" hidden>
-                <button type="button" class="m-ws-btn" id="homeWorkspaceDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-controls="homeWorkspaceDropdownMenu">
-                  <i class="fa-regular fa-user" id="homeWorkspaceBtnIcon" aria-hidden="true"></i>
-                  <span id="homeWorkspaceBtnText" data-i18n="workspace_personal">Personal</span>
-                  <i class="fa-solid fa-chevron-down" style="font-size:9px;opacity:.5;" aria-hidden="true"></i>
-                </button>
-                <div class="m-ws-panel" id="homeWorkspaceDropdownMenu" role="menu"></div>
-              </span>
-            </div>
-
-            <button type="button" class="m-adv-toggle" id="advancedToggleBtn" aria-expanded="false" aria-controls="advancedPanel">
-              <i class="fa-solid fa-sliders" aria-hidden="true"></i>
-              <span data-i18n="advanced_settings">Əlavə seçimlər (UTM, alias)</span>
-              <i class="fa-solid fa-chevron-down m-adv-chevron" id="advancedChevron" aria-hidden="true"></i>
+        <!-- Interactive 3-Tab Real Product Frame -->
+        <div class="ov-l-stage">
+          <div class="ov-l-tabs" role="tablist" aria-label="Ovlink imkanları">
+            <button type="button" class="ov-l-tab is-active" data-stage-tab="st-links" role="tab" aria-selected="true">
+              <i class="fa-solid fa-link" aria-hidden="true"></i>
+              <span>1. Qısa Link &amp; UTM</span>
             </button>
+            <button type="button" class="ov-l-tab" data-stage-tab="st-qr" role="tab" aria-selected="false">
+              <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
+              <span>2. Dinamik QR Kodlar</span>
+            </button>
+            <button type="button" class="ov-l-tab" data-stage-tab="st-portal" role="tab" aria-selected="false">
+              <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+              <span>3. Canlı Müştəri Portalı</span>
+            </button>
+          </div>
 
-            <div class="m-adv-panel" id="advancedPanel">
-              <div class="m-adv-tabs" role="tablist">
-                <button type="button" class="m-adv-tab active" data-tab="tab-genel" role="tab" aria-selected="true" aria-controls="tab-genel"><span data-i18n="adv_tab_general">Ümumi</span></button>
-                <button type="button" class="m-adv-tab" data-tab="tab-utm" role="tab" aria-selected="false" aria-controls="tab-utm"><span data-i18n="adv_tab_utm">UTM</span></button>
-                <button type="button" class="m-adv-tab" data-tab="tab-cihaz" role="tab" aria-selected="false" aria-controls="tab-cihaz"><span data-i18n="adv_tab_device">Cihaz</span></button>
-                <button type="button" class="m-adv-tab" data-tab="tab-ab" role="tab" aria-selected="false" aria-controls="tab-ab"><span data-i18n="adv_tab_ab">A/B Test</span></button>
-              </div>
-
-              <div class="m-adv-tab-content active" id="tab-genel" role="tabpanel">
-                <div class="m-adv-grid">
-                  <div class="m-adv-field">
-                    <label class="m-adv-label" for="customAlias"><span data-i18n="alias_label">Xüsusi alias</span></label>
-                    <input class="m-adv-input" type="text" id="customAlias" name="customLink" placeholder="yaz-2026" autocomplete="off" aria-label="Custom alias" />
-                  </div>
-                  <div class="m-adv-field">
-                    <label class="m-adv-label" for="linkPassword"><span data-i18n="pass_label">Şifrə</span></label>
-                    <input class="m-adv-input" type="password" id="linkPassword" name="linkPassword" placeholder="••••••••" autocomplete="new-password" aria-label="Link password" />
-                  </div>
-                  <div class="m-adv-field">
-                    <label class="m-adv-label" for="expiresAt"><span data-i18n="expiry_date">Bitmə tarixi</span></label>
-                    <input class="m-adv-input" type="datetime-local" id="expiresAt" name="expiresAt" aria-label="Expiration date" />
-                  </div>
-                  <div class="m-adv-field">
-                    <label class="m-adv-label" for="maxClicks"><span data-i18n="max_clicks">Maksimum klik</span></label>
-                    <input class="m-adv-input" type="number" id="maxClicks" name="maxClicks" min="1" placeholder="1000" aria-label="Max clicks" />
-                  </div>
-                  <div class="m-adv-field m-adv-field--full">
-                    <label class="m-adv-label" for="customDomainSelect"><span data-i18n="shorten_domain_label">Domen</span></label>
-                    <select class="m-adv-input" id="customDomainSelect">
-                      <option value="" data-i18n="shorten_domain_default">Standart (ovlink.sbs)</option>
-                    </select>
-                  </div>
+          <!-- TAB 1: Live Shortener + Branded Link Example -->
+          <div class="ov-l-panel is-active" id="st-links" role="tabpanel">
+            <div class="m-composer">
+              <form id="shortenForm" action="javascript:void(0);">
+                <div class="m-composer-row">
+                  <span class="m-composer-icon"><i class="fa-solid fa-link" aria-hidden="true"></i></span>
+                  <input class="m-composer-input" type="url" id="originalUrl" name="originalUrl"
+                    placeholder="https://saytiniz.az/kampaniya — indi qısaldıb yoxlayın"
+                    data-i18n="input_placeholder"
+                    data-i18n-aria="aria_long_url"
+                    autocomplete="off" spellcheck="false" required aria-label="Long URL to shorten" />
+                  <button type="submit" class="m-composer-submit" id="shortenSubmitBtn" aria-label="Shorten" data-i18n-aria="shorten_btn" title="Shorten" data-i18n-title="shorten_btn">
+                    <span data-i18n="shorten_btn">Qısalt</span>
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                  </button>
                 </div>
-              </div>
 
-              <div class="m-adv-tab-content" id="tab-utm" role="tabpanel">
-                <div class="m-adv-grid">
-                  <div class="m-adv-field m-adv-field--full">
-                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                      <div class="m-adv-field" style="flex:1;">
-                        <label class="m-adv-label" for="utmTemplateSelect"><span data-i18n="adv_utm_params_title">UTM Şablonu</span></label>
-                        <select class="m-adv-input" id="utmTemplateSelect" aria-label="UTM template"></select>
+                <div class="m-composer-meta">
+                  <span id="composerGuestHint">
+                    <span>Qeydiyyatsız sınaq ·</span>
+                    <a href="/register?intent=trial">Özəl domen və analitika üçün pulsuz hesab aç</a>
+                  </span>
+                  <span class="m-ws-wrap" id="homeWorkspaceTopWrapper" hidden>
+                    <button type="button" class="m-ws-btn" id="homeWorkspaceDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-controls="homeWorkspaceDropdownMenu">
+                      <i class="fa-regular fa-user" id="homeWorkspaceBtnIcon" aria-hidden="true"></i>
+                      <span id="homeWorkspaceBtnText" data-i18n="workspace_personal">Personal</span>
+                      <i class="fa-solid fa-chevron-down" style="font-size:9px;opacity:.5;" aria-hidden="true"></i>
+                    </button>
+                    <div class="m-ws-panel" id="homeWorkspaceDropdownMenu" role="menu"></div>
+                  </span>
+                </div>
+
+                <button type="button" class="m-adv-toggle" id="advancedToggleBtn" aria-expanded="false" aria-controls="advancedPanel">
+                  <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                  <span data-i18n="advanced_settings">UTM və əlavə seçimlər</span>
+                  <i class="fa-solid fa-chevron-down m-adv-chevron" id="advancedChevron" aria-hidden="true"></i>
+                </button>
+
+                <div class="m-adv-panel" id="advancedPanel">
+                  <div class="m-adv-tabs" role="tablist">
+                    <button type="button" class="m-adv-tab active" data-tab="tab-genel" role="tab" aria-selected="true" aria-controls="tab-genel"><span data-i18n="adv_tab_general">Ümumi</span></button>
+                    <button type="button" class="m-adv-tab" data-tab="tab-utm" role="tab" aria-selected="false" aria-controls="tab-utm"><span data-i18n="adv_tab_utm">UTM</span></button>
+                    <button type="button" class="m-adv-tab" data-tab="tab-cihaz" role="tab" aria-selected="false" aria-controls="tab-cihaz"><span data-i18n="adv_tab_device">Cihaz</span></button>
+                    <button type="button" class="m-adv-tab" data-tab="tab-ab" role="tab" aria-selected="false" aria-controls="tab-ab"><span data-i18n="adv_tab_ab">A/B Test</span></button>
+                  </div>
+
+                  <div class="m-adv-tab-content active" id="tab-genel" role="tabpanel">
+                    <div class="m-adv-grid">
+                      <div class="m-adv-field">
+                        <label class="m-adv-label" for="customAlias"><span data-i18n="alias_label">Xüsusi alias</span></label>
+                        <input class="m-adv-input" type="text" id="customAlias" name="customLink" placeholder="yaz-2026" autocomplete="off" aria-label="Custom alias" />
                       </div>
-                      <button type="button" class="m-adv-save" id="saveUtmTemplateBtn" aria-label="Save UTM template">
-                        <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i>
-                        <span data-i18n="adv_utm_save">Yadda saxla</span>
-                      </button>
+                      <div class="m-adv-field">
+                        <label class="m-adv-label" for="linkPassword"><span data-i18n="pass_label">Şifrə</span></label>
+                        <input class="m-adv-input" type="password" id="linkPassword" name="linkPassword" placeholder="••••••••" autocomplete="new-password" aria-label="Link password" />
+                      </div>
+                      <div class="m-adv-field">
+                        <label class="m-adv-label" for="expiresAt"><span data-i18n="expiry_date">Bitmə tarixi</span></label>
+                        <input class="m-adv-input" type="datetime-local" id="expiresAt" name="expiresAt" aria-label="Expiration date" />
+                      </div>
+                      <div class="m-adv-field">
+                        <label class="m-adv-label" for="maxClicks"><span data-i18n="max_clicks">Maksimum klik</span></label>
+                        <input class="m-adv-input" type="number" id="maxClicks" name="maxClicks" min="1" placeholder="1000" aria-label="Max clicks" />
+                      </div>
+                      <div class="m-adv-field m-adv-field--full">
+                        <label class="m-adv-label" for="customDomainSelect"><span data-i18n="shorten_domain_label">Domen</span></label>
+                        <select class="m-adv-input" id="customDomainSelect">
+                          <option value="" data-i18n="shorten_domain_default">Standart (ovlink.sbs)</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                  <div class="m-adv-field">
-                    <label class="m-adv-label" for="utmSource"><span data-i18n="adv_utm_source">Source</span></label>
-                    <input class="m-adv-input" type="text" id="utmSource" placeholder="instagram" aria-label="UTM source" />
-                  </div>
-                  <div class="m-adv-field">
-                    <label class="m-adv-label" for="utmMedium"><span data-i18n="adv_utm_medium">Medium</span></label>
-                    <input class="m-adv-input" type="text" id="utmMedium" placeholder="social" aria-label="UTM medium" />
-                  </div>
-                  <div class="m-adv-field m-adv-field--full">
-                    <label class="m-adv-label" for="utmCampaign"><span data-i18n="adv_utm_campaign">Campaign</span></label>
-                    <input class="m-adv-input" type="text" id="utmCampaign" placeholder="yaz_2026" aria-label="UTM campaign" />
-                  </div>
-                  <div class="m-adv-field">
-                    <label class="m-adv-label" for="utmTerm"><span data-i18n="adv_utm_term">Term</span></label>
-                    <input class="m-adv-input" type="text" id="utmTerm" placeholder="sale" aria-label="UTM term" />
-                  </div>
-                  <div class="m-adv-field">
-                    <label class="m-adv-label" for="utmContent"><span data-i18n="adv_utm_content">Content</span></label>
-                    <input class="m-adv-input" type="text" id="utmContent" placeholder="reels_1" aria-label="UTM content" />
-                  </div>
-                </div>
-              </div>
 
-              <div class="m-adv-tab-content" id="tab-cihaz" role="tabpanel">
-                <div class="m-adv-grid">
-                  <div class="m-adv-field m-adv-field--full">
-                    <label class="m-adv-label" for="iosUrl">iOS Redirect</label>
-                    <input class="m-adv-input" type="url" id="iosUrl" placeholder="https://apps.apple.com/..." aria-label="iOS redirect URL" />
+                  <div class="m-adv-tab-content" id="tab-utm" role="tabpanel">
+                    <div class="m-adv-grid">
+                      <div class="m-adv-field m-adv-field--full">
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                          <div class="m-adv-field" style="flex:1;">
+                            <label class="m-adv-label" for="utmTemplateSelect"><span data-i18n="adv_utm_params_title">UTM Şablonu</span></label>
+                            <select class="m-adv-input" id="utmTemplateSelect" aria-label="UTM template"></select>
+                          </div>
+                          <button type="button" class="m-adv-save" id="saveUtmTemplateBtn" aria-label="Save UTM template">
+                            <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i>
+                            <span data-i18n="adv_utm_save">Yadda saxla</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div class="m-adv-field">
+                        <label class="m-adv-label" for="utmSource"><span data-i18n="adv_utm_source">Source</span></label>
+                        <input class="m-adv-input" type="text" id="utmSource" placeholder="instagram" aria-label="UTM source" />
+                      </div>
+                      <div class="m-adv-field">
+                        <label class="m-adv-label" for="utmMedium"><span data-i18n="adv_utm_medium">Medium</span></label>
+                        <input class="m-adv-input" type="text" id="utmMedium" placeholder="social" aria-label="UTM medium" />
+                      </div>
+                      <div class="m-adv-field m-adv-field--full">
+                        <label class="m-adv-label" for="utmCampaign"><span data-i18n="adv_utm_campaign">Campaign</span></label>
+                        <input class="m-adv-input" type="text" id="utmCampaign" placeholder="yaz_2026" aria-label="UTM campaign" />
+                      </div>
+                      <div class="m-adv-field">
+                        <label class="m-adv-label" for="utmTerm"><span data-i18n="adv_utm_term">Term</span></label>
+                        <input class="m-adv-input" type="text" id="utmTerm" placeholder="sale" aria-label="UTM term" />
+                      </div>
+                      <div class="m-adv-field">
+                        <label class="m-adv-label" for="utmContent"><span data-i18n="adv_utm_content">Content</span></label>
+                        <input class="m-adv-input" type="text" id="utmContent" placeholder="reels_1" aria-label="UTM content" />
+                      </div>
+                    </div>
                   </div>
-                  <div class="m-adv-field m-adv-field--full">
-                    <label class="m-adv-label" for="androidUrl">Android Redirect</label>
-                    <input class="m-adv-input" type="url" id="androidUrl" placeholder="https://play.google.com/..." aria-label="Android redirect URL" />
-                  </div>
-                </div>
-              </div>
 
-              <div class="m-adv-tab-content" id="tab-ab" role="tabpanel">
-                <div class="m-adv-grid">
-                  <div class="m-adv-field m-adv-field--full">
-                    <label class="m-adv-label" for="originalB">A/B Testing (URL B)</label>
-                    <input class="m-adv-input" type="url" id="originalB" placeholder="https://..." aria-label="Target URL B" />
-                    <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
-                      <span class="m-adv-label" style="white-space:nowrap;">Link A (%)</span>
-                      <input class="m-adv-input" type="number" id="abSplitPercent" min="0" max="100" value="50" style="width:80px;" aria-label="Link A traffic percent" />
+                  <div class="m-adv-tab-content" id="tab-cihaz" role="tabpanel">
+                    <div class="m-adv-grid">
+                      <div class="m-adv-field m-adv-field--full">
+                        <label class="m-adv-label" for="iosUrl">iOS Redirect</label>
+                        <input class="m-adv-input" type="url" id="iosUrl" placeholder="https://apps.apple.com/..." aria-label="iOS redirect URL" />
+                      </div>
+                      <div class="m-adv-field m-adv-field--full">
+                        <label class="m-adv-label" for="androidUrl">Android Redirect</label>
+                        <input class="m-adv-input" type="url" id="androidUrl" placeholder="https://play.google.com/..." aria-label="Android redirect URL" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="m-adv-tab-content" id="tab-ab" role="tabpanel">
+                    <div class="m-adv-grid">
+                      <div class="m-adv-field m-adv-field--full">
+                        <label class="m-adv-label" for="originalB">A/B Testing (URL B)</label>
+                        <input class="m-adv-input" type="url" id="originalB" placeholder="https://..." aria-label="Target URL B" />
+                        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+                          <span class="m-adv-label" style="white-space:nowrap;">Link A (%)</span>
+                          <input class="m-adv-input" type="number" id="abSplitPercent" min="0" max="100" value="50" style="width:80px;" aria-label="Link A traffic percent" />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                <div id="shortenFeedback" class="m-status" role="alert"></div>
+              </form>
+
+              <div id="result" class="m-result" style="display:none;">
+                <p class="m-result-title">
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  <span data-i18n="generated_title">Linkiniz hazırdır</span>
+                </p>
+                <a id="shortUrl" class="m-result-url" href="#" target="_blank" rel="noopener"></a>
+                <div class="m-result-actions">
+                  <button id="copyShortBtn" type="button" class="m-cta m-cta--white m-cta--sm" style="background:#0f172a;color:#fff;">
+                    <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                    <span data-i18n="copy_btn">Kopyala</span>
+                  </button>
+                </div>
+                <p id="shortenHint" class="m-status" style="margin-top:10px;font-size:12.5px;"></p>
               </div>
             </div>
 
-            <div id="shortenFeedback" class="m-status" role="alert"></div>
-          </form>
-
-          <div id="result" class="m-result" style="display:none;">
-            <p class="m-result-title">
-              <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
-              <span data-i18n="generated_title">Linkiniz hazırdır</span>
-            </p>
-            <a id="shortUrl" class="m-result-url" href="#" target="_blank" rel="noopener"></a>
-            <div class="m-result-actions">
-              <button id="copyShortBtn" type="button" class="m-cta m-cta--white m-cta--sm">
-                <i class="fa-regular fa-copy" aria-hidden="true"></i>
-                <span data-i18n="copy_btn">Kopyala</span>
-              </button>
+            <div class="ov-demo-rows">
+              <div class="ov-demo-row">
+                <div>
+                  <div class="ov-demo-short">go.brendiniz.az/yaz-kampaniyasi</div>
+                  <div class="ov-demo-dest">Instagram Reels · Avtomatik UTM şablonu · DNS &amp; SSL təsdiqlənib</div>
+                </div>
+                <span class="ov-demo-metric ok">Bot filtri aktiv · Real insan klikləri</span>
+              </div>
             </div>
-            <p id="shortenHint" class="m-status" style="margin-top:10px;font-size:12.5px;"></p>
           </div>
-        </div>
-      </section>
 
-      <!-- 2. THREE CALM, HONEST CAPABILITIES (NO BOXES, NO GLOWS) -->
-      <section class="ov-list-sec" aria-labelledby="featuresTitle">
-        <p class="ov-sec-title" id="featuresTitle">Nəyi həll edir</p>
-        <div class="ov-rows">
-          <div class="ov-row">
-            <h2>Özəl domen və dinamik QR</h2>
-            <p>Müştərinizin öz domeni ilə qısa linklər və çapdan sonra hədəfi dəyişdirilə bilən QR kodlar yaradın. Ödəniş dayansa belə mövcud linklər reklamsız işləməyə davam edir.</p>
+          <!-- TAB 2: Dynamic QR Codes -->
+          <div class="ov-l-panel" id="st-qr" role="tabpanel">
+            <div class="ov-demo-rows" style="margin-top:0;">
+              <div class="ov-demo-row">
+                <div>
+                  <div class="ov-demo-short">Çapdan sonra dəyişdirilə bilən Dinamik QR</div>
+                  <div class="ov-demo-dest">Bilbord, menyu, flayer və tədbir stendlərində QR-ı yenidən çap etmədən hədəf linkini dəyişin.</div>
+                </div>
+                <span class="ov-demo-metric">SVG &amp; 2048px PNG</span>
+              </div>
+              <div class="ov-demo-row">
+                <div>
+                  <div class="ov-demo-short">Skan sayı kliklərdən ayrı hesablanır</div>
+                  <div class="ov-demo-dest">Oflayn çap materiallarının gətirdiyi real skanları onlayn reklamlardan ayrı görün.</div>
+                </div>
+                <span class="ov-demo-metric ok">Kontrast yoxlaması (WCAG)</span>
+              </div>
+            </div>
           </div>
-          <div class="ov-row">
-            <h2>Bot-suz təmiz statistika</h2>
-            <p>Avtomatik filtr bot və skaner kliklərini ayırır. Hər kampaniya üzrə real insan kliklərini, cihazları, şəhərləri və UTM mənbələrini dəqiq görürsünüz.</p>
-          </div>
-          <div class="ov-row">
-            <h2>Canlı müştəri portalı və A4 PDF</h2>
-            <p>Ay sonu Excel yığmaq əvəzinə müştəriyə istənilən vaxt ləğv edilə bilən canlı hesabat linki verin və ya avtomatik aylıq A4 PDF göndərin.</p>
-          </div>
-          <div class="ov-row">
-            <h2>Komanda və iş sahələri</h2>
-            <p>Hər müştəri üçün ayrıca iş sahəsi, komanda rolları, əməliyyat jurnalı, Webhook və GA4 bağlantısı bir paneldə toplanır.</p>
-          </div>
-        </div>
-      </section>
 
-      <!-- 3. QUIET CLOSING -->
-      <section class="ov-close" aria-label="Başla">
-        <div>
-          <h2>2 dəqiqəyə yoxlayın.</h2>
-          <p>14 gün pulsuz sınaq · Kart tələb olunmur · İstənilən vaxt ləğv et.</p>
+          <!-- TAB 3: Live Client Portal -->
+          <div class="ov-l-panel" id="st-portal" role="tabpanel">
+            <div class="ov-demo-rows" style="margin-top:0;">
+              <div class="ov-demo-row">
+                <div>
+                  <div class="ov-demo-short">Müştəriyə Excel əvəzinə 1 canlı hesabat linki</div>
+                  <div class="ov-demo-dest">Müştəriniz əlavə qeydiyyat olmadan yalnız öz kampaniyasının təmiz nəticələrinə baxır; girişi istənilən vaxt ləğv edə bilərsiniz.</div>
+                </div>
+                <span class="ov-demo-metric ok">White-label · Yalnız baxış</span>
+              </div>
+              <div class="ov-demo-row">
+                <div>
+                  <div class="ov-demo-short">Avtomatik A4 PDF hesabat (1:1 CSV uyğunluğu)</div>
+                  <div class="ov-demo-dest">Hər ayın 1-i hazır A4 PDF hesabatı avtomatik hazırlanır və müştəriyə göndərilir.</div>
+                </div>
+                <span class="ov-demo-metric">Planlı göndəriş</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="ov-close-actions">
-          <a class="ov-btn" href="/register?intent=trial">14 gün pulsuz başla</a>
-          <a class="ov-text-link" href="/pricing">Qiymətlərə bax</a>
-        </div>
-      </section>
+      </div>
+    </section>
 
-    </div>
+    <!-- 2. CORE CAPABILITIES -->
+    <section class="ov-l-sec ov-l-sec--tint" aria-labelledby="featuresTitle">
+      <div class="ov-l-shell">
+        <div class="ov-l-sec-head">
+          <h2 id="featuresTitle" data-i18n="feat_title">Agentlik və marketinq komandaları üçün tək sistem.</h2>
+          <p data-i18n="feat_sub">Hər müştəri üçün ayrı iş sahəsi, özəl domen, bot-suz analitika və avtomatik hesabatlar.</p>
+        </div>
+
+        <div class="ov-l-grid-3">
+          <article class="ov-l-card">
+            <div class="ov-l-card-ico"><i class="fa-solid fa-globe" aria-hidden="true"></i></div>
+            <h3>Özəl brend domenləri</h3>
+            <p>Hər müştəri üçün öz domeni ilə qısa linklər yaradın. Ödəniş dayansa belə mövcud linklər reklamsız yönləndirilir.</p>
+          </article>
+          <article class="ov-l-card">
+            <div class="ov-l-card-ico"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
+            <h3>Bot-suz təmiz statistika</h3>
+            <p>Skanerlər və bot klikləri avtomatik ayrılır — müştəriyə yalnız real insan klikləri, cihazlar və kanallar təqdim olunur.</p>
+          </article>
+          <article class="ov-l-card">
+            <div class="ov-l-card-ico"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></div>
+            <h3>Canlı portal və A4 PDF</h3>
+            <p>Ay sonu saatlarla Excel yığmağı dayandırın — 1 kliklə brendli canlı hesabat linki və ya A4 PDF paylaşın.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. HOW IT WORKS (3 CLEAR STEPS) -->
+    <section class="ov-l-sec" aria-labelledby="howTitle">
+      <div class="ov-l-shell">
+        <div class="ov-l-sec-head">
+          <h2 id="howTitle">Necə işləyir?</h2>
+          <p>Texniki quraşdırma olmadan 3 addımda kampaniyaya başlayın.</p>
+        </div>
+        <div class="ov-l-steps">
+          <div>
+            <div class="ov-l-step-num">01 · DOMEN VƏ İŞ SAHƏSİ</div>
+            <h3>Müştəri üçün iş sahəsi aç</h3>
+            <p>Komandanı əlavə et, özəl domeni qoş və UTM şablonlarını vahid standartda saxla.</p>
+          </div>
+          <div>
+            <div class="ov-l-step-num">02 · LİNK VƏ DİNAMİK QR</div>
+            <h3>Kampaniyanı paylaş</h3>
+            <p>Instagram, TikTok, reklamlar və çap materialları üçün izlənilən link və dinamik QR yarat.</p>
+          </div>
+          <div>
+            <div class="ov-l-step-num">03 · MÜŞTƏRİ HESABATI</div>
+            <h3>Canlı portalı göndər</h3>
+            <p>Müştəriyə bot-suz real klikləri göstərən tək hesabat linki və ya avtomatik A4 PDF göndər.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. FINAL CTA -->
+    <section class="ov-l-final">
+      <div class="ov-l-shell">
+        <h2>İlk müştəri hesabatını 2 dəqiqəyə hazırla.</h2>
+        <p>14 gün pulsuz sınaq · Kart tələb olunmur · İstənilən vaxt ləğv et.</p>
+        <div class="ov-l-ctas" style="margin-bottom:0;">
+          <a class="ov-l-btn-dark" href="/register?intent=trial">14 gün pulsuz başla</a>
+          <a class="ov-l-btn-light" href="/pricing">Qiymətlərə bax ($7/ay-dan)</a>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <%- include('partials/home-footer') %>
@@ -428,12 +783,22 @@
   <script nonce="<%= nonce %>" defer src="/home.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>">
     (function () {
-      var nav = document.getElementById('mNav');
-      if (nav) {
-        var onScroll = function () { nav.classList.toggle('scrolled', window.scrollY > 24); };
-        window.addEventListener('scroll', onScroll, { passive: true });
-        onScroll();
-      }
+      /* Interactive 3-tab showcase switcher */
+      document.querySelectorAll('[data-stage-tab]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-stage-tab');
+          document.querySelectorAll('[data-stage-tab]').forEach(function (b) {
+            var active = b === btn;
+            b.classList.toggle('is-active', active);
+            b.setAttribute('aria-selected', active ? 'true' : 'false');
+          });
+          document.querySelectorAll('.ov-l-panel').forEach(function (p) {
+            p.classList.toggle('is-active', p.id === id);
+          });
+        });
+      });
+
+      /* Advanced composer toggle & tabs */
       var advBtn = document.getElementById('advancedToggleBtn');
       var advPanel = document.getElementById('advancedPanel');
       var advChev = document.getElementById('advancedChevron');
