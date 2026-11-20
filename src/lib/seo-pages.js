@@ -90,6 +90,158 @@ const SEO_LANDING_PAGES = Object.freeze([
       ],
     },
   },
+  {
+    slug: "agency-client-reporting",
+    titleKey: "seo_landing_agency_client_reporting_title",
+    leadKey: "seo_landing_agency_client_reporting_lead",
+    pointKeys: ["seo_landing_agency_client_reporting_p1", "seo_landing_agency_client_reporting_p2", "seo_landing_agency_client_reporting_p3"],
+    copy: {
+      title: {
+        az: "Rəqəmsal agentliklər üçün müştəri hesabatı və portalı | Ovlink",
+        tr: "Dijital ajanslar için müşteri raporlaması ve portalı | Ovlink",
+        en: "Client reporting & portals for digital agencies | Ovlink",
+      },
+      lead: {
+        az: "Hər ay cədvəl yığmağı dayandırın: hər müştəri üçün ayrıca iş sahəsi, bot-filtrli kampaniya analitikası, paylaşılabilən portal və bir kliklə PDF hesabat.",
+        tr: "Her ay manuel tablo hazırlamayı bırakın: her müşteri için ayrı çalışma alanı, bot filtreli kampanya analitiği, paylaşılabilir portal ve tek tıkla PDF rapor.",
+        en: "Stop assembling spreadsheets every month: isolated client workspaces, bot-filtered campaign analytics, shareable client portals, and one-click PDF reports.",
+      },
+      points: [
+        {
+          az: "Problem: Agentliklər ay sonu 10+ müştəri üçün link, QR və UTM nəticələrini əl ilə toplayıb PDF hazırlamağa saatlar itirir.",
+          tr: "Sorun: Ajanslar ay sonunda 10+ müşteri için link, QR ve UTM sonuçlarını elle toplayıp PDF hazırlamaya saatler harcar.",
+          en: "Problem: Agencies lose hours every month manually stitching links, QR scans, and UTM results into client PDFs.",
+        },
+        {
+          az: "İş axını: Müştəri portfeli yaradın, kampaniya linklərini və QR-ları UTM şablonu ilə buraxın, sonra yalnız oxumaq üçün təhlükəsiz portal linki və ya planlı PDF paylaşın.",
+          tr: "İş akışı: Müşteri portföyü açın, kampanya linklerini ve QR kodlarını UTM şablonuyla yayınlayın, ardından salt okunur portal veya planlı PDF paylaşın.",
+          en: "Workflow: Create a client workspace, launch tagged links and QR codes with UTM presets, then share a revocable read-only portal or scheduled PDF.",
+        },
+        {
+          az: "Sübut: Hər hesabat kriptoqrafik snapshot ID, son məlumat tarixi və CSV/PDF 1:1 rəqəm uyğunluğu ilə çıxır — rəqiblərin $99–$300 paketlərinə qarşı $19–$49 aralığında.",
+          tr: "Kanıt: Her rapor kriptografik snapshot ID, son veri zamanı ve 1:1 CSV/PDF uyumu ile üretilir — rakiplerin $99–$300 paketlerine karşı $19–$49 aralığında.",
+          en: "Proof: Every report includes a cryptographic snapshot ID, data freshness timestamp, and 1:1 CSV/PDF parity — at $19–$49/mo instead of $99–$300.",
+        },
+      ],
+    },
+    solution: {
+      syntheticNotice: {
+        az: "Nümunə görünüş (sintetik demo məlumatı): Aşağıdakı rəqəmlər real müştəri deyil, məhsulun hesabat strukturunu göstərən sınaq nümunəsidir.",
+        tr: "Örnek görünüm (sentetik demo verisi): Aşağıdaki rakamlar gerçek müşteri değil, ürünün rapor yapısını gösteren örnek verilerdir.",
+        en: "Sample view (synthetic demo dataset): Figures below are illustrative test data showing the real report format, not a live customer.",
+      },
+      proofTitle: {
+        az: "Müştəri Portalı & PDF Hesabat Nümunəsi (Sintetik Demo)",
+        tr: "Müşteri Portalı & PDF Rapor Örneği (Sentetik Demo)",
+        en: "Client Portal & PDF Report Sample (Synthetic Demo)",
+      },
+      proofRows: {
+        az: [
+          "Kampaniya: Yaz Aksiya 2026 · Snapshot #rev-4 · Son yenilənmə: 2 dəq əvvəl",
+          "İnsan klikləri (bot filtri aktiv): 14,820 · Unikal ziyarətçi: 11,340 · QR skan: 1,920",
+          "Paylaşım: Yalnız baxış portal linki (ləğv edilə bilən) + Aylıq avtomatik A4 PDF",
+        ],
+        tr: [
+          "Kampanya: Bahar Kampanyası 2026 · Snapshot #rev-4 · Son veri: 2 dk önce",
+          "İnsan tıklamaları (bot filtresi aktif): 14.820 · Tekil ziyaretçi: 11.340 · QR tarama: 1.920",
+          "Paylaşım: Salt okunur portal bağlantısı (iptal edilebilir) + Aylık otomatik A4 PDF",
+        ],
+        en: [
+          "Campaign: Spring Promo 2026 · Snapshot #rev-4 · Freshness: 2m ago",
+          "Human clicks (bot filter on): 14,820 · Unique visitors: 11,340 · QR scans: 1,920",
+          "Delivery: Revocable read-only client portal + scheduled monthly A4 PDF",
+        ],
+      },
+      faq: [
+        {
+          q: { az: "Müştərilərim panelə daxil olmaq üçün ayrıca ödəniş etməlidir?", tr: "Müşterilerim portala erişmek için ek ücret öder mi?", en: "Do my clients pay extra to view their report portal?" },
+          a: { az: "Xeyr. Müştəri portalı yalnız baxış üçündür və paketə daxildir; siz linki istənilən vaxt ləğv edə bilərsiniz.", tr: "Hayır. Müşteri portalı salt okunurdur ve pakete dahildir; bağlantıyı dilediğiniz zaman iptal edebilirsiniz.", en: "No. Read-only client portals are included in your plan and can be revoked anytime." },
+        },
+        {
+          q: { az: "Abunəlik dayansa, müştəri reklamlarındakı linklər qırılır?", tr: "Abonelik biterse müşteri reklamlarındaki linkler bozulur mu?", en: "If a subscription stops, do existing client campaign links break?" },
+          a: { az: "Xeyr. Mövcud qısa linklər ədalətli istifadə çərçivəsində reklamsız yönləndirməyə davam edir.", tr: "Hayır. Mevcut kısa linkler adil kullanım sınırları içinde reklamsız yönlendirmeye devam eder.", en: "No. Existing short links keep redirecting without ads within fair-use bounds." },
+        },
+      ],
+      trialCta: { az: "Agentlik sınağına başla", tr: "Ajans denemesini başlat", en: "Start agency trial" },
+      demoCta: { az: "Canlı demo istə", tr: "Canlı demo iste", en: "Request live demo" },
+    },
+  },
+  {
+    slug: "ecommerce-campaign-tracking",
+    titleKey: "seo_landing_ecommerce_campaign_tracking_title",
+    leadKey: "seo_landing_ecommerce_campaign_tracking_lead",
+    pointKeys: ["seo_landing_ecommerce_campaign_tracking_p1", "seo_landing_ecommerce_campaign_tracking_p2", "seo_landing_ecommerce_campaign_tracking_p3"],
+    copy: {
+      title: {
+        az: "E-ticarət üçün kampaniya və satış (konversiya) izləmə | Ovlink",
+        tr: "E-ticaret için kampanya ve dönüşüm (satış) takibi | Ovlink",
+        en: "Campaign & conversion tracking for e-commerce | Ovlink",
+      },
+      lead: {
+        az: "Instagram, TikTok, influencer və SMS kampaniyalarından hansının real sifariş gətirdiyini görün — bot kliklərini ayıraraq və konversiya API ilə.",
+        tr: "Instagram, TikTok, influencer ve SMS kampanyalarından hangisinin gerçek sipariş getirdiğini görün — bot tıklamalarını ayırarak ve dönüşüm API'si ile.",
+        en: "See which Instagram, TikTok, influencer, and SMS campaigns drive real orders — with bot filtering and server-side conversion tracking.",
+      },
+      points: [
+        {
+          az: "Problem: E-ticarət mağazaları klik sayını görür, amma bot trafiki, qarışıq UTM-lər və mənbəsiz sifarişlər səbəbindən hansı kanalın satış gətirdiyini bilmir.",
+          tr: "Sorun: E-ticaret mağazaları tıklamaları görür ancak bot trafiği, dağınık UTM'ler ve kaynaksız siparişler yüzünden hangi kanalın sattığını bilemez.",
+          en: "Problem: E-commerce teams see raw clicks but cannot tell which channel drove orders due to bots, messy UTMs, and unattributed checkouts.",
+        },
+        {
+          az: "İş axını: Hər influencer və ya kanal üçün standart UTM-li brend link yaradın, server-side Conversion API (və ya yüngül JS SDK) qoşun və 7–30 günlük atribusiyanı izləyin.",
+          tr: "İş akışı: Her influencer veya kanal için standart UTM'li markalı link oluşturun, sunucu tarafı Conversion API (veya hafif JS SDK) bağlayın ve 7–30 günlük ilişkilendirmeyi izleyin.",
+          en: "Workflow: Launch standardized UTM branded links per influencer or channel, connect the server-side Conversion API (or lightweight JS SDK), and track 7–30 day attribution.",
+        },
+        {
+          az: "Sübut: Kanal müqayisəsi valyutaları (AZN/USD/TRY) qarışdırmadan ayrı göstərir, ölçülə bilməyən klikləri gizlətmir və uydurma ROI yazmır.",
+          tr: "Kanıt: Kanal karşılaştırması para birimlerini (AZN/USD/TRY) karıştırmadan ayrı gösterir, ölçülemeyen tıklamaları gizlemez ve yapay ROI üretmez.",
+          en: "Proof: Channel comparisons keep currencies (AZN/USD/TRY) separate, show unattributed traffic transparently, and never fabricate ROI.",
+        },
+      ],
+    },
+    solution: {
+      syntheticNotice: {
+        az: "Nümunə görünüş (sintetik demo məlumatı): Aşağıdakı sifariş və gəlir rəqəmləri yalnız ölçmə modelini göstərən sınaq nümunəsidir.",
+        tr: "Örnek görünüm (sentetik demo verisi): Aşağıdaki sipariş ve gelir rakamları yalnızca ölçüm modelini gösteren örnek verilerdir.",
+        en: "Sample view (synthetic demo dataset): Order and revenue figures below are illustrative test data showing the attribution model, not live store data.",
+      },
+      proofTitle: {
+        az: "E-Ticarət Kanal & Konversiya Müqayisəsi (Sintetik Demo)",
+        tr: "E-Ticaret Kanal & Dönüşüm Karşılaştırması (Sentetik Demo)",
+        en: "E-Commerce Channel & Conversion Breakdown (Synthetic Demo)",
+      },
+      proofRows: {
+        az: [
+          "Instagram Story (UTM preset): 4,120 insan klik · 138 sifariş · 8,420 AZN (7 gün last-touch)",
+          "Influencer A (özəl alias): 1,890 insan klik · 94 sifariş · 6,110 AZN (7 gün last-touch)",
+          "Ölçülə bilməyən / icazəsiz kliklər: 6.4% (ayrıca göstərilir, uydurma paylanmır)",
+        ],
+        tr: [
+          "Instagram Story (UTM şablonu): 4.120 insan tıklama · 138 sipariş · 8.420 AZN (7 gün last-touch)",
+          "Influencer A (özel alias): 1.890 insan tıklama · 94 sipariş · 6.110 AZN (7 gün last-touch)",
+          "Ölçülemeyen / izinsiz tıklamalar: %6,4 (ayrıca gösterilir, yapay dağıtılmaz)",
+        ],
+        en: [
+          "Instagram Story (UTM preset): 4,120 human clicks · 138 orders · 8,420 AZN (7d last-touch)",
+          "Influencer A (custom alias): 1,890 human clicks · 94 orders · 6,110 AZN (7d last-touch)",
+          "Unmeasurable / no-consent traffic: 6.4% (shown explicitly, never fabricated)",
+        ],
+      },
+      faq: [
+        {
+          q: { az: "Shopify, WooCommerce və ya öz saytımızla işləyir?", tr: "Shopify, WooCommerce veya özel sitemizle çalışır mı?", en: "Does it work with Shopify, WooCommerce, or custom storefronts?" },
+          a: { az: "Bəli. İstənilən mağaza server-side Conversion API, webhook və ya yüngül cookie-siz JS SDK ilə qoşula bilər.", tr: "Evet. Her mağaza sunucu tarafı Conversion API, webhook veya hafif çerezsiz JS SDK ile bağlanabilir.", en: "Yes. Any storefront can connect via the server-side Conversion API, webhooks, or our lightweight cookie-free JS SDK." },
+        },
+        {
+          q: { az: "iOS və Android istifadəçilərini fərqli səhifəyə yönləndirmək olur?", tr: "iOS ve Android kullanıcılarını farklı sayfalara yönlendirebilir miyiz?", en: "Can we route iOS and Android shoppers to different app or store URLs?" },
+          a: { az: "Bəli. Tək qısa link daxilində iOS, Android və A/B test yönləndirməsi dəstəklənir.", tr: "Evet. Tek kısa link içinde iOS, Android ve A/B test yönlendirmesi desteklenir.", en: "Yes. Device targeting (iOS/Android) and A/B split routing are built into every short link." },
+        },
+      ],
+      trialCta: { az: "Mağaza sınağına başla", tr: "Mağaza denemesini başlat", en: "Start store trial" },
+      demoCta: { az: "Demo görüşü al", tr: "Demo görüşmesi al", en: "Book a demo" },
+    },
+  },
 ]);
 
 const BY_SLUG = new Map(SEO_LANDING_PAGES.map((page) => [page.slug, page]));
@@ -117,6 +269,16 @@ function landingPagePaths() {
 function landingCopy(page, lang) {
   if (!page || !page.copy) return null;
   const l = (lang === 'tr' || lang === 'en') ? lang : 'az';
+  const solution = page.solution
+    ? {
+        syntheticNotice: page.solution.syntheticNotice[l],
+        proofTitle: page.solution.proofTitle[l],
+        proofRows: page.solution.proofRows[l],
+        faq: page.solution.faq.map((item) => ({ q: item.q[l], a: item.a[l] })),
+        trialCta: page.solution.trialCta[l],
+        demoCta: page.solution.demoCta[l],
+      }
+    : null;
   return {
     title: page.copy.title[l],
     lead: page.copy.lead[l],
@@ -124,6 +286,7 @@ function landingCopy(page, lang) {
     titleKey: page.titleKey,
     leadKey: page.leadKey,
     pointKeys: page.pointKeys,
+    solution,
   };
 }
 

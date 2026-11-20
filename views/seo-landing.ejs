@@ -72,6 +72,15 @@
         <p data-i18n="<%= page.leadKey %>"><%= copy.lead %></p>
 
         <div style="display:flex; gap:14px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:18px;">
+          <% if (copy.solution) { %>
+          <a href="/register?intent=trial" class="m-cta m-cta--white" style="padding:10px 22px; font-size:13.5px;">
+            <span><%= copy.solution.trialCta %></span>
+            <i class="fa-solid fa-arrow-right" style="font-size:11px;" aria-hidden="true"></i>
+          </a>
+          <a href="/contact?intent=demo" class="m-cta m-cta--outline" style="padding:10px 22px; font-size:13.5px;">
+            <span><%= copy.solution.demoCta %></span>
+          </a>
+          <% } else { %>
           <a href="/#linkInputForm" class="m-cta m-cta--white" style="padding:10px 22px; font-size:13.5px;">
             <span data-i18n="seo_landing_cta">Start shortening</span>
             <i class="fa-solid fa-arrow-right" style="font-size:11px;" aria-hidden="true"></i>
@@ -79,6 +88,7 @@
           <a href="/pricing" class="m-cta m-cta--outline" style="padding:10px 22px; font-size:13.5px;">
             <span data-i18n="pricing_badge">Ovlink Pro</span>
           </a>
+          <% } %>
         </div>
       </section>
 
@@ -98,6 +108,34 @@
         </article>
         <% }); %>
       </div>
+
+      <% if (copy.solution) { %>
+      <section class="m-card-monolith" style="margin-top:28px; text-align:left;" aria-labelledby="solutionProofTitle">
+        <h2 id="solutionProofTitle" class="m-card-monolith-title" style="margin-bottom:8px;"><%= copy.solution.proofTitle %></h2>
+        <p style="font-size:13px; opacity:0.8; margin:0 0 14px;" data-synthetic-demo="true"><%= copy.solution.syntheticNotice %></p>
+        <ul style="margin:0; padding-left:18px; display:grid; gap:8px; font-size:14px;">
+          <% copy.solution.proofRows.forEach(function (row) { %>
+          <li><%= row %></li>
+          <% }); %>
+        </ul>
+      </section>
+
+      <section class="m-why-grid" style="margin-top:24px;" aria-label="FAQ">
+        <% copy.solution.faq.forEach(function (item) { %>
+        <article class="m-card-monolith" style="text-align:left;">
+          <h2 class="m-card-monolith-title" style="font-size:16px; margin-bottom:8px;"><%= item.q %></h2>
+          <p style="margin:0; font-size:14px; opacity:0.85;"><%= item.a %></p>
+        </article>
+        <% }); %>
+      </section>
+      <script nonce="<%= nonce %>" type="application/ld+json"><%- JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: copy.solution.faq.map(function (item) {
+          return { '@type': 'Question', name: item.q, acceptedAnswer: { '@type': 'Answer', text: item.a } };
+        }),
+      }) %></script>
+      <% } %>
 
       <!-- Internal links: every landing page points at the others, so the set is crawlable as a cluster. -->
       <section class="m-content-hero" aria-labelledby="landingMore">

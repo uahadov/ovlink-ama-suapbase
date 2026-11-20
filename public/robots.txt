@@ -35,5 +35,7 @@ Allow: /l/qr-code-generator
 Allow: /l/url-shortener-analytics
 Allow: /l/custom-domain-shortener
 Allow: /l/telegram-link-shortener
+Allow: /l/agency-client-reporting
+Allow: /l/ecommerce-campaign-tracking
 Sitemap: https://ovlink.sbs/sitemap.xml
 Sitemap: https://ovlink.sbs/sitemap1.xml
