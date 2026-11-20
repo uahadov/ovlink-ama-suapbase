@@ -642,6 +642,26 @@ function ensureDbTables() {
       created_at TEXT NOT NULL
     )`, () => {});
 
+    // P41: first 15-minute B2B onboarding profiles & TTV/drop-off events.
+    db.run(`CREATE TABLE IF NOT EXISTS user_onboarding_profiles (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL UNIQUE,
+      account_type TEXT NOT NULL DEFAULT 'agency',
+      primary_goal TEXT NOT NULL DEFAULT 'client_reporting',
+      skipped_at TEXT,
+      started_at TEXT NOT NULL,
+      activated_at TEXT,
+      updated_at TEXT NOT NULL
+    )`, () => {});
+    db.run(`CREATE TABLE IF NOT EXISTS onboarding_events (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      event_type TEXT NOT NULL,
+      step_key TEXT,
+      metadata_json TEXT,
+      created_at TEXT NOT NULL
+    )`, () => {});
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});
