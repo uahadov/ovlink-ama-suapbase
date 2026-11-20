@@ -513,19 +513,10 @@
   <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
 
   <!-- Custom Monolith Cursor -->
-  <div id="mCursorArrow" aria-hidden="true">
-    <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M4.5 3.5L27 13.5L16.5 17.5L12 28.5L4.5 3.5Z" fill="#0a0a0a" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </div>
-  <div id="mCursorRing" aria-hidden="true"></div>
-
   <!-- Scroll Progress -->
-  <div id="mScrollBar" aria-hidden="true"><div id="mScrollBar-fill"></div></div>
+  </div>
 
   <!-- Ambient Cursor Glow -->
-  <div id="cursorGlow" aria-hidden="true"></div>
-
   <!-- Announcement ribbon -->
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="m-ribbon" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
@@ -536,6 +527,7 @@
 
   <!-- Monolith Navigation -->
   <%- include('partials/home-navbar') %>
+  <%- include('partials/app-sidebar', { appNavActive: 'workspaces' }) %>
 
   <!-- Main Workspaces Container -->
   <main class="m-ws-main" id="mainContent">
@@ -543,10 +535,6 @@
 
       <!-- Page Header -->
       <header class="m-page-header">
-        <div class="m-page-chip">
-          <i class="fa-solid fa-users"></i>
-          <span data-i18n="hero_badge">Ovlink - Next-Gen Link Management</span>
-        </div>
         <h1 class="m-page-title" data-i18n="ws_title">Workspace</h1>
         <p class="m-page-sub" data-i18n="ws_subtitle">Komandanız üçün ümumi link workspace-i</p>
       </header>
