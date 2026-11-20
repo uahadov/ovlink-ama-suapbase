@@ -419,12 +419,13 @@
       }
     
     #bulkDeleteBtn:disabled { display: none !important; }
+    #bulkSelectionStatus:has(+ #bulkDeleteBtn:disabled) { display: none !important; }
   </style>
   </head>
   <body class="ovx">
   <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
     <!-- Ambient Cursor Glow -->
-    <div id="cursorGlow" aria-hidden="true"></div>
+    
 
     <% if (typeof announcementHtml !== 'undefined' && announcementHtml) { %>
       <%- announcementHtml %>
@@ -443,13 +444,21 @@
         </div>
 
         <nav class="m-dash-actions" aria-label="Dashboard quick navigation" data-i18n-aria="dash_actions_aria">
-          <a class="m-dash-action m-dash-action--primary" href="#dashboardQuickCreateForm"><i class="fa-solid fa-plus" aria-hidden="true"></i><span data-i18n="dash_action_create">Yeni link yarat</span></a>
+          <a class="m-dash-action" href="#dashboardQuickCreateForm"><i class="fa-solid fa-plus" aria-hidden="true"></i><span data-i18n="dash_action_create">Yeni link yarat</span></a>
           <a class="m-dash-action" href="#qrCodesSection"><i class="fa-solid fa-qrcode" aria-hidden="true"></i><span data-i18n="dash_action_qr">QR kodlar</span></a>
           <a class="m-dash-action" href="/campaigns"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i><span data-i18n="dash_action_campaigns">Kampaniyalar</span></a>
           <a class="m-dash-action" href="/workspaces"><i class="fa-solid fa-users" aria-hidden="true"></i><span data-i18n="dash_action_team">Komandam</span></a>
         </nav>
 
         <%- include('partials/onboarding-checklist') %>
+
+        <!-- 3. Quick Shorten Composer -->
+        <div class="m-dash-quick">
+          <form id="dashboardQuickCreateForm" class="m-dash-quick-form" onsubmit="return false;" data-workspace-id="<%= activeWorkspace ? activeWorkspace.id : '' %>">
+            <div style="flex: 2; min-width: 260px;">
+              <label class="m-adv-label" for="dashboardQuickUrl" data-i18n="ws_quick_url_label">Hədəf URL</label>
+              <input id="dashboardQuickUrl" class="m-adv-input" type="url" placeholder="https://example.com" data-i18n-placeholder="ws_quick_url_placeholder" required />
+            </div>
 
         <!-- 2. Bento Statistics Grid -->
         <div class="m-dash-bento">
@@ -464,7 +473,8 @@
             </div>
           </div>
 
-          <!-- Total Reports -->
+          <!-- Total Reports (shown only when > 0) -->
+          <% if (totalReports > 0) { %>
           <div class="m-bento-card">
             <div>
               <div class="m-bento-label" data-i18n="dashboard_total_reports">Ümumi Şikayət</div>
@@ -474,6 +484,7 @@
               <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
           </div>
+          <% } %>
 
           <!-- Status / Workspace -->
           <div class="m-bento-card">
@@ -495,13 +506,6 @@
           </div>
         </div>
 
-        <!-- 3. Quick Shorten Composer -->
-        <div class="m-dash-quick">
-          <form id="dashboardQuickCreateForm" class="m-dash-quick-form" onsubmit="return false;" data-workspace-id="<%= activeWorkspace ? activeWorkspace.id : '' %>">
-            <div style="flex: 2; min-width: 260px;">
-              <label class="m-adv-label" for="dashboardQuickUrl" data-i18n="ws_quick_url_label">Hədəf URL</label>
-              <input id="dashboardQuickUrl" class="m-adv-input" type="url" placeholder="https://example.com" data-i18n-placeholder="ws_quick_url_placeholder" required />
-            </div>
             <div style="flex: 1; min-width: 180px;">
               <label class="m-adv-label" for="dashboardQuickAlias" data-i18n="ws_quick_alias_label">Xüsusi alias (istəyə bağlı)</label>
               <input id="dashboardQuickAlias" class="m-adv-input" type="text" maxlength="50" placeholder="kampaniya-2026" data-i18n-placeholder="ws_quick_alias_placeholder" />

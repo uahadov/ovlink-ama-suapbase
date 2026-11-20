@@ -30,7 +30,7 @@
   <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
 
   <!-- Ambient background glow -->
-  <div id="cursorGlow" aria-hidden="true"></div>
+  
 
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
     <div id="siteAnnouncement" class="site-announcement" data-az="<%= siteSettings.announcement_text_az || '' %>" data-tr="<%= siteSettings.announcement_text_tr || '' %>" data-en="<%= siteSettings.announcement_text_en || '' %>">
@@ -135,11 +135,7 @@
             <span data-i18n="have_account">Artıq hesabınız var?</span>
             <a href="/login" data-i18n="login_link">Giriş</a>
           </div>
-          <a href="/" class="m-cta m-cta--outline m-cta--sm m-auth-back-btn">
-            <i class="fa-solid fa-house" aria-hidden="true"></i>
-            <span data-i18n="nav_home">Ana Səhifə</span>
-          </a>
-        </div>
+          </div>
       </div>
     </div>
   </main>

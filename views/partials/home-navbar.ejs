@@ -14,9 +14,15 @@
 
     <!-- Desktop links -->
     <ul class="m-nav-links" role="list">
+      <% if (hasUser) { %>
+      <li><a href="/dashboard" data-i18n="nav_dashboard">İdarə Paneli</a></li>
+      <li><a href="/campaigns" data-i18n="nav_campaigns">Kampaniyalar</a></li>
+      <li><a href="/workspaces" data-i18n="nav_workspaces">İş Sahələri</a></li>
+      <% } else { %>
       <li><a href="/how-it-works" data-i18n="navx_how">How it works</a></li>
       <li><a href="/why-ovlink" data-i18n="navx_why">Why Ovlink</a></li>
       <li><a href="/faq" data-i18n="navx_faq">FAQ</a></li>
+      <% } %>
     </ul>
 
     <!-- Desktop actions -->

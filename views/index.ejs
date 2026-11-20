@@ -49,18 +49,11 @@
   <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
 
   <!-- ===== CUSTOM CURSOR ===== -->
-  <div id="mCursorArrow" aria-hidden="true">
-    <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M4.5 3.5L27 13.5L16.5 17.5L12 28.5L4.5 3.5Z" fill="#0a0a0a" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </div>
-  <div id="mCursorRing" aria-hidden="true"></div>
-
   <!-- ===== SCROLL PROGRESS ===== -->
   <div id="mScrollBar" aria-hidden="true"><div id="mScrollBar-fill"></div></div>
 
   <!-- ===== CURSOR GLOW ===== -->
-  <div id="cursorGlow" aria-hidden="true"></div>
+  
 
   <!-- ===== ANNOUNCEMENT ===== -->
   <% if (siteSettings && siteSettings.announcement_enabled === '1' && (siteSettings.announcement_text_az || siteSettings.announcement_text_tr || siteSettings.announcement_text_en)) { %>
@@ -441,32 +434,6 @@
           <a class="m-link" href="/contact?intent=demo" data-i18n="how_link">
             Request demo <i class="fa-solid fa-arrow-right" style="font-size:11px;" aria-hidden="true"></i>
           </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============================================================
-         STATS BAND
-    ============================================================ -->
-    <section class="m-section" style="padding:0;" aria-label="Platform statistics" data-i18n-aria="aria_stats">
-      <div class="shell-wide m-section-inner" style="padding:0;">
-        <div class="m-stats">
-          <div class="m-stat m-reveal">
-            <div class="m-stat-val" data-counter="120">0</div>
-            <div class="m-stat-label" data-i18n="stat_ms">ms to shorten</div>
-          </div>
-          <div class="m-stat m-reveal m-reveal-d1">
-            <div class="m-stat-val" data-counter="99">0</div>
-            <div class="m-stat-label" data-i18n="stat_uptime">% uptime target</div>
-          </div>
-          <div class="m-stat m-reveal m-reveal-d2">
-            <div class="m-stat-val" data-counter="3">0</div>
-            <div class="m-stat-label" data-i18n="stat_langs">interface languages</div>
-          </div>
-          <div class="m-stat m-reveal m-reveal-d3">
-            <div class="m-stat-val" data-counter="24">0</div>
-            <div class="m-stat-label" data-i18n="stat_watch">h/day safety watch</div>
-          </div>
         </div>
       </div>
     </section>
