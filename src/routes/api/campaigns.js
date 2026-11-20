@@ -23,6 +23,7 @@ const orgBilling = require('../../lib/org-billing');
 const planEntitlements = require('../../lib/plan-entitlements');
 const checkoutDunning = require('../../lib/checkout-dunning');
 const unitEconomics = require('../../lib/unit-economics');
+const demoFunnel = require('../../lib/demo-funnel');
 const { getWorkspaceMemberRole } = require('./workspaces');
 const {
   normalizeCampaignStatus,
@@ -2155,6 +2156,51 @@ router.post('/api/unit-economics/stress-check', async (req, res) => {
     dbStorageGb: body.db_storage_gb,
     supportTickets: body.support_tickets,
   }));
+});
+
+// ===== P40: Pricing Catalog, 5-Step Interactive Demo, Book-a-Demo & Attribution Funnel =====
+
+router.get('/api/public/pricing-plans', (req, res) => {
+  const lang = req.query && req.query.lang ? String(req.query.lang).toLowerCase() : 'az';
+  return res.json(demoFunnel.getPublicPricingCatalog(lang));
+});
+
+router.post('/api/public/demo-booking', async (req, res) => {
+  try {
+    const result = await demoFunnel.createDemoBooking(req.body || {});
+    if (result.error) return res.status(result.statusCode || 400).json(result);
+    return res.status(201).json(result);
+  } catch {
+    return res.status(500).json({ error: 'Demo sorğusu saxlanıla bilmədi.' });
+  }
+});
+
+router.post('/api/public/funnel-event', async (req, res) => {
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const result = await demoFunnel.recordFunnelEvent({
+      eventType: body.event_type,
+      planCode: body.plan_code,
+      sourceCta: body.source_cta,
+      utmSource: body.utm_source,
+      utmCampaign: body.utm_campaign,
+    });
+    if (result.error) return res.status(result.statusCode || 400).json(result);
+    return res.status(201).json(result);
+  } catch {
+    return res.status(500).json({ error: 'Hadisə qeydə alınmadı.' });
+  }
+});
+
+router.get('/api/funnel/summary', async (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ error: ERROR_MESSAGES.unauthorized });
+  try {
+    const summary = await demoFunnel.getFunnelSummary();
+    return res.json(summary);
+  } catch {
+    return res.status(500).json({ error: 'Funnel xülasəsi yüklənmədi.' });
+  }
 });
 
 module.exports = router;

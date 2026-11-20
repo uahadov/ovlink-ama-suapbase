@@ -617,6 +617,31 @@ function ensureDbTables() {
       db.run('CREATE INDEX IF NOT EXISTS idx_org_usage_monthly_ws ON org_usage_monthly(workspace_id, billing_month)', () => {});
     });
 
+    // P40: Book-a-Demo lead capture & pricing/demo CTA attribution funnel.
+    db.run(`CREATE TABLE IF NOT EXISTS demo_leads (
+      id SERIAL PRIMARY KEY,
+      booking_ref TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      email_hash TEXT NOT NULL,
+      company TEXT,
+      plan_interest TEXT NOT NULL,
+      source_cta TEXT,
+      utm_source TEXT,
+      utm_campaign TEXT,
+      consent_given BOOLEAN NOT NULL DEFAULT TRUE,
+      status TEXT NOT NULL DEFAULT 'requested',
+      created_at TEXT NOT NULL
+    )`, () => {});
+    db.run(`CREATE TABLE IF NOT EXISTS funnel_events (
+      id SERIAL PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      plan_code TEXT,
+      source_cta TEXT,
+      utm_source TEXT,
+      utm_campaign TEXT,
+      created_at TEXT NOT NULL
+    )`, () => {});
+
     // Read-path indexes for the new features.
     // F6: "has this visitor been here before?" probe.
     db.run('CREATE INDEX IF NOT EXISTS idx_click_uniques_url_ip ON click_uniques(url_id, ip_hash, day)', () => {});

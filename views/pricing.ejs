@@ -126,6 +126,83 @@
 
       </div>
 
+      <!-- P40: B2B & Agency Plans (Synced with Real Entitlements) -->
+      <section style="margin-top: 56px;" aria-labelledby="b2bPlansHeading">
+        <div class="text-center" style="margin-bottom: 28px;">
+          <h2 id="b2bPlansHeading" class="m-section-h2" style="font-size: clamp(24px, 3vw, 34px);">B2B &amp; Agentlik Paketləri</h2>
+          <p class="m-section-sub" style="max-width: 620px; margin: 10px auto 0;">
+            İllik ödənişdə 2 ay pulsuz · İstənilən vaxt portaldan ləğv et · Mövcud linklər ödəniş dayansa belə reklamsız yönləndirilir (30 gün özəl domen güzəşti, 100K/ay Fair-Use).
+          </p>
+        </div>
+
+        <div class="m-why-grid" id="p40B2bPlans">
+          <article class="m-card-monolith" style="text-align:left;">
+            <h3 class="m-card-monolith-title">Starter — $7 / ay (~12 AZN)</h3>
+            <p style="font-size:13.5px; opacity:0.85; margin:8px 0 12px;">300K klik/ay · 3 domen · 3 nəfər · 2 müştəri portalı · 30 PDF/ay · API &amp; Webhook · GA4.</p>
+            <a href="/register?intent=trial&plan=starter" class="m-cta m-cta--outline" style="padding:8px 16px; font-size:13px;">Sınağa başla</a>
+          </article>
+          <article class="m-card-monolith" style="text-align:left; border-color: rgba(74, 222, 128, 0.45);">
+            <h3 class="m-card-monolith-title">Business — $19 / ay (~32 AZN)</h3>
+            <p style="font-size:13.5px; opacity:0.85; margin:8px 0 12px;">2M klik/ay · 10 domen · 10 nəfər · 10 müştəri portalı · 250 planlı PDF · A/B &amp; Cihaz · Konversiya API · AI/MCP.</p>
+            <a href="/register?intent=trial&plan=business" class="m-cta m-cta--white" style="padding:8px 16px; font-size:13px;">14 gün pulsuz sına</a>
+          </article>
+          <article class="m-card-monolith" style="text-align:left;">
+            <h3 class="m-card-monolith-title">Agency — $49 / ay (~83 AZN)</h3>
+            <p style="font-size:13.5px; opacity:0.85; margin:8px 0 12px;">5M klik/ay · 30 domen · Limitsiz komanda · 30 white-label portal · 500 PDF · Audit jurnalı · Ağıllı xəbərdarlıqlar.</p>
+            <a href="/register?intent=trial&plan=agency" class="m-cta m-cta--outline" style="padding:8px 16px; font-size:13px;">Agentlik sınağı</a>
+          </article>
+          <article class="m-card-monolith" style="text-align:left;">
+            <h3 class="m-card-monolith-title">Enterprise — $129 / ay (~219 AZN)</h3>
+            <p style="font-size:13.5px; opacity:0.85; margin:8px 0 12px;">20M+ klik/ay · 100+ domen · Limitsiz komanda · 250+ portal · SAML SSO · 99.9% SLA.</p>
+            <a href="#p40DemoFormSection" class="m-cta m-cta--outline" style="padding:8px 16px; font-size:13px;">Görüş təyin et</a>
+          </article>
+        </div>
+      </section>
+
+      <!-- P40: 5-Step Interactive Synthetic Demo -->
+      <section id="p40InteractiveDemo" class="m-card-monolith" style="margin-top: 48px; text-align:left;" aria-labelledby="p40DemoHeading">
+        <h2 id="p40DemoHeading" class="m-card-monolith-title" style="margin-bottom:6px;">5 Addımlı İnteraktiv Məhsul Demosu</h2>
+        <p style="font-size:13px; opacity:0.8; margin:0 0 16px;" data-synthetic-demo="true">
+          Qeydiyyatsız və boş hesaba girmədən məhsulu yoxlayın (sintetik nümunə məlumatı).
+        </p>
+        <div role="tablist" aria-label="Demo addımları" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+          <button type="button" class="m-bento-chip p40-demo-btn" data-demo-step="1" aria-selected="true">1. Link &amp; UTM</button>
+          <button type="button" class="m-bento-chip p40-demo-btn" data-demo-step="2" aria-selected="false">2. Dinamik QR</button>
+          <button type="button" class="m-bento-chip p40-demo-btn" data-demo-step="3" aria-selected="false">3. Analitika</button>
+          <button type="button" class="m-bento-chip p40-demo-btn" data-demo-step="4" aria-selected="false">4. Müştəri Portalı</button>
+          <button type="button" class="m-bento-chip p40-demo-btn" data-demo-step="5" aria-selected="false">5. A4 PDF</button>
+        </div>
+        <div id="p40DemoStage" style="padding:14px 16px; border:1px solid var(--c-border); border-radius:10px; background:var(--c-surface-2);">
+          <strong id="p40DemoTitle" style="display:block; margin-bottom:6px;">1. Brend kampaniya linki və UTM şablonu</strong>
+          <p id="p40DemoDetail" style="margin:0 0 6px; font-size:14px; opacity:0.9;">go.demo-agency.az/yaz-2026 · Instagram &amp; TikTok kanalları üçün vahid UTM standartı.</p>
+          <span id="p40DemoMetric" style="font-size:12.5px; color:#4ade80; font-family:ui-monospace, monospace;">UTM preset · 0 manual typo</span>
+        </div>
+      </section>
+
+      <!-- P40: Book-a-Demo Lead Form (Consent + Honeypot Anti-Spam) -->
+      <section id="p40DemoFormSection" class="m-card-monolith" style="margin-top: 32px; text-align:left;" aria-labelledby="p40BookHeading">
+        <h2 id="p40BookHeading" class="m-card-monolith-title" style="margin-bottom:6px;">Canlı Demo və Görüş Təyin Et</h2>
+        <p style="font-size:13.5px; opacity:0.8; margin:0 0 16px;">15 dəqiqəlik canlı nümayiş və paket seçimi üçün qısa sorğu göndərin.</p>
+        <form id="p40DemoForm" style="display:grid; gap:12px; max-width:560px;">
+          <input type="text" name="website_url" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;width:1px;height:1px;" aria-hidden="true" />
+          <input type="text" name="name" required placeholder="Adınız və soyadınız" class="m-adv-input" aria-label="Adınız" />
+          <input type="email" name="email" required placeholder="İş e-poçtunuz (məs. name@agency.az)" class="m-adv-input" aria-label="E-poçt" />
+          <input type="text" name="company" placeholder="Şirkət və ya agentlik adı (istəyə bağlı)" class="m-adv-input" aria-label="Şirkət" />
+          <select name="plan_interest" class="m-adv-input" aria-label="Maraqlandığınız paket">
+            <option value="starter">Starter ($7/ay)</option>
+            <option value="business" selected>Business ($19/ay)</option>
+            <option value="agency">Agency ($49/ay)</option>
+            <option value="enterprise">Enterprise ($129/ay)</option>
+          </select>
+          <label style="display:flex; align-items:flex-start; gap:8px; font-size:13px; cursor:pointer;">
+            <input type="checkbox" name="consent_given" required style="margin-top:3px;" />
+            <span>Demo görüşü və plan təklifi üçün əlaqə məlumatımın emalına razıyam.</span>
+          </label>
+          <button type="submit" class="m-cta m-cta--white" style="justify-self:start; padding:10px 20px; font-size:13.5px;">Demo sorğusu göndər</button>
+          <p id="p40DemoStatus" role="status" style="margin:0; font-size:13px;"></p>
+        </form>
+      </section>
+
     </div>
   </main>
 
@@ -133,6 +210,65 @@
 
   <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>">
+    (function () {
+      var steps = {
+        1: { title: '1. Brend kampaniya linki və UTM şablonu', detail: 'go.demo-agency.az/yaz-2026 · Instagram & TikTok kanalları üçün vahid UTM standartı.', metric: 'UTM preset · 0 manual typo' },
+        2: { title: '2. Çapa hazır dinamik QR kod', detail: 'WCAG kontrast yoxlaması, SVG/PNG 2048px ixracı və skanların kliklərdən ayrı sayılması.', metric: '1,920 synthetic scans · ECC H' },
+        3: { title: '3. Bot-filtrli qərar analitikası', detail: '14,820 insan kliki, 11,340 unikal ziyarətçi, 232 sifariş (valyutalar ayrı, uydurma ROI yoxdur).', metric: '7-day last-touch · Synthetic demo' },
+        4: { title: '4. Yalnız baxış üçün müştəri portalı', detail: 'Müştəri əlavə ödənişsiz təhlükəsiz linklə nəticəyə baxır; siz istənilən vaxt ləğv edirsiniz.', metric: 'Snapshot #rev-4 · Read-only' },
+        5: { title: '5. Avtomatik A4 PDF hesabat və göndəriş', detail: 'Hər ayın 1-i CSV ilə 1:1 eyni rəqəmli, sübut ID-li A4 PDF avtomatik hazırlanır.', metric: '<10ms PDF · 1:1 CSV parity' }
+      };
+      var btns = document.querySelectorAll('.p40-demo-btn');
+      btns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = Number(btn.getAttribute('data-demo-step') || '1');
+          var s = steps[id] || steps[1];
+          btns.forEach(function (b) { b.setAttribute('aria-selected', b === btn ? 'true' : 'false'); });
+          var t = document.getElementById('p40DemoTitle');
+          var d = document.getElementById('p40DemoDetail');
+          var m = document.getElementById('p40DemoMetric');
+          if (t) t.textContent = s.title;
+          if (d) d.textContent = s.detail;
+          if (m) m.textContent = s.metric;
+        });
+      });
+
+      var form = document.getElementById('p40DemoForm');
+      var statusEl = document.getElementById('p40DemoStatus');
+      if (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var fd = new FormData(form);
+          var csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+          if (statusEl) statusEl.textContent = 'Göndərilir...';
+          fetch('/api/public/demo-booking', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf },
+            body: JSON.stringify({
+              website_url: fd.get('website_url') || '',
+              name: fd.get('name') || '',
+              email: fd.get('email') || '',
+              company: fd.get('company') || '',
+              plan_interest: fd.get('plan_interest') || 'business',
+              consent_given: fd.get('consent_given') === 'on',
+              source_cta: 'pricing_demo_form'
+            })
+          }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, data: j }; }); })
+            .then(function (res) {
+              if (res.ok && res.data && res.data.booking_ref) {
+                if (statusEl) statusEl.textContent = 'Sorğunuz qəbul edildi! Kod: ' + res.data.booking_ref;
+                form.reset();
+              } else {
+                if (statusEl) statusEl.textContent = 'Zəhmət olmasa bütün tələb olunan xanaları düzgün doldurun.';
+              }
+            }).catch(function () {
+              if (statusEl) statusEl.textContent = 'Şəbəkə xətası baş verdi. Yenidən cəhd edin.';
+            });
+        });
+      }
+    })();
+  </script>
   <script nonce="<%= nonce %>">
     (function () {
       /* ─── Navbar dropdowns & mobile menu are managed by partials/home-navbar ─── */
