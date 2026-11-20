@@ -7,7 +7,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<%= csrfToken %>" />
-  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — Bütün Linkləriniz. Tək Platforma.' %></title>
+  <title><%= (seo && seo.title) ? seo.title : 'Ovlink — Agentlik Səviyyəsində Link və Hesabat İdarəçiliyi' %></title>
 
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -25,311 +25,287 @@
   <link rel="alternate" hreflang="x-default" href="<%= (seo && seo.hreflangXDefault) ? seo.hreflangXDefault : '' %>" />
 
   <style nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
-    /* === Monolith 07 — Pure Monochrome + 60fps 3D Scroll Depth === */
-    body.ov-m07 {
+    /* === Monolith 07 — Exact Asymmetric Hero + Sticky 3D Scrollytelling === */
+    body.ov-m07s {
       background: #0a0a0a !important;
       color: #f4f4f5 !important;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-      overflow-x: hidden;
+    }
+    /* Note: Do NOT put overflow-x:hidden on body/html — it breaks position:sticky! Use clip instead. */
+    html, body.ov-m07s {
+      overflow-x: clip !important;
     }
 
-    .m07-shell {
-      max-width: 1080px;
+    /* TALL STICKY 3D SCROLL TRACK (300vh = 3 full scroll chapters locked in viewport) */
+    .s3d-track {
+      position: relative;
+      height: 300vh;
+    }
+    .s3d-sticky {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+    }
+    .s3d-shell {
+      width: 100%;
+      max-width: 1140px;
       margin: 0 auto;
-      padding: 0 24px;
+      padding: 64px 28px 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
+      gap: 56px;
+      align-items: center;
     }
 
-    /* 1. HERO (Concept 07: Oversized crisp headline + pill strip + single clean URL bar) */
-    .m07-hero {
-      padding: 132px 0 64px;
-      text-align: center;
+    /* LEFT COLUMN: Exact Concept 07 Typography + Chapter Cross-fade */
+    .s3d-left {
+      position: relative;
+      z-index: 5;
     }
-    body.ov-m07 .m-hero-h1 {
-      font-size: clamp(40px, 6.2vw, 74px) !important;
-      font-weight: 800 !important;
-      line-height: 1.03 !important;
-      letter-spacing: -0.04em !important;
+    .s3d-chapters {
+      position: relative;
+      min-height: 250px;
+    }
+    .s3d-chapter {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      opacity: 0;
+      transform: translateY(20px);
+      pointer-events: none;
+      transition: opacity 0.35s ease, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .s3d-chapter.is-active {
+      position: relative;
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    body.ov-m07s .m-hero-h1,
+    .s3d-h2 {
+      font-size: clamp(34px, 4.4vw, 54px) !important;
+      font-weight: 700 !important;
+      line-height: 1.08 !important;
+      letter-spacing: -0.032em !important;
       color: #ffffff !important;
-      margin: 0 auto 24px !important;
-      max-width: 16ch;
+      margin: 0 0 18px !important;
+      text-align: left !important;
       text-wrap: balance;
     }
-    .m07-pills {
+    .s3d-desc {
+      font-size: 16px;
+      line-height: 1.62;
+      color: #a1a1aa;
+      max-width: 42ch;
+      margin: 0 0 28px;
+    }
+    .s3d-cta-row {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin: 0 auto 30px;
-    }
-    .m07-pill {
-      padding: 6px 13px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background: #121214;
-      font-size: 12.5px;
-      font-weight: 500;
-      color: #d4d4d8;
-    }
-    .m07-composer-wrap {
-      max-width: 640px;
-      margin: 0 auto 28px;
-      text-align: left;
-    }
-    body.ov-m07 .m-composer {
-      border-radius: 12px !important;
-      border: 1px solid rgba(255, 255, 255, 0.16) !important;
-      background: #111113 !important;
-      padding: 10px 12px !important;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65) !important;
-    }
-    .m07-ctas {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
+      gap: 14px;
       flex-wrap: wrap;
     }
-    .m07-btn-white {
+    .s3d-pill-btn {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
       height: 44px;
-      padding: 0 22px;
-      border-radius: 9px;
+      padding: 0 24px;
+      border-radius: 999px;
       background: #ffffff;
       color: #0a0a0a !important;
-      font-size: 14.5px;
+      font-size: 14px;
       font-weight: 600;
       text-decoration: none;
       transition: background 0.15s ease, transform 0.15s ease;
     }
-    .m07-btn-white:hover { background: #e4e4e7; transform: translateY(-1px); }
-    .m07-btn-ghost {
+    .s3d-pill-btn:hover { background: #e4e4e7; transform: translateY(-1px); }
+    .s3d-pill-ghost {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
       height: 44px;
-      padding: 0 22px;
-      border-radius: 9px;
+      padding: 0 20px;
+      border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.16);
-      background: transparent;
-      color: #e4e4e7 !important;
-      font-size: 14.5px;
+      color: #d4d4d8 !important;
+      font-size: 14px;
       font-weight: 500;
       text-decoration: none;
       transition: border-color 0.15s ease, color 0.15s ease;
     }
-    .m07-btn-ghost:hover { border-color: rgba(255, 255, 255, 0.4); color: #ffffff !important; }
+    .s3d-pill-ghost:hover { border-color: rgba(255, 255, 255, 0.45); color: #ffffff !important; }
 
-    /* 2. 3D SCROLL-DRIVEN MONOLITH STAGE */
-    .m07-3d-section {
-      padding: 36px 0 96px;
-      perspective: 1400px;
-      perspective-origin: 50% 45%;
+    /* Minimal scroll progress dots (bottom-left) */
+    .s3d-progress {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 34px;
+      font-size: 12px;
+      color: #71717a;
     }
-    .m07-3d-stage {
+    .s3d-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .s3d-dot {
+      width: 24px;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.14);
+      transition: background 0.25s ease, width 0.25s ease;
+    }
+    .s3d-dot.is-active {
+      width: 40px;
+      background: #ffffff;
+    }
+
+    /* RIGHT COLUMN: 3D PERSPECTIVE STACKED MONOLITH CARDS (Exact Concept 07 Visual!) */
+    .s3d-stage {
       position: relative;
+      height: 430px;
+      perspective: 1600px;
+      perspective-origin: 50% 50%;
       transform-style: preserve-3d;
-      will-change: transform;
-      transform: rotateX(20deg) scale(0.93) translateY(28px);
-      transition: transform 0.06s linear;
     }
-    .m07-main-deck {
+    .s3d-card {
+      position: absolute;
+      inset: 0;
       border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background: #111113;
-      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.08) inset;
-      overflow: hidden;
-    }
-    .m07-deck-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 14px 20px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      font-size: 12.5px;
-      color: #a1a1aa;
-    }
-    .m07-deck-bar strong { color: #ffffff; font-weight: 600; }
-    .m07-deck-grid {
-      display: grid;
-      grid-template-columns: 1.3fr 1fr;
-    }
-    .m07-deck-left {
-      padding: 24px;
-      border-right: 1px solid rgba(255, 255, 255, 0.08);
-      display: grid;
-      gap: 12px;
-    }
-    .m07-deck-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 14px 16px;
-      border-radius: 11px;
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      background: #161619;
-    }
-    .m07-deck-short { font-size: 14px; font-weight: 600; color: #ffffff; }
-    .m07-deck-meta { font-size: 12px; color: #71717a; margin-top: 2px; }
-    .m07-deck-val {
-      font-size: 12.5px;
-      font-weight: 600;
-      color: #e4e4e7;
-      padding: 4px 10px;
-      border-radius: 7px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: #0d0d0f;
-      white-space: nowrap;
-    }
-    .m07-deck-right {
-      padding: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      background: #141416;
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.78), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+      padding: 28px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      gap: 16px;
-    }
-    .m07-deck-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #a1a1aa;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    /* Stacked 3D Parallax Floating Cards (Concept 07 Row 3 — pure monochrome) */
-    .m07-float-layer {
-      position: absolute;
-      right: -18px;
-      bottom: -24px;
-      width: 260px;
-      padding: 16px 18px;
-      border-radius: 13px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      background: #18181b;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85);
-      transform: translateZ(48px) translateY(20px);
-      will-change: transform;
-    }
-    .m07-float-layer small {
-      display: block;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #a1a1aa;
-      margin-bottom: 6px;
-    }
-    .m07-float-layer strong {
-      display: block;
-      font-size: 15px;
-      color: #ffffff;
-      margin-bottom: 4px;
-    }
-    .m07-float-layer span {
-      font-size: 12.5px;
-      color: #a1a1aa;
-    }
-
-    /* 3. SPLIT 3D SCROLL CARDS (Concept 07 Row 3: Left headline, Right stacked cards) */
-    .m07-split-sec {
-      padding: 88px 0;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      perspective: 1200px;
-    }
-    .m07-split {
-      display: grid;
-      grid-template-columns: 1fr 1.15fr;
-      gap: 48px;
-      align-items: center;
-    }
-    .m07-split h2 {
-      font-size: clamp(28px, 3.6vw, 42px);
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      line-height: 1.12;
-      color: #ffffff;
-      margin: 0 0 16px;
-    }
-    .m07-split > div > p {
-      font-size: 15.5px;
-      line-height: 1.65;
-      color: #a1a1aa;
-      margin: 0 0 26px;
-      max-width: 44ch;
-    }
-    .m07-stack {
-      display: grid;
-      gap: 14px;
       transform-style: preserve-3d;
-    }
-    .m07-3d-card {
-      padding: 22px 24px;
-      border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.11);
-      background: #111113;
       will-change: transform, opacity;
-      transition: border-color 0.2s ease;
+      backface-visibility: hidden;
     }
-    .m07-3d-card:hover {
-      border-color: rgba(255, 255, 255, 0.28);
-    }
-    .m07-3d-card-num {
-      font-size: 11.5px;
-      font-weight: 600;
-      color: #71717a;
-      margin-bottom: 8px;
-      letter-spacing: 0.06em;
-    }
-    .m07-3d-card h3 {
-      font-size: 17px;
-      font-weight: 700;
-      color: #ffffff;
-      margin: 0 0 6px;
-    }
-    .m07-3d-card p {
-      font-size: 14px;
-      line-height: 1.6;
-      color: #a1a1aa;
-      margin: 0;
-    }
-
-    /* 4. FINAL MONOLITH CLOSE */
-    .m07-close {
-      padding: 80px 0 96px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    .s3d-card-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 24px;
-      flex-wrap: wrap;
+      gap: 12px;
     }
-    .m07-close h2 {
-      font-size: clamp(24px, 3vw, 34px);
-      font-weight: 800;
-      letter-spacing: -0.03em;
+    .s3d-card-ico {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 13px;
+    }
+    .s3d-card-tag {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: #71717a;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .s3d-card-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: #ffffff;
+      line-height: 1.2;
+      margin: 16px 0 6px;
+    }
+    .s3d-card-sub {
+      font-size: 13px;
+      color: #a1a1aa;
+      margin: 0 0 18px;
+    }
+    .s3d-card-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 14px;
+      flex: 1;
+    }
+    .s3d-mini-box {
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #0e0e10;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .s3d-mini-lbl {
+      font-size: 11px;
+      color: #71717a;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    .s3d-mini-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 12.5px;
+      color: #e4e4e7;
+    }
+    .s3d-mini-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .s3d-mini-row span { color: #71717a; font-size: 12px; }
+
+    /* BELOW STICKY STAGE: Sleek Live URL Tester + Final Close */
+    .s3d-below {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 80px 28px;
+      background: #0a0a0a;
+    }
+    .s3d-below-shell {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .s3d-below-head {
+      margin-bottom: 22px;
+    }
+    .s3d-below-head h2 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
       color: #ffffff;
       margin: 0 0 6px;
     }
-    .m07-close p {
-      font-size: 15px;
+    .s3d-below-head p {
+      font-size: 14.5px;
       color: #a1a1aa;
       margin: 0;
     }
-
-    @media (max-width: 900px) {
-      .m07-deck-grid, .m07-split { grid-template-columns: 1fr; }
-      .m07-deck-left { border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
-      .m07-float-layer { position: static; width: 100%; margin-top: 14px; transform: none !important; }
+    body.ov-m07s .m-composer {
+      border-radius: 12px !important;
+      border: 1px solid rgba(255, 255, 255, 0.14) !important;
+      background: #111113 !important;
+      padding: 10px 12px !important;
+      box-shadow: none !important;
     }
-    @media (prefers-reduced-motion: reduce) {
-      .m07-3d-stage, .m07-float-layer, .m07-3d-card { transform: none !important; opacity: 1 !important; }
+
+    @media (max-width: 920px) {
+      .s3d-track { height: auto; }
+      .s3d-sticky { position: static; height: auto; padding: 100px 0 48px; }
+      .s3d-shell { grid-template-columns: 1fr; gap: 36px; padding: 0 20px; }
+      .s3d-chapter { position: relative !important; opacity: 1 !important; transform: none !important; pointer-events: auto !important; margin-bottom: 24px; }
+      .s3d-chapter:not(:first-child) { display: none; }
+      .s3d-stage { height: 390px; }
+      .s3d-progress { display: none; }
     }
   </style>
 </head>
-<body class="ovx home-page ov-m07">
+<body class="ovx home-page ov-m07s">
 
   <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
 
@@ -343,289 +319,321 @@
   <%- include('partials/home-navbar') %>
 
   <main id="mainContent">
-    <div class="m07-shell">
 
-      <!-- 1. HERO (CONCEPT 07) -->
-      <section class="m07-hero" aria-labelledby="heroTitle">
-        <h1 class="m-hero-h1" id="heroTitle">
-          Bütün linkləriniz. Tək platforma.
-        </h1>
+    <!-- STICKY 3D SCROLLYTELLING STAGE (EXACT CONCEPT 07 + TRUE 3D SCROLL) -->
+    <section class="s3d-track" id="s3dTrack" aria-labelledby="heroTitle">
+      <div class="s3d-sticky">
+        <div class="s3d-shell">
 
-        <div class="m07-pills">
-          <span class="m07-pill">Özəl Brend Domenləri</span>
-          <span class="m07-pill">Bot Filtri</span>
-          <span class="m07-pill">Dinamik QR</span>
-          <span class="m07-pill">Canlı Müştəri Portalı</span>
+          <!-- LEFT: 3 Scroll-Linked Chapters (Starts on exact Concept 07) -->
+          <div class="s3d-left">
+            <div class="s3d-chapters">
+              <div class="s3d-chapter is-active" data-s3d-ch="0">
+                <h1 class="m-hero-h1" id="heroTitle">
+                  Agentlik səviyyəsində link və hesabat idarəçiliyi.
+                </h1>
+                <p class="s3d-desc" data-i18n="hero_sub">
+                  Brendli qısa linklər, dinamik QR kodlar, bot filtri və müştəriyə tək linklə verilən canlı hesabat portalları — tək monoxrom paneldə.
+                </p>
+                <div class="s3d-cta-row">
+                  <a class="s3d-pill-btn" href="/register?intent=trial" data-i18n="hero_cta_trial">14 gün pulsuz başla</a>
+                  <a class="s3d-pill-ghost" href="/contact?intent=demo" data-i18n="hero_cta_demo">Demo istə</a>
+                </div>
+              </div>
+
+              <div class="s3d-chapter" data-s3d-ch="1">
+                <h2 class="s3d-h2">Özəl domen və dinamik QR kodlar.</h2>
+                <p class="s3d-desc">
+                  Hər müştəri üçün öz domenini qoşun, çapdan sonra hədəfi dəyişən QR kodlar yaradın. Ödəniş dayansa belə mövcud linklər reklamsız işləyir.
+                </p>
+                <div class="s3d-cta-row">
+                  <a class="s3d-pill-btn" href="/register?intent=trial">14 gün pulsuz başla</a>
+                  <a class="s3d-pill-ghost" href="/pricing">Qiymətlərə bax</a>
+                </div>
+              </div>
+
+              <div class="s3d-chapter" data-s3d-ch="2">
+                <h2 class="s3d-h2">Bot-suz statistika və A4 PDF hesabat.</h2>
+                <p class="s3d-desc">
+                  Saxta bot klikləri avtomatik ayrılır. Ayın 1-i CSV ilə 1:1 eyni rəqəmli A4 PDF və canlı müştəri portalı avtomatik hazır olur.
+                </p>
+                <div class="s3d-cta-row">
+                  <a class="s3d-pill-btn" href="/register?intent=trial">İndi sına</a>
+                  <a class="s3d-pill-ghost" href="#liveShortener">Link qısaldıb yoxla ↓</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="s3d-progress" aria-hidden="true">
+              <div class="s3d-dots">
+                <span class="s3d-dot is-active" data-s3d-dot="0"></span>
+                <span class="s3d-dot" data-s3d-dot="1"></span>
+                <span class="s3d-dot" data-s3d-dot="2"></span>
+              </div>
+              <span id="s3dScrollHint">Aşağı sürüşdürün</span>
+            </div>
+          </div>
+
+          <!-- RIGHT: 3D STACKED MONOLITH CARDS (Matches Concept 07 + Peels & Rotates in 3D on Scroll) -->
+          <div class="s3d-stage" id="s3dStage" aria-label="Ovlink 3D Məhsul Kartları">
+
+            <!-- Card 3 (Back layer — A4 PDF & Bot Filter) -->
+            <article class="s3d-card" id="s3dCard2" style="z-index: 1;">
+              <div class="s3d-card-top">
+                <div class="s3d-card-ico"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></div>
+                <span class="s3d-card-tag">03 · Avtomatik Hesabat</span>
+              </div>
+              <div>
+                <div class="s3d-card-title">A4 PDF &amp; Bot Filtri</div>
+                <p class="s3d-card-sub">CSV ilə 1:1 eyni rəqəmlər · Skanerlər və botlar avtomatik təmizlənir</p>
+              </div>
+              <div class="s3d-card-grid">
+                <div class="s3d-mini-box">
+                  <div class="s3d-mini-lbl">Aylıq Göndəriş</div>
+                  <div class="s3d-mini-row"><strong>PDF Hesabat</strong><span>Hər ayın 1-i</span></div>
+                  <div class="s3d-mini-row"><strong>CSV Uyğunluğu</strong><span>1:1 dəqiq</span></div>
+                  <div class="s3d-mini-row"><strong>Bot Filtri</strong><span>Aktiv</span></div>
+                </div>
+                <div class="s3d-mini-box" style="align-items:center;justify-content:center;text-align:center;">
+                  <svg viewBox="0 0 80 80" width="76" height="76" aria-hidden="true">
+                    <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="7"/>
+                    <circle cx="40" cy="40" r="30" fill="none" stroke="#ffffff" stroke-width="7" stroke-dasharray="176 189" stroke-linecap="round" transform="rotate(-90 40 40)"/>
+                  </svg>
+                  <div style="font-size:12px;color:#a1a1aa;margin-top:8px;">Təmiz insan trafiki</div>
+                </div>
+              </div>
+            </article>
+
+            <!-- Card 2 (Middle layer — Custom Domain & Dynamic QR) -->
+            <article class="s3d-card" id="s3dCard1" style="z-index: 2;">
+              <div class="s3d-card-top">
+                <div class="s3d-card-ico"><i class="fa-solid fa-qrcode" aria-hidden="true"></i></div>
+                <span class="s3d-card-tag">02 · Brend &amp; QR</span>
+              </div>
+              <div>
+                <div class="s3d-card-title">Özəl Domen &amp; Dinamik QR</div>
+                <p class="s3d-card-sub">Çapdan sonra hədəfi dəyişin · Avtomatik SSL &amp; DNS yoxlaması</p>
+              </div>
+              <div class="s3d-card-grid">
+                <div class="s3d-mini-box">
+                  <div class="s3d-mini-lbl">Aktiv Domenlər</div>
+                  <div class="s3d-mini-row"><strong>go.brend.az</strong><span>TLS Aktiv</span></div>
+                  <div class="s3d-mini-row"><strong>qr.agentlik.az</strong><span>TLS Aktiv</span></div>
+                  <div class="s3d-mini-row"><strong>UTM Şablonları</strong><span>Hazır</span></div>
+                </div>
+                <div class="s3d-mini-box" style="align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-qrcode" style="font-size:64px;color:#ffffff;opacity:0.9;" aria-hidden="true"></i>
+                  <div style="font-size:11.5px;color:#a1a1aa;margin-top:10px;">SVG / 2048px PNG</div>
+                </div>
+              </div>
+            </article>
+
+            <!-- Card 1 (Front layer — Exact Concept 07 Client Report Dashboard!) -->
+            <article class="s3d-card" id="s3dCard0" style="z-index: 3;">
+              <div class="s3d-card-top">
+                <div class="s3d-card-ico"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></div>
+                <span class="s3d-card-tag">01 · Canlı Portal</span>
+              </div>
+              <div>
+                <div class="s3d-card-title">Müştəri Hesabat Portalı</div>
+                <p class="s3d-card-sub">White-label · Yalnız baxış · İstənilən vaxt ləğv edilən link</p>
+              </div>
+              <div class="s3d-card-grid">
+                <div class="s3d-mini-box">
+                  <div class="s3d-mini-lbl">Klik Dinamikası</div>
+                  <svg viewBox="0 0 220 96" width="100%" height="96" role="img" aria-label="Klik qrafiki">
+                    <defs>
+                      <linearGradient id="s3dGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
+                        <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,84 C32,74 52,58 84,64 C118,70 140,36 172,42 C192,46 205,22 220,14 L220,96 L0,96 Z" fill="url(#s3dGrad)"/>
+                    <path d="M0,84 C32,74 52,58 84,64 C118,70 140,36 172,42 C192,46 205,22 220,14" fill="none" stroke="#ffffff" stroke-width="2"/>
+                  </svg>
+                </div>
+                <div class="s3d-mini-box">
+                  <div class="s3d-mini-lbl">Kanal Bölgüsü</div>
+                  <div style="display:flex;align-items:center;justify-content:center;margin:6px 0;">
+                    <svg viewBox="0 0 64 64" width="58" height="58" aria-hidden="true">
+                      <circle cx="32" cy="32" r="24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="6"/>
+                      <circle cx="32" cy="32" r="24" fill="none" stroke="#ffffff" stroke-width="6" stroke-dasharray="105 151" stroke-linecap="round" transform="rotate(-90 32 32)"/>
+                    </svg>
+                  </div>
+                  <div class="s3d-mini-row"><span>Instagram / QR</span><strong>Canlı</strong></div>
+                </div>
+              </div>
+            </article>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIVE LINK TESTER SECTION -->
+    <section class="s3d-below" id="liveShortener" aria-labelledby="featuresTitle">
+      <div class="s3d-below-shell">
+        <div class="s3d-below-head">
+          <h2 id="featuresTitle" data-i18n="feat_title">İndi 1 link qısaldıb yoxlayın</h2>
+          <p data-i18n="feat_sub">Qeydiyyatsız test edin — özəl domen, QR və canlı müştəri portalları üçün 14 gün pulsuz sınağa başlayın.</p>
         </div>
 
-        <div class="m07-composer-wrap">
-          <div class="m-composer">
-            <form id="shortenForm" action="javascript:void(0);">
-              <div class="m-composer-row">
-                <span class="m-composer-icon"><i class="fa-solid fa-link" aria-hidden="true"></i></span>
-                <input class="m-composer-input" type="url" id="originalUrl" name="originalUrl"
-                  placeholder="https://brendiniz.az/kampaniya"
-                  data-i18n="input_placeholder"
-                  data-i18n-aria="aria_long_url"
-                  autocomplete="off" spellcheck="false" required aria-label="Long URL to shorten" />
-                <button type="submit" class="m-composer-submit" id="shortenSubmitBtn" aria-label="Shorten" data-i18n-aria="shorten_btn" title="Shorten" data-i18n-title="shorten_btn">
-                  <span data-i18n="shorten_btn">Qısalt</span>
-                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                </button>
-              </div>
-
-              <div class="m-composer-meta">
-                <span id="composerGuestHint">
-                  <span>Qeydiyyatsız anında test et ·</span>
-                  <a href="/register?intent=trial">14 gün pulsuz sınaq</a>
-                </span>
-                <span class="m-ws-wrap" id="homeWorkspaceTopWrapper" hidden>
-                  <button type="button" class="m-ws-btn" id="homeWorkspaceDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-controls="homeWorkspaceDropdownMenu">
-                    <i class="fa-regular fa-user" id="homeWorkspaceBtnIcon" aria-hidden="true"></i>
-                    <span id="homeWorkspaceBtnText" data-i18n="workspace_personal">Personal</span>
-                    <i class="fa-solid fa-chevron-down" style="font-size:9px;opacity:.5;" aria-hidden="true"></i>
-                  </button>
-                  <div class="m-ws-panel" id="homeWorkspaceDropdownMenu" role="menu"></div>
-                </span>
-              </div>
-
-              <button type="button" class="m-adv-toggle" id="advancedToggleBtn" aria-expanded="false" aria-controls="advancedPanel">
-                <i class="fa-solid fa-sliders" aria-hidden="true"></i>
-                <span data-i18n="advanced_settings">UTM və əlavə seçimlər</span>
-                <i class="fa-solid fa-chevron-down m-adv-chevron" id="advancedChevron" aria-hidden="true"></i>
+        <div class="m-composer">
+          <form id="shortenForm" action="javascript:void(0);">
+            <div class="m-composer-row">
+              <span class="m-composer-icon"><i class="fa-solid fa-link" aria-hidden="true"></i></span>
+              <input class="m-composer-input" type="url" id="originalUrl" name="originalUrl"
+                placeholder="https://saytiniz.az/kampaniya"
+                data-i18n="input_placeholder"
+                data-i18n-aria="aria_long_url"
+                autocomplete="off" spellcheck="false" required aria-label="Long URL to shorten" />
+              <button type="submit" class="m-composer-submit" id="shortenSubmitBtn" aria-label="Shorten" data-i18n-aria="shorten_btn" title="Shorten" data-i18n-title="shorten_btn">
+                <span data-i18n="shorten_btn">Qısalt</span>
+                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
               </button>
+            </div>
 
-              <div class="m-adv-panel" id="advancedPanel">
-                <div class="m-adv-tabs" role="tablist">
-                  <button type="button" class="m-adv-tab active" data-tab="tab-genel" role="tab" aria-selected="true" aria-controls="tab-genel"><span data-i18n="adv_tab_general">Ümumi</span></button>
-                  <button type="button" class="m-adv-tab" data-tab="tab-utm" role="tab" aria-selected="false" aria-controls="tab-utm"><span data-i18n="adv_tab_utm">UTM</span></button>
-                  <button type="button" class="m-adv-tab" data-tab="tab-cihaz" role="tab" aria-selected="false" aria-controls="tab-cihaz"><span data-i18n="adv_tab_device">Cihaz</span></button>
-                  <button type="button" class="m-adv-tab" data-tab="tab-ab" role="tab" aria-selected="false" aria-controls="tab-ab"><span data-i18n="adv_tab_ab">A/B Test</span></button>
-                </div>
-
-                <div class="m-adv-tab-content active" id="tab-genel" role="tabpanel">
-                  <div class="m-adv-grid">
-                    <div class="m-adv-field">
-                      <label class="m-adv-label" for="customAlias"><span data-i18n="alias_label">Xüsusi alias</span></label>
-                      <input class="m-adv-input" type="text" id="customAlias" name="customLink" placeholder="yaz-2026" autocomplete="off" aria-label="Custom alias" />
-                    </div>
-                    <div class="m-adv-field">
-                      <label class="m-adv-label" for="linkPassword"><span data-i18n="pass_label">Şifrə</span></label>
-                      <input class="m-adv-input" type="password" id="linkPassword" name="linkPassword" placeholder="••••••••" autocomplete="new-password" aria-label="Link password" />
-                    </div>
-                    <div class="m-adv-field">
-                      <label class="m-adv-label" for="expiresAt"><span data-i18n="expiry_date">Bitmə tarixi</span></label>
-                      <input class="m-adv-input" type="datetime-local" id="expiresAt" name="expiresAt" aria-label="Expiration date" />
-                    </div>
-                    <div class="m-adv-field">
-                      <label class="m-adv-label" for="maxClicks"><span data-i18n="max_clicks">Maksimum klik</span></label>
-                      <input class="m-adv-input" type="number" id="maxClicks" name="maxClicks" min="1" placeholder="1000" aria-label="Max clicks" />
-                    </div>
-                    <div class="m-adv-field m-adv-field--full">
-                      <label class="m-adv-label" for="customDomainSelect"><span data-i18n="shorten_domain_label">Domen</span></label>
-                      <select class="m-adv-input" id="customDomainSelect">
-                        <option value="" data-i18n="shorten_domain_default">Standart (ovlink.sbs)</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="m-adv-tab-content" id="tab-utm" role="tabpanel">
-                  <div class="m-adv-grid">
-                    <div class="m-adv-field m-adv-field--full">
-                      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                        <div class="m-adv-field" style="flex:1;">
-                          <label class="m-adv-label" for="utmTemplateSelect"><span data-i18n="adv_utm_params_title">UTM Şablonu</span></label>
-                          <select class="m-adv-input" id="utmTemplateSelect" aria-label="UTM template"></select>
-                        </div>
-                        <button type="button" class="m-adv-save" id="saveUtmTemplateBtn" aria-label="Save UTM template">
-                          <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i>
-                          <span data-i18n="adv_utm_save">Yadda saxla</span>
-                        </button>
-                      </div>
-                    </div>
-                    <div class="m-adv-field">
-                      <label class="m-adv-label" for="utmSource"><span data-i18n="adv_utm_source">Source</span></label>
-                      <input class="m-adv-input" type="text" id="utmSource" placeholder="instagram" aria-label="UTM source" />
-                    </div>
-                    <div class="m-adv-field">
-                      <label class="m-adv-label" for="utmMedium"><span data-i18n="adv_utm_medium">Medium</span></label>
-                      <input class="m-adv-input" type="text" id="utmMedium" placeholder="social" aria-label="UTM medium" />
-                    </div>
-                    <div class="m-adv-field m-adv-field--full">
-                      <label class="m-adv-label" for="utmCampaign"><span data-i18n="adv_utm_campaign">Campaign</span></label>
-                      <input class="m-adv-input" type="text" id="utmCampaign" placeholder="yaz_2026" aria-label="UTM campaign" />
-                    </div>
-                    <div class="m-adv-field">
-                      <label class="m-adv-label" for="utmTerm"><span data-i18n="adv_utm_term">Term</span></label>
-                      <input class="m-adv-input" type="text" id="utmTerm" placeholder="sale" aria-label="UTM term" />
-                    </div>
-                    <div class="m-adv-field">
-                      <label class="m-adv-label" for="utmContent"><span data-i18n="adv_utm_content">Content</span></label>
-                      <input class="m-adv-input" type="text" id="utmContent" placeholder="reels_1" aria-label="UTM content" />
-                    </div>
-                  </div>
-                </div>
-
-                <div class="m-adv-tab-content" id="tab-cihaz" role="tabpanel">
-                  <div class="m-adv-grid">
-                    <div class="m-adv-field m-adv-field--full">
-                      <label class="m-adv-label" for="iosUrl">iOS Redirect</label>
-                      <input class="m-adv-input" type="url" id="iosUrl" placeholder="https://apps.apple.com/..." aria-label="iOS redirect URL" />
-                    </div>
-                    <div class="m-adv-field m-adv-field--full">
-                      <label class="m-adv-label" for="androidUrl">Android Redirect</label>
-                      <input class="m-adv-input" type="url" id="androidUrl" placeholder="https://play.google.com/..." aria-label="Android redirect URL" />
-                    </div>
-                  </div>
-                </div>
-
-                <div class="m-adv-tab-content" id="tab-ab" role="tabpanel">
-                  <div class="m-adv-grid">
-                    <div class="m-adv-field m-adv-field--full">
-                      <label class="m-adv-label" for="originalB">A/B Testing (URL B)</label>
-                      <input class="m-adv-input" type="url" id="originalB" placeholder="https://..." aria-label="Target URL B" />
-                      <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
-                        <span class="m-adv-label" style="white-space:nowrap;">Link A (%)</span>
-                        <input class="m-adv-input" type="number" id="abSplitPercent" min="0" max="100" value="50" style="width:80px;" aria-label="Link A traffic percent" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div id="shortenFeedback" class="m-status" role="alert"></div>
-            </form>
-
-            <div id="result" class="m-result" style="display:none;">
-              <p class="m-result-title">
-                <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
-                <span data-i18n="generated_title">Linkiniz hazırdır</span>
-              </p>
-              <a id="shortUrl" class="m-result-url" href="#" target="_blank" rel="noopener"></a>
-              <div class="m-result-actions">
-                <button id="copyShortBtn" type="button" class="m-cta m-cta--white m-cta--sm">
-                  <i class="fa-regular fa-copy" aria-hidden="true"></i>
-                  <span data-i18n="copy_btn">Kopyala</span>
+            <div class="m-composer-meta">
+              <span id="composerGuestHint">
+                <span>Tam B2B imkanlar üçün</span>
+                <a href="/register?intent=trial">pulsuz hesab açın</a> · <a href="/pricing">Qiymətlər ($7/ay-dan)</a>
+              </span>
+              <span class="m-ws-wrap" id="homeWorkspaceTopWrapper" hidden>
+                <button type="button" class="m-ws-btn" id="homeWorkspaceDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-controls="homeWorkspaceDropdownMenu">
+                  <i class="fa-regular fa-user" id="homeWorkspaceBtnIcon" aria-hidden="true"></i>
+                  <span id="homeWorkspaceBtnText" data-i18n="workspace_personal">Personal</span>
+                  <i class="fa-solid fa-chevron-down" style="font-size:9px;opacity:.5;" aria-hidden="true"></i>
                 </button>
-              </div>
-              <p id="shortenHint" class="m-status" style="margin-top:10px;font-size:12.5px;"></p>
+                <div class="m-ws-panel" id="homeWorkspaceDropdownMenu" role="menu"></div>
+              </span>
             </div>
-          </div>
-        </div>
 
-        <div class="m07-ctas">
-          <a class="m07-btn-white" href="/register?intent=trial" data-i18n="hero_cta_trial">14 gün pulsuz başla</a>
-          <a class="m07-btn-ghost" href="/contact?intent=demo" data-i18n="hero_cta_demo">Demo istə</a>
-        </div>
-      </section>
+            <button type="button" class="m-adv-toggle" id="advancedToggleBtn" aria-expanded="false" aria-controls="advancedPanel">
+              <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+              <span data-i18n="advanced_settings">UTM və əlavə seçimlər</span>
+              <i class="fa-solid fa-chevron-down m-adv-chevron" id="advancedChevron" aria-hidden="true"></i>
+            </button>
 
-      <!-- 2. 3D SCROLL-UNFOLDING MONOLITH WORKSPACE DECK -->
-      <section class="m07-3d-section" id="m07StageWrap" aria-label="Ovlink 3D Panel Görünüşü">
-        <div class="m07-3d-stage" id="m07Stage">
-          <div class="m07-main-deck">
-            <div class="m07-deck-bar">
-              <span><strong>Ovlink</strong> · Agentlik İş Sahəsi</span>
-              <span>Bot Filtri Aktiv · SSL Təsdiqlənib</span>
-            </div>
-            <div class="m07-deck-grid">
-              <div class="m07-deck-left">
-                <div class="m07-deck-title">Kampaniya Linkləri</div>
-                <div class="m07-deck-row">
-                  <div>
-                    <div class="m07-deck-short">go.brend.az/yaz-2026</div>
-                    <div class="m07-deck-meta">Instagram Reels · Vahid UTM şablonu</div>
-                  </div>
-                  <span class="m07-deck-val">Təmiz kliklər</span>
-                </div>
-                <div class="m07-deck-row">
-                  <div>
-                    <div class="m07-deck-short">go.brend.az/stend-qr</div>
-                    <div class="m07-deck-meta">Dinamik QR · Çapdan sonra dəyişdirilə bilər</div>
-                  </div>
-                  <span class="m07-deck-val">SVG / PNG</span>
-                </div>
-                <div class="m07-deck-row">
-                  <div>
-                    <div class="m07-deck-short">go.brend.az/portal</div>
-                    <div class="m07-deck-meta">White-label Müştəri Portalı · Yalnız baxış</div>
-                  </div>
-                  <span class="m07-deck-val">Canlı Hesabat</span>
-                </div>
+            <div class="m-adv-panel" id="advancedPanel">
+              <div class="m-adv-tabs" role="tablist">
+                <button type="button" class="m-adv-tab active" data-tab="tab-genel" role="tab" aria-selected="true" aria-controls="tab-genel"><span data-i18n="adv_tab_general">Ümumi</span></button>
+                <button type="button" class="m-adv-tab" data-tab="tab-utm" role="tab" aria-selected="false" aria-controls="tab-utm"><span data-i18n="adv_tab_utm">UTM</span></button>
+                <button type="button" class="m-adv-tab" data-tab="tab-cihaz" role="tab" aria-selected="false" aria-controls="tab-cihaz"><span data-i18n="adv_tab_device">Cihaz</span></button>
+                <button type="button" class="m-adv-tab" data-tab="tab-ab" role="tab" aria-selected="false" aria-controls="tab-ab"><span data-i18n="adv_tab_ab">A/B Test</span></button>
               </div>
 
-              <div class="m07-deck-right">
-                <div class="m07-deck-title">İnsan Trafiki Axını</div>
-                <svg viewBox="0 0 340 120" width="100%" height="120" role="img" aria-label="Monoxrom klik trendi">
-                  <defs>
-                    <linearGradient id="m07MonoGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18" />
-                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <line x1="0" y1="28" x2="340" y2="28" stroke="rgba(255,255,255,0.06)" />
-                  <line x1="0" y1="68" x2="340" y2="68" stroke="rgba(255,255,255,0.06)" />
-                  <line x1="0" y1="108" x2="340" y2="108" stroke="rgba(255,255,255,0.12)" />
-                  <path d="M0,96 C48,88 76,66 122,58 C168,50 198,68 242,38 C280,16 308,24 340,12 L340,108 L0,108 Z" fill="url(#m07MonoGrad)" />
-                  <path d="M0,96 C48,88 76,66 122,58 C168,50 198,68 242,38 C280,16 308,24 340,12" fill="none" stroke="#ffffff" stroke-width="2" />
-                  <circle cx="340" cy="12" r="3.5" fill="#ffffff" />
-                </svg>
-                <div style="font-size:12.5px;color:#a1a1aa;">Bot və skaner klikləri avtomatik ayrılır · CSV ilə 1:1 eyni rəqəmlər</div>
+              <div class="m-adv-tab-content active" id="tab-genel" role="tabpanel">
+                <div class="m-adv-grid">
+                  <div class="m-adv-field">
+                    <label class="m-adv-label" for="customAlias"><span data-i18n="alias_label">Xüsusi alias</span></label>
+                    <input class="m-adv-input" type="text" id="customAlias" name="customLink" placeholder="yaz-2026" autocomplete="off" aria-label="Custom alias" />
+                  </div>
+                  <div class="m-adv-field">
+                    <label class="m-adv-label" for="linkPassword"><span data-i18n="pass_label">Şifrə</span></label>
+                    <input class="m-adv-input" type="password" id="linkPassword" name="linkPassword" placeholder="••••••••" autocomplete="new-password" aria-label="Link password" />
+                  </div>
+                  <div class="m-adv-field">
+                    <label class="m-adv-label" for="expiresAt"><span data-i18n="expiry_date">Bitmə tarixi</span></label>
+                    <input class="m-adv-input" type="datetime-local" id="expiresAt" name="expiresAt" aria-label="Expiration date" />
+                  </div>
+                  <div class="m-adv-field">
+                    <label class="m-adv-label" for="maxClicks"><span data-i18n="max_clicks">Maksimum klik</span></label>
+                    <input class="m-adv-input" type="number" id="maxClicks" name="maxClicks" min="1" placeholder="1000" aria-label="Max clicks" />
+                  </div>
+                  <div class="m-adv-field m-adv-field--full">
+                    <label class="m-adv-label" for="customDomainSelect"><span data-i18n="shorten_domain_label">Domen</span></label>
+                    <select class="m-adv-input" id="customDomainSelect">
+                      <option value="" data-i18n="shorten_domain_default">Standart (ovlink.sbs)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="m-adv-tab-content" id="tab-utm" role="tabpanel">
+                <div class="m-adv-grid">
+                  <div class="m-adv-field m-adv-field--full">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                      <div class="m-adv-field" style="flex:1;">
+                        <label class="m-adv-label" for="utmTemplateSelect"><span data-i18n="adv_utm_params_title">UTM Şablonu</span></label>
+                        <select class="m-adv-input" id="utmTemplateSelect" aria-label="UTM template"></select>
+                      </div>
+                      <button type="button" class="m-adv-save" id="saveUtmTemplateBtn" aria-label="Save UTM template">
+                        <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i>
+                        <span data-i18n="adv_utm_save">Yadda saxla</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="m-adv-field">
+                    <label class="m-adv-label" for="utmSource"><span data-i18n="adv_utm_source">Source</span></label>
+                    <input class="m-adv-input" type="text" id="utmSource" placeholder="instagram" aria-label="UTM source" />
+                  </div>
+                  <div class="m-adv-field">
+                    <label class="m-adv-label" for="utmMedium"><span data-i18n="adv_utm_medium">Medium</span></label>
+                    <input class="m-adv-input" type="text" id="utmMedium" placeholder="social" aria-label="UTM medium" />
+                  </div>
+                  <div class="m-adv-field m-adv-field--full">
+                    <label class="m-adv-label" for="utmCampaign"><span data-i18n="adv_utm_campaign">Campaign</span></label>
+                    <input class="m-adv-input" type="text" id="utmCampaign" placeholder="yaz_2026" aria-label="UTM campaign" />
+                  </div>
+                  <div class="m-adv-field">
+                    <label class="m-adv-label" for="utmTerm"><span data-i18n="adv_utm_term">Term</span></label>
+                    <input class="m-adv-input" type="text" id="utmTerm" placeholder="sale" aria-label="UTM term" />
+                  </div>
+                  <div class="m-adv-field">
+                    <label class="m-adv-label" for="utmContent"><span data-i18n="adv_utm_content">Content</span></label>
+                    <input class="m-adv-input" type="text" id="utmContent" placeholder="reels_1" aria-label="UTM content" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="m-adv-tab-content" id="tab-cihaz" role="tabpanel">
+                <div class="m-adv-grid">
+                  <div class="m-adv-field m-adv-field--full">
+                    <label class="m-adv-label" for="iosUrl">iOS Redirect</label>
+                    <input class="m-adv-input" type="url" id="iosUrl" placeholder="https://apps.apple.com/..." aria-label="iOS redirect URL" />
+                  </div>
+                  <div class="m-adv-field m-adv-field--full">
+                    <label class="m-adv-label" for="androidUrl">Android Redirect</label>
+                    <input class="m-adv-input" type="url" id="androidUrl" placeholder="https://play.google.com/..." aria-label="Android redirect URL" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="m-adv-tab-content" id="tab-ab" role="tabpanel">
+                <div class="m-adv-grid">
+                  <div class="m-adv-field m-adv-field--full">
+                    <label class="m-adv-label" for="originalB">A/B Testing (URL B)</label>
+                    <input class="m-adv-input" type="url" id="originalB" placeholder="https://..." aria-label="Target URL B" />
+                    <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+                      <span class="m-adv-label" style="white-space:nowrap;">Link A (%)</span>
+                      <input class="m-adv-input" type="number" id="abSplitPercent" min="0" max="100" value="50" style="width:80px;" aria-label="Link A traffic percent" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- 3D Depth Floating Layer -->
-          <div class="m07-float-layer" id="m07FloatCard">
-            <small>Avtomatik Hesabat</small>
-            <strong>A4 PDF + Canlı Portal</strong>
-            <span>Ayın 1-i müştəriyə avtomatik göndərilir.</span>
-          </div>
-        </div>
-      </section>
+            <div id="shortenFeedback" class="m-status" role="alert"></div>
+          </form>
 
-      <!-- 3. SPLIT SECTION WITH 3D SCROLL-REVEAL CARDS -->
-      <section class="m07-split-sec" aria-labelledby="featuresTitle">
-        <div class="m07-split">
-          <div>
-            <h2 id="featuresTitle" data-i18n="feat_title">Agentlik səviyyəsində link və hesabat idarəçiliyi.</h2>
-            <p data-i18n="feat_sub">Excel cədvəlləri və əl ilə ekran görüntüləri əvəzinə hər müştəriyə təmiz, brendli və canlı hesabat verin.</p>
-            <a class="m07-btn-ghost" href="/pricing">Paketlərə bax ($7/ay-dan)</a>
-          </div>
-
-          <div class="m07-stack">
-            <article class="m07-3d-card" data-scroll-card="0">
-              <div class="m07-3d-card-num">01 · ÖZƏL DOMEN &amp; QR</div>
-              <h3>Öz brendinizlə paylaşın</h3>
-              <p>Hər müştəri üçün öz domenini qoşun, çapdan sonra hədəfi dəyişən dinamik QR kodlar yaradın. Ödəniş dayansa belə linklər reklamsız işləyir.</p>
-            </article>
-            <article class="m07-3d-card" data-scroll-card="1">
-              <div class="m07-3d-card-num">02 · BOT FİLTRİ</div>
-              <h3>Yalnız real insan klikləri</h3>
-              <p>Avtomatik filtr botları ayırır — cihaz, şəhər, UTM və kanal nəticələri şəffaf qalır.</p>
-            </article>
-            <article class="m07-3d-card" data-scroll-card="2">
-              <div class="m07-3d-card-num">03 · MÜŞTƏRİ PORTALI</div>
-              <h3>Tək linklə canlı hesabat</h3>
-              <p>Müştəriyə istənilən vaxt ləğv edilən yalnız-baxış portalı və avtomatik A4 PDF göndərin.</p>
-            </article>
+          <div id="result" class="m-result" style="display:none;">
+            <p class="m-result-title">
+              <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+              <span data-i18n="generated_title">Linkiniz hazırdır</span>
+            </p>
+            <a id="shortUrl" class="m-result-url" href="#" target="_blank" rel="noopener"></a>
+            <div class="m-result-actions">
+              <button id="copyShortBtn" type="button" class="m-cta m-cta--white m-cta--sm">
+                <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                <span data-i18n="copy_btn">Kopyala</span>
+              </button>
+            </div>
+            <p id="shortenHint" class="m-status" style="margin-top:10px;font-size:12.5px;"></p>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- 4. QUIET CLOSING -->
-      <section class="m07-close" aria-label="Başla">
-        <div>
-          <h2>2 dəqiqəyə başlayın.</h2>
-          <p>14 gün pulsuz sınaq · Kart tələb olunmur · İstənilən vaxt ləğv et.</p>
-        </div>
-        <div class="m07-ctas">
-          <a class="m07-btn-white" href="/register?intent=trial">14 gün pulsuz başla</a>
-          <a class="m07-btn-ghost" href="/pricing">Qiymətlər</a>
-        </div>
-      </section>
-
-    </div>
   </main>
 
   <%- include('partials/home-footer') %>
@@ -634,58 +642,88 @@
   <script nonce="<%= nonce %>" defer src="/home.js?v=<%= assetVersion %>"></script>
   <script nonce="<%= nonce %>">
     (function () {
-      /* 60fps GPU-accelerated 3D scroll engine (respects prefers-reduced-motion) */
+      /* === TRUE STICKY 3D SCROLLYTELLING ENGINE ===
+         Scroll 0.0 -> 0.5: Card 0 peels/rotates away in 3D, Card 1 glides forward to front
+         Scroll 0.5 -> 1.0: Card 1 peels/rotates away in 3D, Card 2 glides forward to front */
+      var track = document.getElementById('s3dTrack');
+      var cards = [
+        document.getElementById('s3dCard0'),
+        document.getElementById('s3dCard1'),
+        document.getElementById('s3dCard2')
+      ];
+      var chapters = Array.prototype.slice.call(document.querySelectorAll('[data-s3d-ch]'));
+      var dots = Array.prototype.slice.call(document.querySelectorAll('[data-s3d-dot]'));
+      var hint = document.getElementById('s3dScrollHint');
       var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      var stageWrap = document.getElementById('m07StageWrap');
-      var stage = document.getElementById('m07Stage');
-      var floatCard = document.getElementById('m07FloatCard');
-      var cards = Array.prototype.slice.call(document.querySelectorAll('[data-scroll-card]'));
       var ticking = false;
 
-      function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+      function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
-      function update3D() {
+      function renderStack() {
         ticking = false;
-        if (reduced) return;
-        var vh = window.innerHeight || 800;
+        if (!track || !cards[0]) return;
+        var mobile = window.innerWidth <= 920;
+        var rect = track.getBoundingClientRect();
+        var scrollable = Math.max(1, track.offsetHeight - window.innerHeight);
+        var p = mobile || reduced ? 0 : clamp(-rect.top / scrollable, 0, 1);
 
-        if (stageWrap && stage) {
-          var rect = stageWrap.getBoundingClientRect();
-          /* Progress 0 -> 1 as stage enters from bottom to center */
-          var p = clamp((vh - rect.top) / (vh * 0.72), 0, 1);
-          var rotX = (1 - p) * 20;
-          var scale = 0.93 + p * 0.07;
-          var ty = (1 - p) * 28;
-          stage.style.transform = 'rotateX(' + rotX.toFixed(2) + 'deg) scale(' + scale.toFixed(4) + ') translateY(' + ty.toFixed(1) + 'px)';
-          if (floatCard && window.innerWidth > 900) {
-            var fy = (1 - p) * 34 - p * 10;
-            var fRot = (1 - p) * -6;
-            floatCard.style.transform = 'translateZ(48px) translateY(' + fy.toFixed(1) + 'px) rotateY(' + fRot.toFixed(2) + 'deg)';
-          }
+        /* Continuous stage index: 0 -> 2 */
+        var stagePos = p * 2;
+        var activeIdx = stagePos < 0.5 ? 0 : (stagePos < 1.5 ? 1 : 2);
+
+        chapters.forEach(function (ch, idx) {
+          ch.classList.toggle('is-active', idx === activeIdx);
+        });
+        dots.forEach(function (d, idx) {
+          d.classList.toggle('is-active', idx === activeIdx);
+        });
+        if (hint) {
+          hint.textContent = activeIdx === 2 ? 'Link qısaldıb yoxlayın ↓' : 'Aşağı sürüşdürün';
         }
 
         cards.forEach(function (card, idx) {
-          var r = card.getBoundingClientRect();
-          var cp = clamp((vh - r.top - idx * 24) / (vh * 0.45), 0, 1);
-          var cRot = (1 - cp) * 12;
-          var cY = (1 - cp) * 26;
-          card.style.transform = 'rotateX(' + cRot.toFixed(2) + 'deg) translateY(' + cY.toFixed(1) + 'px)';
-          card.style.opacity = (0.35 + cp * 0.65).toFixed(3);
+          if (!card) return;
+          /* diff = 0 when this card is front & center; >0 when behind; <0 when peeling away */
+          var diff = idx - stagePos;
+
+          if (diff >= 0) {
+            /* Card sits at front (0) or stacked neatly behind in 3D depth (exact Concept 07 fan!) */
+            var tx = diff * 22;
+            var ty = diff * -16;
+            var tz = diff * -90;
+            var rotY = -6 - diff * 5;
+            var rotX = 3 + diff * 2;
+            var scale = 1 - diff * 0.055;
+            var op = clamp(1 - diff * 0.22, 0.35, 1);
+            card.style.transform = 'translate3d(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px,' + tz.toFixed(1) + 'px) rotateY(' + rotY.toFixed(2) + 'deg) rotateX(' + rotX.toFixed(2) + 'deg) scale(' + scale.toFixed(4) + ')';
+            card.style.opacity = op.toFixed(3);
+            card.style.zIndex = String(10 - idx);
+          } else {
+            /* Card peels up, forward & rotates out cleanly in 3D space */
+            var out = clamp(-diff, 0, 1);
+            var txOut = out * -90;
+            var tyOut = out * -140;
+            var tzOut = out * 160;
+            var rotYOut = -6 + out * 26;
+            var rotXOut = 3 + out * 18;
+            var opOut = clamp(1 - out * 1.45, 0, 1);
+            card.style.transform = 'translate3d(' + txOut.toFixed(1) + 'px,' + tyOut.toFixed(1) + 'px,' + tzOut.toFixed(1) + 'px) rotateY(' + rotYOut.toFixed(2) + 'deg) rotateX(' + rotXOut.toFixed(2) + 'deg)';
+            card.style.opacity = opOut.toFixed(3);
+            card.style.zIndex = String(20 - idx);
+          }
         });
       }
 
       function onScroll() {
         if (!ticking) {
           ticking = true;
-          window.requestAnimationFrame(update3D);
+          window.requestAnimationFrame(renderStack);
         }
       }
 
-      if (!reduced) {
-        window.addEventListener('scroll', onScroll, { passive: true });
-        window.addEventListener('resize', onScroll, { passive: true });
-        update3D();
-      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll, { passive: true });
+      renderStack();
 
       /* Advanced composer toggle & tabs */
       var advBtn = document.getElementById('advancedToggleBtn');
