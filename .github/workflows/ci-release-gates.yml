@@ -1,0 +1,64 @@
+name: Ovlink SaaS Release Gates (P48)
+
+on:
+  push:
+    branches: [ main, "feat/saas-*" ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  release-gates:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.8-alpine
+        env:
+          POSTGRES_USER: ovlink_ci
+          POSTGRES_PASSWORD: ovlink_ci_password
+          POSTGRES_DB: ovlink_ci_qa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Gate 1 — Syntax & Static Checks
+        run: node scripts/check-syntax.js
+
+      - name: Gate 2 — Release Readiness Structural Gate
+        run: node scripts/release-gate-check.js
+
+      - name: Gate 3 — Full Unit, Contract & Real PostgreSQL/Redis Integration Suite
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgres://ovlink_ci:ovlink_ci_password@127.0.0.1:5432/ovlink_ci_qa
+          REDIS_URL: redis://127.0.0.1:6379
+          SESSION_SECRET: ci_only_test_session_secret_64_bytes_minimum_length_1234567890abcdef
+        run: npm test
+
+      - name: Gate 4 — High-Severity Dependency Security Audit
+        run: npm audit --audit-level=high --omit=dev
