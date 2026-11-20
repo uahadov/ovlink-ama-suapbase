@@ -30,6 +30,9 @@
             <a href="/privacy" data-i18n="privacy_policy">Privacy Policy</a>
             <a href="/terms" data-i18n="terms_policy">Terms of Use</a>
             <a href="/cookie-policy" data-i18n="cookie_policy">Cookie Policy</a>
+            <a href="/legal/dpa">DPA &amp; EU SCC</a>
+            <a href="/legal/subprocessors">Subprocessors</a>
+            <a href="/legal/kvkk">KVKK</a>
             <a href="/abuse-safety" data-i18n="abuse_safety_link">Abuse &amp; Safety</a>
           </div>
         </div>
@@ -72,28 +75,41 @@
 <!-- Cookie banner -->
 <div class="m-cookie" id="cookieBanner" hidden>
   <p>
-    <span data-i18n="cookie_text">This site uses cookies to improve your experience.</span>
-    <a href="/privacy" data-i18n="cookie_more_info" style="margin-left:5px;">Learn more</a>
+    <span data-i18n="cookie_text">Ovlink giriş və təhlükəsizlik üçün zəruri kukilərdən istifadə edir. Analitika kukiləri yalnız açıq razılığınızla aktivləşdirilir.</span>
+    <a href="/cookie-policy" data-i18n="cookie_more_info" style="margin-left:5px;">Ətraflı</a>
   </p>
-  <button id="acceptCookieBtn" class="m-cta m-cta--white m-cta--sm" type="button">
-    <span data-i18n="cookie_accept">OK</span>
-  </button>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <button id="rejectCookieBtn" class="m-cta m-cta--outline m-cta--sm" type="button">
+      <span data-i18n="cookie_reject">Yalnız zərurilər</span>
+    </button>
+    <button id="acceptCookieBtn" class="m-cta m-cta--white m-cta--sm" type="button">
+      <span data-i18n="cookie_accept">Hamısını qəbul et</span>
+    </button>
+  </div>
 </div>
 
 <script nonce="<%= (typeof nonce !== 'undefined' ? nonce : '') %>">
 (function(){
   var cookieBanner = document.getElementById('cookieBanner');
   var acceptCookieBtn = document.getElementById('acceptCookieBtn');
+  var rejectCookieBtn = document.getElementById('rejectCookieBtn');
+  window.ovlinkCookieConsentAllowed = function() {
+    try { return localStorage.getItem('cookieConsentMode') === 'all'; } catch(_) { return false; }
+  };
   if (!cookieBanner) return;
   var hasConsent = false;
-  try { hasConsent = localStorage.getItem('cookieConsent') === 'true'; } catch(_){}
+  try { hasConsent = localStorage.getItem('cookieConsent') === 'true' || !!localStorage.getItem('cookieConsentMode'); } catch(_){}
   if (!hasConsent) cookieBanner.hidden = false;
-  if (acceptCookieBtn) {
-    acceptCookieBtn.addEventListener('click', function(){
-      try { localStorage.setItem('cookieConsent', 'true'); } catch(_){}
-      cookieBanner.hidden = true;
-    });
+  function saveCookieChoice(mode) {
+    try {
+      localStorage.setItem('cookieConsent', 'true');
+      localStorage.setItem('cookieConsentMode', mode);
+    } catch(_){}
+    cookieBanner.hidden = true;
+    try { window.dispatchEvent(new CustomEvent('ovlink:cookie-consent', { detail: { mode: mode } })); } catch(_){}
   }
+  if (acceptCookieBtn) acceptCookieBtn.addEventListener('click', function(){ saveCookieChoice('all'); });
+  if (rejectCookieBtn) rejectCookieBtn.addEventListener('click', function(){ saveCookieChoice('essential'); });
 })();
 
 (function(){

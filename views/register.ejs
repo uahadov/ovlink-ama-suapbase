@@ -77,6 +77,15 @@
               </div>
             </div>
 
+            <div class="m-auth-field" style="margin-top: 12px;">
+              <label for="regConsentCheck" style="display:flex; align-items:flex-start; gap:10px; font-size:12.5px; line-height:1.5; color:var(--c-muted); cursor:pointer;">
+                <input type="checkbox" id="regConsentCheck" name="consent_accepted" required style="margin-top:3px; flex-shrink:0;">
+                <span id="regConsentLabel">
+                  Hesabımın yaradılması məqsədilə fərdi məlumatlarımın (e-poçt, iş sahəsi) işlənilməsinə və xidmət infrastrukturu (bulud hostinq, e-poçt, Polar.sh) üzrə transsərhəd ötürülməsinə açıq razılıq verirəm (AR Qanunu № 998-IIIQ, Maddə 8.2 &amp; 14.3). <a href="/privacy" style="color:#93c5fd;">Məxfilik</a>, <a href="/terms" style="color:#93c5fd;">Şərtlər</a>, <a href="/legal/subprocessors" style="color:#93c5fd;">Subprocessor-lər</a> və <a href="/legal/kvkk" style="color:#93c5fd;">KVKK</a> ilə tanış oldum.
+                </span>
+              </label>
+            </div>
+
             <button type="submit" id="regSubmitBtn" class="m-cta m-cta--white m-auth-submit">
               <span data-i18n="register_btn">Qeydiyyatdan Keç</span> <i class="fa-solid fa-arrow-right ms-2" aria-hidden="true"></i>
             </button>
@@ -172,8 +181,19 @@
       e.preventDefault();
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
+      const consentChecked = !!document.getElementById('regConsentCheck')?.checked;
       const msg = document.getElementById('regMessage');
       const activeLang = (typeof currentLang !== 'undefined') ? currentLang : 'az';
+
+      if (!consentChecked) {
+        msg.className = "m-auth-msg text-danger";
+        msg.textContent = activeLang === 'az'
+          ? "Davam etmək üçün fərdi məlumatların işlənilməsinə və transsərhəd ötürülməsinə razılıq verməlisiniz."
+          : (activeLang === 'en'
+            ? "Please accept the data processing and cross-border transfer consent to register."
+            : "Devam etmek için kişisel verilerin işlenmesi ve yurt dışına aktarımı rızasını onaylayın.");
+        return;
+      }
 
       msg.textContent = activeLang === 'az' ? "İşlənilir..." : (activeLang === 'en' ? "Processing..." : "İşleniyor...");
       msg.className = "m-auth-msg text-muted";
@@ -182,7 +202,7 @@
         if (!getCsrfToken()) {
           await refreshCsrfToken();
         }
-        const res = await postJsonWithCsrf('/api/register', { email, password, lang: activeLang });
+        const res = await postJsonWithCsrf('/api/register', { email, password, lang: activeLang, consent_accepted: true });
         const data = await res.json();
 
         if (res.ok) {

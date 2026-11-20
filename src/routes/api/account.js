@@ -63,8 +63,18 @@ router.post('/api/register',
       return res.status(400).json({ error: msg });
     }
 
-    const { email, password, lang } = req.body;
+    const { email, password, lang, consent_accepted } = req.body;
     const uiLang = normalizeLang(lang, 'az');
+    if (consent_accepted === false) {
+      return res.status(400).json({
+        error: pickLang(
+          uiLang,
+          'Qeydiyyat üçün fərdi məlumatların işlənilməsinə və transsərhəd ötürülməsinə razılıq tələb olunur.',
+          'Kayıt için kişisel verilerin işlenmesi ve yurt dışına aktarımı rızası gereklidir.',
+          'Explicit consent for personal data processing and cross-border transfer is required.'
+        )
+      });
+    }
     if (!email || !password)
       return res.status(400).json({ error: pickLang(uiLang, 'E-poçt və şifrə tələb olunur.', 'E-posta ve şifre gerekli.', 'Email and password are required.') });
 

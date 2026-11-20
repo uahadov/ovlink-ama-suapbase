@@ -202,6 +202,154 @@ router.get('/cookie-policy.html', (req, res) => {
   res.render('cookie-policy', { csrfToken: res.locals._csrf, seo });
 });
 
+router.get('/legal/dpa', (req, res) => {
+  const seo = buildSeo(req, {
+    path: '/legal/dpa',
+    titleAz: 'Data Processing Addendum (DPA) & EU SCC - Ovlink',
+    titleTr: 'Veri İşleme Eki (DPA) & EU SCC - Ovlink',
+    titleEn: 'Data Processing Addendum (DPA) & EU SCC - Ovlink',
+    descAz: 'Ovlink GDPR Maddə 28, EU SCC 2021/914, IP anonimləşdirmə və Azərbaycan 454-VIIQD insident bildirişi öhdəlikləri.',
+    descTr: 'Ovlink GDPR Madde 28, EU SCC 2021/914 ve KVKK Standart Sözleşme - 2 veri işleme koşulları.',
+    descEn: 'Ovlink GDPR Article 28 Data Processing Addendum, EU SCC 2021/914 Module 2, and privacy safeguards.'
+  });
+  res.render('legal-doc', {
+    csrfToken: res.locals._csrf,
+    seo,
+    doc: {
+      badge: 'GDPR Art. 28 · EU SCC 2021/914 · AZ 998-IIIQ',
+      title: 'Data Processing Addendum (DPA)',
+      subtitle: 'Standard B2B data processing terms, privacy-by-design IP anonymization, and international transfer safeguards for Ovlink customers.',
+      updatedAt: '2026-11-20',
+      sections: [
+        {
+          heading: '1. Roles of the Parties & Scope',
+          body: 'For account administration, authentication, and platform security, Ovlink acts as Data Controller. For short-link click analytics, QR routing, and campaign attribution processed on behalf of B2B agencies and business accounts ("Customer"), Customer acts as Data Controller and Ovlink acts as Data Processor under GDPR Article 28.'
+        },
+        {
+          heading: '2. Privacy-by-Design & Rotating-Salt IP Anonymization',
+          body: 'Raw visitor IP addresses are not stored in analytical click tables. Country/region metadata is derived transiently and unique-click counting uses a one-way cryptographic hash with a rotating salt aligned with EDPB Guidelines 01/2025 and 02/2026 so visitors cannot be re-identified.'
+        },
+        {
+          heading: '3. Security, Audit Trail & Honest Certifications',
+          body: 'Ovlink enforces TLS encryption in transit (minimum 256-bit cryptographic standards per Azerbaijan Cabinet Decision No. 161), role-based access control, audit logging, and verified PostgreSQL backup/restore procedures. Ovlink makes no unverified third-party certification claims (such as SOC 2 or ISO 27001).'
+        },
+        {
+          heading: '4. Data Subject Rights & Incident Notification',
+          body: 'Ovlink provides self-service data export and verified deletion tools to support statutory deadlines (7 business days under Azerbaijan Law No. 998-IIIQ Article 12.4; 30 days under GDPR). Confirmed personal data breaches are reported to affected Customers without undue delay and to Azerbaijan National CERT immediately as required by Law No. 454-VIIQD Article 20-11.2.'
+        },
+        {
+          heading: '5. Cross-Border Transfers (EU SCC & Turkey KVKK SS-2)',
+          body: 'Because Azerbaijan does not currently hold an EU adequacy decision, EEA personal data transfers from Customer (Controller) to Ovlink (Processor) incorporate the European Commission Standard Contractual Clauses (Decision (EU) 2021/914, Module Two: Controller-to-Processor). For B2B Customers established in Türkiye, Ovlink executes KVKK Standart Sözleşme – 2 (Veri Sorumlusundan Veri İşleyene) upon request for the mandatory 5-business-day KVKK portal notification.',
+          links: [
+            { label: 'EU SCC Decision 2021/914 (EUR-Lex)', href: 'https://eur-lex.europa.eu/eli/dec_impl/2021/914/oj/eng' },
+            { label: 'KVKK Standart Sözleşme – 2', href: 'https://www.kvkk.gov.tr/Icerik/7931/Kisisel-Verilerin-Yurt-Disina-Aktarilmasinda-Kullanilacak-Standart-Sozlesme-2-Veri-Sorumlusundan-Veri-Isleyene-' }
+          ]
+        }
+      ]
+    }
+  });
+});
+
+router.get('/legal/subprocessors', (req, res) => {
+  const seo = buildSeo(req, {
+    path: '/legal/subprocessors',
+    titleAz: 'Subprocessor Siyahısı - Ovlink',
+    titleTr: 'Alt İşleyenler (Subprocessors) - Ovlink',
+    titleEn: 'Subprocessors - Ovlink',
+    descAz: 'Ovlink xidmətinin texniki infrastruktur, ödəniş (Polar.sh MoR), e-poçt və isteğe bağlı analitika təchizatçıları.',
+    descTr: 'Ovlink teknik altyapı, ödeme (Polar.sh MoR) ve e-posta alt işleyen listesi.',
+    descEn: 'Ovlink public list of infrastructure, payment (Polar.sh MoR), email, and optional analytics subprocessors.'
+  });
+  res.render('legal-doc', {
+    csrfToken: res.locals._csrf,
+    seo,
+    doc: {
+      badge: 'GDPR Art. 28(2) · AZ 998-IIIQ Art. 14',
+      title: 'Subprocessors & Infrastructure',
+      subtitle: 'Transparent list of third-party providers used to operate Ovlink. Updated before onboarding new material subprocessors.',
+      updatedAt: '2026-11-20',
+      table: {
+        heading: 'Active & Optional Subprocessors',
+        headers: ['Provider', 'Purpose', 'Region', 'Privacy Policy'],
+        rows: [
+          {
+            name: 'Primary Cloud VPS & PostgreSQL Host',
+            role: 'Application hosting, PostgreSQL database, and encrypted backups',
+            region: 'EU / EEA Infrastructure',
+            url: '',
+            urlLabel: 'Published per live deployment environment'
+          },
+          {
+            name: 'Polar Software Inc. (Polar.sh) & Stripe',
+            role: 'Merchant of Record (MoR): checkout, invoicing, global VAT/sales tax, PCI DSS payment processing',
+            region: 'US / Global (EU SCC)',
+            url: 'https://polar.sh/legal/sub-processors',
+            urlLabel: 'polar.sh/legal/sub-processors'
+          },
+          {
+            name: 'Transactional Email Provider (SMTP / API)',
+            role: 'Account verification codes, team invitations, and opt-in scheduled reports',
+            region: 'EU / US',
+            url: '',
+            urlLabel: 'Configured via environment settings'
+          },
+          {
+            name: 'Google Analytics 4 (Optional, Opt-In Only)',
+            role: 'Loaded only when explicitly consented by visitor or connected by workspace owner (read-only pilot)',
+            region: 'US / EU',
+            url: 'https://policies.google.com/privacy',
+            urlLabel: 'policies.google.com/privacy'
+          }
+        ]
+      }
+    }
+  });
+});
+
+router.get('/legal/kvkk', (req, res) => {
+  const seo = buildSeo(req, {
+    path: '/legal/kvkk',
+    titleAz: 'KVKK Aydınlatma Metni - Ovlink',
+    titleTr: 'KVKK Aydınlatma Metni - Ovlink',
+    titleEn: 'KVKK Privacy Notice (Türkiye) - Ovlink',
+    descAz: '6698 saylı Türkiyə KVKK qanunu üzrə Ovlink aydınlatma mətni və Standart Sözleşme - 2 məlumatı.',
+    descTr: '6698 sayılı KVKK Madde 10 uyarınca Ovlink Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni.',
+    descEn: 'Ovlink Turkish KVKK (Law No. 6698) Article 10 privacy notice and Standart Sözleşme - 2 transfer information.'
+  });
+  res.render('legal-doc', {
+    csrfToken: res.locals._csrf,
+    seo,
+    doc: {
+      badge: '6698 Sayılı KVKK · Madde 10 & 11',
+      title: 'KVKK Aydınlatma Metni',
+      subtitle: 'Ovlink (ovlink.sbs) tarafından işlenen kişisel verilere ilişkin 6698 sayılı Kanun uyarınca bilgilendirme.',
+      updatedAt: '2026-11-20',
+      sections: [
+        {
+          heading: '1. Veri Sorumlusu',
+          body: 'Ovlink (ovlink.sbs, İletişim: support@ovlink.sbs, Azerbaycan). Ücretli ticari satış başladığında resmi vergi/işletme unvanı site alt bilgisinde (footer) ayrıca yayımlanır.'
+        },
+        {
+          heading: '2. İşlenen Kişisel Veriler ve Amaçları',
+          body: 'Hesap oluşturma, kimlik doğrulama, çalışma alanı yönetimi ve teknik destek kapsamında e-posta adresi, kullanıcı bilgileri ve güvenlik/denetim kayıtları işlenir. Kısa link tıklama analizlerinde ham IP adresi saklanmaz; istatistikler anonimleştirilmiş biçimde üretilir.'
+        },
+        {
+          heading: '3. Hukuki Sebepler ve Çerezler',
+          body: 'Kişisel veriler 6698 sayılı KVKK Madde 5 kapsamında sözleşmenin kurulması/ifası, hukuki yükümlülüklerin yerine getirilmesi, meşru menfaat ve analitik çerezler ile yurt dışı aktarım hallerinde açık rıza hukuki sebeplerine dayanılarak işlenir. Zorunlu olmayan analitik çerezler (GA4 vb.) yalnızca açık rızanızla (opt-in) etkinleştirilir.'
+        },
+        {
+          heading: '4. Yurt Dışına Aktarım ve Standart Sözleşme – 2',
+          body: 'Hizmet altyapısı (bulut sunucu, e-posta dağıtımı, Polar.sh ödeme altyapısı) nedeniyle veriler yurt dışına aktarılabilir. Türkiye’deki kurumsal (B2B) müşterilerle düzenli veri aktarımı söz konusu olduğunda, KVKK Madde 9 kapsamında Kurul tarafından yayımlanan Standart Sözleşme – 2 imzalanarak 5 iş günü içinde KVKK sistemine bildirim yapılmasına destek sağlanır.'
+        },
+        {
+          heading: '5. İlgili Kişinin Hakları (KVKK Madde 11)',
+          body: 'Verilerinizin işlenip işlenmediğini öğrenme, bilgi talep etme, düzeltilmesini veya silinmesini isteme ve itiraz etme haklarınızı hesap içi veri dışa aktarma/silme araçlarından veya support@ovlink.sbs adresine başvurarak ücretsiz kullanabilirsiniz.'
+        }
+      ]
+    }
+  });
+});
+
 router.get('/about', (req, res) => {
   const seo = buildSeo(req, {
     path: '/about',

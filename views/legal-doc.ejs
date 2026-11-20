@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="<%= (seo && seo.lang) ? seo.lang : 'en' %>" dir="<%= (typeof dir !== 'undefined' && dir) ? dir : 'ltr' %>">
+
+<head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="icon" href="/favicon.ico?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="apple-touch-icon" href="/logo.png?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title><%= (seo && seo.title) ? seo.title : (doc && doc.title ? doc.title + ' - Ovlink' : 'Legal - Ovlink') %></title>
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=<%= (typeof assetVersion !== 'undefined' ? assetVersion : '1') %>" />
+  <link rel="stylesheet" href="/home.css?v=<%= assetVersion %>" />
+  <meta name="description" content="<%= (seo && seo.description) ? seo.description : '' %>" />
+  <link rel="canonical" href="<%= (seo && seo.canonical) ? seo.canonical : '' %>" />
+  <style nonce="<%= nonce %>">
+    .legal-doc-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 28px; margin-bottom: 20px; }
+    .legal-doc-card h2 { font-size: 20px; margin: 0 0 12px; color: var(--c-white, #fff); }
+    .legal-doc-card p, .legal-doc-card li { font-size: 15px; line-height: 1.65; color: var(--c-muted, #cbd5e1); }
+    .legal-doc-card ul, .legal-doc-card ol { padding-left: 20px; margin: 10px 0 0; }
+    .legal-doc-card a { color: #93c5fd; text-decoration: underline; }
+    .legal-doc-table-wrap { width: 100%; overflow-x: auto; margin-top: 12px; }
+    .legal-doc-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+    .legal-doc-table th, .legal-doc-table td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.1); vertical-align: top; }
+    .legal-doc-table th { color: var(--c-white, #fff); font-weight: 600; }
+    .legal-doc-table td { color: var(--c-muted, #cbd5e1); }
+    .legal-doc-meta { font-size: 13px; color: var(--c-muted, #94a3b8); margin-top: 8px; }
+  </style>
+</head>
+
+<body class="ovx home-page legal-page">
+  <a href="#mainContent" class="m-skip-link" data-i18n="skip_to_content">Skip to content</a>
+  <div id="cursorGlow" aria-hidden="true"></div>
+
+  <%- include('partials/home-navbar') %>
+
+  <main class="m-page-shell m-page-shell--top" id="mainContent">
+    <div class="shell" style="max-width: 960px; width: 100%;">
+      <section class="m-content-hero" aria-labelledby="legalDocHeading">
+        <div class="m-hero-eyebrow mb-3" style="display:inline-flex; align-items:center; gap:8px; margin-bottom: 16px;">
+          <span class="m-live-dot" aria-hidden="true"></span>
+          <span><%= doc.badge || 'Ovlink Legal' %></span>
+        </div>
+        <h1 id="legalDocHeading"><%= doc.title %></h1>
+        <p><%= doc.subtitle %></p>
+        <div class="legal-doc-meta">Son yenilənmə / Last updated: <%= doc.updatedAt || '2026-11-20' %> · Əlaqə / Contact: <a href="mailto:support@ovlink.sbs" style="color:#93c5fd;">support@ovlink.sbs</a></div>
+      </section>
+
+      <% if (Array.isArray(doc.sections)) { %>
+        <% doc.sections.forEach(function(sec) { %>
+          <article class="legal-doc-card">
+            <h2><%= sec.heading %></h2>
+            <% if (sec.body) { %><p><%= sec.body %></p><% } %>
+            <% if (Array.isArray(sec.items) && sec.items.length) { %>
+              <ul>
+                <% sec.items.forEach(function(item) { %>
+                  <li><%= item %></li>
+                <% }); %>
+              </ul>
+            <% } %>
+            <% if (sec.links && sec.links.length) { %>
+              <p style="margin-top: 12px;">
+                <% sec.links.forEach(function(lnk, idx) { %>
+                  <a href="<%= lnk.href %>" target="_blank" rel="noopener noreferrer"><%= lnk.label %></a><%= idx < sec.links.length - 1 ? ' · ' : '' %>
+                <% }); %>
+              </p>
+            <% } %>
+          </article>
+        <% }); %>
+      <% } %>
+
+      <% if (doc.table && Array.isArray(doc.table.rows)) { %>
+        <article class="legal-doc-card">
+          <h2><%= doc.table.heading %></h2>
+          <div class="legal-doc-table-wrap">
+            <table class="legal-doc-table">
+              <thead>
+                <tr>
+                  <% doc.table.headers.forEach(function(h) { %>
+                    <th><%= h %></th>
+                  <% }); %>
+                </tr>
+              </thead>
+              <tbody>
+                <% doc.table.rows.forEach(function(r) { %>
+                  <tr>
+                    <td><strong><%= r.name %></strong></td>
+                    <td><%= r.role %></td>
+                    <td><%= r.region %></td>
+                    <td>
+                      <% if (r.url) { %>
+                        <a href="<%= r.url %>" target="_blank" rel="noopener noreferrer"><%= r.urlLabel || r.url %></a>
+                      <% } else { %>
+                        <%= r.urlLabel || '—' %>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      <% } %>
+    </div>
+  </main>
+
+  <%- include('partials/home-footer') %>
+  <script nonce="<%= nonce %>" src="/lang.js?v=<%= assetVersion %>"></script>
+  <script nonce="<%= nonce %>" src="/script.js?v=<%= assetVersion %>"></script>
+</body>
+
+</html>
